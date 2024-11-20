@@ -9,6 +9,7 @@ import android.view.SurfaceView;
 public class StreamView extends SurfaceView {
     private double desiredAspectRatio;
     private InputCallbacks inputCallbacks;
+    // private boolean enableCenter = false;
 
     public void setDesiredAspectRatio(double aspectRatio) {
         this.desiredAspectRatio = aspectRatio;
@@ -17,6 +18,18 @@ public class StreamView extends SurfaceView {
     public void setInputCallbacks(InputCallbacks callbacks) {
         this.inputCallbacks = callbacks;
     }
+
+    // public void setEnableCenter(boolean enable) {
+    //     // 当更改状态时，重新布局
+    //     if (this.enableCenter!= enable)
+    //         this.enableCenter = enable;
+    //         requestlayout();
+    // }
+
+    // public boolean isEnableCenter() {
+    //     // 返回是否启用居中
+    //     return enableCenter;
+    // }
 
     public StreamView(Context context) {
         super(context);

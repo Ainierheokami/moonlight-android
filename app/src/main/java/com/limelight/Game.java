@@ -87,6 +87,8 @@ import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.util.Locale;
 
+// 2024-11-20 14:37:38 添加全屏居中
+import android.view.Gravity;
 
 public class Game extends Activity implements SurfaceHolder.Callback,
         OnGenericMotionListener, OnTouchListener, NvConnectionListener, EvdevListener,
@@ -222,7 +224,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         // Enter landscape unless we're on a square screen
         setPreferredOrientationForCurrentDisplay();
 
-        if (prefConfig.stretchVideo || shouldIgnoreInsetsForResolution(prefConfig.width, prefConfig.height)) {
+        if (prefConfig.stretchVideo || prefConfig.centerVideo || shouldIgnoreInsetsForResolution(prefConfig.width, prefConfig.height) ) {
             // Allow the activity to layout under notches if the fill-screen option
             // was turned on by the user or it's a full-screen native resolution
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
@@ -240,6 +242,10 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         streamView.setOnGenericMotionListener(this);
         streamView.setOnKeyListener(this);
         streamView.setInputCallbacks(this);
+
+        // 2024-11-20 14:37:38 添加全屏居中
+        FrameLayout.LayoutParams params = (FrameLayout.LayoutParams) streamView.getLayoutParams();
+        params.gravity = Gravity.CENTER;
 
         // Listen for touch events on the background touch view to enable trackpad mode
         // to work on areas outside of the StreamView itself. We use a separate View
@@ -942,7 +948,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
                 aspectRatioMatch = true;
             }
         }
-
+        
         if (prefConfig.stretchVideo || aspectRatioMatch) {
             // Set the surface to the size of the video
             streamView.getHolder().setFixedSize(prefConfig.width, prefConfig.height);
