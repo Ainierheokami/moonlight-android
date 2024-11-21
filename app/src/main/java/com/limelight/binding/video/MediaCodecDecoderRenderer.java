@@ -37,6 +37,11 @@ import android.util.Range;
 import android.view.Choreographer;
 import android.view.SurfaceHolder;
 
+import com.limelight.heokami.TemplateRenderer;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Locale;
+
 public class MediaCodecDecoderRenderer extends VideoDecoderRenderer implements Choreographer.FrameCallback {
 
     private static final boolean USE_FRAME_RENDER_TIME = false;
@@ -1423,42 +1428,62 @@ public class MediaCodecDecoderRenderer extends VideoDecoderRenderer implements C
 
         // Flip stats windows roughly every second
         if (SystemClock.uptimeMillis() >= activeWindowVideoStats.measurementStartTimestamp + 1000) {
-            if (prefs.enablePerfOverlay) {
+            if (prefs.enablePerfOverlay || prefs.enableSimplifyPerfOverlay) {
                 VideoStats lastTwo = new VideoStats();
                 lastTwo.add(lastWindowVideoStats);
                 lastTwo.add(activeWindowVideoStats);
                 VideoStatsFps fps = lastTwo.getFps();
-                String decoder;
 
+                String decoder = "(unknown)";
+                String simplify_decoder = "(?)";
                 if ((videoFormat & MoonBridge.VIDEO_FORMAT_MASK_H264) != 0) {
                     decoder = avcDecoder.getName();
+                    simplify_decoder = "H264";
                 } else if ((videoFormat & MoonBridge.VIDEO_FORMAT_MASK_H265) != 0) {
                     decoder = hevcDecoder.getName();
+                    simplify_decoder = "H265";
                 } else if ((videoFormat & MoonBridge.VIDEO_FORMAT_MASK_AV1) != 0) {
                     decoder = av1Decoder.getName();
-                } else {
-                    decoder = "(unknown)";
+                    simplify_decoder = "AV1";
                 }
 
                 float decodeTimeMs = (float)lastTwo.decoderTimeMs / lastTwo.totalFramesReceived;
                 long rttInfo = MoonBridge.getEstimatedRttInfo();
-                StringBuilder sb = new StringBuilder();
-                sb.append(context.getString(R.string.perf_overlay_streamdetails, initialWidth + "x" + initialHeight, fps.totalFps)).append('\n');
-                sb.append(context.getString(R.string.perf_overlay_decoder, decoder)).append('\n');
-                sb.append(context.getString(R.string.perf_overlay_incomingfps, fps.receivedFps)).append('\n');
-                sb.append(context.getString(R.string.perf_overlay_renderingfps, fps.renderedFps)).append('\n');
-                sb.append(context.getString(R.string.perf_overlay_netdrops,
-                        (float)lastTwo.framesLost / lastTwo.totalFrames * 100)).append('\n');
-                sb.append(context.getString(R.string.perf_overlay_netlatency,
-                        (int)(rttInfo >> 32), (int)rttInfo)).append('\n');
-                if (lastTwo.framesWithHostProcessingLatency > 0) {
-                    sb.append(context.getString(R.string.perf_overlay_hostprocessinglatency,
+
+                if (prefs.enablePerfOverlay){
+                    StringBuilder sb = new StringBuilder();
+                    sb.append(context.getString(R.string.perf_overlay_streamdetails, initialWidth + "x" + initialHeight, fps.totalFps)).append('\n');
+                    sb.append(context.getString(R.string.perf_overlay_decoder, decoder)).append('\n');
+                    sb.append(context.getString(R.string.perf_overlay_incomingfps, fps.receivedFps)).append('\n');
+                    sb.append(context.getString(R.string.perf_overlay_renderingfps, fps.renderedFps)).append('\n');
+                    sb.append(context.getString(R.string.perf_overlay_netdrops,
+                            (float)lastTwo.framesLost / lastTwo.totalFrames * 100)).append('\n');
+                    sb.append(context.getString(R.string.perf_overlay_netlatency,
+                            (int)(rttInfo >> 32), (int)rttInfo)).append('\n');
+                    if (lastTwo.framesWithHostProcessingLatency > 0) {
+                        sb.append(context.getString(R.string.perf_overlay_hostprocessinglatency,
+                                (float)lastTwo.minHostProcessingLatency / 10,
+                                (float)lastTwo.maxHostProcessingLatency / 10,
+                                (float)lastTwo.totalHostProcessingLatency / 10 / lastTwo.framesWithHostProcessingLatency)).append('\n');
+                    }
+                    sb.append(context.getString(R.string.perf_overlay_dectime, decodeTimeMs));
+                    perfListener.onPerfUpdate(sb.toString());
+                }
+                else if (prefs.enableSimplifyPerfOverlay){
+                    String template = "FPS:@data1 解码:@data2 延迟:@data3 处理:@data4 丢包:@data5";
+                    Map<String, String> data = new HashMap<>();
+                    data.put("@data1", String.format(Locale.getDefault(),"%.2f", fps.totalFps));
+                    data.put("@data2", simplify_decoder);
+                    data.put("@data3", String.format(Locale.getDefault(),"%1$dms", (int)(rttInfo >> 32)));
+                    data.put("@data4", String.format(Locale.getDefault(),"%.1f/%.1f/%.1f",
                             (float)lastTwo.minHostProcessingLatency / 10,
                             (float)lastTwo.maxHostProcessingLatency / 10,
-                            (float)lastTwo.totalHostProcessingLatency / 10 / lastTwo.framesWithHostProcessingLatency)).append('\n');
+                            (float)lastTwo.totalHostProcessingLatency / 10 / lastTwo.framesWithHostProcessingLatency));
+                    data.put("@data5", String.format(Locale.getDefault(),"%1$.2f%%", (float)lastTwo.framesLost / lastTwo.totalFrames * 100));
+
+                    String result = TemplateRenderer.render(template, data);
+                    perfListener.onPerfUpdate(result);
                 }
-                sb.append(context.getString(R.string.perf_overlay_dectime, decodeTimeMs));
-                perfListener.onPerfUpdate(sb.toString());
             }
 
             globalVideoStats.add(activeWindowVideoStats);

@@ -244,8 +244,8 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         streamView.setInputCallbacks(this);
 
         // 2024-11-20 14:37:38 添加全屏居中
-        FrameLayout.LayoutParams params = (FrameLayout.LayoutParams) streamView.getLayoutParams();
-        params.gravity = Gravity.CENTER;
+        FrameLayout.LayoutParams streamParams = (FrameLayout.LayoutParams) streamView.getLayoutParams();
+        streamParams.gravity = Gravity.CENTER;
 
         // Listen for touch events on the background touch view to enable trackpad mode
         // to work on areas outside of the StreamView itself. We use a separate View
@@ -375,8 +375,14 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         }
 
         // Check if the user has enabled performance stats overlay
-        if (prefConfig.enablePerfOverlay) {
+        if (prefConfig.enablePerfOverlay || prefConfig.enableSimplifyPerfOverlay) {
             performanceOverlayView.setVisibility(View.VISIBLE);
+            // 2024-11-21 14:56:13 精简版性能显示
+            if (prefConfig.enableSimplifyPerfOverlay) {
+                FrameLayout.LayoutParams performanceOverlayViewParams = (FrameLayout.LayoutParams) performanceOverlayView.getLayoutParams();
+                performanceOverlayViewParams.gravity = Gravity.TOP | Gravity.CENTER;
+                performanceOverlayViewParams.setMargins(0, 0 ,0 ,0);
+            }
         }
 
         decoderRenderer = new MediaCodecDecoderRenderer(
@@ -619,8 +625,14 @@ public class Game extends Activity implements SurfaceHolder.Callback,
                     virtualController.show();
                 }
 
-                if (prefConfig.enablePerfOverlay) {
+                if (prefConfig.enablePerfOverlay || prefConfig.enableSimplifyPerfOverlay) {
                     performanceOverlayView.setVisibility(View.VISIBLE);
+                    // 2024-11-21 14:56:13 精简版性能显示
+                    if (prefConfig.enableSimplifyPerfOverlay) {
+                        FrameLayout.LayoutParams performanceOverlayViewParams = (FrameLayout.LayoutParams) performanceOverlayView.getLayoutParams();
+                        performanceOverlayViewParams.gravity = Gravity.TOP | Gravity.CENTER;
+                        performanceOverlayViewParams.setMargins(0, 0 ,0 ,0);
+                    }
                 }
 
                 notificationOverlayView.setVisibility(requestedNotificationOverlayVisibility);
