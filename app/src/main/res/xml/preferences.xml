@@ -272,6 +272,11 @@
             android:title="@string/title_enable_simplify_perf_overlay"
             android:summary="@string/summary_enable_simplify_perf_overlay"
             android:defaultValue="false"/>
+        <Preference
+            android:key="edittext_simple_perf_overlay"
+            android:title="@string/title_edittext_simple_perf_overlay"
+            android:summary="@string/summary_edittext_simple_perf_overlay" />
+<!--            android:defaultValue="FPS:@data1 解码:@data2 延迟:@data3 处理:@data4 丢包:@data5"/>-->
         <CheckBoxPreference
             android:key="checkbox_enable_post_stream_toast"
             android:title="@string/title_enable_post_stream_toast"

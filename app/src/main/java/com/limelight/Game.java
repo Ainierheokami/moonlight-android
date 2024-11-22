@@ -61,6 +61,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
 import android.util.Rational;
+import android.util.TypedValue;
 import android.view.Display;
 import android.view.InputDevice;
 import android.view.KeyCharacterMap;
@@ -89,6 +90,10 @@ import java.util.Locale;
 
 // 2024-11-20 14:37:38 添加全屏居中
 import android.view.Gravity;
+
+// 2024-11-22 09:52:36 给精简性能显示添加圆角
+import android.graphics.drawable.GradientDrawable;
+import android.graphics.Color;
 
 public class Game extends Activity implements SurfaceHolder.Callback,
         OnGenericMotionListener, OnTouchListener, NvConnectionListener, EvdevListener,
@@ -381,7 +386,20 @@ public class Game extends Activity implements SurfaceHolder.Callback,
             if (prefConfig.enableSimplifyPerfOverlay) {
                 FrameLayout.LayoutParams performanceOverlayViewParams = (FrameLayout.LayoutParams) performanceOverlayView.getLayoutParams();
                 performanceOverlayViewParams.gravity = Gravity.TOP | Gravity.CENTER;
+                // 2024-11-22 09:40:00 添加内边距
                 performanceOverlayViewParams.setMargins(0, 0 ,0 ,0);
+                int paddingDp = 14;
+                int paddingPx = (int) (paddingDp * this.getResources().getDisplayMetrics().density);
+                performanceOverlayView.setPadding(paddingPx, 0, paddingPx, 0);
+                // 2024-11-22 09:50:41 新增圆角
+                GradientDrawable roundedBackground = new GradientDrawable();
+                roundedBackground.setShape(GradientDrawable.RECTANGLE);
+                roundedBackground.setColor(Color.parseColor("#80000000")); // 背景颜色
+                roundedBackground.setCornerRadius(10); // 圆角半径（像素）
+                // roundedBackground.setStroke(0, Color.WHITE); // 可选：边框宽度和颜色
+                performanceOverlayView.setBackground(roundedBackground);
+                // 2024-11-22 10:10:00 调整字体大小
+                performanceOverlayView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
             }
         }
 
@@ -631,7 +649,20 @@ public class Game extends Activity implements SurfaceHolder.Callback,
                     if (prefConfig.enableSimplifyPerfOverlay) {
                         FrameLayout.LayoutParams performanceOverlayViewParams = (FrameLayout.LayoutParams) performanceOverlayView.getLayoutParams();
                         performanceOverlayViewParams.gravity = Gravity.TOP | Gravity.CENTER;
+                        // 2024-11-22 09:40:00 添加内边距
                         performanceOverlayViewParams.setMargins(0, 0 ,0 ,0);
+                        int paddingDp = 14;
+                        int paddingPx = (int) (paddingDp * this.getResources().getDisplayMetrics().density);
+                        performanceOverlayView.setPadding(paddingPx, 0, paddingPx, 0);
+                        // 2024-11-22 09:50:41 新增圆角
+                        GradientDrawable roundedBackground = new GradientDrawable();
+                        roundedBackground.setShape(GradientDrawable.RECTANGLE);
+                        roundedBackground.setColor(Color.parseColor("#80000000")); // 背景颜色
+                        roundedBackground.setCornerRadius(10); // 圆角半径（像素）
+                        // roundedBackground.setStroke(0, Color.WHITE); // 可选：边框宽度和颜色
+                        performanceOverlayView.setBackground(roundedBackground);
+                        // 2024-11-22 10:10:00 调整字体大小
+                        performanceOverlayView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
                     }
                 }
 

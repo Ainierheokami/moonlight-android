@@ -1,5 +1,6 @@
 package com.limelight.preferences;
 
+import android.app.AlertDialog;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -12,6 +13,7 @@ import android.app.Activity;
 import android.os.Handler;
 import android.os.Vibrator;
 import android.preference.CheckBoxPreference;
+import android.preference.EditTextPreference;
 import android.preference.ListPreference;
 import android.preference.Preference;
 import android.preference.PreferenceCategory;
@@ -22,10 +24,14 @@ import android.util.DisplayMetrics;
 import android.util.Range;
 import android.view.Display;
 import android.view.DisplayCutout;
+import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowInsets;
+import android.widget.EditText;
+import android.widget.LinearLayout;
+import android.widget.TextView;
 
 import com.limelight.LimeLog;
 import com.limelight.PcView;
@@ -261,6 +267,64 @@ public class StreamSettings extends Activity {
                     .putInt(PreferenceConfiguration.BITRATE_PREF_STRING,
                             PreferenceConfiguration.getDefaultBitrate(res, fps))
                     .apply();
+        }
+
+        // 2024-11-22 10:35:43 显示精简信息模板设置
+        private void showSimplifyPerfOverlayPref(SharedPreferences prefs) {
+            Context context = getActivity(); // 或者如果是 AndroidX：getContext()
+            String template = prefs.getString(PreferenceConfiguration.EDITTEXT_SIMPLE_PERF_OVERLAY_PREF_STRING, PreferenceConfiguration.DEFAULT_EDITTEXT_SIMPLE_PERF_OVERLAY_PREF);
+
+            // 创建 EditText 用作文本框
+            final EditText input = new EditText(context);
+            input.setText(template);
+            input.setHint("请输入文本"); // 可选的提示文本
+
+            // 创建一个 Layout 用于包含提示文本和 EditText
+            LinearLayout layout = new LinearLayout(context);
+            layout.setOrientation(LinearLayout.VERTICAL);
+
+            // 添加几行文本提示
+            TextView instructionText = new TextView(context);
+            instructionText.setText(String.format("默认模板 %s", PreferenceConfiguration.DEFAULT_EDITTEXT_SIMPLE_PERF_OVERLAY_PREF));
+            instructionText.setPadding(0, 0, 0, 16); // 设置与文本框的间距
+            layout.addView(instructionText);
+
+            // 设置 EditText 样式
+            input.setMinLines(3); // 设置最小行数
+            input.setMaxLines(5); // 设置最大行数
+            input.setGravity(Gravity.TOP); // 设置文本从顶部开始显示
+            layout.addView(input);
+
+            // 构建对话框
+            AlertDialog.Builder builder = new AlertDialog.Builder(context);
+            builder.setTitle("修改精简实时信息模板") // 设置对话框标题
+                    .setMessage("请编辑配置文本") // 设置对话框的描述文本
+                    .setView(layout) // 设置显示的视图
+                    .setCancelable(false) // 设置对话框不可被取消
+
+                    // 设置默认按钮
+                    .setPositiveButton("默认", (dialog, which) -> {
+                        prefs.edit()
+                                .putString(PreferenceConfiguration.EDITTEXT_SIMPLE_PERF_OVERLAY_PREF_STRING, PreferenceConfiguration.DEFAULT_EDITTEXT_SIMPLE_PERF_OVERLAY_PREF)
+                                .apply();
+                    })
+
+                    // 设置确认按钮
+                    .setNeutralButton("确认", (dialog, which) -> {
+                        // 保存输入的文本
+                        prefs.edit()
+                                .putString(PreferenceConfiguration.EDITTEXT_SIMPLE_PERF_OVERLAY_PREF_STRING, input.getText().toString())
+                                .apply();
+                    })
+
+                    // 设置取消按钮
+                    .setNegativeButton("取消", (dialog, which) -> {
+                        dialog.dismiss(); // 关闭对话框
+                    });
+
+            // 显示对话框
+            builder.create().show();
+
         }
 
         @Override
@@ -667,6 +731,14 @@ public class StreamSettings extends Activity {
                     return true;
                 }
             });
+            Preference simplifyPerfOverlayPref = findPreference("edittext_simple_perf_overlay");
+            if (simplifyPerfOverlayPref != null) {
+                simplifyPerfOverlayPref.setOnPreferenceClickListener(preference -> {
+                    SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this.getActivity());
+                    showSimplifyPerfOverlayPref(prefs); // 调用自定义逻辑
+                    return true; // 返回 true 表示已处理点击事件，阻止系统行为
+                });
+            }
         }
     }
 }

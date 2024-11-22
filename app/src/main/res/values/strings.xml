@@ -303,4 +303,7 @@
     <string name="analogscroll_none">None (both sticks move the mouse)</string>
     <string name="analogscroll_right">Right analog stick</string>
     <string name="analogscroll_left">Left analog stick</string>
+    <string name="title_edittext_simple_perf_overlay">Edit simplify performance display templates</string>
+    <string name="summary_edittext_simple_perf_overlay">Click edit to simplify performance template</string>
+    <string name="template_simple_perf_overlay">FPS:@data1 decode:@data2 ping:@data3 time:@data4 loss:@data5</string>
 </resources>

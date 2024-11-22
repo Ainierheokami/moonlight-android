@@ -20,6 +20,9 @@ import com.limelight.nvstream.av.video.VideoDecoderRenderer;
 import com.limelight.nvstream.jni.MoonBridge;
 import com.limelight.preferences.PreferenceConfiguration;
 
+import android.content.SharedPreferences;
+import android.preference.PreferenceManager;
+
 import android.annotation.TargetApi;
 import android.app.Activity;
 import android.content.Context;
@@ -1470,7 +1473,9 @@ public class MediaCodecDecoderRenderer extends VideoDecoderRenderer implements C
                     perfListener.onPerfUpdate(sb.toString());
                 }
                 else if (prefs.enableSimplifyPerfOverlay){
-                    String template = "FPS:@data1 解码:@data2 延迟:@data3 处理:@data4 丢包:@data5";
+                    SharedPreferences simplifyTemplatePerfs = PreferenceManager.getDefaultSharedPreferences(context);
+//                    String template = "FPS:@data1 解码:@data2 延迟:@data3 处理:@data4 丢包:@data5";
+                    String template = simplifyTemplatePerfs.getString(PreferenceConfiguration.EDITTEXT_SIMPLE_PERF_OVERLAY_PREF_STRING, PreferenceConfiguration.DEFAULT_EDITTEXT_SIMPLE_PERF_OVERLAY_PREF);
                     Map<String, String> data = new HashMap<>();
                     data.put("@data1", String.format(Locale.getDefault(),"%.2f", fps.totalFps));
                     data.put("@data2", simplify_decoder);

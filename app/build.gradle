@@ -142,7 +142,7 @@ android {
         includeInApk true
         includeInBundle false
     }
-    buildToolsVersion '35.0.0'
+//    buildToolsVersion '35.0.0'
 }
 
 dependencies {
