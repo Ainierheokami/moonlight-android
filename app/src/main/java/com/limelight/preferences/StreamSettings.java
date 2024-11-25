@@ -285,7 +285,17 @@ public class StreamSettings extends Activity {
 
             // 添加几行文本提示
             TextView instructionText = new TextView(context);
-            instructionText.setText(String.format("默认模板 %s", PreferenceConfiguration.DEFAULT_EDITTEXT_SIMPLE_PERF_OVERLAY_PREF));
+            instructionText.setText(String.format("默认模板 %s\n简单说明：\n" +
+                    "FPS @data1\n" +
+                    "解码算法 @data2\n" +
+                    "平均连接延迟 @data3\n" +
+                    "主机处理延迟 最小/最大/平均 @data4\n" +
+                    "丢包 @data5\n" +
+                    "视频下载速度 @data6\n" +
+                    "视频上传速度 @data7（并无作用) \n" +
+                    "音频下载速度 @data8\n" +
+                    "音频上传速度 @data9\n" +
+                    "总速度 @data10", PreferenceConfiguration.DEFAULT_EDITTEXT_SIMPLE_PERF_OVERLAY_PREF));
             instructionText.setPadding(0, 0, 0, 16); // 设置与文本框的间距
             layout.addView(instructionText);
 

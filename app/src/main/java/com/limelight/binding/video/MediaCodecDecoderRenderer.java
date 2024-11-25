@@ -45,6 +45,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Locale;
 
+
 public class MediaCodecDecoderRenderer extends VideoDecoderRenderer implements Choreographer.FrameCallback {
 
     private static final boolean USE_FRAME_RENDER_TIME = false;
@@ -135,6 +136,13 @@ public class MediaCodecDecoderRenderer extends VideoDecoderRenderer implements C
     private int numVpsIn;
     private int numFramesIn;
     private int numFramesOut;
+
+    // 统计流量数据
+    private long totalInputBytes = 0;   // 累计输入流量（字节）
+    private long totalOutputBytes = 0;  // 累计输出流量（字节）
+
+    // 实时速率
+    private long lastUpdateTimeMs = 0;  // 上次更新的时间戳
 
     private MediaCodecInfo findAvcDecoder() {
         MediaCodecInfo decoder = MediaCodecHelper.findProbableSafeDecoder("video/avc", MediaCodecInfo.CodecProfileLevel.AVCProfileHigh);
@@ -1072,6 +1080,9 @@ public class MediaCodecDecoderRenderer extends VideoDecoderRenderer implements C
                             if (prefs.framePacing != PreferenceConfiguration.FRAME_PACING_BALANCED) {
                                 // Get the last output buffer in the queue
                                 while ((outIndex = videoDecoder.dequeueOutputBuffer(info, 0)) >= 0) {
+                                    // 累加输出流量的字节数
+                                    totalOutputBytes += info.size;
+
                                     videoDecoder.releaseOutputBuffer(lastIndex, false);
 
                                     numFramesOut++;
@@ -1410,6 +1421,9 @@ public class MediaCodecDecoderRenderer extends VideoDecoderRenderer implements C
             return MoonBridge.DR_OK;
         }
 
+        // 累加输入数据的字节数
+        totalInputBytes += decodeUnitLength;
+
         if (lastFrameNumber == 0) {
             activeWindowVideoStats.measurementStartTimestamp = SystemClock.uptimeMillis();
         } else if (frameNumber != lastFrameNumber && frameNumber != lastFrameNumber + 1) {
@@ -1476,6 +1490,23 @@ public class MediaCodecDecoderRenderer extends VideoDecoderRenderer implements C
                     SharedPreferences simplifyTemplatePerfs = PreferenceManager.getDefaultSharedPreferences(context);
 //                    String template = "FPS:@data1 解码:@data2 延迟:@data3 处理:@data4 丢包:@data5";
                     String template = simplifyTemplatePerfs.getString(PreferenceConfiguration.EDITTEXT_SIMPLE_PERF_OVERLAY_PREF_STRING, PreferenceConfiguration.DEFAULT_EDITTEXT_SIMPLE_PERF_OVERLAY_PREF);
+
+                    // 计算当前流量速率
+                    long currentTimeMs = System.currentTimeMillis();
+                    double inputRateMBps = 0;
+                    double outputRateMBps = 0;
+                    if (currentTimeMs - lastUpdateTimeMs >= 1000) {
+                        long elapsedTimeMs = currentTimeMs - lastUpdateTimeMs;
+
+                        inputRateMBps = (totalInputBytes / 1024.0 / 1024.0) / (elapsedTimeMs / 1000.0);
+                        outputRateMBps = (totalOutputBytes / 1024.0 / 1024.0) / (elapsedTimeMs / 1000.0);
+
+                        // 重置统计数据
+                        totalInputBytes = 0;
+                        totalOutputBytes = 0;
+                        lastUpdateTimeMs = currentTimeMs;
+                    }
+
                     Map<String, String> data = new HashMap<>();
                     data.put("@data1", String.format(Locale.getDefault(),"%.2f", fps.totalFps));
                     data.put("@data2", simplify_decoder);
@@ -1485,6 +1516,16 @@ public class MediaCodecDecoderRenderer extends VideoDecoderRenderer implements C
                             (float)lastTwo.maxHostProcessingLatency / 10,
                             (float)lastTwo.totalHostProcessingLatency / 10 / lastTwo.framesWithHostProcessingLatency));
                     data.put("@data5", String.format(Locale.getDefault(),"%1$.2f%%", (float)lastTwo.framesLost / lastTwo.totalFrames * 100));
+                    data.put("@data6", String.format(Locale.getDefault(), "%.2fMB/s", inputRateMBps)); // 输入流量速率
+                    data.put("@data7", String.format(Locale.getDefault(), "%.2fMB/s", outputRateMBps)); // 输出流量速率
+                    data.put("@data8", String.format(Locale.getDefault(), "%.2fMB/s", simplifyTemplatePerfs.getFloat("audio_input_rate", (float) 0)));
+                    data.put("@data9", String.format(Locale.getDefault(), "%.2fMB/s", simplifyTemplatePerfs.getFloat("audio_output_rate", (float) 0)));
+                    data.put("@data10", String.format(Locale.getDefault(), "%.2fMB/s",
+                            inputRateMBps
+                                    + outputRateMBps
+                                    + simplifyTemplatePerfs.getFloat("audio_input_rate", (float) 0)
+                                    + simplifyTemplatePerfs.getFloat("audio_output_rate", (float) 0)
+                    ));
 
                     String result = TemplateRenderer.render(template, data);
                     perfListener.onPerfUpdate(result);

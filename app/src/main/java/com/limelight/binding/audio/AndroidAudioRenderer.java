@@ -2,12 +2,14 @@ package com.limelight.binding.audio;
 
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.media.AudioAttributes;
 import android.media.AudioFormat;
 import android.media.AudioManager;
 import android.media.AudioTrack;
 import android.media.audiofx.AudioEffect;
 import android.os.Build;
+import android.preference.PreferenceManager;
 
 import com.limelight.LimeLog;
 import com.limelight.nvstream.av.audio.AudioRenderer;
@@ -20,9 +22,47 @@ public class AndroidAudioRenderer implements AudioRenderer {
 
     private AudioTrack track;
 
+    // 音频流量统计
+    private long totalAudioInputBytes = 0;  // 累计输入音频流量（字节）
+    private long totalAudioOutputBytes = 0; // 累计输出音频流量（字节）
+
+    // 音频速率统计
+    private long lastAudioUpdateTimeMs = 0; // 上次更新的时间戳
+    public double audioInputRateMBps = 0; // 输入音频速率（MB/s）
+    public double audioOutputRateMBps = 0; // 输出音频速率（MB/s）
+
     public AndroidAudioRenderer(Context context, boolean enableAudioFx) {
         this.context = context;
         this.enableAudioFx = enableAudioFx;
+    }
+
+    private void updateAudioBitrateStats(Context context) {
+        long currentTimeMs = System.currentTimeMillis();
+
+        // 每秒更新一次速率
+        if (currentTimeMs - lastAudioUpdateTimeMs >= 1000) {
+            long elapsedTimeMs = currentTimeMs - lastAudioUpdateTimeMs;
+
+            // 计算速率（MB/s）
+            audioInputRateMBps = (totalAudioInputBytes / 1024.0 / 1024.0) / (elapsedTimeMs / 1000.0);
+            audioOutputRateMBps = (totalAudioOutputBytes / 1024.0 / 1024.0) / (elapsedTimeMs / 1000.0);
+
+            SharedPreferences audioRateMBpsPerfs = PreferenceManager.getDefaultSharedPreferences(context);
+            audioRateMBpsPerfs.edit()
+                .putFloat("audio_input_rate", (float) audioInputRateMBps)
+                .putFloat("audio_output_rate", (float) audioOutputRateMBps)
+                .apply();
+
+
+            // 打印速率日志（可选）
+//            LimeLog.info(String.format("Audio Input Rate: %.2f MB/s", audioInputRateMBps));
+//            LimeLog.info(String.format("Audio Output Rate: %.2f MB/s", audioOutputRateMBps));
+
+            // 重置统计数据
+            totalAudioInputBytes = 0;
+            totalAudioOutputBytes = 0;
+            lastAudioUpdateTimeMs = currentTimeMs;
+        }
     }
 
     private AudioTrack createAudioTrack(int channelConfig, int sampleRate, int bufferSize, boolean lowLatency) {
@@ -187,16 +227,22 @@ public class AndroidAudioRenderer implements AudioRenderer {
 
     @Override
     public void playDecodedAudio(short[] audioData) {
+        // 累加输入流量
+        totalAudioInputBytes += audioData.length * 2; // short 为 2 字节
+
         // Only queue up to 40 ms of pending audio data in addition to what AudioTrack is buffering for us.
         if (MoonBridge.getPendingAudioDuration() < 40) {
             // This will block until the write is completed. That can cause a backlog
             // of pending audio data, so we do the above check to be able to bound
             // latency at 40 ms in that situation.
-            track.write(audioData, 0, audioData.length);
+//            track.write(audioData, 0, audioData.length);
+            int bytesWritten = track.write(audioData, 0, audioData.length);
+            totalAudioOutputBytes += bytesWritten * 2; // short 为 2 字节
         }
         else {
             LimeLog.info("Too much pending audio data: " + MoonBridge.getPendingAudioDuration() +" ms");
         }
+        updateAudioBitrateStats(context);
     }
 
     @Override

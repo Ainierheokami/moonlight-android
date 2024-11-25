@@ -188,6 +188,24 @@ public class Game extends Activity implements SurfaceHolder.Callback,
     public static final String EXTRA_APP_HDR = "HDR";
     public static final String EXTRA_SERVER_CERT = "ServerCert";
 
+    private void useSimplifyPerfOverlay(FrameLayout.LayoutParams params) {
+        params.gravity = Gravity.TOP | Gravity.CENTER;
+        // 2024-11-22 09:40:00 添加内边距
+        params.setMargins(0, 0 ,0 ,0);
+        int paddingDp = 14;
+        int paddingPx = (int) (paddingDp * this.getResources().getDisplayMetrics().density);
+        performanceOverlayView.setPadding(paddingPx, 0, paddingPx, 0);
+        // 2024-11-22 09:50:41 新增圆角
+        GradientDrawable roundedBackground = new GradientDrawable();
+        roundedBackground.setShape(GradientDrawable.RECTANGLE);
+        roundedBackground.setColor(Color.parseColor("#55000000")); // 背景颜色
+        roundedBackground.setCornerRadius(10); // 圆角半径（像素）
+        // roundedBackground.setStroke(0, Color.WHITE); // 可选：边框宽度和颜色
+        performanceOverlayView.setBackground(roundedBackground);
+        // 2024-11-22 10:10:00 调整字体大小
+        performanceOverlayView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 10);
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -385,21 +403,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
             // 2024-11-21 14:56:13 精简版性能显示
             if (prefConfig.enableSimplifyPerfOverlay) {
                 FrameLayout.LayoutParams performanceOverlayViewParams = (FrameLayout.LayoutParams) performanceOverlayView.getLayoutParams();
-                performanceOverlayViewParams.gravity = Gravity.TOP | Gravity.CENTER;
-                // 2024-11-22 09:40:00 添加内边距
-                performanceOverlayViewParams.setMargins(0, 0 ,0 ,0);
-                int paddingDp = 14;
-                int paddingPx = (int) (paddingDp * this.getResources().getDisplayMetrics().density);
-                performanceOverlayView.setPadding(paddingPx, 0, paddingPx, 0);
-                // 2024-11-22 09:50:41 新增圆角
-                GradientDrawable roundedBackground = new GradientDrawable();
-                roundedBackground.setShape(GradientDrawable.RECTANGLE);
-                roundedBackground.setColor(Color.parseColor("#80000000")); // 背景颜色
-                roundedBackground.setCornerRadius(10); // 圆角半径（像素）
-                // roundedBackground.setStroke(0, Color.WHITE); // 可选：边框宽度和颜色
-                performanceOverlayView.setBackground(roundedBackground);
-                // 2024-11-22 10:10:00 调整字体大小
-                performanceOverlayView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
+                useSimplifyPerfOverlay(performanceOverlayViewParams);
             }
         }
 
@@ -648,21 +652,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
                     // 2024-11-21 14:56:13 精简版性能显示
                     if (prefConfig.enableSimplifyPerfOverlay) {
                         FrameLayout.LayoutParams performanceOverlayViewParams = (FrameLayout.LayoutParams) performanceOverlayView.getLayoutParams();
-                        performanceOverlayViewParams.gravity = Gravity.TOP | Gravity.CENTER;
-                        // 2024-11-22 09:40:00 添加内边距
-                        performanceOverlayViewParams.setMargins(0, 0 ,0 ,0);
-                        int paddingDp = 14;
-                        int paddingPx = (int) (paddingDp * this.getResources().getDisplayMetrics().density);
-                        performanceOverlayView.setPadding(paddingPx, 0, paddingPx, 0);
-                        // 2024-11-22 09:50:41 新增圆角
-                        GradientDrawable roundedBackground = new GradientDrawable();
-                        roundedBackground.setShape(GradientDrawable.RECTANGLE);
-                        roundedBackground.setColor(Color.parseColor("#80000000")); // 背景颜色
-                        roundedBackground.setCornerRadius(10); // 圆角半径（像素）
-                        // roundedBackground.setStroke(0, Color.WHITE); // 可选：边框宽度和颜色
-                        performanceOverlayView.setBackground(roundedBackground);
-                        // 2024-11-22 10:10:00 调整字体大小
-                        performanceOverlayView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
+                        useSimplifyPerfOverlay(performanceOverlayViewParams);
                     }
                 }
 
