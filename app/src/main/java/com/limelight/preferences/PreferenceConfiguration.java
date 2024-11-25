@@ -165,7 +165,7 @@ public class PreferenceConfiguration {
 
     public String simplifyPerfOverlayPrefTemplate;
 
-    public static final String DEFAULT_EDITTEXT_SIMPLE_PERF_OVERLAY_PREF = "FPS:@data1 解码:@data2 延迟:@data3 处理:@data4 丢包:@data5 流量:@data10";
+    public static final String DEFAULT_EDITTEXT_SIMPLE_PERF_OVERLAY_PREF = "FPS:@data1 解码:@data2 延迟:@data3 处理:@data4 丢包:@data5 流量:@data11";
 
     public static boolean isNativeResolution(int width, int height) {
         // It's not a native resolution if it matches an existing resolution option

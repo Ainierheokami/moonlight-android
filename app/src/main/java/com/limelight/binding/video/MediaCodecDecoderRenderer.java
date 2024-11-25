@@ -41,6 +41,7 @@ import android.view.Choreographer;
 import android.view.SurfaceHolder;
 
 import com.limelight.heokami.TemplateRenderer;
+import com.limelight.heokami.NetSpeedMonitor;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Locale;
@@ -143,6 +144,8 @@ public class MediaCodecDecoderRenderer extends VideoDecoderRenderer implements C
 
     // 实时速率
     private long lastUpdateTimeMs = 0;  // 上次更新的时间戳
+
+    private NetSpeedMonitor netSpeedMonitor;
 
     private MediaCodecInfo findAvcDecoder() {
         MediaCodecInfo decoder = MediaCodecHelper.findProbableSafeDecoder("video/avc", MediaCodecInfo.CodecProfileLevel.AVCProfileHigh);
@@ -522,6 +525,7 @@ public class MediaCodecDecoderRenderer extends VideoDecoderRenderer implements C
     }
 
     private void configureAndStartDecoder(MediaFormat format) {
+        netSpeedMonitor = new NetSpeedMonitor();
         // Set HDR metadata if present
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
             if (currentHdrMetadata != null) {
@@ -1495,6 +1499,8 @@ public class MediaCodecDecoderRenderer extends VideoDecoderRenderer implements C
                     long currentTimeMs = System.currentTimeMillis();
                     double inputRateMBps = 0;
                     double outputRateMBps = 0;
+                    double relinputRateMBps = 0;
+                    double reloutputRateMBps = 0;
                     if (currentTimeMs - lastUpdateTimeMs >= 1000) {
                         long elapsedTimeMs = currentTimeMs - lastUpdateTimeMs;
 
@@ -1505,6 +1511,11 @@ public class MediaCodecDecoderRenderer extends VideoDecoderRenderer implements C
                         totalInputBytes = 0;
                         totalOutputBytes = 0;
                         lastUpdateTimeMs = currentTimeMs;
+
+                        // 真实流量统计
+                        NetSpeedMonitor.SpeedInfo speedInfo = netSpeedMonitor.getNetSpeed();
+                        relinputRateMBps = (double) speedInfo.downloadSpeed / 1024 / 1024;
+                        reloutputRateMBps = (double) speedInfo.uploadSpeed / 1024 / 1024;
                     }
 
                     Map<String, String> data = new HashMap<>();
@@ -1526,7 +1537,8 @@ public class MediaCodecDecoderRenderer extends VideoDecoderRenderer implements C
                                     + simplifyTemplatePerfs.getFloat("audio_input_rate", (float) 0)
                                     + simplifyTemplatePerfs.getFloat("audio_output_rate", (float) 0)
                     ));
-
+                    data.put("@data11", String.format(Locale.getDefault(), "%.2fMB/s", relinputRateMBps)); // 真实输入流量速率);
+                    data.put("@data12", String.format(Locale.getDefault(), "%.2fMB/s", reloutputRateMBps)); // 真实输出流量速率);
                     String result = TemplateRenderer.render(template, data);
                     perfListener.onPerfUpdate(result);
                 }

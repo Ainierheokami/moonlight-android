@@ -291,11 +291,13 @@ public class StreamSettings extends Activity {
                     "平均连接延迟 @data3\n" +
                     "主机处理延迟 最小/最大/平均 @data4\n" +
                     "丢包 @data5\n" +
-                    "视频下载速度 @data6\n" +
+                    "视频下载速度 @data6（实际）\n" +
                     "视频上传速度 @data7（并无作用) \n" +
-                    "音频下载速度 @data8\n" +
-                    "音频上传速度 @data9\n" +
-                    "总速度 @data10", PreferenceConfiguration.DEFAULT_EDITTEXT_SIMPLE_PERF_OVERLAY_PREF));
+                    "音频下载速度 @data8（预计）\n" +
+                    "音频上传速度 @data9（预计）\n" +
+                    "总速度 @data10（预计）\n" +
+                    "实际下载速度 @data11\n" +
+                    "实际上传速度 @data12", PreferenceConfiguration.DEFAULT_EDITTEXT_SIMPLE_PERF_OVERLAY_PREF));
             instructionText.setPadding(0, 0, 0, 16); // 设置与文本框的间距
             layout.addView(instructionText);
 
