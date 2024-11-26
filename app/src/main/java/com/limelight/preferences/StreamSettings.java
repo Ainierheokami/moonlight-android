@@ -31,6 +31,7 @@ import android.view.ViewGroup;
 import android.view.WindowInsets;
 import android.widget.EditText;
 import android.widget.LinearLayout;
+import android.widget.ScrollView;
 import android.widget.TextView;
 
 import com.limelight.LimeLog;
@@ -42,6 +43,8 @@ import com.limelight.utils.UiHelper;
 
 import java.lang.reflect.Method;
 import java.util.Arrays;
+import android.view.WindowManager;
+import android.view.Window;
 
 public class StreamSettings extends Activity {
     private PreferenceConfiguration previousPrefs;
@@ -274,16 +277,22 @@ public class StreamSettings extends Activity {
             Context context = getActivity(); // 或者如果是 AndroidX：getContext()
             String template = prefs.getString(PreferenceConfiguration.EDITTEXT_SIMPLE_PERF_OVERLAY_PREF_STRING, PreferenceConfiguration.DEFAULT_EDITTEXT_SIMPLE_PERF_OVERLAY_PREF);
 
-            // 创建 EditText 用作文本框
-            final EditText input = new EditText(context);
-            input.setText(template);
-            input.setHint("请输入文本"); // 可选的提示文本
+            // 创建一个带滚动的对话框布局
+            ScrollView scrollView = new ScrollView(context);
+            LinearLayout.LayoutParams scrollParams = new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT);
+            scrollView.setLayoutParams(scrollParams);
 
-            // 创建一个 Layout 用于包含提示文本和 EditText
+            // 创建主布局
             LinearLayout layout = new LinearLayout(context);
             layout.setOrientation(LinearLayout.VERTICAL);
+            LinearLayout.LayoutParams layoutParams = new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT);
+            layout.setLayoutParams(layoutParams);
 
-            // 添加几行文本提示
+            // 添加说明文本
             TextView instructionText = new TextView(context);
             instructionText.setText(String.format("默认模板 %s\n简单说明：\n" +
                     "FPS @data1\n" +
@@ -298,45 +307,74 @@ public class StreamSettings extends Activity {
                     "总速度 @data10（预计）\n" +
                     "实际下载速度 @data11\n" +
                     "实际上传速度 @data12", PreferenceConfiguration.DEFAULT_EDITTEXT_SIMPLE_PERF_OVERLAY_PREF));
-            instructionText.setPadding(0, 0, 0, 16); // 设置与文本框的间距
+            instructionText.setPadding(32, 16, 32, 16); // 增加左右内边距
             layout.addView(instructionText);
 
-            // 设置 EditText 样式
-            input.setMinLines(3); // 设置最小行数
-            input.setMaxLines(5); // 设置最大行数
-            input.setGravity(Gravity.TOP); // 设置文本从顶部开始显示
+            // 创建并设置 EditText
+            final EditText input = new EditText(context);
+            input.setText(template);
+            input.setHint("请输入文本");
+            input.setMinLines(3);
+            input.setMaxLines(5);
+            input.setGravity(Gravity.TOP);
+            input.setPadding(32, 8, 32, 8); // 增加左右内边距
+
+            // 设置 EditText 的布局参数
+            LinearLayout.LayoutParams editTextParams = new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT);
+            editTextParams.setMargins(32, 0, 32, 16); // 设置左右外边距
+            input.setLayoutParams(editTextParams);
             layout.addView(input);
+
+            // 将主布局添加到滚动视图中
+            scrollView.addView(layout);
 
             // 构建对话框
             AlertDialog.Builder builder = new AlertDialog.Builder(context);
-            builder.setTitle("修改精简实时信息模板") // 设置对话框标题
-                    .setMessage("请编辑配置文本") // 设置对话框的描述文本
-                    .setView(layout) // 设置显示的视图
-                    .setCancelable(false) // 设置对话框不可被取消
-
-                    // 设置默认按钮
-                    .setPositiveButton("默认", (dialog, which) -> {
+            AlertDialog dialog = builder.setTitle("修改精简实时信息模板")
+                    .setView(scrollView)
+                    .setCancelable(true) // 允许通过返回键关闭
+                    .setPositiveButton("默认", (dialogInterface, which) -> {
                         prefs.edit()
-                                .putString(PreferenceConfiguration.EDITTEXT_SIMPLE_PERF_OVERLAY_PREF_STRING, PreferenceConfiguration.DEFAULT_EDITTEXT_SIMPLE_PERF_OVERLAY_PREF)
+                                .putString(PreferenceConfiguration.EDITTEXT_SIMPLE_PERF_OVERLAY_PREF_STRING,
+                                        PreferenceConfiguration.DEFAULT_EDITTEXT_SIMPLE_PERF_OVERLAY_PREF)
                                 .apply();
                     })
-
-                    // 设置确认按钮
-                    .setNeutralButton("确认", (dialog, which) -> {
-                        // 保存输入的文本
+                    .setNeutralButton("确认", (dialogInterface, which) -> {
                         prefs.edit()
-                                .putString(PreferenceConfiguration.EDITTEXT_SIMPLE_PERF_OVERLAY_PREF_STRING, input.getText().toString())
+                                .putString(PreferenceConfiguration.EDITTEXT_SIMPLE_PERF_OVERLAY_PREF_STRING,
+                                        input.getText().toString())
                                 .apply();
                     })
+                    .setNegativeButton("取消", (dialogInterface, which) -> {
+                        dialogInterface.dismiss();
+                    })
+                    .create();
 
-                    // 设置取消按钮
-                    .setNegativeButton("取消", (dialog, which) -> {
-                        dialog.dismiss(); // 关闭对话框
-                    });
+            // 设置点击对话框外部可关闭
+            dialog.setCanceledOnTouchOutside(true);
+
+            // 设置对话框的最大高度（可选，防止对话框太长）
+            dialog.setOnShowListener(dialogInterface -> {
+                // 获取屏幕高度
+                WindowManager windowManager = (WindowManager) context.getSystemService(Context.WINDOW_SERVICE);
+                DisplayMetrics metrics = new DisplayMetrics();
+                windowManager.getDefaultDisplay().getMetrics(metrics);
+
+                // 设置对话框最大高度为屏幕高度的80%
+                int maxHeight = (int) (metrics.heightPixels * 0.8);
+
+                // 获取对话框窗口并设置最大高度
+                Window window = dialog.getWindow();
+                if (window != null) {
+                    window.setLayout(WindowManager.LayoutParams.MATCH_PARENT,
+                            Math.min(scrollView.getHeight(), maxHeight));
+                }
+            });
 
             // 显示对话框
-            builder.create().show();
-
+            dialog.show();
         }
 
         @Override

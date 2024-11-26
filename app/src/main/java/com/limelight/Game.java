@@ -40,10 +40,12 @@ import com.limelight.utils.UiHelper;
 import android.annotation.SuppressLint;
 import android.annotation.TargetApi;
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.app.PictureInPictureParams;
 import android.app.Service;
 import android.content.ComponentName;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.content.SharedPreferences;
@@ -75,8 +77,13 @@ import android.view.View.OnSystemUiVisibilityChangeListener;
 import android.view.View.OnTouchListener;
 import android.view.Window;
 import android.view.WindowManager;
+import android.widget.ArrayAdapter;
+import android.widget.EditText;
 import android.widget.FrameLayout;
 import android.view.inputmethod.InputMethodManager;
+import android.widget.LinearLayout;
+import android.widget.ListView;
+import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -94,6 +101,8 @@ import android.view.Gravity;
 // 2024-11-22 09:52:36 给精简性能显示添加圆角
 import android.graphics.drawable.GradientDrawable;
 import android.graphics.Color;
+
+import com.limelight.AppView;
 
 public class Game extends Activity implements SurfaceHolder.Callback,
         OnGenericMotionListener, OnTouchListener, NvConnectionListener, EvdevListener,
@@ -187,6 +196,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
     public static final String EXTRA_PC_NAME = "PcName";
     public static final String EXTRA_APP_HDR = "HDR";
     public static final String EXTRA_SERVER_CERT = "ServerCert";
+
 
     private void useSimplifyPerfOverlay(FrameLayout.LayoutParams params) {
         params.gravity = Gravity.TOP | Gravity.CENTER;
@@ -2711,5 +2721,68 @@ public class Game extends Activity implements SurfaceHolder.Callback,
             default:
                 return false;
         }
+    }
+
+    private boolean virtualControllerShow = false;
+
+    // 创建一个ListView并设置适配器
+    private ListView createListView() {
+        ListView listView = new ListView(this);
+        String[] items = {"启用输入法", "切换屏幕虚拟手柄", "切换屏幕虚拟键盘", "热键：Ctrl+C", "热键：Ctrl+V"};
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, items);
+        listView.setAdapter(adapter);
+
+        // 设置点击事件监听器
+        listView.setOnItemClickListener((parent, view, position, id) -> {
+            String item = adapter.getItem(position);
+            Toast.makeText(this, "点击了: " + item, Toast.LENGTH_SHORT).show();
+            switch (position) {
+                case 0:
+                    // 启用输入法
+                    break;
+                case 1:
+                    // 切换屏幕虚拟手柄
+                    if (virtualController == null) {
+                        virtualController = new VirtualController(controllerHandler,
+                                (FrameLayout) streamView.getParent(),
+                                this);
+                        virtualController.refreshLayout();
+                    }
+
+                    if (!virtualControllerShow) {
+                        virtualController.show();
+                        virtualControllerShow = true;
+                    }else{
+                        virtualController.hide();
+                        virtualControllerShow = false;
+                    }
+
+                    break;
+                case 2:
+                    // 切换屏幕虚拟键盘
+                    break;
+            }
+        });
+
+        return listView;
+    }
+
+
+    private void showMenu(SharedPreferences prefs) {
+        Context context = this; // 或者如果是 AndroidX：getContext()
+        AlertDialog.Builder builder = new AlertDialog.Builder(context);
+        AlertDialog dialog = builder.setTitle("菜单")
+                .setView(createListView())
+                .setNeutralButton(getResources().getString(R.string.game_menu_disconnect), (dialogInterface, which) -> {
+                    dialogInterface.dismiss();
+                    finish();
+                })
+                .create();
+        dialog.show();
+    }
+
+    @Override
+    public void onBackPressed(){
+        showMenu(tombstonePrefs);
     }
 }

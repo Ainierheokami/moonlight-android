@@ -292,4 +292,5 @@
     <string name="title_edittext_simple_perf_overlay">编辑精简性能显示模板</string>
     <string name="summary_edittext_simple_perf_overlay">点击编辑精简性能模板</string>
     <string name="template_simple_perf_overlay">FPS:@data1 解码:@data2 延迟:@data3 处理:@data4 丢包:@data5</string>
+    <string name="game_menu_disconnect">断开连接</string>
 </resources>
