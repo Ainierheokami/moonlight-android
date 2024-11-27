@@ -197,9 +197,13 @@ public class GameMenu {
         AlertDialog dialog = builder.setTitle("菜单")
                 .setNeutralButton(game.getResources().getString(R.string.game_menu_disconnect), (dialogInterface, which) -> {
                     dialogInterface.dismiss();
+                    // 中断串流
                     game.finish();
                 })
-                .setNegativeButton(game.getResources().getString(R.string.game_menu_change_touch), (dialogInterface, which) -> Toast.makeText(game, "暂未实现", Toast.LENGTH_SHORT).show())
+                .setNegativeButton(game.getResources().getString(R.string.game_menu_change_touch), (dialogInterface, which) -> {
+                    // 2024-11-27 23:48:26 添加触摸模式切换
+                    game.toggleTouchscreenMode();
+                })
                 .create();
         dialog.setView(createListView(dialog));
         dialog.show();

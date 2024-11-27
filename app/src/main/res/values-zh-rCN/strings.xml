@@ -300,4 +300,6 @@
     <string name="game_menu_hotkey_ctrl_c" >热键：复制</string>
     <string name="game_menu_hotkey_ctrl_v" >热键：粘贴</string>
     <string name="game_menu_hotkey_home" >热键：返回桌面</string>
+    <string name="title_checkbox_multitouch_screen">多点触摸</string>
+    <string name="summary_checkbox_multitouch_screen">在串流中启用多点触摸模式</string>
 </resources>

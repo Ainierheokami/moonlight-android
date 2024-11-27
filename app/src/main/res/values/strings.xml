@@ -314,5 +314,7 @@
     <string name="game_menu_hotkey_ctrl_c" >Hotkey: Copy</string>
     <string name="game_menu_hotkey_ctrl_v" >Hotkey: Paste</string>
     <string name="game_menu_hotkey_home" >Hotkey: Return to Desktop</string>
+    <string name="title_checkbox_multitouch_screen">multi-touch</string>
+    <string name="summary_checkbox_multitouch_screen">Enable multi-touch screen</string>
 
 </resources>

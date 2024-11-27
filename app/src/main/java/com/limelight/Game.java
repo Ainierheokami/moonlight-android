@@ -195,8 +195,8 @@ public class Game extends Activity implements SurfaceHolder.Callback,
     private void useSimplifyPerfOverlay(FrameLayout.LayoutParams params) {
         params.gravity = Gravity.TOP | Gravity.CENTER;
         // 2024-11-22 09:40:00 添加内边距
-        params.setMargins(0, 0 ,0 ,0);
-        int paddingDp = 14;
+        params.setMargins(0, 4 ,0 ,0);
+        int paddingDp = 8;
         int paddingPx = (int) (paddingDp * this.getResources().getDisplayMetrics().density);
         performanceOverlayView.setPadding(paddingPx, 0, paddingPx, 0);
         // 2024-11-22 09:50:41 新增圆角
@@ -2068,10 +2068,12 @@ public class Game extends Activity implements SurfaceHolder.Callback,
                 // TODO: Re-enable native touch when have a better solution for handling
                 // cancelled touches from Android gestures and 3 finger taps to activate
                 // the software keyboard.
-                if (!prefConfig.touchscreenTrackpad && trySendTouchEvent(view, event)) {
-                    // If this host supports touch events and absolute touch is enabled,
-                    // send it directly as a touch event.
-                    return true;
+                if (prefConfig.multiTouchScreen){
+                    if (!prefConfig.touchscreenTrackpad && trySendTouchEvent(view, event)) {
+                        // If this host supports touch events and absolute touch is enabled,
+                        // send it directly as a touch event.
+                        return true;
+                    }
                 }
 
                 TouchContext context = getTouchContext(actionIndex);
@@ -2740,9 +2742,45 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         if (!virtualControllerShow) {
             virtualController.show();
             virtualControllerShow = true;
+            prefConfig.onscreenController = true;
         }else{
             virtualController.hide();
             virtualControllerShow = false;
+            prefConfig.onscreenController = false;
+        }
+    }
+
+    // 2024-11-27 23:48:26 添加触摸模式切换
+    private int touchMode = 0;
+
+    public void toggleTouchscreenMode(){
+        switch (touchMode){
+            case 0:
+                prefConfig.multiTouchScreen = true;
+                prefConfig.touchscreenTrackpad = false;
+                Toast.makeText(this, "切换为多点触摸模式", Toast.LENGTH_SHORT).show();
+                break;
+            case 1:
+                prefConfig.multiTouchScreen = false;
+                prefConfig.touchscreenTrackpad = true;
+                Toast.makeText(this, "切换为触摸板模式", Toast.LENGTH_SHORT).show();
+                break;
+            default:
+                prefConfig.multiTouchScreen = false;
+                prefConfig.touchscreenTrackpad = false;
+                Toast.makeText(this, "切换为绝对定位模式", Toast.LENGTH_SHORT).show();
+                break;
+        }
+        touchMode = (touchMode + 1) % 3;
+        for (int i = 0; i < touchContextMap.length; i++) {
+            if (!prefConfig.touchscreenTrackpad) {
+                touchContextMap[i] = new AbsoluteTouchContext(conn, i, streamView);
+            }
+            else {
+                touchContextMap[i] = new RelativeTouchContext(conn, i,
+                        REFERENCE_HORIZ_RES, REFERENCE_VERT_RES,
+                        streamView, prefConfig);
+            }
         }
     }
 

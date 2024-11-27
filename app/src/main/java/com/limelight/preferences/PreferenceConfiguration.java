@@ -10,6 +10,7 @@ import android.view.Display;
 import com.limelight.nvstream.jni.MoonBridge;
 
 public class PreferenceConfiguration {
+
     public enum FormatOption {
         AUTO,
         FORCE_AV1,
@@ -70,8 +71,6 @@ public class PreferenceConfiguration {
     private static final String GAMEPAD_TOUCHPAD_AS_MOUSE_PREF_STRING = "checkbox_gamepad_touchpad_as_mouse";
     private static final String GAMEPAD_MOTION_SENSORS_PREF_STRING = "checkbox_gamepad_motion_sensors";
     private static final String GAMEPAD_MOTION_FALLBACK_PREF_STRING = "checkbox_gamepad_motion_fallback";
-
-
 
     static final String DEFAULT_RESOLUTION = "1280x720";
     static final String DEFAULT_FPS = "60";
@@ -166,6 +165,11 @@ public class PreferenceConfiguration {
     public String simplifyPerfOverlayPrefTemplate;
 
     public static final String DEFAULT_EDITTEXT_SIMPLE_PERF_OVERLAY_PREF = "FPS:@data1 解码:@data2 延迟:@data3 处理:@data4 丢包:@data5 流量:@data11";
+
+    // 多点触摸配置
+    private static final String MULTITOUCH_SCREEN_PREF_STRING = "checkbox_multitouch_screen";
+    private static final boolean DEFAULT_MULTITOUCH_SCREEN = false;
+    public boolean multiTouchScreen;
 
     public static boolean isNativeResolution(int width, int height) {
         // It's not a native resolution if it matches an existing resolution option
@@ -615,6 +619,7 @@ public class PreferenceConfiguration {
         config.gamepadMotionSensors = prefs.getBoolean(GAMEPAD_MOTION_SENSORS_PREF_STRING, DEFAULT_GAMEPAD_MOTION_SENSORS);
         config.gamepadMotionSensorsFallbackToDevice = prefs.getBoolean(GAMEPAD_MOTION_FALLBACK_PREF_STRING, DEFAULT_GAMEPAD_MOTION_FALLBACK);
         config.simplifyPerfOverlayPrefTemplate = prefs.getString(EDITTEXT_SIMPLE_PERF_OVERLAY_PREF_STRING, DEFAULT_EDITTEXT_SIMPLE_PERF_OVERLAY_PREF);
+        config.multiTouchScreen = prefs.getBoolean(MULTITOUCH_SCREEN_PREF_STRING, DEFAULT_MULTITOUCH_SCREEN);
 
         return config;
     }
