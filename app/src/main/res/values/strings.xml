@@ -305,7 +305,14 @@
     <string name="analogscroll_left">Left analog stick</string>
     <string name="title_edittext_simple_perf_overlay">Edit simplify performance display templates</string>
     <string name="summary_edittext_simple_perf_overlay">Click edit to simplify performance template</string>
-    <string name="template_simple_perf_overlay">FPS:@data1 decode:@data2 ping:@data3 time:@data4 loss:@data5</string>
+    <string name="template_simple_perf_overlay">FPS:@data1 decode:@data2 ping:@data3 time:@data4 loss:@data5 Traffic:@data11</string>
     <string name="game_menu_disconnect">Disconnect</string>
+    <string name="game_menu_change_touch">Switch to touch mode</string>
+    <string name="game_menu_enable_keyboard" >Enable Input Method</string>
+    <string name="game_menu_toggle_virtual_controller" >Cut Shout Virtual Handle</string>
+    <string name="game_menu_hotkey_screen_keyboard" >Hotkeys: Virtual Keyboard</string>
+    <string name="game_menu_hotkey_ctrl_c" >Hotkey: Copy</string>
+    <string name="game_menu_hotkey_ctrl_v" >Hotkey: Paste</string>
+    <string name="game_menu_hotkey_home" >Hotkey: Return to Desktop</string>
 
 </resources>

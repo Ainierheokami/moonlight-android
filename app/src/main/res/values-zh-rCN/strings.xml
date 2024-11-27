@@ -291,6 +291,13 @@
     <string name="title_checkbox_center_video">将画面全屏居中显示(忽略挖孔屏)</string>
     <string name="title_edittext_simple_perf_overlay">编辑精简性能显示模板</string>
     <string name="summary_edittext_simple_perf_overlay">点击编辑精简性能模板</string>
-    <string name="template_simple_perf_overlay">FPS:@data1 解码:@data2 延迟:@data3 处理:@data4 丢包:@data5</string>
+    <string name="template_simple_perf_overlay">FPS:@data1 解码:@data2 延迟:@data3 处理:@data4 丢包:@data5 流量:@data11</string>
     <string name="game_menu_disconnect">断开连接</string>
+    <string name="game_menu_change_touch">切换触屏模式</string>
+    <string name="game_menu_enable_keyboard" >开启输入法</string>
+    <string name="game_menu_toggle_virtual_controller" >切换虚拟手柄</string>
+    <string name="game_menu_hotkey_screen_keyboard" >热键：虚拟键盘</string>
+    <string name="game_menu_hotkey_ctrl_c" >热键：复制</string>
+    <string name="game_menu_hotkey_ctrl_v" >热键：粘贴</string>
+    <string name="game_menu_hotkey_home" >热键：返回桌面</string>
 </resources>
