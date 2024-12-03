@@ -316,5 +316,9 @@
     <string name="game_menu_hotkey_home" >Hotkey: Return to Desktop</string>
     <string name="title_checkbox_multitouch_screen">multi-touch</string>
     <string name="summary_checkbox_multitouch_screen">Enable multi-touch screen</string>
+    <string name="category_on_screen_keyboard_settings" >Virtual keyboard settings</string>
+    <string name="summary_checkbox_show_onscreen_keyboard" >Whether or not to display a virtual keyboard on the screen</string>
+    <string name="title_checkbox_show_onscreen_keyboard" >Virtual keyboard</string>
+    <string name="game_menu_toggle_virtual_keyboard">Toggle the on-screen virtual keyboard</string>
 
 </resources>

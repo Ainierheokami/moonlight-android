@@ -200,8 +200,24 @@
             android:positiveButtonText="@string/yes"
             android:negativeButtonText="@string/no"
             />
-
     </PreferenceCategory>
+    <PreferenceCategory android:title="@string/category_on_screen_keyboard_settings"
+        android:key="category_onscreen_keyboard">
+        <CheckBoxPreference
+            android:defaultValue="false"
+            android:key="checkbox_show_onscreen_keyboard"
+            android:summary="@string/summary_checkbox_show_onscreen_keyboard"
+            android:title="@string/title_checkbox_show_onscreen_keyboard" />
+        <CheckBoxPreference
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:defaultValue="true"
+            android:dependency="checkbox_show_onscreen_keyboard"
+            android:key="checkbox_show_guide_button"
+            android:summary="@string/summary_show_guide_button"
+            android:title="@string/title_show_guide_button" />
+    </PreferenceCategory>
+
     <PreferenceCategory android:title="@string/category_host_settings">
         <CheckBoxPreference
             android:key="checkbox_enable_sops"

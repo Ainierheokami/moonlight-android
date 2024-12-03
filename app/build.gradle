@@ -1,4 +1,5 @@
 apply plugin: 'com.android.application'
+apply plugin: 'org.jetbrains.kotlin.android'
 
 android {
     ndkVersion "27.0.12077973"
@@ -141,6 +142,9 @@ android {
     dependenciesInfo {
         includeInApk true
         includeInBundle false
+    }
+    kotlinOptions {
+        jvmTarget = '11'
     }
 //    buildToolsVersion '35.0.0'
 }

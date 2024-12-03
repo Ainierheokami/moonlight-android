@@ -13,6 +13,7 @@ import com.limelight.binding.input.driver.UsbDriverService;
 import com.limelight.binding.input.evdev.EvdevListener;
 import com.limelight.binding.input.touch.TouchContext;
 import com.limelight.binding.input.virtual_controller.VirtualController;
+import com.limelight.binding.input.virtual_keyboard.VirtualKeyboard;
 import com.limelight.binding.video.CrashListener;
 import com.limelight.binding.video.MediaCodecDecoderRenderer;
 import com.limelight.binding.video.MediaCodecHelper;
@@ -122,6 +123,8 @@ public class Game extends Activity implements SurfaceHolder.Callback,
     private ControllerHandler controllerHandler;
     private KeyboardTranslator keyboardTranslator;
     private VirtualController virtualController;
+    // 虚拟键盘
+    private VirtualKeyboard virtualKeyboard;
 
     private PreferenceConfiguration prefConfig;
     private SharedPreferences tombstonePrefs;
@@ -628,6 +631,11 @@ public class Game extends Activity implements SurfaceHolder.Callback,
             virtualController.refreshLayout();
         }
 
+        // 虚拟按键
+        if (virtualKeyboard != null){
+            virtualKeyboard.refreshLayout();
+        }
+
         // Hide on-screen overlays in PiP mode
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             if (isInPictureInPictureMode()) {
@@ -635,6 +643,10 @@ public class Game extends Activity implements SurfaceHolder.Callback,
 
                 if (virtualController != null) {
                     virtualController.hide();
+                }
+
+                if (virtualKeyboard != null){
+                    virtualKeyboard.hide();
                 }
 
                 performanceOverlayView.setVisibility(View.GONE);
@@ -653,6 +665,10 @@ public class Game extends Activity implements SurfaceHolder.Callback,
 
                 if (virtualController != null) {
                     virtualController.show();
+                }
+
+                if (virtualKeyboard != null){
+                    virtualKeyboard.show();
                 }
 
                 if (prefConfig.enablePerfOverlay || prefConfig.enableSimplifyPerfOverlay) {
@@ -1124,6 +1140,9 @@ public class Game extends Activity implements SurfaceHolder.Callback,
 
         if (virtualController != null) {
             virtualController.hide();
+        }
+        if (virtualKeyboard != null){
+            virtualKeyboard.hide();
         }
 
         if (conn != null) {
@@ -2032,6 +2051,12 @@ public class Game extends Activity implements SurfaceHolder.Callback,
                     // Ignore presses when the virtual controller is being configured
                     return true;
                 }
+                if (virtualKeyboard != null &&
+                        (virtualKeyboard.getControllerMode() == VirtualKeyboard.ControllerMode.MoveButtons ||
+                                virtualKeyboard.getControllerMode() == VirtualKeyboard.ControllerMode.ResizeButtons)) {
+                    // Ignore presses when the virtual controller is being configured
+                    return true;
+                }
 
                 // If this is the parent view, we'll offset our coordinates to appear as if they
                 // are relative to the StreamView like our StreamView touch events are.
@@ -2728,8 +2753,6 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         }
     }
 
-    private boolean virtualControllerShow = false;
-
     public void toggleVirtualController() {
         if (virtualController == null) {
             streamView = this.findViewById(R.id.surfaceView);
@@ -2738,15 +2761,31 @@ public class Game extends Activity implements SurfaceHolder.Callback,
                     this);
             virtualController.refreshLayout();
         }
-        Toast.makeText(this, String.valueOf(virtualControllerShow), Toast.LENGTH_SHORT).show();
-        if (!virtualControllerShow) {
+//        Toast.makeText(this, String.valueOf(virtualControllerShow), Toast.LENGTH_SHORT).show();
+        if (!prefConfig.onscreenController) {
             virtualController.show();
-            virtualControllerShow = true;
             prefConfig.onscreenController = true;
         }else{
             virtualController.hide();
-            virtualControllerShow = false;
             prefConfig.onscreenController = false;
+        }
+    }
+
+    public void toggleVirtualKeyboard() {
+        if (virtualKeyboard == null) {
+            streamView = this.findViewById(R.id.surfaceView);
+            virtualKeyboard = new VirtualKeyboard(conn,
+                    (FrameLayout) streamView.getParent(),
+                    this);
+            virtualKeyboard.refreshLayout();
+        }
+//        Toast.makeText(this, String.valueOf(virtualControllerShow), Toast.LENGTH_SHORT).show();
+        if (!prefConfig.onscreenController) {
+            virtualKeyboard.show();
+            prefConfig.onscreenKeyboard = true;
+        }else{
+            virtualKeyboard.hide();
+            prefConfig.onscreenKeyboard = false;
         }
     }
 

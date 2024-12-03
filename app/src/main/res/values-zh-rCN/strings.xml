@@ -302,4 +302,8 @@
     <string name="game_menu_hotkey_home" >热键：返回桌面</string>
     <string name="title_checkbox_multitouch_screen">多点触摸</string>
     <string name="summary_checkbox_multitouch_screen">在串流中启用多点触摸模式</string>
+    <string name="category_on_screen_keyboard_settings">虚拟键盘设置</string>
+    <string name="summary_checkbox_show_onscreen_keyboard">是否在屏幕上显示虚拟键盘</string>
+    <string name="title_checkbox_show_onscreen_keyboard">虚拟键盘</string>
+    <string name="game_menu_toggle_virtual_keyboard">切换屏幕虚拟键盘</string>
 </resources>

@@ -10,6 +10,7 @@ import com.limelight.Game;
 import com.limelight.R;
 import com.limelight.nvstream.NvConnection;
 import com.limelight.nvstream.input.KeyboardPacket;
+import com.limelight.heokami.VirtualKeyboardVkCode;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -41,37 +42,37 @@ public class GameMenu {
         runnable.run();
     }
 
-    // virtual-key-codes https://learn.microsoft.com/zh-cn/windows/win32/inputdev/virtual-key-codes
-    private static final int VK_LWIN = 91;
-    private static final int VK_RWIN = 92;
-    private static final int VK_LSHIFT = 160;
-    private static final int VK_RSHIFT = 161;
-    private static final int VK_LCONTROL = 162;
-    private static final int VK_RCONTROL = 163;
-    private static final int VK_LALT = 164;
-    private static final int VK_RALT = 165;
-    private static final int VK_C = 67;
-    private static final int VK_D = 68;
-    private static final int VK_V = 86;
-    private static final int VK_O = 79;
-//    private static final int VK_ESCAPE = 27;
-
-    private static byte replaceSpecialKeys(short vk_code) {
-        int modifierMask = 0;
-        if (vk_code == VK_LCONTROL || vk_code == VK_RCONTROL) {
-            modifierMask = KeyboardPacket.MODIFIER_CTRL;
-        }
-        else if (vk_code == VK_LSHIFT || vk_code == VK_RSHIFT) {
-            modifierMask = KeyboardPacket.MODIFIER_SHIFT;
-        }
-        else if (vk_code == VK_LALT || vk_code == VK_RALT) {
-            modifierMask = KeyboardPacket.MODIFIER_ALT;
-        }
-        else if (vk_code == VK_LWIN || vk_code == VK_RWIN) {
-            modifierMask = KeyboardPacket.MODIFIER_META;
-        }
-        return (byte) modifierMask;
-    }
+//    // virtual-key-codes https://learn.microsoft.com/zh-cn/windows/win32/inputdev/virtual-key-codes
+//    private static final int VK_LWIN = 91;
+//    private static final int VK_RWIN = 92;
+//    private static final int VK_LSHIFT = 160;
+//    private static final int VK_RSHIFT = 161;
+//    private static final int VK_LCONTROL = 162;
+//    private static final int VK_RCONTROL = 163;
+//    private static final int VK_LALT = 164;
+//    private static final int VK_RALT = 165;
+//    private static final int VK_C = 67;
+//    private static final int VK_D = 68;
+//    private static final int VK_V = 86;
+//    private static final int VK_O = 79;
+////    private static final int VK_ESCAPE = 27;
+//
+//    private static byte replaceSpecialKeys(short vk_code) {
+//        int modifierMask = 0;
+//        if (vk_code == VK_LCONTROL || vk_code == VK_RCONTROL) {
+//            modifierMask = KeyboardPacket.MODIFIER_CTRL;
+//        }
+//        else if (vk_code == VK_LSHIFT || vk_code == VK_RSHIFT) {
+//            modifierMask = KeyboardPacket.MODIFIER_SHIFT;
+//        }
+//        else if (vk_code == VK_LALT || vk_code == VK_RALT) {
+//            modifierMask = KeyboardPacket.MODIFIER_ALT;
+//        }
+//        else if (vk_code == VK_LWIN || vk_code == VK_RWIN) {
+//            modifierMask = KeyboardPacket.MODIFIER_META;
+//        }
+//        return (byte) modifierMask;
+//    }
 
     private void sendKeys(short[] keys) {
         final byte[] modifier = {(byte) 0};
@@ -81,7 +82,7 @@ public class GameMenu {
 
             // Apply the modifier of the pressed key, e.g. CTRL first issues a CTRL event (without
             // modifier) and then sends the following keys with the CTRL modifier applied
-            modifier[0] |= replaceSpecialKeys(key);
+            modifier[0] |= VirtualKeyboardVkCode.INSTANCE.replaceSpecialKeys(key);
         }
 
         new Handler().postDelayed((() -> {
@@ -90,7 +91,7 @@ public class GameMenu {
                 short key = keys[pos];
 
                 // Remove the keys modifier before releasing the key
-                modifier[0] &= (byte) ~replaceSpecialKeys(key);
+                modifier[0] &= (byte) ~ VirtualKeyboardVkCode.INSTANCE.replaceSpecialKeys(key);
 
                 conn.sendKeyboardInput(key, KeyboardPacket.KEY_UP, modifier[0], (byte) 0);
             }
@@ -220,10 +221,11 @@ public class GameMenu {
         // 映射菜单项名称到方法
         actionMap.put(game.getString(R.string.game_menu_enable_keyboard), this::enableKeyboard);
         actionMap.put(game.getString(R.string.game_menu_toggle_virtual_controller), game::toggleVirtualController);
-        actionMap.put(game.getString(R.string.game_menu_hotkey_screen_keyboard), () -> sendKeys(new short[]{VK_LCONTROL, VK_LWIN, VK_O}));
-        actionMap.put(game.getString(R.string.game_menu_hotkey_ctrl_c), () -> sendKeys(new short[]{VK_LCONTROL, VK_C}));
-        actionMap.put(game.getString(R.string.game_menu_hotkey_ctrl_v), () -> sendKeys(new short[]{VK_LCONTROL, VK_V}));
-        actionMap.put(game.getString(R.string.game_menu_hotkey_home), () -> sendKeys(new short[]{VK_LWIN, VK_D}));
+        actionMap.put(game.getString(R.string.game_menu_toggle_virtual_keyboard), game::toggleVirtualKeyboard);
+        actionMap.put(game.getString(R.string.game_menu_hotkey_screen_keyboard), () -> sendKeys(new short[]{(short) VirtualKeyboardVkCode.VKCode.VK_LCONTROL.getCode(), (short) VirtualKeyboardVkCode.VKCode.VK_LWIN.getCode(), (short) VirtualKeyboardVkCode.VKCode.VK_O.getCode()}));
+        actionMap.put(game.getString(R.string.game_menu_hotkey_ctrl_c), () -> sendKeys(new short[]{(short)VirtualKeyboardVkCode.VKCode.VK_LCONTROL.getCode(), (short)VirtualKeyboardVkCode.VKCode.VK_C.getCode()}));
+        actionMap.put(game.getString(R.string.game_menu_hotkey_ctrl_v), () -> sendKeys(new short[]{(short)VirtualKeyboardVkCode.VKCode.VK_LCONTROL.getCode(), (short)VirtualKeyboardVkCode.VKCode.VK_V.getCode()}));
+        actionMap.put(game.getString(R.string.game_menu_hotkey_home), () -> sendKeys(new short[]{(short)VirtualKeyboardVkCode.VKCode.VK_LWIN.getCode(), (short)VirtualKeyboardVkCode.VKCode.VK_D.getCode()}));
 
         return actionMap;
     }
