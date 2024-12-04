@@ -17,25 +17,12 @@ import android.widget.FrameLayout;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import com.limelight.binding.input.virtual_controller.VirtualControllerElement;
+import com.limelight.heokami.VirtualKeyboardMenu;
+
 public abstract class VirtualKeyboardElement extends View {
     protected static boolean _PRINT_DEBUG_INFORMATION = false;
 
-    public static final int EID_DPAD = 1;
-    public static final int EID_LT = 2;
-    public static final int EID_RT = 3;
-    public static final int EID_LB = 4;
-    public static final int EID_RB = 5;
-    public static final int EID_A = 6;
-    public static final int EID_B = 7;
-    public static final int EID_X = 8;
-    public static final int EID_Y = 9;
-    public static final int EID_BACK = 10;
-    public static final int EID_START = 11;
-    public static final int EID_LS = 12;
-    public static final int EID_RS = 13;
-    public static final int EID_LSB = 14;
-    public static final int EID_RSB = 15;
-    public static final int EID_GDB = 16;
 
     protected VirtualKeyboard virtualKeyboard;
     protected final int elementId;
@@ -46,6 +33,7 @@ public abstract class VirtualKeyboardElement extends View {
     protected int pressedColor = 0xF00000FF;
     private int configMoveColor = 0xF0FF0000;
     private int configResizeColor = 0xF0FF00FF;
+    private int configSettingsColor = 0xF090e494;
     private int configSelectedColor = 0xF000FF00;
 
     protected int startSize_x;
@@ -57,7 +45,8 @@ public abstract class VirtualKeyboardElement extends View {
     private enum Mode {
         Normal,
         Resize,
-        Move
+        Move,
+        Settings
     }
 
     private Mode currentMode = Mode.Normal;
@@ -94,6 +83,10 @@ public abstract class VirtualKeyboardElement extends View {
 
         requestLayout();
     }
+
+//    protected void settingsElement() {
+//        FrameLayout.LayoutParams layoutParams = (FrameLayout.LayoutParams) getLayoutParams();
+//    }
 
     @Override
     protected void onDraw(Canvas canvas) {
@@ -152,6 +145,13 @@ public abstract class VirtualKeyboardElement extends View {
         currentMode = Mode.Resize;
     }
 
+    protected void actionEnableSettings() {
+        currentMode = Mode.Settings;
+        Context context = getContext();
+        VirtualKeyboardMenu virtualKeyboardMenu = new VirtualKeyboardMenu(context, virtualKeyboard);
+        virtualKeyboardMenu.showMenu();
+    }
+
     protected void actionCancel() {
         currentMode = Mode.Normal;
         invalidate();
@@ -162,6 +162,8 @@ public abstract class VirtualKeyboardElement extends View {
             return configMoveColor;
         else if (virtualKeyboard.getControllerMode() == VirtualKeyboard.ControllerMode.ResizeButtons)
             return configResizeColor;
+        else if (virtualKeyboard.getControllerMode() == VirtualKeyboard.ControllerMode.SettingsButtons)
+            return configSettingsColor;
         else
             return normalColor;
     }
@@ -244,10 +246,15 @@ public abstract class VirtualKeyboardElement extends View {
                 startSize_x = getWidth();
                 startSize_y = getHeight();
 
-                if (virtualKeyboard.getControllerMode() == VirtualKeyboard.ControllerMode.MoveButtons)
+                if (virtualKeyboard.getControllerMode() == VirtualKeyboard.ControllerMode.MoveButtons){
                     actionEnableMove();
-                else if (virtualKeyboard.getControllerMode() == VirtualKeyboard.ControllerMode.ResizeButtons)
+                }
+                else if (virtualKeyboard.getControllerMode() == VirtualKeyboard.ControllerMode.ResizeButtons) {
                     actionEnableResize();
+                }
+                else if (virtualKeyboard.getControllerMode() == VirtualKeyboard.ControllerMode.SettingsButtons){
+                    actionEnableSettings();
+                }
 
                 return true;
             }
@@ -267,6 +274,12 @@ public abstract class VirtualKeyboardElement extends View {
                                 (int) position_pressed_y,
                                 (int) event.getX(),
                                 (int) event.getY());
+                        break;
+                    }
+                    case Settings: {
+//                        Context context = getContext();
+//                        VirtualKeyboardMenu virtualKeyboardMenu = new VirtualKeyboardMenu(context);
+//                        virtualKeyboardMenu.showMenu();
                         break;
                     }
                     case Normal: {

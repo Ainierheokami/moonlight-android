@@ -10,7 +10,6 @@ import com.limelight.Game;
 import com.limelight.R;
 import com.limelight.nvstream.NvConnection;
 import com.limelight.nvstream.input.KeyboardPacket;
-import com.limelight.heokami.VirtualKeyboardVkCode;
 
 import java.util.LinkedHashMap;
 import java.util.Map;

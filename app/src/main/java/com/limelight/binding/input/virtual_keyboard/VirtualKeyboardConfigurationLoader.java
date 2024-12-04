@@ -20,23 +20,23 @@ import org.json.JSONObject;
 public class VirtualKeyboardConfigurationLoader {
     public static final String OSK_PREFERENCE = "OSK";
 
-    private static int getPercent(
-            int percent,
-            int total) {
-        return (int) (((float) total / (float) 100) * (float) percent);
-    }
+//    private static int getPercent(
+//            int percent,
+//            int total) {
+//        return (int) (((float) total / (float) 100) * (float) percent);
+//    }
 
     // The default controls are specified using a grid of 128*72 cells at 16:9
     private static int screenScale(int units, int height) {
         return (int) (((float) height / (float) 72) * (float) units);
     }
 
-    private static DigitalButton createDigitalButton(
-            final int elementId,
-            final short vk_key,
-            final int layer,
-            final String text,
-            final int icon,
+    public static DigitalButton createDigitalButton(
+            final int elementId, // 唯一标识
+            final short vk_key, // 按键
+            final int layer, // 层
+            final String text, // 文本
+            final int icon, // 图标
             final VirtualKeyboard controller,
             final Context context) {
         DigitalButton button = new DigitalButton(controller, elementId, layer, context);
@@ -76,16 +76,34 @@ public class VirtualKeyboardConfigurationLoader {
     }
 
 
-    private static final int START_X = 83;
-    private static final int BACK_X = 34;
-    private static final int START_BACK_Y = 64;
-    private static final int START_BACK_WIDTH = 12;
-    private static final int START_BACK_HEIGHT = 7;
+    private static final int TEST_X = 35;
+    private static final int TEST_Y = 35;
 
-    // Make the Guide Menu be in the center of START and BACK menu
-    private static final int GUIDE_X = START_X-BACK_X;
-    private static final int GUIDE_Y = START_BACK_Y;
+    private static final int TEST_WIDTH = 10;
+    private static final int TEST_HEIGHT = 5;
 
+    public void addButton(final VirtualKeyboard controller, final Context context, Integer buttonId, String VK_code, String text){
+        DisplayMetrics screen = context.getResources().getDisplayMetrics();
+        PreferenceConfiguration config = PreferenceConfiguration.readPreferences(context);
+
+        int rightDisplacement = screen.widthPixels - screen.heightPixels * 16 / 9;
+
+        int height = screen.heightPixels;
+
+        controller.addElement(
+                createDigitalButton(
+                        buttonId,
+                        Short.parseShort(VK_code),
+                        1, text, -1, controller, context
+                ),
+                screenScale(TEST_X, height) + rightDisplacement,
+                screenScale(TEST_Y, height),
+                screenScale(TEST_WIDTH, height),
+                screenScale(TEST_HEIGHT, height)
+        );
+
+        controller.setOpacity(config.oscOpacity);
+    }
     public static void createDefaultLayout(final VirtualKeyboard controller, final Context context) {
 
         DisplayMetrics screen = context.getResources().getDisplayMetrics();
@@ -96,18 +114,17 @@ public class VirtualKeyboardConfigurationLoader {
 
         int height = screen.heightPixels;
 
-        // NOTE: Some of these getPercent() expressions seem like they can be combined
-        // into a single call. Due to floating point rounding, this isn't actually possible.
 
         controller.addElement(
                 createDigitalButton(
-                        VirtualKeyboardElement.EID_GDB,
+                        VirtualKeyboardVkCode.VKCode.VK_LWIN.getCode(),
                         (short) VirtualKeyboardVkCode.VKCode.VK_LWIN.getCode(),
-                        1, "测试按钮", -1, controller, context),
-                screenScale(GUIDE_X, height)+ rightDisplacement,
-                screenScale(GUIDE_Y, height),
-                screenScale(START_BACK_WIDTH, height),
-                screenScale(START_BACK_HEIGHT, height)
+                        1, "测试按钮", -1, controller, context
+                ),
+                screenScale(TEST_X, height) + rightDisplacement,
+                screenScale(TEST_Y, height),
+                screenScale(TEST_WIDTH, height),
+                screenScale(TEST_HEIGHT, height)
         );
 
         controller.setOpacity(config.oscOpacity);

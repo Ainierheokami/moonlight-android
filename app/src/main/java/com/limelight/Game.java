@@ -2053,7 +2053,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
                 }
                 if (virtualKeyboard != null &&
                         (virtualKeyboard.getControllerMode() == VirtualKeyboard.ControllerMode.MoveButtons ||
-                                virtualKeyboard.getControllerMode() == VirtualKeyboard.ControllerMode.ResizeButtons)) {
+                         virtualKeyboard.getControllerMode() == VirtualKeyboard.ControllerMode.ResizeButtons)) {
                     // Ignore presses when the virtual controller is being configured
                     return true;
                 }
@@ -2780,7 +2780,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
             virtualKeyboard.refreshLayout();
         }
 //        Toast.makeText(this, String.valueOf(virtualControllerShow), Toast.LENGTH_SHORT).show();
-        if (!prefConfig.onscreenController) {
+        if (!prefConfig.onscreenKeyboard) {
             virtualKeyboard.show();
             prefConfig.onscreenKeyboard = true;
         }else{

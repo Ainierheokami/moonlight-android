@@ -30,7 +30,8 @@ public class VirtualKeyboard {
     public enum ControllerMode {
         Active,
         MoveButtons,
-        ResizeButtons
+        ResizeButtons,
+        SettingsButtons
     }
 
     private static final boolean _PRINT_DEBUG_INFORMATION = false;
@@ -76,7 +77,10 @@ public class VirtualKeyboard {
                 } else if (currentMode == ControllerMode.MoveButtons) {
                     currentMode = ControllerMode.ResizeButtons;
                     message = "Entering configuration mode (Resize buttons)";
-                } else {
+                }else if (currentMode == ControllerMode.ResizeButtons) {
+                    currentMode = ControllerMode.SettingsButtons;
+                    message = "启用设置按钮模式";
+                }else {
                     currentMode = ControllerMode.Active;
                     VirtualKeyboardConfigurationLoader.saveProfile(VirtualKeyboard.this, context);
                     message = "Exiting configuration mode";

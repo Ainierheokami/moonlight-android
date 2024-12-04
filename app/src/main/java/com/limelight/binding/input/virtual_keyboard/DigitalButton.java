@@ -149,7 +149,8 @@ public class DigitalButton extends VirtualKeyboardElement {
         rect.right = getWidth() - rect.left;
         rect.bottom = getHeight() - rect.top;
 
-        canvas.drawOval(rect, paint);
+        float cornerRadius = 10f; // 圆角大小
+        canvas.drawRoundRect(rect, cornerRadius, cornerRadius ,paint);
 
         if (icon != -1) {
             Drawable d = getResources().getDrawable(icon);
