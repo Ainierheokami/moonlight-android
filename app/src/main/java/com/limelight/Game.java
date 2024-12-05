@@ -18,6 +18,7 @@ import com.limelight.binding.video.CrashListener;
 import com.limelight.binding.video.MediaCodecDecoderRenderer;
 import com.limelight.binding.video.MediaCodecHelper;
 import com.limelight.binding.video.PerfOverlayListener;
+import com.limelight.heokami.VirtualKeyboardMenu;
 import com.limelight.nvstream.NvConnection;
 import com.limelight.nvstream.NvConnectionListener;
 import com.limelight.nvstream.StreamConfiguration;
@@ -60,6 +61,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
+import android.util.Log;
 import android.util.Rational;
 import android.util.TypedValue;
 import android.view.Display;
@@ -124,7 +126,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
     private KeyboardTranslator keyboardTranslator;
     private VirtualController virtualController;
     // 虚拟键盘
-    private VirtualKeyboard virtualKeyboard;
+    public VirtualKeyboard virtualKeyboard;
 
     private PreferenceConfiguration prefConfig;
     private SharedPreferences tombstonePrefs;
@@ -556,6 +558,12 @@ public class Game extends Activity implements SurfaceHolder.Callback,
                     this);
             virtualController.refreshLayout();
             virtualController.show();
+        }
+
+        if (prefConfig.onscreenKeyboard) {
+            virtualKeyboard = new VirtualKeyboard(conn, (FrameLayout)streamView.getParent(), this);
+            virtualKeyboard.refreshLayout();
+            virtualKeyboard.show();
         }
 
         if (prefConfig.usbDriver) {
@@ -2793,6 +2801,14 @@ public class Game extends Activity implements SurfaceHolder.Callback,
     private int touchMode = 0;
 
     public void toggleTouchscreenMode(){
+        if (!prefConfig.touchscreenTrackpad && prefConfig.multiTouchScreen) {
+            touchMode = 1;
+        }else if (!prefConfig.multiTouchScreen && prefConfig.touchscreenTrackpad) {
+            touchMode = 2;
+        }else {
+            touchMode = 0;
+        }
+
         switch (touchMode){
             case 0:
                 prefConfig.multiTouchScreen = true;
@@ -2824,7 +2840,12 @@ public class Game extends Activity implements SurfaceHolder.Callback,
     }
 
     public void showMenu() {
-        new GameMenu(this,conn);
+        if (virtualKeyboard != null && virtualKeyboard.getControllerMode() != VirtualKeyboard.ControllerMode.Active){
+            VirtualKeyboardMenu virtualKeyboardMenu = new VirtualKeyboardMenu(this, virtualKeyboard);
+            virtualKeyboardMenu.showMenu();
+        }else {
+            new GameMenu(this,conn);
+        }
     }
 
     @Override

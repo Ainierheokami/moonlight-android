@@ -194,7 +194,7 @@ public class GameMenu {
 
     private void showMenu() {
         AlertDialog.Builder builder = new AlertDialog.Builder(game);
-        AlertDialog dialog = builder.setTitle("菜单")
+        AlertDialog dialog = builder.setTitle(game.getResources().getString(R.string.game_menu_title))
                 .setNeutralButton(game.getResources().getString(R.string.game_menu_disconnect), (dialogInterface, which) -> {
                     dialogInterface.dismiss();
                     // 中断串流
@@ -220,7 +220,10 @@ public class GameMenu {
         // 映射菜单项名称到方法
         actionMap.put(game.getString(R.string.game_menu_enable_keyboard), this::enableKeyboard);
         actionMap.put(game.getString(R.string.game_menu_toggle_virtual_controller), game::toggleVirtualController);
-        actionMap.put(game.getString(R.string.game_menu_toggle_virtual_keyboard), game::toggleVirtualKeyboard);
+        actionMap.put(game.getString(R.string.game_menu_toggle_virtual_keyboard), () -> {
+            game.toggleVirtualKeyboard();
+            Toast.makeText(game, game.getString(R.string.game_menu_toggle_virtual_keyboard_toast), Toast.LENGTH_SHORT).show();
+        });
         actionMap.put(game.getString(R.string.game_menu_hotkey_screen_keyboard), () -> sendKeys(new short[]{(short) VirtualKeyboardVkCode.VKCode.VK_LCONTROL.getCode(), (short) VirtualKeyboardVkCode.VKCode.VK_LWIN.getCode(), (short) VirtualKeyboardVkCode.VKCode.VK_O.getCode()}));
         actionMap.put(game.getString(R.string.game_menu_hotkey_ctrl_c), () -> sendKeys(new short[]{(short)VirtualKeyboardVkCode.VKCode.VK_LCONTROL.getCode(), (short)VirtualKeyboardVkCode.VKCode.VK_C.getCode()}));
         actionMap.put(game.getString(R.string.game_menu_hotkey_ctrl_v), () -> sendKeys(new short[]{(short)VirtualKeyboardVkCode.VKCode.VK_LCONTROL.getCode(), (short)VirtualKeyboardVkCode.VKCode.VK_V.getCode()}));

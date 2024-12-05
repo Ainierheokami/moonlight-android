@@ -12,6 +12,18 @@ Moonlight also has a [PC client](https://github.com/moonlight-stream/moonlight-q
 
 You can follow development on our [Discord server](https://moonlight-stream.org/discord) and help translate Moonlight into your language on [Weblate](https://hosted.weblate.org/projects/moonlight/moonlight-android/).
 
+## Features 拥有以下功能：
+  
+- 精简的实时性能展示（可自定模板）
+- 返回菜单（快捷切换触摸、虚拟手柄、虚拟键盘）
+- 可自定义虚拟键盘 需参考 [按键码映射表](https://learn.microsoft.com/zh-cn/windows/win32/inputdev/virtual-key-codes) 进行配置（需要16进制转10进制使用，如：0x41=65）
+
+### en language
+
+- Minimal real-time performance display (customizable template)
+- Return menu (quick switch touch, virtual joystick, virtual keyboard)
+- Customizable virtual keyboard (refer to [Virtual Key Code Mapping Table](https://docs.microsoft.com/en-us/windows/win32/inputdev/virtual-key-codes) for configuration, need to convert hexadecimal to decimal, such as 0x41=65)
+
 ## Thanks
 
 * [GameMenu](https://github.com/kmreisi/limelight-android)

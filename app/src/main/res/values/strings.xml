@@ -320,5 +320,24 @@
     <string name="summary_checkbox_show_onscreen_keyboard" >Whether or not to display a virtual keyboard on the screen</string>
     <string name="title_checkbox_show_onscreen_keyboard" >Virtual keyboard</string>
     <string name="game_menu_toggle_virtual_keyboard">Toggle the on-screen virtual keyboard</string>
+    <string name="controller_mode_move_buttons">Entering configuration mode (Move buttons)</string>
+    <string name="controller_mode_resize_buttons">Entering configuration mode (Resize buttons)</string>
+    <string name="controller_mode_settings_buttons">Enable the settings button mode</string>
+    <string name="controller_mode_active_buttons">Exiting configuration mode</string>
+    <string name="game_menu_title">Menu</string>
+    <string name="virtual_keyboard_menu_set_button_title">Edit button</string>
+    <string name="virtual_keyboard_menu_remove_button">Delete</string>
+    <string name="virtual_keyboard_menu_save_button">Save</string>
+    <string name="virtual_keyboard_menu_cancel_button">Cancel</string>
+    <string name="virtual_keyboard_menu_confirm_button">Confirm</string>
+    <string name="virtual_keyboard_menu_add_button_title">Add button</string>
+    <string name="virtual_keyboard_menu_vk_code_hint">VK Button Code (Numeric)</string>
+    <string name="virtual_keyboard_menu_button_text_hint">The text displayed by the button</string>
+    <string name="virtual_keyboard_menu_button_id_hint">Button Unique ID (numeric)</string>
+    <string name="virtual_keyboard_menu_save_profile">Save configuration</string>
+    <string name="virtual_keyboard_menu_load_profile">Load configuration</string>
+    <string name="virtual_keyboard_menu_delete_profile">Delete configuration (clear all buttons)</string>
+    <string name="virtual_keyboard_menu_add_button_eg">Add an example of a button</string>
+    <string name="game_menu_toggle_virtual_keyboard_toast">Tips: In button configuration mode, you can add buttons from the back menu</string>
 
 </resources>

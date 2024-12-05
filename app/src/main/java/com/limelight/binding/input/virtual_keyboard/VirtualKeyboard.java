@@ -73,17 +73,17 @@ public class VirtualKeyboard {
 
                 if (currentMode == ControllerMode.Active){
                     currentMode = ControllerMode.MoveButtons;
-                    message = "Entering configuration mode (Move buttons)";
+                    message = context.getString(R.string.controller_mode_move_buttons);
                 } else if (currentMode == ControllerMode.MoveButtons) {
                     currentMode = ControllerMode.ResizeButtons;
-                    message = "Entering configuration mode (Resize buttons)";
+                    message = context.getString(R.string.controller_mode_resize_buttons);
                 }else if (currentMode == ControllerMode.ResizeButtons) {
                     currentMode = ControllerMode.SettingsButtons;
-                    message = "启用设置按钮模式";
+                    message = context.getString(R.string.controller_mode_settings_buttons);
                 }else {
                     currentMode = ControllerMode.Active;
                     VirtualKeyboardConfigurationLoader.saveProfile(VirtualKeyboard.this, context);
-                    message = "Exiting configuration mode";
+                    message = context.getString(R.string.controller_mode_active_buttons);
                 }
 
                 Toast.makeText(context, message, Toast.LENGTH_SHORT).show();
@@ -127,6 +127,16 @@ public class VirtualKeyboard {
         frame_layout.removeView(buttonConfigure);
     }
 
+    public void removeElementByElementId(int elementId) {
+        for (VirtualKeyboardElement element : elements) {
+            if (element.elementId == elementId) {
+                frame_layout.removeView(element);
+                elements.remove(element);
+                return;
+            }
+        }
+    }
+
     public void setOpacity(int opacity) {
         for (VirtualKeyboardElement element : elements) {
             element.setOpacity(opacity);
@@ -146,10 +156,34 @@ public class VirtualKeyboard {
         return elements;
     }
 
+    public VirtualKeyboardElement getElementByElementId(int elementId) {
+        for (VirtualKeyboardElement element : elements) {
+            if (element.elementId == elementId) {
+                return element;
+            }
+        }
+        return null;
+    }
+
     private static final void _DBG(String text) {
         if (_PRINT_DEBUG_INFORMATION) {
             LimeLog.info("VirtualController: " + text);
         }
+    }
+
+    public void loadDefaultLayout() {
+        removeElements();
+        DisplayMetrics screen = context.getResources().getDisplayMetrics();
+
+        int buttonSize = (int)(screen.heightPixels*0.06f);
+        FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(buttonSize, buttonSize);
+        params.leftMargin = 15;
+        params.topMargin = 15;
+        frame_layout.addView(buttonConfigure, params);
+
+        VirtualKeyboardConfigurationLoader.deleteProfile(context);
+        // Start with the default layout
+//        VirtualKeyboardConfigurationLoader.createDefaultLayout(this, context);
     }
 
     public void refreshLayout() {
@@ -164,7 +198,7 @@ public class VirtualKeyboard {
         frame_layout.addView(buttonConfigure, params);
 
         // Start with the default layout
-        VirtualKeyboardConfigurationLoader.createDefaultLayout(this, context);
+//        VirtualKeyboardConfigurationLoader.createDefaultLayout(this, context);
 
         // Apply user preferences onto the default layout
         VirtualKeyboardConfigurationLoader.loadFromPreferences(this, context);

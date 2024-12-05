@@ -22,10 +22,15 @@ import com.limelight.heokami.VirtualKeyboardMenu;
 
 public abstract class VirtualKeyboardElement extends View {
     protected static boolean _PRINT_DEBUG_INFORMATION = false;
+    public final int elementId;
+    public int layer;
+    public String vk_code;
+    public String text;
+    public int icon;
 
 
     protected VirtualKeyboard virtualKeyboard;
-    protected final int elementId;
+
 
     private final Paint paint = new Paint();
 
@@ -51,11 +56,15 @@ public abstract class VirtualKeyboardElement extends View {
 
     private Mode currentMode = Mode.Normal;
 
-    protected VirtualKeyboardElement(VirtualKeyboard controller, Context context, int elementId) {
+    protected VirtualKeyboardElement(VirtualKeyboard virtualKeyboard, Context context, int elementId, int layer) {
         super(context);
 
-        this.virtualKeyboard = controller;
+        this.virtualKeyboard = virtualKeyboard;
         this.elementId = elementId;
+        this.layer = layer;
+        this.text = "";
+        this.icon = -1;
+        this.vk_code = "";
     }
 
     protected void moveElement(int pressed_x, int pressed_y, int x, int y) {
@@ -149,7 +158,9 @@ public abstract class VirtualKeyboardElement extends View {
         currentMode = Mode.Settings;
         Context context = getContext();
         VirtualKeyboardMenu virtualKeyboardMenu = new VirtualKeyboardMenu(context, virtualKeyboard);
-        virtualKeyboardMenu.showMenu();
+//        virtualKeyboardMenu.showMenu();
+        virtualKeyboardMenu.setElementID(elementId);
+        virtualKeyboardMenu.setButtonDialog();
     }
 
     protected void actionCancel() {
@@ -309,6 +320,26 @@ public abstract class VirtualKeyboardElement extends View {
         }
     }
 
+    public void setText(String text) {
+        this.text = text;
+        invalidate();
+    }
+
+    public void setIcon(int id) {
+        this.icon = id;
+        invalidate();
+    }
+
+    public void setLayer(int layer) {
+        this.layer = layer;
+        invalidate();
+    }
+
+    public void setVkCode(String vk_code) {
+        this.vk_code = vk_code;
+        invalidate();
+    }
+
     public void setColors(int normalColor, int pressedColor) {
         this.normalColor = normalColor;
         this.pressedColor = pressedColor;
@@ -343,6 +374,10 @@ public abstract class VirtualKeyboardElement extends View {
         configuration.put("TOP", layoutParams.topMargin);
         configuration.put("WIDTH", layoutParams.width);
         configuration.put("HEIGHT", layoutParams.height);
+        configuration.put("TEXT", text);
+        configuration.put("ICON", icon);
+        configuration.put("LAYER", layer);
+        configuration.put("VK_CODE", vk_code);
 
         return configuration;
     }
@@ -354,6 +389,10 @@ public abstract class VirtualKeyboardElement extends View {
         layoutParams.topMargin = configuration.getInt("TOP");
         layoutParams.width = configuration.getInt("WIDTH");
         layoutParams.height = configuration.getInt("HEIGHT");
+        setText(configuration.getString("TEXT"));
+        setIcon(configuration.getInt("ICON"));
+        setLayer(configuration.getInt("LAYER"));
+        setVkCode(configuration.getString("VK_CODE"));
 
         requestLayout();
     }

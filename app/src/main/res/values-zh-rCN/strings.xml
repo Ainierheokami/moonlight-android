@@ -306,4 +306,23 @@
     <string name="summary_checkbox_show_onscreen_keyboard">是否在屏幕上显示虚拟键盘</string>
     <string name="title_checkbox_show_onscreen_keyboard">虚拟键盘</string>
     <string name="game_menu_toggle_virtual_keyboard">切换屏幕虚拟键盘</string>
+    <string name="controller_mode_move_buttons">进入配置模式（移动按钮）</string>
+    <string name="controller_mode_resize_buttons">进入配置模式（调整大小按钮）</string>
+    <string name="controller_mode_settings_buttons">进入配置模式（设置按钮）</string>
+    <string name="controller_mode_active_buttons">退出配置模式</string>
+    <string name="game_menu_title">Menu</string>
+    <string name="virtual_keyboard_menu_set_button_title">编辑按钮</string>
+    <string name="virtual_keyboard_menu_remove_button">删除</string>
+    <string name="virtual_keyboard_menu_save_button">保存</string>
+    <string name="virtual_keyboard_menu_cancel_button">取消</string>
+    <string name="virtual_keyboard_menu_confirm_button">确认</string>
+    <string name="virtual_keyboard_menu_add_button_title">添加按钮</string>
+    <string name="virtual_keyboard_menu_vk_code_hint">VK按钮编码(数字)</string>
+    <string name="virtual_keyboard_menu_button_text_hint">按钮显示的文本</string>
+    <string name="virtual_keyboard_menu_button_id_hint">按钮唯一ID（数字）</string>
+    <string name="virtual_keyboard_menu_save_profile">保存配置</string>
+    <string name="virtual_keyboard_menu_load_profile">载入配置</string>
+    <string name="virtual_keyboard_menu_delete_profile">删除配置（清空全部按键）</string>
+    <string name="virtual_keyboard_menu_add_button_eg">添加按钮示例</string>
+    <string name="game_menu_toggle_virtual_keyboard_toast">Tips: 按钮配置模式下可用返回菜单添加按键</string>
 </resources>

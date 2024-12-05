@@ -76,14 +76,14 @@ public class VirtualController {
 
                 if (currentMode == ControllerMode.Active){
                     currentMode = ControllerMode.MoveButtons;
-                    message = "Entering configuration mode (Move buttons)";
+                    message = context.getString(R.string.controller_mode_move_buttons);
                 } else if (currentMode == ControllerMode.MoveButtons) {
                     currentMode = ControllerMode.ResizeButtons;
-                    message = "Entering configuration mode (Resize buttons)";
+                    message = context.getString(R.string.controller_mode_resize_buttons);
                 } else {
                     currentMode = ControllerMode.Active;
                     VirtualControllerConfigurationLoader.saveProfile(VirtualController.this, context);
-                    message = "Exiting configuration mode";
+                    message = context.getString(R.string.controller_mode_active_buttons);
                 }
 
                 Toast.makeText(context, message, Toast.LENGTH_SHORT).show();
