@@ -3,24 +3,26 @@ package com.limelight.heokami
 import android.annotation.SuppressLint
 import android.app.AlertDialog
 import android.content.Context
+import android.content.Intent
 import android.text.InputType
-import android.util.Log
 import android.widget.ArrayAdapter
 import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.ListView
 import android.widget.ScrollView
+import android.widget.TextView
 import android.widget.Toast
 import com.limelight.R
 import com.limelight.binding.input.virtual_keyboard.VirtualKeyboard
 import com.limelight.binding.input.virtual_keyboard.VirtualKeyboardConfigurationLoader
+import com.limelight.binding.input.virtual_keyboard.VirtualKeyboardElement
 
 class VirtualKeyboardMenu(private val context: Context, private val virtualKeyboard: VirtualKeyboard) {
 
 //    init {
 //        showMenu()
 //    }
-    private var elementID = -1
+    private var element: VirtualKeyboardElement? = null
 
     private fun createListView(dialog: AlertDialog): ListView {
         val listView = ListView(context)
@@ -39,12 +41,12 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
         return listView
     }
 
-    public fun setElementID(elementID: Int) {
-        this.elementID = elementID
+    fun setElement(element: VirtualKeyboardElement) {
+        this.element = element
     }
 
     @SuppressLint("SetTextI18n")
-    public fun setButtonDialog() {
+    fun setButtonDialog() {
         val scrollView = ScrollView(context)
         val scrollParams = LinearLayout.LayoutParams(
             LinearLayout.LayoutParams.MATCH_PARENT,
@@ -56,17 +58,26 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
         layout.orientation = LinearLayout.VERTICAL
         scrollView.addView(layout)
 
+        layout.addView(TextView(context).apply {
+            text = context.getString(R.string.virtual_keyboard_menu_button_id_hint) // "按钮ID(数字)"
+        })
+
         val buttonIdEditText = EditText(context)
-        buttonIdEditText.hint = context.getString(R.string.virtual_keyboard_menu_button_id_hint) // "按钮ID(数字)"
         buttonIdEditText.setInputType(InputType.TYPE_CLASS_NUMBER)
         layout.addView(buttonIdEditText)
 
+        layout.addView(TextView(context).apply {
+            text = context.getString(R.string.virtual_keyboard_menu_button_text_hint) // "按钮文本"
+        })
+
         val buttonTextEditText = EditText(context)
-        buttonTextEditText.hint = context.getString(R.string.virtual_keyboard_menu_button_text_hint) // "按钮文本"
         layout.addView(buttonTextEditText)
 
+        layout.addView(TextView(context).apply {
+            text = context.getString(R.string.virtual_keyboard_menu_vk_code_hint) // "VK按钮编码(数字)"
+        })
+
         val vkCodeEditText = EditText(context)
-        vkCodeEditText.hint = context.getString(R.string.virtual_keyboard_menu_vk_code_hint) // "VK按钮编码(数字)"
         vkCodeEditText.setInputType(InputType.TYPE_CLASS_NUMBER)
         layout.addView(vkCodeEditText)
 
@@ -86,22 +97,22 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
             .setCancelable(true)
             .create()
 
-        if (elementID != -1) {
-            buttonIdEditText.setText(elementID.toString())
-            buttonTextEditText.setText(virtualKeyboard.getElementByElementId(elementID).text)
-            vkCodeEditText.setText(virtualKeyboard.getElementByElementId(elementID).vk_code)
+        if (element != null) {
+            buttonIdEditText.setText(element?.elementId.toString())
+            buttonTextEditText.setText(element?.text)
+            vkCodeEditText.setText(element?.vk_code)
             dialog = builder.setTitle(context.getString(R.string.virtual_keyboard_menu_set_button_title))
                 .setView(scrollView)
                 .setNegativeButton(R.string.virtual_keyboard_menu_cancel_button, null)
                 .setPositiveButton(R.string.virtual_keyboard_menu_remove_button, { dialogInterface, which ->
-                    virtualKeyboard.removeElementByElementId(elementID)
+                    virtualKeyboard.removeElementByElement(element)
                 })
                 .setNeutralButton(R.string.virtual_keyboard_menu_save_button, { dialogInterface, which ->
-                    var element = virtualKeyboard.getElementByElementId(elementID)
-                    element.text = buttonTextEditText.text.toString()
-                    element.vk_code = vkCodeEditText.text.toString()
+                    element?.text = buttonTextEditText.text.toString()
+                    element?.vk_code = vkCodeEditText.text.toString()
+                    element?.elementId = buttonIdEditText.text.toString().toInt()
+                    element?.invalidate()
                     VirtualKeyboardConfigurationLoader.saveProfile(virtualKeyboard, context)
-                    element.invalidate()
                 })
                 .setCancelable(true)
                 .create()
@@ -128,9 +139,16 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
         }
         actionMap[context.getString(R.string.virtual_keyboard_menu_save_profile)] = {
             VirtualKeyboardConfigurationLoader.saveProfile(virtualKeyboard, context)
+            val intent = Intent(context, SaveFileActivity::class.java)
+            intent.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)
+            context.startActivity(intent)
+            Toast.makeText(context, "保存配置文件", Toast.LENGTH_SHORT).show()
         }
         actionMap[context.getString(R.string.virtual_keyboard_menu_load_profile)] = {
-            VirtualKeyboardConfigurationLoader.loadFromPreferences(virtualKeyboard, context)
+            val intent = Intent(context, LoadFileActivity::class.java)
+            intent.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)
+            context.startActivity(intent)
+            Toast.makeText(context, "加载配置文件", Toast.LENGTH_SHORT).show()
         }
         actionMap[context.getString(R.string.virtual_keyboard_menu_delete_profile)] = {
             VirtualKeyboardConfigurationLoader.deleteProfile(context)

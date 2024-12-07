@@ -8,6 +8,7 @@ import android.content.Context;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.DisplayMetrics;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.FrameLayout;
@@ -137,6 +138,11 @@ public class VirtualKeyboard {
         }
     }
 
+    public void removeElementByElement(VirtualKeyboardElement element) {
+        frame_layout.removeView(element);
+        elements.remove(element);
+    }
+
     public void setOpacity(int opacity) {
         for (VirtualKeyboardElement element : elements) {
             element.setOpacity(opacity);
@@ -154,6 +160,16 @@ public class VirtualKeyboard {
 
     public List<VirtualKeyboardElement> getElements() {
         return elements;
+    }
+
+    public Integer getLastElementId() {
+        if (!elements.isEmpty()) {
+            Log.d("elements", "getLastElementId:"+ elements.get(elements.size() - 1).elementId);
+            Log.d("elements", "size:"+ elements.size());
+            Log.d("elements", "getFirstElementId:"+ elements.get(0).elementId);
+            return elements.get(elements.size() - 1).elementId;
+        }
+        return 0;
     }
 
     public VirtualKeyboardElement getElementByElementId(int elementId) {

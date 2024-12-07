@@ -11,14 +11,12 @@ import android.util.DisplayMetrics;
 import android.util.Log;
 import android.widget.Toast;
 
-// import com.limelight.nvstream.input.ControllerPacket;
-// import com.limelight.nvstream.input.KeyboardPacket;
 import com.limelight.preferences.PreferenceConfiguration;
-import com.limelight.heokami.VirtualKeyboardVkCode;
 
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.util.Iterator;
 import java.util.Map;
 
 public class VirtualKeyboardConfigurationLoader {
@@ -43,6 +41,7 @@ public class VirtualKeyboardConfigurationLoader {
             final int icon, // 图标
             final VirtualKeyboard virtualKeyboard,
             final Context context) {
+
         DigitalButton button = new DigitalButton(virtualKeyboard, elementId, layer, context);
 
         button.setText(text);
@@ -81,14 +80,11 @@ public class VirtualKeyboardConfigurationLoader {
         return button;
     }
 
-
     private static final int TEST_X = 35;
     private static final int TEST_Y = 35;
 
     private static final int TEST_WIDTH = 10;
     private static final int TEST_HEIGHT = 5;
-
-    private static final int DEFAULT_ELEMENT_ID = 0;
 
     public static void addButton(final VirtualKeyboard virtualKeyboard, final Context context, Integer buttonId, String VK_code, String text){
         DisplayMetrics screen = context.getResources().getDisplayMetrics();
@@ -97,7 +93,10 @@ public class VirtualKeyboardConfigurationLoader {
         int rightDisplacement = screen.widthPixels - screen.heightPixels * 16 / 9;
 
         int height = screen.heightPixels;
-
+        Integer lastElementId = virtualKeyboard.getLastElementId();
+        if (buttonId <= lastElementId){
+            buttonId = lastElementId + 1;
+        }
         virtualKeyboard.addElement(
                 createDigitalButton(
                         buttonId,
@@ -167,10 +166,8 @@ public class VirtualKeyboardConfigurationLoader {
                     JSONObject json = new JSONObject(jsonConfig);
                     Log.d("heokami", " elementId:" + elementId + " buttonname:" + json.getString("TEXT") + " vk_code:" + json.getString("VK_CODE"));
                     // 忽略创建默认按钮
-                    if (elementId != String.valueOf(DEFAULT_ELEMENT_ID)) {
-                        addButton(virtualKeyboard, context, Integer.parseInt(elementId), json.getString("VK_CODE"), json.getString("TEXT"));
-                        Log.d("heokami", "addButton -> "+ elementId);
-                    }
+                    addButton(virtualKeyboard, context, Integer.parseInt(elementId), json.getString("VK_CODE"), json.getString("TEXT"));
+                    Log.d("heokami", "addButton -> "+ elementId);
                     // 重新加载配置
                     virtualKeyboard.getElementByElementId(Integer.parseInt(elementId)).loadConfiguration(json);
                 }
@@ -187,5 +184,46 @@ public class VirtualKeyboardConfigurationLoader {
         SharedPreferences.Editor prefEditor = context.getSharedPreferences(OSK_PREFERENCE, Activity.MODE_PRIVATE).edit();
         prefEditor.clear();
         prefEditor.apply();
+    }
+
+    public static String saveToFile(final Context context) {
+        SharedPreferences pref = context.getSharedPreferences(OSK_PREFERENCE, Activity.MODE_PRIVATE);
+        Map<String, ?> keys = pref.getAll();
+        try {
+            JSONObject json = new JSONObject();
+            for (Map.Entry<String, ?> entry : keys.entrySet()) {
+                String elementId = entry.getKey();
+                String jsonConfig = (String) entry.getValue();
+                if (jsonConfig != null){
+                    json.put(elementId, jsonConfig);
+                }
+            }
+            String jsonString = json.toString();
+            return jsonString;
+        }catch (JSONException e){
+            e.printStackTrace();
+        }
+
+        return null;
+    }
+
+    public static void loadForFile(final Context context, final String data) {
+        SharedPreferences pref = context.getSharedPreferences(OSK_PREFERENCE, Activity.MODE_PRIVATE);
+        pref.edit().clear().apply();
+        try {
+            JSONObject json = new JSONObject(data);
+            Iterator<String> keys = json.keys();
+            while (keys.hasNext()) {
+                String elementId = keys.next();
+                String jsonConfig = json.getString(elementId);
+                if (jsonConfig != null){
+                    pref.edit()
+                            .putString(elementId, jsonConfig)
+                            .apply();
+                }
+            }
+        }catch (JSONException e){
+            e.printStackTrace();
+        }
     }
 }

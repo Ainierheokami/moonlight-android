@@ -156,4 +156,16 @@ dependencies {
     implementation 'com.squareup.okhttp3:okhttp:4.12.0'
     implementation 'org.jmdns:jmdns:3.6.0'
     implementation 'com.github.cgutman:ShieldControllerExtensions:1.0.1'
+    implementation 'androidx.appcompat:appcompat:1.7.0'
+    implementation 'androidx.documentfile:documentfile:1.0.1'
+    implementation 'androidx.compose.runtime:runtime-android:1.7.5'
+    implementation 'androidx.compose.foundation:foundation-android:1.7.5'
+    implementation 'androidx.activity:activity-compose:1.9.3'
+    implementation 'androidx.compose.material3:material3:1.3.1'
+    implementation platform('androidx.compose:compose-bom:2024.11.00')
+    implementation 'com.google.android.material:material:1.10.0'
+    implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
+    implementation 'androidx.navigation:navigation-fragment-ktx:2.6.0'
+    implementation 'androidx.navigation:navigation-ui-ktx:2.6.0'
+
 }

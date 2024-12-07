@@ -13,6 +13,7 @@ import android.util.DisplayMetrics;
 import android.view.MotionEvent;
 import android.view.View;
 import android.widget.FrameLayout;
+import android.widget.Toast;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -22,7 +23,7 @@ import com.limelight.heokami.VirtualKeyboardMenu;
 
 public abstract class VirtualKeyboardElement extends View {
     protected static boolean _PRINT_DEBUG_INFORMATION = false;
-    public final int elementId;
+    public int elementId;
     public int layer;
     public String vk_code;
     public String text;
@@ -58,7 +59,6 @@ public abstract class VirtualKeyboardElement extends View {
 
     protected VirtualKeyboardElement(VirtualKeyboard virtualKeyboard, Context context, int elementId, int layer) {
         super(context);
-
         this.virtualKeyboard = virtualKeyboard;
         this.elementId = elementId;
         this.layer = layer;
@@ -159,7 +159,8 @@ public abstract class VirtualKeyboardElement extends View {
         Context context = getContext();
         VirtualKeyboardMenu virtualKeyboardMenu = new VirtualKeyboardMenu(context, virtualKeyboard);
 //        virtualKeyboardMenu.showMenu();
-        virtualKeyboardMenu.setElementID(elementId);
+        virtualKeyboardMenu.setElement(this);
+//        Toast.makeText(context, "" + this.vk_code, Toast.LENGTH_SHORT).show();
         virtualKeyboardMenu.setButtonDialog();
     }
 
