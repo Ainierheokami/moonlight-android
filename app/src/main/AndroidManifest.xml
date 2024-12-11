@@ -195,6 +195,10 @@
             android:name=".heokami.SaveFileActivity"
             android:theme="@style/Theme.AppCompat.Dialog">
         </activity>
+        <activity
+            android:name=".heokami.VirtualKeyboardActivity"
+            android:theme="@style/Theme.AppCompat.Dialog">
+        </activity>
     </application>
 
 </manifest>

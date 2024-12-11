@@ -158,9 +158,7 @@ public abstract class VirtualKeyboardElement extends View {
         currentMode = Mode.Settings;
         Context context = getContext();
         VirtualKeyboardMenu virtualKeyboardMenu = new VirtualKeyboardMenu(context, virtualKeyboard);
-//        virtualKeyboardMenu.showMenu();
         virtualKeyboardMenu.setElement(this);
-//        Toast.makeText(context, "" + this.vk_code, Toast.LENGTH_SHORT).show();
         virtualKeyboardMenu.setButtonDialog();
     }
 
@@ -303,6 +301,7 @@ public abstract class VirtualKeyboardElement extends View {
             case MotionEvent.ACTION_CANCEL:
             case MotionEvent.ACTION_UP: {
                 actionCancel();
+                virtualKeyboard.addHistory();
                 return true;
             }
             default: {

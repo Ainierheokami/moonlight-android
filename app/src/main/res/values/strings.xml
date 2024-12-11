@@ -339,5 +339,10 @@
     <string name="virtual_keyboard_menu_delete_profile">Delete configuration (clear all buttons)</string>
     <string name="virtual_keyboard_menu_add_button_eg">Add an example of a button</string>
     <string name="game_menu_toggle_virtual_keyboard_toast">Tips: In button configuration mode, you can add buttons from the back menu</string>
+    <string name="virtual_keyboard_menu_quash_history">Undo</string>
+    <string name="virtual_keyboard_menu_forward_history">Redo</string>
+    <string name="default_button">Default</string>
+    <string name="confirm_button">Confirm</string>
+    <string name="cancel_button">Cancel</string>
 
 </resources>

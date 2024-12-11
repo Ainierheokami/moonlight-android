@@ -325,4 +325,9 @@
     <string name="virtual_keyboard_menu_delete_profile">删除配置（清空全部按键）</string>
     <string name="virtual_keyboard_menu_add_button_eg">添加按钮示例</string>
     <string name="game_menu_toggle_virtual_keyboard_toast">Tips: 按钮配置模式下可用返回菜单添加按键</string>
+    <string name="virtual_keyboard_menu_quash_history">撤销</string>
+    <string name="virtual_keyboard_menu_forward_history">重做</string>
+    <string name="default_button">默认</string>
+    <string name="confirm_button">确认</string>
+    <string name="cancel_button">取消</string>
 </resources>

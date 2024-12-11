@@ -1,5 +1,6 @@
 package com.limelight.heokami
 
+import android.net.Uri
 import android.os.Bundle
 import android.util.Log
 import android.widget.Button
@@ -24,17 +25,28 @@ class SaveFileActivity : AppCompatActivity() {
             finish()
         }
         filePicker = FilePickerUtils(this)
-        filePicker.saveFileUsingPicker(
-            fileName = "test.txt",
-            content = VirtualKeyboardConfigurationLoader.saveToFile(this),
-            mimeType = "text/plain",
-            intentLaunch = savedInstanceState == null
+        filePicker.pickFile(
+            mimeType = "text/*",
+            callback = object : FilePickerUtils.FilePickerCallback {
+                override fun onCallBack(fileName: String, content: String, uri: Uri) {
+                    // 处理选中的文件
+                    Log.d("pickFile", "文件名: $fileName")
+                    Log.d("pickFile", "文件内容: $content")
+                    filePicker.saveToUri(
+                        uri,
+                        VirtualKeyboardConfigurationLoader.saveToFile(this@SaveFileActivity)
+                    )
+                    this@SaveFileActivity.finish()
+                }
+
+                override fun onError(error: String) {
+                    // 处理错误
+                    Log.e("pickFile", "错误: $error")
+                    this@SaveFileActivity.finish()
+                }
+            },
+            saveMode = true,
+            intentLaunch = (savedInstanceState == null)
         )
     }
-
-//    override fun onCreate(savedInstanceState: Bundle?) {
-//        super.onCreate(savedInstanceState)
-//        Toast.makeText(this, "Hello, world!", Toast.LENGTH_SHORT).show()
-////        setContentView (R.layout.activity_main)
-//    }
 }

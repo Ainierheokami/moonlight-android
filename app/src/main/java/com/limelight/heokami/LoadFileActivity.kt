@@ -1,5 +1,6 @@
 package com.limelight.heokami
 
+import android.net.Uri
 import android.os.Bundle
 import android.util.Log
 import android.widget.Button
@@ -25,24 +26,20 @@ class LoadFileActivity : AppCompatActivity() {
         }
         filePicker = FilePickerUtils(this)
         filePicker.pickFile(mimeType = "text/*", callback = object : FilePickerUtils.FilePickerCallback {
-            override fun onFileSelected(fileName: String, content: String) {
+            override fun onCallBack(fileName: String, content: String, uri: Uri) {
                 // 处理选中的文件
                 Log.d("pickFile", "文件名: $fileName")
                 Log.d("pickFile", "文件内容: $content")
 
                 VirtualKeyboardConfigurationLoader.loadForFile(this@LoadFileActivity, content)
+                this@LoadFileActivity.finish()
             }
 
             override fun onError(error: String) {
                 // 处理错误
                 Log.e("pickFile","错误: $error")
+                this@LoadFileActivity.finish()
             }
-        }, intentLaunch = (savedInstanceState == null))
+        },saveMode = false, intentLaunch = (savedInstanceState == null))
     }
-
-//    override fun onCreate(savedInstanceState: Bundle?) {
-//        super.onCreate(savedInstanceState)
-//        Toast.makeText(this, "Hello, world!", Toast.LENGTH_SHORT).show()
-////        setContentView (R.layout.activity_main)
-//    }
 }

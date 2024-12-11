@@ -2786,14 +2786,17 @@ public class Game extends Activity implements SurfaceHolder.Callback,
                     (FrameLayout) streamView.getParent(),
                     this);
             virtualKeyboard.refreshLayout();
+            // 保存一次最初的记录
+            virtualKeyboard.addHistory();
         }
-//        Toast.makeText(this, String.valueOf(virtualControllerShow), Toast.LENGTH_SHORT).show();
+
         if (!prefConfig.onscreenKeyboard) {
             virtualKeyboard.show();
             prefConfig.onscreenKeyboard = true;
         }else{
             virtualKeyboard.hide();
             prefConfig.onscreenKeyboard = false;
+            virtualKeyboard.clearHistory();
         }
     }
 

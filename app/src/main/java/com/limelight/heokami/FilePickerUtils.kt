@@ -1,13 +1,8 @@
 package com.limelight.heokami
 
 import android.app.Activity
-import android.content.ContentResolver
-import android.content.ContentValues
-import android.content.Context
 import android.content.Intent
 import android.net.Uri
-import android.os.Build
-import android.provider.DocumentsContract
 import android.provider.OpenableColumns
 import android.util.Log
 import androidx.activity.result.contract.ActivityResultContracts
@@ -20,13 +15,9 @@ class FilePickerUtils(private val activity: AppCompatActivity) {
 
     // 回调接口
     interface FilePickerCallback {
-        fun onFileSelected(fileName: String, content: String)
+        fun onCallBack(fileName: String, content: String, uri: Uri)
         fun onError(error: String)
     }
-
-    private var mode = "r"
-    private var fileName = ""
-    private var content = ""
 
     // 文件选择启动器
     private var callback: FilePickerCallback? = null
@@ -35,56 +26,45 @@ class FilePickerUtils(private val activity: AppCompatActivity) {
     ) { result ->
         if (result.resultCode == Activity.RESULT_OK) {
             result.data?.data?.let { uri ->
-                if (mode == "r") {
-                    handleSelectedFile(uri)
-                }else{
-                    saveToUri(uri, content)
-                }
+                handleUri(uri)
             } ?: run {
                 callback?.onError("未能获取文件URI")
             }
+        } else {
+            callback?.onError("文件选择取消")
         }
     }
 
     // 打开文件选择器
-    fun pickFile(mimeType: String = "*/*", callback: FilePickerCallback, intentLaunch: Boolean = true) {
+    fun pickFile(mimeType: String = "*/*", callback: FilePickerCallback, saveMode: Boolean = false, intentLaunch: Boolean = true) {
         this.callback = callback
         if (intentLaunch) {
-            val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
-                addCategory(Intent.CATEGORY_OPENABLE)
-                type = mimeType
+            if (saveMode){
+                val intent = Intent(Intent.ACTION_CREATE_DOCUMENT).apply {
+                    addCategory(Intent.CATEGORY_OPENABLE)
+                    type = mimeType
+                    putExtra(Intent.EXTRA_TITLE, "File.txt")
+                }
+                filePicker.launch(intent)
+            } else{
+                val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
+                    addCategory(Intent.CATEGORY_OPENABLE)
+                    type = mimeType
+                }
+                filePicker.launch(intent)
             }
             Log.i("pickFile", "intent created")
-            filePicker.launch(intent)
         }
-    }
-
-    // 打开文件保存选择器
-    fun saveFileUsingPicker(fileName: String, content: String, mimeType: String = "text/plain",intentLaunch: Boolean = true) {
-        if (intentLaunch){
-            val intent = Intent(Intent.ACTION_CREATE_DOCUMENT).apply {
-                addCategory(Intent.CATEGORY_OPENABLE)
-                type = mimeType
-                putExtra(Intent.EXTRA_TITLE, fileName)  // 设置默认文件名
-            }
-            // 启动保存文件的选择器
-            filePicker.launch(intent)
-        }
-        this.fileName = fileName
-        this.content = content
-        this.mode = "w"
     }
 
     // 处理选中的文件
-    private fun handleSelectedFile(uri: Uri) {
+    private fun handleUri(uri: Uri) {
         try {
             // 获取文件名
             val fileName = getFileName(uri)
-
             // 读取文件内容
             val content = readFileContent(uri)
-
-            callback?.onFileSelected(fileName, content)
+            callback?.onCallBack(fileName, content, uri)
         } catch (e: Exception) {
             callback?.onError("读取文件失败: ${e.message}")
         }

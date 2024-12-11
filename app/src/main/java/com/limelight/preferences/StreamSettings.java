@@ -335,19 +335,19 @@ public class StreamSettings extends Activity {
             AlertDialog dialog = builder.setTitle("修改精简实时信息模板")
                     .setView(scrollView)
                     .setCancelable(true) // 允许通过返回键关闭
-                    .setPositiveButton("默认", (dialogInterface, which) -> {
+                    .setPositiveButton(context.getString(R.string.default_button), (dialogInterface, which) -> {
                         prefs.edit()
                                 .putString(PreferenceConfiguration.EDITTEXT_SIMPLE_PERF_OVERLAY_PREF_STRING,
                                         PreferenceConfiguration.DEFAULT_EDITTEXT_SIMPLE_PERF_OVERLAY_PREF)
                                 .apply();
                     })
-                    .setNeutralButton("确认", (dialogInterface, which) -> {
+                    .setNeutralButton(context.getString(R.string.confirm_button), (dialogInterface, which) -> {
                         prefs.edit()
                                 .putString(PreferenceConfiguration.EDITTEXT_SIMPLE_PERF_OVERLAY_PREF_STRING,
                                         input.getText().toString())
                                 .apply();
                     })
-                    .setNegativeButton("取消", (dialogInterface, which) -> {
+                    .setNegativeButton(context.getString(R.string.cancel_button), (dialogInterface, which) -> {
                         dialogInterface.dismiss();
                     })
                     .create();

@@ -56,6 +56,8 @@ public class VirtualKeyboard {
     private Button buttonConfigure = null;
 
     private List<VirtualKeyboardElement> elements = new ArrayList<>();
+    public List<String> historyElements = new ArrayList<>();
+    public int historyIndex = 0;
 
     public VirtualKeyboard(NvConnection conn, FrameLayout layout, final Context context) {
         this.conn = conn;
@@ -164,9 +166,6 @@ public class VirtualKeyboard {
 
     public Integer getLastElementId() {
         if (!elements.isEmpty()) {
-            Log.d("elements", "getLastElementId:"+ elements.get(elements.size() - 1).elementId);
-            Log.d("elements", "size:"+ elements.size());
-            Log.d("elements", "getFirstElementId:"+ elements.get(0).elementId);
             return elements.get(elements.size() - 1).elementId;
         }
         return 0;
@@ -235,4 +234,59 @@ public class VirtualKeyboard {
     public void sendUpKey(short key){
         conn.sendKeyboardInput(key, KeyboardPacket.KEY_UP, inputContext.modifier, (byte) 0);
     }
+
+    public void gethistoryElements() {
+        Log.d("vk", "撤回："+historyIndex+" size: "+historyElements.size());
+        String nowElements = historyElements.get(historyIndex);
+        VirtualKeyboardConfigurationLoader.loadForFile(context, nowElements);
+        refreshLayout();
+    }
+
+    // 撤回
+    public void quashHistory() {
+        Log.d("vk", "撤回："+historyIndex+" size: "+historyElements.size());
+        if (historyIndex > 0 && !historyElements.isEmpty()){
+            historyIndex--;
+        }
+        Log.d("vk", "撤回后："+historyIndex+" size: "+historyElements.size());
+        gethistoryElements();
+    }
+
+    // 前进
+    public void forwardHistory() {
+        Log.d("vk", "前进："+historyIndex+" size: "+historyElements.size());
+        if (historyIndex < historyElements.size() - 1){
+            historyIndex++;
+        }
+        Log.d("vk", "前进后："+historyIndex+" size: "+historyElements.size());
+        gethistoryElements();
+    }
+
+    public void addHistory() {
+        try {
+            VirtualKeyboardConfigurationLoader.saveProfile(this, context);
+            // 清除旧索引之后的记录
+            if (!historyElements.isEmpty() && historyIndex != historyElements.size() - 1) {
+                Log.d("vk", "清除旧索引："+historyIndex+" size: "+historyElements.size());
+                historyElements = historyElements.subList(0, historyIndex + 1);
+                Log.d("vk", "清除旧索引后："+historyIndex+" size: "+historyElements.size());
+            }
+
+            // 添加新的历史记录
+            Log.d("vk", "添加新的历史："+historyIndex+" size: "+historyElements.size());
+            historyElements.add(VirtualKeyboardConfigurationLoader.saveToFile(context));  // 深拷贝元素
+            historyIndex = historyElements.size() - 1;
+            Log.d("vk", "添加新的历史后："+historyIndex+" size: "+historyElements.size());
+        }catch (Exception e){
+            Log.e("vk", "error", e);
+        }
+
+    }
+
+    // 清空历史记录
+    public void clearHistory() {
+        historyElements.clear();
+        historyIndex = 0;
+    }
+
 }
