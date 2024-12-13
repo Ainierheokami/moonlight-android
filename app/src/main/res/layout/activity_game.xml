@@ -51,4 +51,10 @@
         android:textAppearance="?android:attr/textAppearanceLarge"
         android:visibility="gone" />
 
+    <com.limelight.heokami.GameGridLines
+        android:id="@+id/gameGridLines"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_gravity="center"
+        android:visibility="visible" />
 </merge>

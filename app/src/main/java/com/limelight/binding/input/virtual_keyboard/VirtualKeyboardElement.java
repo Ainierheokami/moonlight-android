@@ -10,6 +10,7 @@ import android.content.DialogInterface;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.util.DisplayMetrics;
+import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 import android.widget.FrameLayout;
@@ -19,6 +20,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import com.limelight.binding.input.virtual_controller.VirtualControllerElement;
+import com.limelight.heokami.GameGridLines;
 import com.limelight.heokami.VirtualKeyboardMenu;
 
 public abstract class VirtualKeyboardElement extends View {
@@ -57,6 +59,23 @@ public abstract class VirtualKeyboardElement extends View {
 
     private Mode currentMode = Mode.Normal;
 
+    // 网格吸附
+    protected GameGridLines gridLines;
+    public void setGridLines(GameGridLines gridLines) {
+        this.gridLines = gridLines;
+    }
+
+    private int snapToGrid(int value, int gridSize) {
+        if (gridSize == 0) return value; // 避免除以 0
+        int gridValue = value / gridSize; // 计算 value 位于哪个网格单元格
+        int offset = value - gridValue * gridSize; // 计算 value 与最近的网格线的偏移量
+        if (Math.abs(offset) < gridLines.getSnapThreshold() && gridLines.getVisibility() == View.VISIBLE ) { // 判断偏移量是否小于阈值
+            return gridValue * gridSize; // 吸附到最近的网格线
+        } else {
+            return value; // 不吸附
+        }
+    }
+
     protected VirtualKeyboardElement(VirtualKeyboard virtualKeyboard, Context context, int elementId, int layer) {
         super(context);
         this.virtualKeyboard = virtualKeyboard;
@@ -71,10 +90,22 @@ public abstract class VirtualKeyboardElement extends View {
         int newPos_x = (int) getX() + x - pressed_x;
         int newPos_y = (int) getY() + y - pressed_y;
 
+        // 吸附逻辑
+        newPos_x = snapToGrid(newPos_x, gridLines.getCellWidth());
+        newPos_y = snapToGrid(newPos_y, gridLines.getCellHeight());
+
+        Log.d("vk", "吸附："+newPos_x+","+newPos_y+"cell:"+gridLines.getCellWidth()+","+gridLines.getCellHeight());
+
         FrameLayout.LayoutParams layoutParams = (FrameLayout.LayoutParams) getLayoutParams();
 
-        layoutParams.leftMargin = newPos_x > 0 ? newPos_x : 0;
-        layoutParams.topMargin = newPos_y > 0 ? newPos_y : 0;
+        //边界检测
+        FrameLayout parent = (FrameLayout)getParent();
+
+        int maxX = parent.getWidth() - getWidth();
+        int maxY = parent.getHeight() - getHeight();
+
+        layoutParams.leftMargin = Math.max(0, Math.min(newPos_x, maxX));
+        layoutParams.topMargin = Math.max(0, Math.min(newPos_y, maxY));
         layoutParams.rightMargin = 0;
         layoutParams.bottomMargin = 0;
 
@@ -181,6 +212,14 @@ public abstract class VirtualKeyboardElement extends View {
     protected int getDefaultStrokeWidth() {
         DisplayMetrics screen = getResources().getDisplayMetrics();
         return (int)(screen.heightPixels*0.004f);
+    }
+
+    public int getLeftMargin() {
+        return ((FrameLayout.LayoutParams) getLayoutParams()).leftMargin;
+    }
+
+    public int getTopMargin() {
+        return ((FrameLayout.LayoutParams) getLayoutParams()).topMargin;
     }
 
     protected void showConfigurationDialog() {

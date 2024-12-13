@@ -18,6 +18,7 @@ import com.limelight.binding.video.CrashListener;
 import com.limelight.binding.video.MediaCodecDecoderRenderer;
 import com.limelight.binding.video.MediaCodecHelper;
 import com.limelight.binding.video.PerfOverlayListener;
+import com.limelight.heokami.GameGridLines;
 import com.limelight.heokami.VirtualKeyboardMenu;
 import com.limelight.nvstream.NvConnection;
 import com.limelight.nvstream.NvConnectionListener;
@@ -75,11 +76,13 @@ import android.view.View;
 import android.view.View.OnGenericMotionListener;
 import android.view.View.OnSystemUiVisibilityChangeListener;
 import android.view.View.OnTouchListener;
+import android.view.ViewGroup;
 import android.view.Window;
 import android.view.WindowManager;
 import android.widget.FrameLayout;
 import android.view.inputmethod.InputMethodManager;
 
+import android.widget.GridLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -101,10 +104,14 @@ import android.graphics.Color;
 // 2024-11-27 17:36:10 返回菜单
 import com.limelight.heokami.GameMenu;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 public class Game extends Activity implements SurfaceHolder.Callback,
         OnGenericMotionListener, OnTouchListener, NvConnectionListener, EvdevListener,
         OnSystemUiVisibilityChangeListener, GameGestures, StreamView.InputCallbacks,
         PerfOverlayListener, UsbDriverService.UsbDriverStateListener, View.OnKeyListener {
+    private static final Logger log = LoggerFactory.getLogger(Game.class);
     private int lastButtonState = 0;
 
     // Only 2 touches are supported
@@ -152,6 +159,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
     private boolean waitingForAllModifiersUp = false;
     private int specialKeyCode = KeyEvent.KEYCODE_UNKNOWN;
     private StreamView streamView;
+    private GameGridLines gameGridLines;
     private long lastAbsTouchUpTime = 0;
     private long lastAbsTouchDownTime = 0;
     private float lastAbsTouchUpX, lastAbsTouchUpY;
@@ -244,6 +252,12 @@ public class Game extends Activity implements SurfaceHolder.Callback,
 
         // Inflate the content
         setContentView(R.layout.activity_game);
+
+        gameGridLines = findViewById(R.id.gameGridLines);
+        // 默认隐藏网格线
+        if (gameGridLines != null){
+            gameGridLines.hide();
+        }
 
         // This Code Author by https://github.com/moonlight-stream/moonlight-android/pull/1171/files
         // Hack: allows use keyboard by dpad or controller
@@ -2761,6 +2775,14 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         }
     }
 
+    public GameGridLines getGameGridLines(){
+        return gameGridLines;
+    }
+
+    public PreferenceConfiguration getPrefConfig(){
+        return prefConfig;
+    }
+
     public void toggleVirtualController() {
         if (virtualController == null) {
             streamView = this.findViewById(R.id.surfaceView);
@@ -2845,6 +2867,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
     public void showMenu() {
         if (virtualKeyboard != null && virtualKeyboard.getControllerMode() != VirtualKeyboard.ControllerMode.Active){
             VirtualKeyboardMenu virtualKeyboardMenu = new VirtualKeyboardMenu(this, virtualKeyboard);
+            virtualKeyboardMenu.setGameView(this);
             virtualKeyboardMenu.showMenu();
         }else {
             new GameMenu(this,conn);

@@ -4,7 +4,6 @@
 
 package com.limelight.binding.input.virtual_keyboard;
 
-import android.content.Context;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.DisplayMetrics;
@@ -14,10 +13,13 @@ import android.widget.Button;
 import android.widget.FrameLayout;
 import android.widget.Toast;
 
+import com.limelight.Game;
 import com.limelight.LimeLog;
 import com.limelight.R;
+import com.limelight.heokami.GameGridLines;
 import com.limelight.nvstream.NvConnection;
 import com.limelight.nvstream.input.KeyboardPacket;
+import com.limelight.preferences.PreferenceConfiguration;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -38,7 +40,7 @@ public class VirtualKeyboard {
     private static final boolean _PRINT_DEBUG_INFORMATION = false;
 
     private final NvConnection conn;
-    private final Context context;
+    private final Game context;
     private final Handler handler;
 
 //    private final Runnable delayedRetransmitRunnable = new Runnable() {
@@ -55,15 +57,18 @@ public class VirtualKeyboard {
 
     private Button buttonConfigure = null;
 
-    private List<VirtualKeyboardElement> elements = new ArrayList<>();
+    private final List<VirtualKeyboardElement> elements = new ArrayList<>();
     public List<String> historyElements = new ArrayList<>();
     public int historyIndex = 0;
 
-    public VirtualKeyboard(NvConnection conn, FrameLayout layout, final Context context) {
+    public VirtualKeyboard(NvConnection conn, FrameLayout layout, final Game context) {
         this.conn = conn;
         this.frame_layout = layout;
         this.context = context;
         this.handler = new Handler(Looper.getMainLooper());
+
+        GameGridLines gameGridLines = context.getGameGridLines();
+        PreferenceConfiguration pref = context.getPrefConfig();
 
         buttonConfigure = new Button(context);
         buttonConfigure.setAlpha(0.25f);
@@ -76,6 +81,9 @@ public class VirtualKeyboard {
 
                 if (currentMode == ControllerMode.Active){
                     currentMode = ControllerMode.MoveButtons;
+                    if (pref.enableGridLayout){
+                        gameGridLines.show();
+                    }
                     message = context.getString(R.string.controller_mode_move_buttons);
                 } else if (currentMode == ControllerMode.MoveButtons) {
                     currentMode = ControllerMode.ResizeButtons;
@@ -86,6 +94,9 @@ public class VirtualKeyboard {
                 }else {
                     currentMode = ControllerMode.Active;
                     VirtualKeyboardConfigurationLoader.saveProfile(VirtualKeyboard.this, context);
+                    if (gameGridLines != null) {
+                        gameGridLines.hide();
+                    }
                     message = context.getString(R.string.controller_mode_active_buttons);
                 }
 
@@ -156,7 +167,8 @@ public class VirtualKeyboard {
         elements.add(element);
         FrameLayout.LayoutParams layoutParams = new FrameLayout.LayoutParams(width, height);
         layoutParams.setMargins(x, y, 0, 0);
-
+        GameGridLines gameGridLines = context.getGameGridLines();
+        element.setGridLines(gameGridLines);
         frame_layout.addView(element, layoutParams);
     }
 

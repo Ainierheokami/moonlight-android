@@ -4,21 +4,25 @@ import android.annotation.SuppressLint
 import android.app.AlertDialog
 import android.content.Context
 import android.content.Intent
+import android.text.Editable
 import android.text.InputType
+import android.util.Log
 import android.view.ViewGroup
 import android.widget.ArrayAdapter
 import android.widget.Button
+import android.widget.CheckBox
 import android.widget.EditText
 import android.widget.GridLayout
 import android.widget.LinearLayout
 import android.widget.ListView
 import android.widget.ScrollView
 import android.widget.TextView
-import android.widget.Toast
+import com.limelight.Game
 import com.limelight.R
 import com.limelight.binding.input.virtual_keyboard.VirtualKeyboard
 import com.limelight.binding.input.virtual_keyboard.VirtualKeyboardConfigurationLoader
 import com.limelight.binding.input.virtual_keyboard.VirtualKeyboardElement
+
 
 class VirtualKeyboardMenu(private val context: Context, private val virtualKeyboard: VirtualKeyboard) {
 
@@ -26,6 +30,11 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
 //        showMenu()
 //    }
     private var element: VirtualKeyboardElement? = null
+    private var game: Game? = null
+
+    fun setGameView(game: Game) {
+        this.game = game
+    }
 
     private fun createListView(dialog: AlertDialog): ListView {
         val listView = ListView(context)
@@ -46,6 +55,180 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
 
     fun setElement(element: VirtualKeyboardElement) {
         this.element = element
+    }
+
+    @SuppressLint("SetTextI18n")
+    private fun showGridLinesDialog() {
+        val gridLines = game?.gameGridLines
+        val scrollView = ScrollView(context)
+        val scrollParams = LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT,
+            LinearLayout.LayoutParams.WRAP_CONTENT
+        )
+        scrollView.layoutParams = scrollParams
+
+        val Layout = LinearLayout(context).apply {
+            orientation = LinearLayout.VERTICAL
+        }
+
+        val perf = game?.prefConfig
+        val checkBot = CheckBox(context).apply {
+            text = "显示网格"
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            )
+            isChecked = perf?.enableGridLayout ?: false
+            setOnClickListener {
+                if (perf != null) {
+                    if (!perf.enableGridLayout){
+                        gridLines?.show()
+                        perf.enableGridLayout = true
+                    }else{
+                        gridLines?.hide()
+                        perf.enableGridLayout = false
+                    }
+
+                }
+            }
+        }
+        Layout.addView(checkBot)
+
+        val linearLayout = LinearLayout(context).apply {
+            orientation = LinearLayout.HORIZONTAL
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            )
+        }
+
+        val xTextView = TextView(context).apply {
+            text = context.getString(R.string.grid_lines_x_axis_count)
+        }
+
+        val xEditText = EditText(context).apply {
+            inputType = InputType.TYPE_CLASS_NUMBER
+            layoutParams = LinearLayout.LayoutParams(
+                0,
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                1f // 权重为1，表示EditText占据可用空间的一部分
+            )
+            setText(gridLines?.getColumnCount()?.toString())
+        }
+
+        val yTextView = TextView(context).apply {
+            text = context.getString(R.string.grid_lines_y_axis_count)
+        }
+
+        val yEditText = EditText(context).apply {
+            inputType = InputType.TYPE_CLASS_NUMBER
+            layoutParams = LinearLayout.LayoutParams(
+                0,
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                1f // 权重为1，表示EditText占据可用空间的一部分
+            )
+            setText(gridLines?.getRowCount()?.toString())
+        }
+
+        linearLayout.addView(xTextView)
+        linearLayout.addView(xEditText)
+        linearLayout.addView(yTextView)
+        linearLayout.addView(yEditText)
+        Layout.addView(linearLayout)
+
+        val linearLayout2 = LinearLayout(context).apply {
+            orientation = LinearLayout.HORIZONTAL
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            )
+        }
+
+        linearLayout2.addView(TextView(context).apply {
+            text = "A"
+        })
+        val opacityEditText = EditText(context).apply {
+            inputType = InputType.TYPE_CLASS_NUMBER
+            layoutParams = LinearLayout.LayoutParams(
+                0,
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                1f // 权重为1，表示EditText占据可用空间的一部分
+            )
+            setText(gridLines?.opacity?.toString())
+        }
+        linearLayout2.addView(opacityEditText)
+
+
+        linearLayout2.addView(TextView(context).apply {
+            text = "R"
+        })
+        val redEditText = EditText(context).apply {
+            inputType = InputType.TYPE_CLASS_NUMBER
+            layoutParams = LinearLayout.LayoutParams(
+                0,
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                1f // 权重为1，表示EditText占据可用空间的一部分
+            )
+            setText(gridLines?.red?.toString())
+        }
+        linearLayout2.addView(redEditText)
+
+        linearLayout2.addView(TextView(context).apply {
+            text = "G"
+        })
+        val greenEditText = EditText(context).apply {
+            inputType = InputType.TYPE_CLASS_NUMBER
+            layoutParams = LinearLayout.LayoutParams(
+                0,
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                1f // 权重为1，表示EditText占据可用空间的一部分
+            )
+            setText(gridLines?.green?.toString())
+        }
+        linearLayout2.addView(greenEditText)
+
+        linearLayout2.addView(TextView(context).apply {
+            text = "B"
+        })
+        val blueEditText = EditText(context).apply {
+            inputType = InputType.TYPE_CLASS_NUMBER
+            layoutParams = LinearLayout.LayoutParams(
+                0,
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                1f // 权重为1，表示EditText占据可用空间的一部分
+            )
+            setText(gridLines?.blue?.toString())
+        }
+        linearLayout2.addView(blueEditText)
+
+        Layout.addView(linearLayout2)
+
+        val snapThresholdTextView = TextView(context).apply {
+            text = context.getString(R.string.grid_lines_snap_threshold)
+        }
+        val snapThresholdEditText = EditText(context).apply {
+            inputType = InputType.TYPE_CLASS_NUMBER
+            setText(gridLines?.getSnapThreshold()?.toString())
+        }
+
+        Layout.addView(snapThresholdTextView)
+        Layout.addView(snapThresholdEditText)
+
+        scrollView.addView(Layout)
+
+        val builder = AlertDialog.Builder(context)
+        val dialog = builder.setTitle(context.getString(R.string.menu_title_grid_lines))
+            .setView(scrollView)
+            .setNegativeButton(R.string.virtual_keyboard_menu_cancel_button, null)
+            .setPositiveButton(R.string.virtual_keyboard_menu_confirm_button, { dialogInterface, which ->
+                gridLines?.setGridSize(xEditText.text.toString().toInt(), yEditText.text.toString().toInt())
+                gridLines?.setSnapThreshold(snapThresholdEditText.text.toString().toInt())
+                gridLines?.setGridOpacity(opacityEditText.text.toString().toInt())
+                gridLines?.setGridRGB(redEditText.text.toString().toInt(), greenEditText.text.toString().toInt(), blueEditText.text.toString().toInt())
+            })
+            .setCancelable(true)
+            .create()
+        dialog.show()
     }
 
     @SuppressLint("SetTextI18n")
@@ -149,7 +332,7 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
         }
 
         val button = Button(context).apply {
-            text = "VK表"
+            text = context.getString(R.string.virtual_keyboard_menu_vk_code_button)
             layoutParams = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.WRAP_CONTENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
@@ -165,6 +348,26 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
 
         // 将水平排列的LinearLayout添加到主布局中
         layout.addView(linearLayout)
+
+        if (element != null) {
+            layout.addView(Button(context).apply {
+                text = context.getString(R.string.virtual_keyboard_menu_copy_button)
+                setOnClickListener {
+                    VirtualKeyboardConfigurationLoader.addButton2(
+                        virtualKeyboard,
+                        context,
+                        virtualKeyboard.lastElementId + 1,
+                        vkCodeEditText.text.toString(),
+                        buttonTextEditText.text.toString(),
+                        element?.leftMargin,
+                        element?.topMargin,
+                        element?.width,
+                        element?.height
+                    )
+                }
+                Log.d("vk", "复制按钮"+ element?.leftMargin+","+element?.topMargin+","+element?.width+","+element?.height)
+            })
+        }
 
 
         val builder = AlertDialog.Builder(context)
@@ -222,6 +425,9 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
         // 添加按钮
         actionMap[context.getString(R.string.virtual_keyboard_menu_add_button_title)] = {
             setButtonDialog()
+        }
+        actionMap[context.getString(R.string.menu_title_grid_lines)] = {
+            showGridLinesDialog()
         }
         actionMap[context.getString(R.string.virtual_keyboard_menu_save_profile)] = {
             VirtualKeyboardConfigurationLoader.saveProfile(virtualKeyboard, context)

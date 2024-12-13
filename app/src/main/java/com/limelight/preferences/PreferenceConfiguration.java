@@ -174,6 +174,10 @@ public class PreferenceConfiguration {
     private static final boolean DEFAULT_MULTITOUCH_SCREEN = false;
     public boolean multiTouchScreen;
 
+    private static final String ENABLE_GRID_LAYOUT_PREF_STRING = "checkbox_enable_grid_layout";
+    private static final boolean DEFAULT_ENABLE_GRID_LAYOUT = false;
+    public boolean enableGridLayout;
+
     public static boolean isNativeResolution(int width, int height) {
         // It's not a native resolution if it matches an existing resolution option
         if (width == 640 && height == 360) {
@@ -624,6 +628,7 @@ public class PreferenceConfiguration {
         config.gamepadMotionSensorsFallbackToDevice = prefs.getBoolean(GAMEPAD_MOTION_FALLBACK_PREF_STRING, DEFAULT_GAMEPAD_MOTION_FALLBACK);
         config.simplifyPerfOverlayPrefTemplate = prefs.getString(EDITTEXT_SIMPLE_PERF_OVERLAY_PREF_STRING, DEFAULT_EDITTEXT_SIMPLE_PERF_OVERLAY_PREF);
         config.multiTouchScreen = prefs.getBoolean(MULTITOUCH_SCREEN_PREF_STRING, DEFAULT_MULTITOUCH_SCREEN);
+        config.enableGridLayout = prefs.getBoolean(ENABLE_GRID_LAYOUT_PREF_STRING, DEFAULT_ENABLE_GRID_LAYOUT);
 
         return config;
     }

@@ -216,6 +216,14 @@
             android:key="checkbox_show_guide_button"
             android:summary="@string/summary_show_guide_button"
             android:title="@string/title_show_guide_button" />
+        <CheckBoxPreference
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:defaultValue="false"
+            android:dependency="checkbox_enable_grid_layout"
+            android:key="checkbox_enable_grid_layout"
+            android:summary="@string/summary_enable_grid_layout"
+            android:title="@string/title_enable_grid_layout" />
     </PreferenceCategory>
 
     <PreferenceCategory android:title="@string/category_host_settings">

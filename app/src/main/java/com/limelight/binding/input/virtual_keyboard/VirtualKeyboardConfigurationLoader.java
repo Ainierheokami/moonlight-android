@@ -112,6 +112,32 @@ public class VirtualKeyboardConfigurationLoader {
         virtualKeyboard.setOpacity(config.oscOpacity);
     }
 
+    public static void addButton2(final VirtualKeyboard virtualKeyboard, final Context context, Integer buttonId, String VK_code, String text,
+                                 final Integer x, final Integer y, final Integer width, final Integer height
+    ){
+        DisplayMetrics screen = context.getResources().getDisplayMetrics();
+        PreferenceConfiguration config = PreferenceConfiguration.readPreferences(context);
+
+
+        int screenHeight = screen.heightPixels;
+        Integer lastElementId = virtualKeyboard.getLastElementId();
+        if (buttonId <= lastElementId){
+            buttonId = lastElementId + 1;
+        }
+        virtualKeyboard.addElement(
+                createDigitalButton(
+                        buttonId,
+                        Short.parseShort(VK_code),
+                        1, text, -1, virtualKeyboard, context
+                ),
+                x,
+                y,
+                width,
+                height
+        );
+
+        virtualKeyboard.setOpacity(config.oscOpacity);
+    }
 
 //    public static void createDefaultLayout(final VirtualKeyboard virtualKeyboard, final Context context) {
 //
@@ -176,6 +202,11 @@ public class VirtualKeyboardConfigurationLoader {
             e.printStackTrace();
             Log.d("heokami", e.toString());
             Toast.makeText(context, "JSONException" + e.getMessage(), Toast.LENGTH_SHORT).show();
+            // 报错则还原默认
+            virtualKeyboard.loadDefaultLayout();
+        }catch (Exception e) {
+            Toast.makeText(context, "载入异常，清空配置文件" + e.getMessage(), Toast.LENGTH_SHORT).show();
+            Log.e("heokami", e.toString(), e);
             // 报错则还原默认
             virtualKeyboard.loadDefaultLayout();
         }

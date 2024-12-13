@@ -310,7 +310,7 @@
     <string name="controller_mode_resize_buttons">进入配置模式（调整大小按钮）</string>
     <string name="controller_mode_settings_buttons">进入配置模式（设置按钮）</string>
     <string name="controller_mode_active_buttons">退出配置模式</string>
-    <string name="game_menu_title">Menu</string>
+    <string name="game_menu_title">菜单</string>
     <string name="virtual_keyboard_menu_set_button_title">编辑按钮</string>
     <string name="virtual_keyboard_menu_remove_button">删除</string>
     <string name="virtual_keyboard_menu_save_button">保存</string>
@@ -330,4 +330,12 @@
     <string name="default_button">默认</string>
     <string name="confirm_button">确认</string>
     <string name="cancel_button">取消</string>
+    <string name="title_enable_grid_layout">网格吸附</string>
+    <string name="summary_enable_grid_layout">网格吸附</string>
+    <string name="grid_lines_snap_threshold">吸附阈值</string>
+    <string name="menu_title_grid_lines">网格吸附</string>
+    <string name="grid_lines_y_axis_count">Y轴数量</string>
+    <string name="grid_lines_x_axis_count">X轴数量</string>
+    <string name="virtual_keyboard_menu_vk_code_button">VK表</string>
+    <string name="virtual_keyboard_menu_copy_button">复制当前按钮</string>
 </resources>
