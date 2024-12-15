@@ -4,7 +4,7 @@ import android.annotation.SuppressLint
 import android.app.AlertDialog
 import android.content.Context
 import android.content.Intent
-import android.text.Editable
+import android.preference.PreferenceManager
 import android.text.InputType
 import android.util.Log
 import android.view.ViewGroup
@@ -22,6 +22,7 @@ import com.limelight.R
 import com.limelight.binding.input.virtual_keyboard.VirtualKeyboard
 import com.limelight.binding.input.virtual_keyboard.VirtualKeyboardConfigurationLoader
 import com.limelight.binding.input.virtual_keyboard.VirtualKeyboardElement
+import com.limelight.preferences.PreferenceConfiguration
 
 
 class VirtualKeyboardMenu(private val context: Context, private val virtualKeyboard: VirtualKeyboard) {
@@ -67,32 +68,35 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
         )
         scrollView.layoutParams = scrollParams
 
-        val Layout = LinearLayout(context).apply {
+        val layout = LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
         }
 
-        val perf = game?.prefConfig
+        val pref = PreferenceManager.getDefaultSharedPreferences(context)
+        val enableGridLayout = pref.getBoolean(PreferenceConfiguration.ENABLE_GRID_LAYOUT_PREF_STRING, PreferenceConfiguration.DEFAULT_ENABLE_GRID_LAYOUT)
         val checkBot = CheckBox(context).apply {
             text = "显示网格"
             layoutParams = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
             )
-            isChecked = perf?.enableGridLayout ?: false
+            isChecked = enableGridLayout
             setOnClickListener {
-                if (perf != null) {
-                    if (!perf.enableGridLayout){
+                if (pref != null) {
+                    if (!enableGridLayout){
                         gridLines?.show()
-                        perf.enableGridLayout = true
+                        pref.edit().putBoolean(PreferenceConfiguration.ENABLE_GRID_LAYOUT_PREF_STRING, true).apply()
+                        game?.prefConfig?.enableGridLayout = true
                     }else{
                         gridLines?.hide()
-                        perf.enableGridLayout = false
+                        pref.edit().putBoolean(PreferenceConfiguration.ENABLE_GRID_LAYOUT_PREF_STRING, false).apply()
+                        game?.prefConfig?.enableGridLayout = false
                     }
 
                 }
             }
         }
-        Layout.addView(checkBot)
+        layout.addView(checkBot)
 
         val linearLayout = LinearLayout(context).apply {
             orientation = LinearLayout.HORIZONTAL
@@ -134,7 +138,7 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
         linearLayout.addView(xEditText)
         linearLayout.addView(yTextView)
         linearLayout.addView(yEditText)
-        Layout.addView(linearLayout)
+        layout.addView(linearLayout)
 
         val linearLayout2 = LinearLayout(context).apply {
             orientation = LinearLayout.HORIZONTAL
@@ -201,7 +205,7 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
         }
         linearLayout2.addView(blueEditText)
 
-        Layout.addView(linearLayout2)
+        layout.addView(linearLayout2)
 
         val snapThresholdTextView = TextView(context).apply {
             text = context.getString(R.string.grid_lines_snap_threshold)
@@ -211,10 +215,10 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
             setText(gridLines?.getSnapThreshold()?.toString())
         }
 
-        Layout.addView(snapThresholdTextView)
-        Layout.addView(snapThresholdEditText)
+        layout.addView(snapThresholdTextView)
+        layout.addView(snapThresholdEditText)
 
-        scrollView.addView(Layout)
+        scrollView.addView(layout)
 
         val builder = AlertDialog.Builder(context)
         val dialog = builder.setTitle(context.getString(R.string.menu_title_grid_lines))
@@ -225,6 +229,7 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
                 gridLines?.setSnapThreshold(snapThresholdEditText.text.toString().toInt())
                 gridLines?.setGridOpacity(opacityEditText.text.toString().toInt())
                 gridLines?.setGridRGB(redEditText.text.toString().toInt(), greenEditText.text.toString().toInt(), blueEditText.text.toString().toInt())
+                pref.edit().putString("gridLinesConfig", gridLines?.getConfig().toString()).apply()
             })
             .setCancelable(true)
             .create()

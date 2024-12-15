@@ -16,6 +16,8 @@ import android.view.View;
 import android.widget.FrameLayout;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
+
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -118,18 +120,20 @@ public abstract class VirtualKeyboardElement extends View {
         int newHeight = height + (startSize_y - pressed_y);
         int newWidth = width + (startSize_x - pressed_x);
 
-        layoutParams.height = newHeight > 20 ? newHeight : 20;
-        layoutParams.width = newWidth > 20 ? newWidth : 20;
+        // 吸附逻辑 - 宽度和高度都需要吸附
+        newWidth = snapToGrid(newWidth, gridLines.getCellWidth());
+        newHeight = snapToGrid(newHeight, gridLines.getCellHeight());
+
+        Log.d("vk", "resize吸附："+newWidth+","+newHeight+"cell:"+gridLines.getCellWidth()+","+gridLines.getCellHeight());
+
+        layoutParams.height = Math.max(20, newHeight); // 保证最小尺寸
+        layoutParams.width = Math.max(20, newWidth);   // 保证最小尺寸
 
         requestLayout();
     }
 
-//    protected void settingsElement() {
-//        FrameLayout.LayoutParams layoutParams = (FrameLayout.LayoutParams) getLayoutParams();
-//    }
-
     @Override
-    protected void onDraw(Canvas canvas) {
+    protected void onDraw(@NonNull Canvas canvas) {
         onElementDraw(canvas);
 
         if (currentMode != Mode.Normal) {

@@ -62,6 +62,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
+import android.preference.PreferenceManager;
 import android.util.Log;
 import android.util.Rational;
 import android.util.TypedValue;
@@ -104,6 +105,8 @@ import android.graphics.Color;
 // 2024-11-27 17:36:10 返回菜单
 import com.limelight.heokami.GameMenu;
 
+import org.json.JSONException;
+import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -256,6 +259,17 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         gameGridLines = findViewById(R.id.gameGridLines);
         // 默认隐藏网格线
         if (gameGridLines != null){
+            // 尝试加载配置
+            SharedPreferences gridLinesPref = PreferenceManager.getDefaultSharedPreferences(this);
+            try {
+                JSONObject jsonConfig = new JSONObject(gridLinesPref.getString("gridLinesConfig", "{}"));
+                gameGridLines.setConfig(jsonConfig);
+            } catch (JSONException ignored){
+
+            }
+            catch (Exception e){
+                Log.e("Game", "Error loading grid lines configuration", e);
+            }
             gameGridLines.hide();
         }
 
@@ -444,7 +458,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
                         // let's tell the user something when they open the app again
 
                         // We must use commit because the app will crash when we return from this function
-                        tombstonePrefs.edit().putInt("CrashCount", tombstonePrefs.getInt("CrashCount", 0) + 1).commit();
+                        tombstonePrefs.edit().putInt("CrashCount", tombstonePrefs.getInt("CrashCount", 0) + 1).apply();
                         reportedCrash = true;
                     }
                 },

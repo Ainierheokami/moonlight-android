@@ -7,6 +7,7 @@ import android.graphics.Paint
 import android.util.AttributeSet
 import android.util.Log
 import android.view.View
+import org.json.JSONObject
 
 class GameGridLines @JvmOverloads constructor(
     context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
@@ -100,5 +101,29 @@ class GameGridLines @JvmOverloads constructor(
 
     fun getCellHeight(): Int {
         return if (numRows > 0) height / numRows else 0
+    }
+
+    fun getConfig():JSONObject {
+        val config = JSONObject()
+        config.put("numColumns", numColumns)
+        config.put("snapThreshold", snapThreshold)
+        config.put("numRows", numRows)
+        config.put("opacity", opacity)
+        config.put("red", red)
+        config.put("green", green)
+        config.put("blue", blue)
+        return config
+    }
+
+    fun setConfig(config: JSONObject){
+        numColumns = config.getInt("numColumns")
+        snapThreshold = config.getInt("snapThreshold")
+        numRows = config.getInt("numRows")
+        opacity = config.getInt("opacity")
+        red = config.getInt("red")
+        green = config.getInt("green")
+        blue = config.getInt("blue")
+        paint.color = Color.argb(opacity, red, green, blue)
+        invalidate()
     }
 }

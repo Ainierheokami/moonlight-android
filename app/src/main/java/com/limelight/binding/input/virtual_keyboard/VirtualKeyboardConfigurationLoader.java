@@ -18,6 +18,7 @@ import org.json.JSONObject;
 
 import java.util.Iterator;
 import java.util.Map;
+import java.util.TreeMap;
 
 public class VirtualKeyboardConfigurationLoader {
     public static final String OSK_PREFERENCE = "OSK";
@@ -139,31 +140,6 @@ public class VirtualKeyboardConfigurationLoader {
         virtualKeyboard.setOpacity(config.oscOpacity);
     }
 
-//    public static void createDefaultLayout(final VirtualKeyboard virtualKeyboard, final Context context) {
-//
-//        DisplayMetrics screen = context.getResources().getDisplayMetrics();
-//        PreferenceConfiguration config = PreferenceConfiguration.readPreferences(context);
-//
-//        // Displace controls on the right by this amount of pixels to account for different aspect ratios
-//        int rightDisplacement = screen.widthPixels - screen.heightPixels * 16 / 9;
-//
-//        int height = screen.heightPixels;
-//
-//
-//        virtualKeyboard.addElement(
-//                createDigitalButton(
-//                        DEFAULT_ELEMENT_ID,
-//                        (short) VirtualKeyboardVkCode.VKCode.VK_LWIN.getCode(),
-//                        1, "测试按钮", -1, virtualKeyboard, context
-//                ),
-//                screenScale(TEST_X, height) + rightDisplacement,
-//                screenScale(TEST_Y, height),
-//                screenScale(TEST_WIDTH, height),
-//                screenScale(TEST_HEIGHT, height)
-//        );
-//
-//        virtualKeyboard.setOpacity(config.oscOpacity);
-//    }
 
     public static void saveProfile(final VirtualKeyboard virtualKeyboard, final Context context) {
         deleteProfile(context);
@@ -183,11 +159,14 @@ public class VirtualKeyboardConfigurationLoader {
     public static void loadFromPreferences(final VirtualKeyboard virtualKeyboard, final Context context) {
         SharedPreferences pref = context.getSharedPreferences(OSK_PREFERENCE, Activity.MODE_PRIVATE);
         Map<String, ?> keys = pref.getAll();
+        TreeMap<String, Object> sortedKeys = new TreeMap<>(keys);
+        // 从小到大排序，解决id和Json加载错误
         Log.d("heokami", "keys:" + keys.toString());
         try {
-            for (Map.Entry<String, ?> entry : keys.entrySet()) {
+            for (Map.Entry<String, Object> entry : sortedKeys.entrySet()) {
                 String elementId = entry.getKey();
                 String jsonConfig = (String) entry.getValue();
+                Log.d("heokami", "elementId: "+ elementId + " jsonConfig: "+ jsonConfig);
                 if (jsonConfig != null){
                     JSONObject json = new JSONObject(jsonConfig);
                     Log.d("heokami", " elementId:" + elementId + " buttonname:" + json.getString("TEXT") + " vk_code:" + json.getString("VK_CODE"));

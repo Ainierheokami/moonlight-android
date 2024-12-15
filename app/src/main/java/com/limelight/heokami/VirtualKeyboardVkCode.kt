@@ -16,12 +16,12 @@ object VirtualKeyboardVkCode {
 
         VK_LMENU(0xA4),
         VK_RMENU(0xA5),
-        VK_ESCAPE(0x01),
-        VK_BACK(0x0E),
+        VK_ESCAPE(0x1B),
+        VK_BACK(0x08),
 
         VK_SPACE(0x20),
-        VK_TAB(0x0F),
-        VK_ENTER(0x1C),
+        VK_TAB(0x09),
+        VK_CLEAR(0x0C),
         VK_RETURN(0x0D),
 
         VK_PRIOR(0x21), // page up
@@ -111,12 +111,13 @@ object VirtualKeyboardVkCode {
 
         VK_PAUSE(0x13),
         VK_NUMLOCK(0x90), // NUM LOCK
-        VK_CAPITAL(0x3A), // CAPS LOCK
+        VK_CAPITAL(0x14), // CAPS LOCK
         VK_SCROLL(0x91), // SCROLL LOCK
 
         VK_SNAPSHOT(0x2C), // PRINT SCREEN
-        VK_INSERT(0x2D),
-        VK_DELETE(0x2E),
+        VK_INSERT(0x2D), // INS 键
+        VK_DELETE(0x2E), // DEL 键
+        VK_HELP(0x2F), // HELP 键
 
     }
     fun replaceSpecialKeys(vkCode: Short): Byte {

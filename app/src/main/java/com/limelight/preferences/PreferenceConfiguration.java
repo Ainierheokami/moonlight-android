@@ -174,8 +174,9 @@ public class PreferenceConfiguration {
     private static final boolean DEFAULT_MULTITOUCH_SCREEN = false;
     public boolean multiTouchScreen;
 
-    private static final String ENABLE_GRID_LAYOUT_PREF_STRING = "checkbox_enable_grid_layout";
-    private static final boolean DEFAULT_ENABLE_GRID_LAYOUT = false;
+    public static final String ENABLE_GRID_LAYOUT_PREF_STRING = "checkbox_enable_grid_layout";
+    public static final boolean DEFAULT_ENABLE_GRID_LAYOUT = false;
+    public static final String GRID_LAYOUT_PREF_STRING = "grid_layout";
     public boolean enableGridLayout;
 
     public static boolean isNativeResolution(int width, int height) {

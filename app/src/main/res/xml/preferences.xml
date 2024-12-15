@@ -220,7 +220,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:defaultValue="false"
-            android:dependency="checkbox_enable_grid_layout"
+            android:dependency="checkbox_show_onscreen_keyboard"
             android:key="checkbox_enable_grid_layout"
             android:summary="@string/summary_enable_grid_layout"
             android:title="@string/title_enable_grid_layout" />
