@@ -17,6 +17,7 @@ import com.limelight.Game;
 import com.limelight.LimeLog;
 import com.limelight.R;
 import com.limelight.heokami.GameGridLines;
+import com.limelight.heokami.VirtualKeyboardVkCode;
 import com.limelight.nvstream.NvConnection;
 import com.limelight.nvstream.input.KeyboardPacket;
 import com.limelight.preferences.PreferenceConfiguration;
@@ -132,6 +133,24 @@ public class VirtualKeyboard {
         buttonConfigure.setVisibility(View.VISIBLE);
     }
 
+    public void hideElement(VirtualKeyboardElement element) {
+        for (VirtualKeyboardElement e : elements) {
+            if (e == element) {
+                e.setVisibility(View.INVISIBLE);
+                return;
+            }
+        }
+    }
+
+    public void showElement(VirtualKeyboardElement element) {
+        for (VirtualKeyboardElement e : elements) {
+            if (e == element) {
+                e.setVisibility(View.VISIBLE);
+                return;
+            }
+        }
+    }
+
     public void removeElements() {
         for (VirtualKeyboardElement element : elements) {
             frame_layout.removeView(element);
@@ -159,6 +178,24 @@ public class VirtualKeyboard {
     public void setOpacity(int opacity) {
         for (VirtualKeyboardElement element : elements) {
             element.setOpacity(opacity);
+        }
+    }
+
+    public void setElementOpacity(VirtualKeyboardElement element, int opacity) {
+        for (VirtualKeyboardElement e : elements) {
+            if (e == element) {
+                e.opacity = opacity;
+                return;
+            }
+        }
+    }
+
+    public void setElementRadius(VirtualKeyboardElement element, float radius) {
+        for (VirtualKeyboardElement e : elements) {
+            if (e == element) {
+                e.radius = radius;
+                return;
+            }
         }
     }
 
@@ -190,12 +227,6 @@ public class VirtualKeyboard {
             }
         }
         return null;
-    }
-
-    private static final void _DBG(String text) {
-        if (_PRINT_DEBUG_INFORMATION) {
-            LimeLog.info("VirtualController: " + text);
-        }
     }
 
     public void loadDefaultLayout() {
@@ -247,7 +278,31 @@ public class VirtualKeyboard {
         conn.sendKeyboardInput(key, KeyboardPacket.KEY_UP, inputContext.modifier, (byte) 0);
     }
 
-    public void gethistoryElements() {
+    public void sendKeys(short[] keys) {
+        final byte[] modifier = {(byte) 0};
+
+        for (short key : keys) {
+            conn.sendKeyboardInput(key, KeyboardPacket.KEY_DOWN, modifier[0], (byte) 0);
+
+            // Apply the modifier of the pressed key, e.g. CTRL first issues a CTRL event (without
+            // modifier) and then sends the following keys with the CTRL modifier applied
+            modifier[0] |= VirtualKeyboardVkCode.INSTANCE.replaceSpecialKeys(key);
+        }
+
+        new Handler().postDelayed((() -> {
+
+            for (int pos = keys.length - 1; pos >= 0; pos--) {
+                short key = keys[pos];
+
+                // Remove the keys modifier before releasing the key
+                modifier[0] &= (byte) ~ VirtualKeyboardVkCode.INSTANCE.replaceSpecialKeys(key);
+
+                conn.sendKeyboardInput(key, KeyboardPacket.KEY_UP, modifier[0], (byte) 0);
+            }
+        }), 25);
+    }
+
+    public void historyElements() {
         Log.d("vk", "撤回："+historyIndex+" size: "+historyElements.size());
         String nowElements = historyElements.get(historyIndex);
         VirtualKeyboardConfigurationLoader.loadForFile(context, nowElements);
@@ -261,7 +316,7 @@ public class VirtualKeyboard {
             historyIndex--;
         }
         Log.d("vk", "撤回后："+historyIndex+" size: "+historyElements.size());
-        gethistoryElements();
+        historyElements();
     }
 
     // 前进
@@ -271,7 +326,7 @@ public class VirtualKeyboard {
             historyIndex++;
         }
         Log.d("vk", "前进后："+historyIndex+" size: "+historyElements.size());
-        gethistoryElements();
+        historyElements();
     }
 
     public void addHistory() {

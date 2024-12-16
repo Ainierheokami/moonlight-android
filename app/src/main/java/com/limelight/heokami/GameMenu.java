@@ -41,37 +41,6 @@ public class GameMenu {
         runnable.run();
     }
 
-//    // virtual-key-codes https://learn.microsoft.com/zh-cn/windows/win32/inputdev/virtual-key-codes
-//    private static final int VK_LWIN = 91;
-//    private static final int VK_RWIN = 92;
-//    private static final int VK_LSHIFT = 160;
-//    private static final int VK_RSHIFT = 161;
-//    private static final int VK_LCONTROL = 162;
-//    private static final int VK_RCONTROL = 163;
-//    private static final int VK_LALT = 164;
-//    private static final int VK_RALT = 165;
-//    private static final int VK_C = 67;
-//    private static final int VK_D = 68;
-//    private static final int VK_V = 86;
-//    private static final int VK_O = 79;
-////    private static final int VK_ESCAPE = 27;
-//
-//    private static byte replaceSpecialKeys(short vk_code) {
-//        int modifierMask = 0;
-//        if (vk_code == VK_LCONTROL || vk_code == VK_RCONTROL) {
-//            modifierMask = KeyboardPacket.MODIFIER_CTRL;
-//        }
-//        else if (vk_code == VK_LSHIFT || vk_code == VK_RSHIFT) {
-//            modifierMask = KeyboardPacket.MODIFIER_SHIFT;
-//        }
-//        else if (vk_code == VK_LALT || vk_code == VK_RALT) {
-//            modifierMask = KeyboardPacket.MODIFIER_ALT;
-//        }
-//        else if (vk_code == VK_LWIN || vk_code == VK_RWIN) {
-//            modifierMask = KeyboardPacket.MODIFIER_META;
-//        }
-//        return (byte) modifierMask;
-//    }
 
     private void sendKeys(short[] keys) {
         final byte[] modifier = {(byte) 0};
@@ -137,57 +106,6 @@ public class GameMenu {
             }
         });
 
-//        // 设置点击事件监听器
-//        listView.setOnItemClickListener((parent, view, position, id) -> {
-//            String item = adapter.getItem(position);
-//            Toast.makeText(game, "点击了: " + item, Toast.LENGTH_SHORT).show();
-//            switch (position) {
-//                case 0:
-//                    // 启用输入法
-//                    dialog.dismiss();
-//                    runWithGameFocus(game::toggleKeyboard);
-//                    break;
-//                case 1:
-//                    // 切换屏幕虚拟手柄
-//                    if (virtualController == null) {
-//                        streamView = game.findViewById(R.id.surfaceView);
-//                        virtualController = new VirtualController(controllerHandler,
-//                                (FrameLayout) streamView.getParent(),
-//                                game);
-//                        virtualController.refreshLayout();
-//                    }
-//
-//                    if (!virtualControllerShow) {
-//                        virtualController.show();
-//                        virtualControllerShow = true;
-//                    }else{
-//                        virtualController.hide();
-//                        virtualControllerShow = false;
-//                    }
-//                    break;
-//
-//                case 2:
-//                    // 切换屏幕虚拟键盘
-//                    dialog.dismiss();
-//                    sendKeys(new short[]{VK_LWIN,VK_LCONTROL,VK_O});
-//                    break;
-//                case 3:
-//                    // 热键：Ctrl+C
-//                    dialog.dismiss();
-//                    sendKeys(new short[]{VK_LCONTROL,VK_C});
-//                    break;
-//                case 4:
-//                    // 热键：Ctrl+V
-//                    dialog.dismiss();
-//                    sendKeys(new short[]{VK_LCONTROL,VK_V});
-//                    break;
-//                case 5:
-//                    // 热键：返回桌面
-//                    dialog.dismiss();
-//                    sendKeys(new short[]{VK_LWIN, VK_D});
-//                    break;
-//            }
-//        });
 
         return listView;
     }

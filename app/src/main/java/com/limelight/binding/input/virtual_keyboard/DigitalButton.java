@@ -13,8 +13,6 @@ import android.graphics.RectF;
 import android.graphics.drawable.Drawable;
 import android.view.MotionEvent;
 
-import com.limelight.heokami.VirtualKeyboardVkCode;
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -27,41 +25,32 @@ public class DigitalButton extends VirtualKeyboardElement {
     /**
      * Listener interface to update registered observers.
      */
-//    public interface DigitalButtonListener {
-//
-//        /**
-//         * onClick event will be fired on button click.
-//         */
-//        void onClick();
-//
-//        /**
-//         * onLongClick event will be fired on button long click.
-//         */
-//        void onLongClick();
-//
-//        /**
-//         * onRelease event will be fired on button unpress.
-//         */
-//        void onRelease();
-//    }
-//
-//
-//    private List<DigitalButtonListener> listeners = new ArrayList<>();
+    public interface DigitalButtonListener {
 
-    private long timerLongClickTimeout = 3000;
-    private final Runnable longClickRunnable = new Runnable() {
-        @Override
-        public void run() {
-            onLongClickCallback();
-        }
-    };
+        /**
+         * onClick event will be fired on button click.
+         */
+        void onClick();
+
+        /**
+         * onLongClick event will be fired on button long click.
+         */
+        void onLongClick();
+
+        /**
+         * onRelease event will be fired on button unpress.
+         */
+        void onRelease();
+    }
+
+
+    private final List<DigitalButtonListener> listeners = new ArrayList<>();
+
+    private final Runnable longClickRunnable = this::onLongClickCallback;
 
     private final Paint paint = new Paint();
     private final RectF rect = new RectF();
 
-//    private int layer;
-//    private String text = "";
-//    private int icon = -1;
     private DigitalButton movingButton = null;
 
     boolean inRange(float x, float y) {
@@ -69,10 +58,10 @@ public class DigitalButton extends VirtualKeyboardElement {
                 (this.getY() < y && this.getY() + this.getHeight() > y);
     }
 
-    public boolean checkMovement(float x, float y, DigitalButton movingButton) {
+    public void checkMovement(float x, float y, DigitalButton movingButton) {
         // check if the movement happened in the same layer
         if (movingButton.layer != this.layer) {
-            return false;
+            return;
         }
 
         // save current pressed state
@@ -106,10 +95,8 @@ public class DigitalButton extends VirtualKeyboardElement {
 
             invalidate();
 
-            return true;
         }
 
-        return false;
     }
 
     private void checkMovementForAllButtons(float x, float y) {
@@ -124,9 +111,9 @@ public class DigitalButton extends VirtualKeyboardElement {
         super(virtualKeyboard, context, elementId, layer);
     }
 
-//    public void addDigitalButtonListener(DigitalButtonListener listener) {
-//        listeners.add(listener);
-//    }
+    public void addDigitalButtonListener(DigitalButtonListener listener) {
+        listeners.add(listener);
+    }
 
     @Override
     protected void onElementDraw(Canvas canvas) {
@@ -144,58 +131,43 @@ public class DigitalButton extends VirtualKeyboardElement {
         rect.right = getWidth() - rect.left;
         rect.bottom = getHeight() - rect.top;
 
-        float cornerRadius = 10f; // 圆角大小
+        float cornerRadius = radius; // 圆角大小
         canvas.drawRoundRect(rect, cornerRadius, cornerRadius ,paint);
 
         if (icon != -1) {
-            Drawable d = getResources().getDrawable(icon);
+            @SuppressLint("UseCompatLoadingForDrawables") Drawable d = getResources().getDrawable(icon);
             d.setBounds(5, 5, getWidth() - 5, getHeight() - 5);
             d.draw(canvas);
         } else {
             paint.setStyle(Paint.Style.FILL_AND_STROKE);
-            paint.setStrokeWidth(getDefaultStrokeWidth()/2);
+            paint.setStrokeWidth((float) getDefaultStrokeWidth() /2);
             canvas.drawText(text, getPercent(getWidth(), 50), getPercent(getHeight(), 63), paint);
         }
     }
 
     private void onClickCallback() {
-        _DBG("clicked");
         // notify listeners
-//        for (DigitalButtonListener listener : listeners) {
-//            listener.onClick();
-//        }
-        VirtualKeyboard.ControllerInputContext inputContext =
-                virtualKeyboard.getControllerInputContext();
-        inputContext.modifier |= VirtualKeyboardVkCode.INSTANCE.replaceSpecialKeys(Short.parseShort(vk_code));
-        virtualKeyboard.sendDownKey(Short.parseShort(vk_code));
+        for (DigitalButtonListener listener : listeners) {
+            listener.onClick();
+        }
 
         virtualKeyboard.getHandler().removeCallbacks(longClickRunnable);
+        long timerLongClickTimeout = 3000;
         virtualKeyboard.getHandler().postDelayed(longClickRunnable, timerLongClickTimeout);
     }
 
     private void onLongClickCallback() {
-        _DBG("long click");
         // notify listeners
-//        for (DigitalButtonListener listener : listeners) {
-//            listener.onLongClick();
-//        }
-        VirtualKeyboard.ControllerInputContext inputContext =
-                virtualKeyboard.getControllerInputContext();
-        inputContext.modifier |= VirtualKeyboardVkCode.INSTANCE.replaceSpecialKeys(Short.parseShort(vk_code));
-        virtualKeyboard.sendDownKey(Short.parseShort(vk_code));
+        for (DigitalButtonListener listener : listeners) {
+            listener.onLongClick();
+        }
     }
 
     private void onReleaseCallback() {
-        _DBG("released");
         // notify listeners
-//        for (DigitalButtonListener listener : listeners) {
-//            listener.onRelease();
-//        }
-        VirtualKeyboard.ControllerInputContext inputContext =
-                virtualKeyboard.getControllerInputContext();
-        inputContext.modifier &= (byte) ~VirtualKeyboardVkCode.INSTANCE.replaceSpecialKeys(Short.parseShort(vk_code));
-
-        virtualKeyboard.sendUpKey(Short.parseShort(vk_code));
+        for (DigitalButtonListener listener : listeners) {
+            listener.onRelease();
+        }
 
         // We may be called for a release without a prior click
         virtualKeyboard.getHandler().removeCallbacks(longClickRunnable);

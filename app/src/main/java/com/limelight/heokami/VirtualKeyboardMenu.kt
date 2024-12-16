@@ -16,6 +16,7 @@ import android.widget.GridLayout
 import android.widget.LinearLayout
 import android.widget.ListView
 import android.widget.ScrollView
+import android.widget.SeekBar
 import android.widget.TextView
 import com.limelight.Game
 import com.limelight.R
@@ -23,6 +24,7 @@ import com.limelight.binding.input.virtual_keyboard.VirtualKeyboard
 import com.limelight.binding.input.virtual_keyboard.VirtualKeyboardConfigurationLoader
 import com.limelight.binding.input.virtual_keyboard.VirtualKeyboardElement
 import com.limelight.preferences.PreferenceConfiguration
+import java.lang.Long.parseLong
 
 
 class VirtualKeyboardMenu(private val context: Context, private val virtualKeyboard: VirtualKeyboard) {
@@ -75,7 +77,7 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
         val pref = PreferenceManager.getDefaultSharedPreferences(context)
         val enableGridLayout = pref.getBoolean(PreferenceConfiguration.ENABLE_GRID_LAYOUT_PREF_STRING, PreferenceConfiguration.DEFAULT_ENABLE_GRID_LAYOUT)
         val checkBot = CheckBox(context).apply {
-            text = "显示网格"
+            text = context.getString(R.string.grid_lines_enable)
             layoutParams = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
@@ -286,6 +288,20 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
         scrollView.addView(gridLayout)
     }
 
+    fun toHexString(value: Int): String {
+        return String.format("%08X", value)
+    }
+
+    fun getHexValue(hexString: String): Long {
+        // 处理 # 号前缀，如果存在
+        val hex = if (hexString.startsWith("#")) {
+            hexString.substring(1)
+        } else {
+            hexString
+        }
+        return parseLong(hex, 16)
+    }
+
     @SuppressLint("SetTextI18n")
     fun setButtonDialog() {
         val scrollView = ScrollView(context)
@@ -354,6 +370,62 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
         // 将水平排列的LinearLayout添加到主布局中
         layout.addView(linearLayout)
 
+        layout.addView(TextView(context).apply {
+            text = context.getString(R.string.virtual_keyboard_menu_normal_color_hint)
+        })
+
+        val normaColorEditText = EditText(context)
+        layout.addView(normaColorEditText)
+
+        layout.addView(TextView(context).apply {
+            text = context.getString(R.string.virtual_keyboard_menu_pressed_color_hint)
+        })
+
+        val pressedColorEditText = EditText(context)
+        layout.addView(pressedColorEditText)
+
+        val opacityTextView = TextView(context).apply {
+            text = context.getString(R.string.virtual_keyboard_menu_opacity_hint)
+
+        }
+        layout.addView(opacityTextView)
+
+        val opacitySeekBar = SeekBar(context).apply {
+            max = 100
+            progress = 100
+        }
+        layout.addView(opacitySeekBar)
+        // 滑块监听
+        opacitySeekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+                // 处理进度变化
+                opacityTextView.text = context.getString(R.string.virtual_keyboard_menu_opacity_hint) + " $progress"
+            }
+            override fun onStartTrackingTouch(seekBar: SeekBar?) {}
+            override fun onStopTrackingTouch(seekBar: SeekBar?) {}
+        })
+
+        val radiusTextView = TextView(context).apply {
+            text = context.getString(R.string.virtual_keyboard_menu_radius_hint)
+        }
+        layout.addView(radiusTextView)
+        val radiusSeekBar = SeekBar(context).apply {
+            max = 255
+            progress = 10
+        }
+        layout.addView(radiusSeekBar)
+        // 滑块监听
+        radiusSeekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+                // 处理进度变化
+                radiusTextView.text = context.getString(R.string.virtual_keyboard_menu_radius_hint) + " $progress"
+            }
+            override fun onStartTrackingTouch(seekBar: SeekBar?) {}
+            override fun onStopTrackingTouch(seekBar: SeekBar?) {}
+        })
+
+
+
         if (element != null) {
             layout.addView(Button(context).apply {
                 text = context.getString(R.string.virtual_keyboard_menu_copy_button)
@@ -395,6 +467,11 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
             buttonIdEditText.setText(element?.elementId.toString())
             buttonTextEditText.setText(element?.text)
             vkCodeEditText.setText(element?.vk_code)
+            normaColorEditText.setText(element?.normalColor?.let { toHexString(it) })
+            pressedColorEditText.setText(element?.pressedColor?.let { toHexString(it) })
+            opacitySeekBar.progress = element?.opacity!!.toInt()
+            radiusSeekBar.progress = element?.radius!!.toInt()
+
             dialog = builder.setTitle(context.getString(R.string.virtual_keyboard_menu_set_button_title))
                 .setView(scrollView)
                 .setNegativeButton(R.string.virtual_keyboard_menu_cancel_button, null)
@@ -405,6 +482,11 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
                     element?.text = buttonTextEditText.text.toString()
                     element?.vk_code = vkCodeEditText.text.toString()
                     element?.elementId = buttonIdEditText.text.toString().toInt()
+                    element?.normalColor = getHexValue(normaColorEditText.text.toString()).toInt()
+                    element?.pressedColor = getHexValue(pressedColorEditText.text.toString()).toInt()
+                    element?.opacity = opacitySeekBar.progress
+                    element?.setOpacity(opacitySeekBar.progress)
+                    element?.radius = radiusSeekBar.progress.toFloat()
                     element?.invalidate()
                     VirtualKeyboardConfigurationLoader.saveProfile(virtualKeyboard, context)
                 })

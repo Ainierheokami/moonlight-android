@@ -11,6 +11,7 @@ import android.util.DisplayMetrics;
 import android.util.Log;
 import android.widget.Toast;
 
+import com.limelight.heokami.VirtualKeyboardVkCode;
 import com.limelight.preferences.PreferenceConfiguration;
 
 import org.json.JSONException;
@@ -34,6 +35,7 @@ public class VirtualKeyboardConfigurationLoader {
         return (int) (((float) height / (float) 72) * (float) units);
     }
 
+
     public static DigitalButton createDigitalButton(
             final int elementId, // 唯一标识
             final short vk_code, // 按键
@@ -49,34 +51,33 @@ public class VirtualKeyboardConfigurationLoader {
         button.setIcon(icon);
         button.setVkCode(""+vk_code);
 
-//        button.addDigitalButtonListener(new DigitalButton.DigitalButtonListener() {
-//            @Override
-//            public void onClick() {
-//                VirtualKeyboard.ControllerInputContext inputContext =
-//                        virtualKeyboard.getControllerInputContext();
-//                inputContext.modifier |= VirtualKeyboardVkCode.INSTANCE.replaceSpecialKeys(vk_code);
-//
-//                virtualKeyboard.sendDownKey(vk_code);
-//            }
-//
-//            @Override
-//            public void onLongClick() {
-//                VirtualKeyboard.ControllerInputContext inputContext =
-//                        virtualKeyboard.getControllerInputContext();
-//                inputContext.modifier |= VirtualKeyboardVkCode.INSTANCE.replaceSpecialKeys(vk_code);
-//
-//                virtualKeyboard.sendDownKey(vk_code);
-//            }
-//
-//            @Override
-//            public void onRelease() {
-//                VirtualKeyboard.ControllerInputContext inputContext =
-//                        virtualKeyboard.getControllerInputContext();
-//                inputContext.modifier &= (byte) ~VirtualKeyboardVkCode.INSTANCE.replaceSpecialKeys(vk_code);
-//
-//                virtualKeyboard.sendUpKey(vk_code);
-//            }
-//        });
+        button.addDigitalButtonListener(new DigitalButton.DigitalButtonListener() {
+            @Override
+            public void onClick() {
+                VirtualKeyboard.ControllerInputContext inputContext =
+                        virtualKeyboard.getControllerInputContext();
+                inputContext.modifier |= VirtualKeyboardVkCode.INSTANCE.replaceSpecialKeys(vk_code);
+                virtualKeyboard.sendDownKey(vk_code);
+            }
+
+            @Override
+            public void onLongClick() {
+                VirtualKeyboard.ControllerInputContext inputContext =
+                        virtualKeyboard.getControllerInputContext();
+                inputContext.modifier |= VirtualKeyboardVkCode.INSTANCE.replaceSpecialKeys(vk_code);
+
+                virtualKeyboard.sendDownKey(vk_code);
+            }
+
+            @Override
+            public void onRelease() {
+                VirtualKeyboard.ControllerInputContext inputContext =
+                        virtualKeyboard.getControllerInputContext();
+                inputContext.modifier &= (byte) ~VirtualKeyboardVkCode.INSTANCE.replaceSpecialKeys(vk_code);
+
+                virtualKeyboard.sendUpKey(vk_code);
+            }
+        });
 
         return button;
     }
@@ -116,11 +117,8 @@ public class VirtualKeyboardConfigurationLoader {
     public static void addButton2(final VirtualKeyboard virtualKeyboard, final Context context, Integer buttonId, String VK_code, String text,
                                  final Integer x, final Integer y, final Integer width, final Integer height
     ){
-        DisplayMetrics screen = context.getResources().getDisplayMetrics();
         PreferenceConfiguration config = PreferenceConfiguration.readPreferences(context);
 
-
-        int screenHeight = screen.heightPixels;
         Integer lastElementId = virtualKeyboard.getLastElementId();
         if (buttonId <= lastElementId){
             buttonId = lastElementId + 1;

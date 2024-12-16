@@ -32,6 +32,9 @@ public abstract class VirtualKeyboardElement extends View {
     public String vk_code;
     public String text;
     public int icon;
+    public float radius;
+    public int opacity;
+    public JSONObject button_data;
 
 
     protected VirtualKeyboard virtualKeyboard;
@@ -39,8 +42,8 @@ public abstract class VirtualKeyboardElement extends View {
 
     private final Paint paint = new Paint();
 
-    private int normalColor = 0xF0888888;
-    protected int pressedColor = 0xF00000FF;
+    public int normalColor = 0xF0888888;
+    public int pressedColor = 0xF00000FF;
     private int configMoveColor = 0xF0FF0000;
     private int configResizeColor = 0xF0FF00FF;
     private int configSettingsColor = 0xF090e494;
@@ -59,7 +62,15 @@ public abstract class VirtualKeyboardElement extends View {
         Settings
     }
 
+    public enum ButtonType {
+        Button,
+        Manage,
+        HotKeys
+    }
+
     private Mode currentMode = Mode.Normal;
+
+    private ButtonType currentType = ButtonType.Button;
 
     // 网格吸附
     protected GameGridLines gridLines;
@@ -78,7 +89,7 @@ public abstract class VirtualKeyboardElement extends View {
         }
     }
 
-    protected VirtualKeyboardElement(VirtualKeyboard virtualKeyboard, Context context, int elementId, int layer) {
+    protected VirtualKeyboardElement(VirtualKeyboard virtualKeyboard, Context context, int elementId, int layer){
         super(context);
         this.virtualKeyboard = virtualKeyboard;
         this.elementId = elementId;
@@ -86,6 +97,14 @@ public abstract class VirtualKeyboardElement extends View {
         this.text = "";
         this.icon = -1;
         this.vk_code = "";
+        this.radius = 10f;
+        this.opacity = 85;
+        try {
+            this.button_data = new JSONObject("{}");
+        }catch (JSONException e){
+            Log.e("heokami", e.toString(), e);
+        }
+
     }
 
     protected void moveElement(int pressed_x, int pressed_y, int x, int y) {
@@ -383,20 +402,30 @@ public abstract class VirtualKeyboardElement extends View {
         invalidate();
     }
 
-    public void setColors(int normalColor, int pressedColor) {
-        this.normalColor = normalColor;
-        this.pressedColor = pressedColor;
-
+    public void setRadius(float radius) {
+        this.radius = radius;
         invalidate();
     }
 
+    public void setColors(int normalColor, int pressedColor) {
+        this.normalColor = normalColor;
+        this.pressedColor = pressedColor;
+        invalidate();
+    }
+
+    public void setType(ButtonType type) {
+        this.currentType = type;
+    }
 
     public void setOpacity(int opacity) {
         int hexOpacity = opacity * 255 / 100;
+        this.opacity = opacity;
         this.normalColor = (hexOpacity << 24) | (normalColor & 0x00FFFFFF);
         this.pressedColor = (hexOpacity << 24) | (pressedColor & 0x00FFFFFF);
-
         invalidate();
+    }
+    public void setButtonData(JSONObject button_data) {
+        this.button_data = button_data;
     }
 
     protected final float getPercent(float value, float percent) {
@@ -421,6 +450,12 @@ public abstract class VirtualKeyboardElement extends View {
         configuration.put("ICON", icon);
         configuration.put("LAYER", layer);
         configuration.put("VK_CODE", vk_code);
+        configuration.put("RADIUS", radius);
+        configuration.put("OPACITY", opacity);
+        configuration.put("NORMAL_COLOR", normalColor);
+        configuration.put("PRESSED_COLOR", pressedColor);
+        configuration.put("TYPE", currentType.toString());
+        configuration.put("BUTTON_DATA", button_data);
 
         return configuration;
     }
@@ -436,6 +471,11 @@ public abstract class VirtualKeyboardElement extends View {
         setIcon(configuration.getInt("ICON"));
         setLayer(configuration.getInt("LAYER"));
         setVkCode(configuration.getString("VK_CODE"));
+        setRadius(configuration.getInt("RADIUS"));
+        setOpacity(configuration.getInt("OPACITY"));
+        setColors(configuration.getInt("NORMAL_COLOR"), configuration.getInt("PRESSED_COLOR"));
+        setType(ButtonType.valueOf(configuration.getString("TYPE")));
+        setButtonData(configuration.getJSONObject("BUTTON_DATA"));
 
         requestLayout();
     }

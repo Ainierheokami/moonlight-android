@@ -352,5 +352,10 @@
     <string name="grid_lines_x_axis_count">x axis count</string>
     <string name="virtual_keyboard_menu_vk_code_button">VK_TABLE</string>
     <string name="virtual_keyboard_menu_copy_button">Copy the button</string>
+    <string name="grid_lines_enable">Show grid lines</string>
+    <string name="virtual_keyboard_menu_radius_hint">Radius</string>
+    <string name="virtual_keyboard_menu_opacity_hint">Opacity</string>
+    <string name="virtual_keyboard_menu_pressed_color_hint">Pressed button color</string>
+    <string name="virtual_keyboard_menu_normal_color_hint">Normal button color</string>
 
 </resources>
