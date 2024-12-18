@@ -1522,10 +1522,10 @@ public class MediaCodecDecoderRenderer extends VideoDecoderRenderer implements C
                     data.put("@data1", String.format(Locale.getDefault(),"%.2f", fps.totalFps));
                     data.put("@data2", simplify_decoder);
                     data.put("@data3", String.format(Locale.getDefault(),"%1$dms", (int)(rttInfo >> 32)));
-                    data.put("@data4", String.format(Locale.getDefault(),"%.1f/%.1f/%.1f",
-                            (float)lastTwo.minHostProcessingLatency / 10,
-                            (float)lastTwo.maxHostProcessingLatency / 10,
-                            (float)lastTwo.totalHostProcessingLatency / 10 / lastTwo.framesWithHostProcessingLatency));
+                    data.put("@data4", String.format(Locale.getDefault(),"%.1f/%.1f",
+                            (float)lastTwo.totalHostProcessingLatency / 10 / lastTwo.framesWithHostProcessingLatency, // 主机平均编码
+                            decodeTimeMs  // 客户端解码平均时间
+                    ));
                     data.put("@data5", String.format(Locale.getDefault(),"%1$.2f%%", (float)lastTwo.framesLost / lastTwo.totalFrames * 100));
                     data.put("@data6", String.format(Locale.getDefault(), "%.2fMB/s", inputRateMBps)); // 输入流量速率
                     data.put("@data7", String.format(Locale.getDefault(), "%.2fMB/s", outputRateMBps)); // 输出流量速率
@@ -1539,6 +1539,7 @@ public class MediaCodecDecoderRenderer extends VideoDecoderRenderer implements C
                     ));
                     data.put("@data11", String.format(Locale.getDefault(), "%.2fMB/s", relinputRateMBps)); // 真实输入流量速率);
                     data.put("@data12", String.format(Locale.getDefault(), "%.2fMB/s", reloutputRateMBps)); // 真实输出流量速率);
+                    data.put("@data13", initialWidth + "x" + initialHeight); // 分辨率
                     String result = TemplateRenderer.render(template, data);
                     perfListener.onPerfUpdate(result);
                 }

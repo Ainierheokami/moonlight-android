@@ -14,14 +14,9 @@ import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 import android.widget.FrameLayout;
-import android.widget.Toast;
-
 import androidx.annotation.NonNull;
-
 import org.json.JSONException;
 import org.json.JSONObject;
-
-import com.limelight.binding.input.virtual_controller.VirtualControllerElement;
 import com.limelight.heokami.GameGridLines;
 import com.limelight.heokami.VirtualKeyboardMenu;
 
@@ -34,7 +29,8 @@ public abstract class VirtualKeyboardElement extends View {
     public int icon;
     public float radius;
     public int opacity;
-    public JSONObject button_data;
+    public ButtonType buttonType = ButtonType.Button;
+    public JSONObject buttonData;
 
 
     protected VirtualKeyboard virtualKeyboard;
@@ -70,8 +66,6 @@ public abstract class VirtualKeyboardElement extends View {
 
     private Mode currentMode = Mode.Normal;
 
-    private ButtonType currentType = ButtonType.Button;
-
     // 网格吸附
     protected GameGridLines gridLines;
     public void setGridLines(GameGridLines gridLines) {
@@ -100,7 +94,7 @@ public abstract class VirtualKeyboardElement extends View {
         this.radius = 10f;
         this.opacity = 85;
         try {
-            this.button_data = new JSONObject("{}");
+            this.buttonData = new JSONObject("{}");
         }catch (JSONException e){
             Log.e("heokami", e.toString(), e);
         }
@@ -414,7 +408,7 @@ public abstract class VirtualKeyboardElement extends View {
     }
 
     public void setType(ButtonType type) {
-        this.currentType = type;
+        this.buttonType = type;
     }
 
     public void setOpacity(int opacity) {
@@ -425,7 +419,7 @@ public abstract class VirtualKeyboardElement extends View {
         invalidate();
     }
     public void setButtonData(JSONObject button_data) {
-        this.button_data = button_data;
+        this.buttonData = button_data;
     }
 
     protected final float getPercent(float value, float percent) {
@@ -454,8 +448,8 @@ public abstract class VirtualKeyboardElement extends View {
         configuration.put("OPACITY", opacity);
         configuration.put("NORMAL_COLOR", normalColor);
         configuration.put("PRESSED_COLOR", pressedColor);
-        configuration.put("TYPE", currentType.toString());
-        configuration.put("BUTTON_DATA", button_data);
+        configuration.put("TYPE", buttonType.toString());
+        configuration.put("BUTTON_DATA", buttonData);
 
         return configuration;
     }

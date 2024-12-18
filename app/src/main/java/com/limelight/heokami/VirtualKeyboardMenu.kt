@@ -7,7 +7,9 @@ import android.content.Intent
 import android.preference.PreferenceManager
 import android.text.InputType
 import android.util.Log
+import android.view.View
 import android.view.ViewGroup
+import android.widget.AdapterView
 import android.widget.ArrayAdapter
 import android.widget.Button
 import android.widget.CheckBox
@@ -17,6 +19,7 @@ import android.widget.LinearLayout
 import android.widget.ListView
 import android.widget.ScrollView
 import android.widget.SeekBar
+import android.widget.Spinner
 import android.widget.TextView
 import com.limelight.Game
 import com.limelight.R
@@ -24,6 +27,7 @@ import com.limelight.binding.input.virtual_keyboard.VirtualKeyboard
 import com.limelight.binding.input.virtual_keyboard.VirtualKeyboardConfigurationLoader
 import com.limelight.binding.input.virtual_keyboard.VirtualKeyboardElement
 import com.limelight.preferences.PreferenceConfiguration
+import org.json.JSONObject
 import java.lang.Long.parseLong
 
 
@@ -54,6 +58,14 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
 //            Toast.makeText(context, "点击了 $item", Toast.LENGTH_SHORT).show()
         }
         return listView
+    }
+
+    private fun createSpinner(context: Context): Spinner {
+        val spinner = Spinner(context)
+        val items = VirtualKeyboardElement.ButtonType.entries.map { it.name }
+        val adapter = ArrayAdapter(context, android.R.layout.simple_spinner_dropdown_item, items)
+        spinner.adapter = adapter
+        return spinner
     }
 
     fun setElement(element: VirtualKeyboardElement) {
@@ -238,56 +250,6 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
         dialog.show()
     }
 
-    @SuppressLint("SetTextI18n")
-    private fun showVKCodeDialog(context: Context, buttonTextEditText: EditText, vkCodeEditText: EditText) {
-
-        val scrollView = ScrollView(context)
-        val scrollParams = LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.MATCH_PARENT,
-            LinearLayout.LayoutParams.WRAP_CONTENT
-        )
-        scrollView.layoutParams = scrollParams
-
-        val gridLayout = GridLayout(context).apply {
-            rowCount = (VirtualKeyboardVkCode.VKCode.entries.size + 3) / 4 // 计算行数，向上取整
-            columnCount = 4 // 每行 4 列
-            layoutParams = ViewGroup.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT
-            )
-        }
-
-        val builder = AlertDialog.Builder(context)
-        val dialog = builder.setTitle("VK_CODE")
-            .setView(scrollView)
-            .setNegativeButton(R.string.virtual_keyboard_menu_cancel_button, null)
-            .setCancelable(true)
-            .create()
-
-        dialog.show()
-
-        VirtualKeyboardVkCode.VKCode.entries.forEach { vkCode ->
-            val button = Button(context).apply {
-                text = VirtualKeyboardVkCode.replaceVkName(vkCode.name)
-                setOnClickListener {
-                    if (buttonTextEditText.text.toString() == ""){
-                        buttonTextEditText.setText(VirtualKeyboardVkCode.replaceVkName(vkCode.name))
-                    }
-                    vkCodeEditText.setText(vkCode.code.toString())
-                    dialog.dismiss()
-                }
-                layoutParams = GridLayout.LayoutParams().apply {
-                    width = 0
-                    height = ViewGroup.LayoutParams.WRAP_CONTENT
-                    columnSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f) // 每个按钮占1列，权重1
-                    rowSpec = GridLayout.spec(GridLayout.UNDEFINED)
-                }
-            }
-            gridLayout.addView(button)
-        }
-        scrollView.addView(gridLayout)
-    }
-
     fun toHexString(value: Int): String {
         return String.format("%08X", value)
     }
@@ -424,9 +386,54 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
             override fun onStopTrackingTouch(seekBar: SeekBar?) {}
         })
 
+        var selectedButtonType = VirtualKeyboardElement.ButtonType.Button
+        val linearLayout3 = LinearLayout(context).apply {
+            orientation = LinearLayout.HORIZONTAL
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            )
+        }
+        linearLayout3.addView(TextView(context).apply {
+            text = "按钮类型"
+        })
+
+        val buttonTypeSpinner = createSpinner(context)
+        Log.d("buttonType", "前elementButtonType: "+ element?.buttonType + " selectedButtonType: "+ selectedButtonType)
+        buttonTypeSpinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(parent: AdapterView<*>, view: View?, position: Int, id: Long) {
+                val selectedItem = parent.getItemAtPosition(position) as String
+                val selectedEnum = VirtualKeyboardElement.ButtonType.valueOf(selectedItem)
+
+                // Do something with the selected enum value
+                when (selectedEnum) {
+                    VirtualKeyboardElement.ButtonType.Button -> {
+                        selectedButtonType = VirtualKeyboardElement.ButtonType.Button
+                        Log.d("buttonType", "点击了 Button")
+                    }
+                    VirtualKeyboardElement.ButtonType.Manage -> {
+                        selectedButtonType = VirtualKeyboardElement.ButtonType.Manage
+                        Log.d("buttonType", "点击了 Manage")
+                    }
+                    VirtualKeyboardElement.ButtonType.HotKeys -> {
+                        selectedButtonType = VirtualKeyboardElement.ButtonType.HotKeys
+                        Log.d("buttonType", "点击了 HotKeys")
+                    }
+                }
+            }
+
+            override fun onNothingSelected(parent: AdapterView<*>) {
+                // Do nothing
+            }
+        }
+
+        linearLayout3.addView(buttonTypeSpinner)
+        layout.addView(linearLayout3)
 
 
         if (element != null) {
+            selectedButtonType = element?.buttonType!!
+            buttonTypeSpinner.setSelection(selectedButtonType.ordinal)
             layout.addView(Button(context).apply {
                 text = context.getString(R.string.virtual_keyboard_menu_copy_button)
                 setOnClickListener {
@@ -436,6 +443,8 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
                         virtualKeyboard.lastElementId + 1,
                         vkCodeEditText.text.toString(),
                         buttonTextEditText.text.toString(),
+                        element?.buttonType,
+                        element?.buttonData,
                         element?.leftMargin,
                         element?.topMargin,
                         element?.width,
@@ -443,6 +452,21 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
                     )
                 }
                 Log.d("vk", "复制按钮"+ element?.leftMargin+","+element?.topMargin+","+element?.width+","+element?.height)
+            })
+
+            layout.addView(Button(context).apply {
+                text = "宏编辑"
+                setOnClickListener {
+                    val macroEditor = MacroEditor(context, element!!.buttonData, object : OnMacroDataChangedListener {
+                        override fun onMacroDataChanged(newData: JSONObject) {
+                            element!!.buttonData = newData
+                            element!!.invalidate()
+                            VirtualKeyboardConfigurationLoader.saveProfile(virtualKeyboard, context)
+                            Log.d("MacroEditor", "onMacroDataChanged: $newData")
+                        }
+                    })
+                    macroEditor.showMacroEditor()
+                }
             })
         }
 
@@ -457,7 +481,9 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
                     context,
                     buttonIdEditText.text.toString().toInt(),
                     vkCodeEditText.text.toString(),
-                    buttonTextEditText.text.toString()
+                    buttonTextEditText.text.toString(),
+                    VirtualKeyboardElement.ButtonType.Button,
+                    JSONObject("{}")
                 )
             })
             .setCancelable(true)
@@ -487,8 +513,10 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
                     element?.opacity = opacitySeekBar.progress
                     element?.setOpacity(opacitySeekBar.progress)
                     element?.radius = radiusSeekBar.progress.toFloat()
+                    element?.buttonType = selectedButtonType
                     element?.invalidate()
                     VirtualKeyboardConfigurationLoader.saveProfile(virtualKeyboard, context)
+                    virtualKeyboard.refreshLayout()
                 })
                 .setCancelable(true)
                 .create()
@@ -507,6 +535,8 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
                 888,
                 VirtualKeyboardVkCode.VKCode.VK_A.code.toString(),
                 "A",
+                VirtualKeyboardElement.ButtonType.Button,
+                JSONObject("{}")
                 )
         }
         // 添加按钮
@@ -554,6 +584,57 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
         }
         if (virtualKeyboard.historyIndex == 0) {
             dialog.getButton(AlertDialog.BUTTON_NEGATIVE).isEnabled = false
+        }
+    }
+
+    @SuppressLint("SetTextI18n")
+    companion object {
+        fun showVKCodeDialog(context: Context, buttonTextEditText: EditText?, vkCodeEditText: EditText?) {
+            val scrollView = ScrollView(context)
+            val scrollParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            )
+            scrollView.layoutParams = scrollParams
+
+            val gridLayout = GridLayout(context).apply {
+                rowCount = (VirtualKeyboardVkCode.VKCode.entries.size + 3) / 4 // 计算行数，向上取整
+                columnCount = 4 // 每行 4 列
+                layoutParams = ViewGroup.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT
+                )
+            }
+
+            val builder = AlertDialog.Builder(context)
+            val dialog = builder.setTitle("VK_CODE")
+                .setView(scrollView)
+                .setNegativeButton(R.string.virtual_keyboard_menu_cancel_button, null)
+                .setCancelable(true)
+                .create()
+
+            dialog.show()
+
+            VirtualKeyboardVkCode.VKCode.entries.forEach { vkCode ->
+                val button = Button(context).apply {
+                    text = VirtualKeyboardVkCode.replaceVkName(vkCode.name)
+                    setOnClickListener {
+                        if (buttonTextEditText?.text.toString() == ""){
+                            buttonTextEditText?.setText(VirtualKeyboardVkCode.replaceVkName(vkCode.name))
+                        }
+                        vkCodeEditText?.setText(vkCode.code.toString())
+                        dialog.dismiss()
+                    }
+                    layoutParams = GridLayout.LayoutParams().apply {
+                        width = 0
+                        height = ViewGroup.LayoutParams.WRAP_CONTENT
+                        columnSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f) // 每个按钮占1列，权重1
+                        rowSpec = GridLayout.spec(GridLayout.UNDEFINED)
+                    }
+                }
+                gridLayout.addView(button)
+            }
+            scrollView.addView(gridLayout)
         }
     }
 }

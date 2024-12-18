@@ -11,6 +11,8 @@ import android.util.DisplayMetrics;
 import android.util.Log;
 import android.widget.Toast;
 
+
+import com.limelight.heokami.MacroEditor;
 import com.limelight.heokami.VirtualKeyboardVkCode;
 import com.limelight.preferences.PreferenceConfiguration;
 
@@ -24,11 +26,13 @@ import java.util.TreeMap;
 public class VirtualKeyboardConfigurationLoader {
     public static final String OSK_PREFERENCE = "OSK";
 
-//    private static int getPercent(
-//            int percent,
-//            int total) {
-//        return (int) (((float) total / (float) 100) * (float) percent);
-//    }
+    /*
+    private static int getPercent(
+            int percent,
+            int total) {
+        return (int) (((float) total / (float) 100) * (float) percent);
+    }
+    */
 
     // The default controls are specified using a grid of 128*72 cells at 16:9
     private static int screenScale(int units, int height) {
@@ -37,47 +41,100 @@ public class VirtualKeyboardConfigurationLoader {
 
 
     public static DigitalButton createDigitalButton(
+            final VirtualKeyboard virtualKeyboard,
+            final Context context,
             final int elementId, // 唯一标识
             final short vk_code, // 按键
             final int layer, // 层
             final String text, // 文本
             final int icon, // 图标
-            final VirtualKeyboard virtualKeyboard,
-            final Context context) {
+            final VirtualKeyboardElement.ButtonType buttonType,
+            final JSONObject buttonData
+            ) {
 
         DigitalButton button = new DigitalButton(virtualKeyboard, elementId, layer, context);
 
         button.setText(text);
         button.setIcon(icon);
         button.setVkCode(""+vk_code);
+        button.setType(buttonType);
+        button.setButtonData(buttonData);
 
-        button.addDigitalButtonListener(new DigitalButton.DigitalButtonListener() {
-            @Override
-            public void onClick() {
-                VirtualKeyboard.ControllerInputContext inputContext =
-                        virtualKeyboard.getControllerInputContext();
-                inputContext.modifier |= VirtualKeyboardVkCode.INSTANCE.replaceSpecialKeys(vk_code);
-                virtualKeyboard.sendDownKey(vk_code);
-            }
+        switch (buttonType) {
+            case Button:
+                button.addDigitalButtonListener(new DigitalButton.DigitalButtonListener() {
+                    @Override
+                    public void onClick() {
+                        VirtualKeyboard.ControllerInputContext inputContext =
+                                virtualKeyboard.getControllerInputContext();
+                        inputContext.modifier |= VirtualKeyboardVkCode.INSTANCE.replaceSpecialKeys(vk_code);
+                        virtualKeyboard.sendDownKey(vk_code);
+                    }
 
-            @Override
-            public void onLongClick() {
-                VirtualKeyboard.ControllerInputContext inputContext =
-                        virtualKeyboard.getControllerInputContext();
-                inputContext.modifier |= VirtualKeyboardVkCode.INSTANCE.replaceSpecialKeys(vk_code);
+                    @Override
+                    public void onLongClick() {
+                        VirtualKeyboard.ControllerInputContext inputContext =
+                                virtualKeyboard.getControllerInputContext();
+                        inputContext.modifier |= VirtualKeyboardVkCode.INSTANCE.replaceSpecialKeys(vk_code);
 
-                virtualKeyboard.sendDownKey(vk_code);
-            }
+                        virtualKeyboard.sendDownKey(vk_code);
+                    }
 
-            @Override
-            public void onRelease() {
-                VirtualKeyboard.ControllerInputContext inputContext =
-                        virtualKeyboard.getControllerInputContext();
-                inputContext.modifier &= (byte) ~VirtualKeyboardVkCode.INSTANCE.replaceSpecialKeys(vk_code);
+                    @Override
+                    public void onRelease() {
+                        VirtualKeyboard.ControllerInputContext inputContext =
+                                virtualKeyboard.getControllerInputContext();
+                        inputContext.modifier &= (byte) ~VirtualKeyboardVkCode.INSTANCE.replaceSpecialKeys(vk_code);
 
-                virtualKeyboard.sendUpKey(vk_code);
-            }
-        });
+                        virtualKeyboard.sendUpKey(vk_code);
+                    }
+                });
+                break;
+            case Manage:
+                button.addDigitalButtonListener(new DigitalButton.DigitalButtonListener() {
+
+                    @Override
+                    public void onClick() {
+                        Toast.makeText(context, "Manage" + buttonData, Toast.LENGTH_SHORT).show();
+                    }
+
+                    @Override
+                    public void onLongClick() {
+                        Toast.makeText(context, "Manage" + buttonData, Toast.LENGTH_SHORT).show();
+                    }
+
+                    @Override
+                    public void onRelease() {
+                        Toast.makeText(context, "Manage" + buttonData, Toast.LENGTH_SHORT).show();
+                    }
+                });
+                break;
+            case HotKeys:
+                MacroEditor macroEditor = new MacroEditor(context, buttonData,null);
+
+                button.addDigitalButtonListener(new DigitalButton.DigitalButtonListener() {
+                    @Override
+                    public void onClick() {
+                        macroEditor.runMacroAction(virtualKeyboard);
+//                        Toast.makeText(context, "HotKeys" + buttonData, Toast.LENGTH_SHORT).show();
+                        Log.d("heokami", "HotKeys" + buttonData);
+                    }
+
+                    @Override
+                    public void onLongClick() {
+                        macroEditor.runMacroAction(virtualKeyboard);
+                    }
+
+                    @Override
+                    public void onRelease() {
+//                        macroEditor.runMacroAction(virtualKeyboard);
+                    }
+                });
+                break;
+            default:
+                Toast.makeText(context, "default", Toast.LENGTH_SHORT).show();
+                break;
+        }
 
         return button;
     }
@@ -88,7 +145,13 @@ public class VirtualKeyboardConfigurationLoader {
     private static final int TEST_WIDTH = 10;
     private static final int TEST_HEIGHT = 5;
 
-    public static void addButton(final VirtualKeyboard virtualKeyboard, final Context context, Integer buttonId, String VK_code, String text){
+    public static void addButton(final VirtualKeyboard virtualKeyboard, final Context context,
+                                 Integer buttonId,
+                                 String VK_code,
+                                 String buttonName,
+                                 VirtualKeyboardElement.ButtonType buttonType,
+                                 JSONObject buttonData
+    ) throws JSONException {
         DisplayMetrics screen = context.getResources().getDisplayMetrics();
         PreferenceConfiguration config = PreferenceConfiguration.readPreferences(context);
 
@@ -101,9 +164,15 @@ public class VirtualKeyboardConfigurationLoader {
         }
         virtualKeyboard.addElement(
                 createDigitalButton(
+                        virtualKeyboard,
+                        context,
                         buttonId,
                         Short.parseShort(VK_code),
-                        1, text, -1, virtualKeyboard, context
+                        1,
+                        buttonName,
+                        -1,
+                        buttonType,
+                        buttonData
                 ),
                 screenScale(TEST_X, height) + rightDisplacement,
                 screenScale(TEST_Y, height),
@@ -114,8 +183,16 @@ public class VirtualKeyboardConfigurationLoader {
         virtualKeyboard.setOpacity(config.oscOpacity);
     }
 
-    public static void addButton2(final VirtualKeyboard virtualKeyboard, final Context context, Integer buttonId, String VK_code, String text,
-                                 final Integer x, final Integer y, final Integer width, final Integer height
+    public static void addButton2(final VirtualKeyboard virtualKeyboard, final Context context,
+                                  Integer buttonId,
+                                  String VK_code,
+                                  String buttonName,
+                                  VirtualKeyboardElement.ButtonType buttonType,
+                                  JSONObject buttonData,
+                                  final Integer x,
+                                  final Integer y,
+                                  final Integer width,
+                                  final Integer height
     ){
         PreferenceConfiguration config = PreferenceConfiguration.readPreferences(context);
 
@@ -125,11 +202,17 @@ public class VirtualKeyboardConfigurationLoader {
         }
         virtualKeyboard.addElement(
                 createDigitalButton(
+                        virtualKeyboard,
+                        context,
                         buttonId,
                         Short.parseShort(VK_code),
-                        1, text, -1, virtualKeyboard, context
+                        1,
+                        buttonName,
+                        -1,
+                        buttonType,
+                        buttonData
                 ),
-                x,
+                x + 10,
                 y,
                 width,
                 height
@@ -147,7 +230,7 @@ public class VirtualKeyboardConfigurationLoader {
             try {
                 prefEditor.putString(prefKey, element.getConfiguration().toString());
             } catch (JSONException e) {
-                e.printStackTrace();
+                Log.e("heokami", e.toString(), e);
             }
         }
 
@@ -167,17 +250,23 @@ public class VirtualKeyboardConfigurationLoader {
                 Log.d("heokami", "elementId: "+ elementId + " jsonConfig: "+ jsonConfig);
                 if (jsonConfig != null){
                     JSONObject json = new JSONObject(jsonConfig);
-                    Log.d("heokami", " elementId:" + elementId + " buttonname:" + json.getString("TEXT") + " vk_code:" + json.getString("VK_CODE"));
-                    // 忽略创建默认按钮
-                    addButton(virtualKeyboard, context, Integer.parseInt(elementId), json.getString("VK_CODE"), json.getString("TEXT"));
+                    Log.d("heokami", " elementId:" + elementId + " buttonName:" + json.getString("TEXT") + " vk_code:" + json.getString("VK_CODE"));
+                    addButton(
+                            virtualKeyboard,
+                            context,
+                            Integer.parseInt(elementId),
+                            json.getString("VK_CODE"),
+                            json.getString("TEXT"),
+                            VirtualKeyboardElement.ButtonType.valueOf(json.getString("TYPE")),
+                            json.getJSONObject("BUTTON_DATA")
+                    );
                     Log.d("heokami", "addButton -> "+ elementId);
                     // 重新加载配置
                     virtualKeyboard.getElementByElementId(Integer.parseInt(elementId)).loadConfiguration(json);
                 }
             }
         }catch (JSONException e) {
-            e.printStackTrace();
-            Log.d("heokami", e.toString());
+            Log.d("heokami", e.toString(), e);
             Toast.makeText(context, "JSONException" + e.getMessage(), Toast.LENGTH_SHORT).show();
             // 报错则还原默认
             virtualKeyboard.loadDefaultLayout();
@@ -206,10 +295,9 @@ public class VirtualKeyboardConfigurationLoader {
                     json.put(elementId, jsonConfig);
                 }
             }
-            String jsonString = json.toString();
-            return jsonString;
+            return json.toString();
         }catch (JSONException e){
-            e.printStackTrace();
+            Log.e("heokami", e.toString(), e);
         }
 
         return null;
@@ -224,14 +312,12 @@ public class VirtualKeyboardConfigurationLoader {
             while (keys.hasNext()) {
                 String elementId = keys.next();
                 String jsonConfig = json.getString(elementId);
-                if (jsonConfig != null){
-                    pref.edit()
-                            .putString(elementId, jsonConfig)
-                            .apply();
-                }
+                pref.edit()
+                        .putString(elementId, jsonConfig)
+                        .apply();
             }
         }catch (JSONException e){
-            e.printStackTrace();
+            Log.e("heokami", e.toString(), e);
         }
     }
 }
