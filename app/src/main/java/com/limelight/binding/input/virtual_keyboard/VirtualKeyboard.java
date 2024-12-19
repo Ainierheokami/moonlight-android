@@ -11,6 +11,7 @@ import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.FrameLayout;
+import android.widget.Switch;
 import android.widget.Toast;
 
 import com.limelight.Game;
@@ -271,10 +272,28 @@ public class VirtualKeyboard {
     }
 
     public void sendDownKey(short key){
+        if (key == VirtualKeyboardVkCode.VKCode.VK_LBUTTON.getCode()
+                || key == VirtualKeyboardVkCode.VKCode.VK_RBUTTON.getCode()
+                || key == VirtualKeyboardVkCode.VKCode.VK_MBUTTON.getCode()
+                || key == VirtualKeyboardVkCode.VKCode.VK_XBUTTON1.getCode()
+                || key == VirtualKeyboardVkCode.VKCode.VK_XBUTTON2.getCode()
+        ){
+            conn.sendMouseButtonDown((byte)key);
+            return;
+        }
         conn.sendKeyboardInput(key, KeyboardPacket.KEY_DOWN, inputContext.modifier, (byte) 0);
     }
 
     public void sendUpKey(short key){
+        if (key == VirtualKeyboardVkCode.VKCode.VK_LBUTTON.getCode()
+                || key == VirtualKeyboardVkCode.VKCode.VK_RBUTTON.getCode()
+                || key == VirtualKeyboardVkCode.VKCode.VK_MBUTTON.getCode()
+                || key == VirtualKeyboardVkCode.VKCode.VK_XBUTTON1.getCode()
+                || key == VirtualKeyboardVkCode.VKCode.VK_XBUTTON2.getCode()
+        ){
+            conn.sendMouseButtonUp((byte)key);
+            return;
+        }
         conn.sendKeyboardInput(key, KeyboardPacket.KEY_UP, inputContext.modifier, (byte) 0);
     }
 

@@ -7,7 +7,9 @@ import android.os.Handler
 import android.os.Looper
 import android.text.InputType
 import android.util.Log
+import android.view.View
 import android.widget.Button
+import android.widget.CheckBox
 import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.ScrollView
@@ -27,7 +29,8 @@ data class MacroAction(var type: String, var data: Int)
 enum class MacroType(val displayName: String) { // 添加 displayName 方便显示
     KEY_UP("按键抬起"),
     KEY_DOWN("按键按下"),
-    SLEEP("延迟");
+    SLEEP("延迟"),
+    KEY_TOGGLE("按键切换"),
 }
 
 interface OnMacroDataChangedListener {
@@ -91,6 +94,7 @@ class MacroEditor(private val context: Context, private var jsonData: JSONObject
         }
 
         builder.setNegativeButton(context.getString(R.string.cancel_button), null)
+        builder.setCancelable(false)
         val dialog = builder.create()
         updateMacroDisplay(layout, macroActions, dialog)
         dialog.show()
@@ -141,6 +145,8 @@ class MacroEditor(private val context: Context, private var jsonData: JSONObject
         }
     }
 
+    private var quickKeyDownAndUp = true
+
     @SuppressLint("SetTextI18n")
     private fun showAddMacroDialog(index: Int = -1) {
         val builder = AlertDialog.Builder(context)
@@ -148,11 +154,20 @@ class MacroEditor(private val context: Context, private var jsonData: JSONObject
 
         var macroType = MacroType.KEY_UP
 
+        val checkBox = CheckBox(context).apply {
+            text = "快速添加按下松开按键"
+            isChecked = quickKeyDownAndUp
+        }
+        checkBox.setOnClickListener {
+            quickKeyDownAndUp = !quickKeyDownAndUp
+            checkBox.isChecked = quickKeyDownAndUp
+        }
+
         val contextThemeWrapper = ContextThemeWrapper(context, com.google.android.material.R.style.Theme_AppCompat)
         val tabLayout = TabLayout(contextThemeWrapper).apply {
-            addTab(newTab().setText(MacroType.KEY_UP.displayName))
-            addTab(newTab().setText(MacroType.KEY_DOWN.displayName))
-            addTab(newTab().setText(MacroType.SLEEP.displayName))
+            for (type in MacroType.entries) {
+                addTab(newTab().setText(type.displayName))
+            }
             layoutParams = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.MATCH_PARENT
@@ -164,12 +179,18 @@ class MacroEditor(private val context: Context, private var jsonData: JSONObject
                 // 当选项卡被选中时调用
                 if (tab != null) {
                     macroType = MacroType.entries.toTypedArray()[tab.position]
-                    // 在这里执行与所选选项卡相关的操作
-                    when (tab.position) {
-                        0 -> macroType = MacroType.KEY_UP
-                        1 -> macroType = MacroType.KEY_DOWN
-                        2 -> macroType = MacroType.SLEEP
+                    when(macroType){
+                        MacroType.KEY_UP -> {
+                            checkBox.visibility = View.VISIBLE
+                        }
+                        MacroType.KEY_DOWN -> {
+                            checkBox.visibility = View.VISIBLE
+                        }
+                        else -> {
+                            checkBox.visibility = View.GONE
+                        }
                     }
+                    checkBox.invalidate()
                 }
             }
 
@@ -221,6 +242,8 @@ class MacroEditor(private val context: Context, private var jsonData: JSONObject
             macroData.setText(macroActions[index].data.toString())
             tabLayout.selectTab(tabLayout.getTabAt(getIndexByDisplayName(macroActions[index].type)))
             macroType = MacroType.valueOf(macroActions[index].type)
+        }else{
+            layout.addView(checkBox)
         }
 
         builder.setPositiveButton(context.getString(R.string.confirm_button)) { _, _ ->
@@ -229,7 +252,12 @@ class MacroEditor(private val context: Context, private var jsonData: JSONObject
             if (type.isNotBlank()){
                 Log.d("MacroEditor", "添加宏操作前: $macroActions")
                 if(index == -1){
-                    macroActions.add(MacroAction(type, data))
+                    if (quickKeyDownAndUp){
+                        macroActions.add(MacroAction(MacroType.KEY_DOWN.toString(), data))
+                        macroActions.add(MacroAction(MacroType.KEY_UP.toString(), data))
+                    }else{
+                        macroActions.add(MacroAction(type, data))
+                    }
                 }else{
                     macroActions[index].type = type
                     macroActions[index].data = data
@@ -240,14 +268,22 @@ class MacroEditor(private val context: Context, private var jsonData: JSONObject
             }
 
         }
-        builder.setNegativeButton(context.getString(R.string.cancel_button), null)
-        builder.setNeutralButton(context.getString(R.string.virtual_keyboard_menu_copy_button), { _, _ ->
+        builder.setNegativeButton(context.getString(R.string.cancel_button)) { _, _ ->
+            showMacroEditor()
+        }
+        builder.setNeutralButton(context.getString(R.string.virtual_keyboard_menu_copy_button)) { _, _ ->
             val type = macroType.toString()
-            val data = macroData.text.toString().toIntOrNull()?:0
+            val data = macroData.text.toString().toIntOrNull() ?: 0
             macroActions.add(MacroAction(type, data))
             showMacroEditor()
-        })
-        builder.show()
+        }
+        builder.setCancelable(false)
+        val dialog = builder.create()
+        dialog.show()
+        if (index == -1) {
+            val button = dialog.getButton(AlertDialog.BUTTON_NEUTRAL)
+            button.isEnabled = false
+        }
     }
 
     private val handler = Handler(Looper.getMainLooper())
@@ -284,6 +320,12 @@ class MacroEditor(private val context: Context, private var jsonData: JSONObject
                 val delay = action.data.toLong()
                 Log.d("MacroEditor", "延迟 $delay 毫秒") // 添加日志，检查延迟值
                 executeNextActionWithDelay(virtualKeyboard, index, delay) // SLEEP 后延迟执行下一个
+            }
+            MacroType.KEY_TOGGLE.toString() -> {
+                val element = virtualKeyboard.getElementByElementId(action.data)
+                element?.visibility = (element?.visibility?.inv() ?: false) as Int
+                element?.invalidate()
+                executeNextActionWithDelay(virtualKeyboard, index, 0) // KEY_TOGGLE 后立即执行下一个
             }
         }
     }

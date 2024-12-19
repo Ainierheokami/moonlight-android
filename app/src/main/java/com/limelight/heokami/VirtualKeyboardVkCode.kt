@@ -119,6 +119,10 @@ object VirtualKeyboardVkCode {
         VK_DELETE(0x2E), // DEL 键
         VK_HELP(0x2F), // HELP 键
 
+        VK_MBUTTON(0x04), // 鼠标中键
+        VK_XBUTTON1(0x05), // X1 鼠标按钮
+        VK_XBUTTON2(0x06), // X2 鼠标按钮
+
     }
     fun replaceSpecialKeys(vkCode: Short): Byte {
         val modifierMask = when (vkCode) {

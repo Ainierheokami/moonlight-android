@@ -411,10 +411,6 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
                         selectedButtonType = VirtualKeyboardElement.ButtonType.Button
                         Log.d("buttonType", "点击了 Button")
                     }
-                    VirtualKeyboardElement.ButtonType.Manage -> {
-                        selectedButtonType = VirtualKeyboardElement.ButtonType.Manage
-                        Log.d("buttonType", "点击了 Manage")
-                    }
                     VirtualKeyboardElement.ButtonType.HotKeys -> {
                         selectedButtonType = VirtualKeyboardElement.ButtonType.HotKeys
                         Log.d("buttonType", "点击了 HotKeys")

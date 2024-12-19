@@ -90,25 +90,6 @@ public class VirtualKeyboardConfigurationLoader {
                     }
                 });
                 break;
-            case Manage:
-                button.addDigitalButtonListener(new DigitalButton.DigitalButtonListener() {
-
-                    @Override
-                    public void onClick() {
-                        Toast.makeText(context, "Manage" + buttonData, Toast.LENGTH_SHORT).show();
-                    }
-
-                    @Override
-                    public void onLongClick() {
-                        Toast.makeText(context, "Manage" + buttonData, Toast.LENGTH_SHORT).show();
-                    }
-
-                    @Override
-                    public void onRelease() {
-                        Toast.makeText(context, "Manage" + buttonData, Toast.LENGTH_SHORT).show();
-                    }
-                });
-                break;
             case HotKeys:
                 MacroEditor macroEditor = new MacroEditor(context, buttonData,null);
 

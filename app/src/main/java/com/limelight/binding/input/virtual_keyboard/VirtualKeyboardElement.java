@@ -60,7 +60,6 @@ public abstract class VirtualKeyboardElement extends View {
 
     public enum ButtonType {
         Button,
-        Manage,
         HotKeys
     }
 
