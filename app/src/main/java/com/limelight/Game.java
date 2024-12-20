@@ -14,6 +14,7 @@ import com.limelight.binding.input.evdev.EvdevListener;
 import com.limelight.binding.input.touch.TouchContext;
 import com.limelight.binding.input.virtual_controller.VirtualController;
 import com.limelight.binding.input.virtual_keyboard.VirtualKeyboard;
+import com.limelight.binding.input.virtual_keyboard.VirtualKeyboardConfigurationLoader;
 import com.limelight.binding.video.CrashListener;
 import com.limelight.binding.video.MediaCodecDecoderRenderer;
 import com.limelight.binding.video.MediaCodecHelper;
@@ -1150,6 +1151,10 @@ public class Game extends Activity implements SurfaceHolder.Callback,
 
         // Destroy the capture provider
         inputCaptureProvider.destroy();
+
+        if (virtualKeyboard != null){
+            VirtualKeyboardConfigurationLoader.saveProfile(virtualKeyboard, this);
+        }
     }
 
     @Override

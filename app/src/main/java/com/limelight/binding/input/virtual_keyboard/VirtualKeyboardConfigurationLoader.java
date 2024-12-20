@@ -164,44 +164,31 @@ public class VirtualKeyboardConfigurationLoader {
         virtualKeyboard.setOpacity(config.oscOpacity);
     }
 
-    public static void addButton2(final VirtualKeyboard virtualKeyboard, final Context context,
-                                  Integer buttonId,
-                                  String VK_code,
-                                  String buttonName,
-                                  VirtualKeyboardElement.ButtonType buttonType,
-                                  JSONObject buttonData,
-                                  final Integer x,
-                                  final Integer y,
-                                  final Integer width,
-                                  final Integer height
-    ){
-        PreferenceConfiguration config = PreferenceConfiguration.readPreferences(context);
+    public static void copyButton(final VirtualKeyboard virtualKeyboard, final VirtualKeyboardElement element, final Context context){
 
-        Integer lastElementId = virtualKeyboard.getLastElementId();
-        if (buttonId <= lastElementId){
-            buttonId = lastElementId + 1;
-        }
-        virtualKeyboard.addElement(
-                createDigitalButton(
-                        virtualKeyboard,
-                        context,
-                        buttonId,
-                        Short.parseShort(VK_code),
-                        1,
-                        buttonName,
-                        -1,
-                        buttonType,
-                        buttonData
-                ),
-                x + 10,
-                y,
-                width,
-                height
+        VirtualKeyboardElement button = createDigitalButton(
+          virtualKeyboard,
+          context,
+          virtualKeyboard.getLastElementId() + 1,
+          Short.parseShort(element.vk_code),
+          1,
+          element.text,
+          -1,
+          element.buttonType,
+          element.buttonData
         );
 
-        virtualKeyboard.setOpacity(config.oscOpacity);
-    }
+        button.setHide(element.isHide);
+        button.setGroup(element.group);
 
+        virtualKeyboard.addElement(
+                button,
+                element.getLeftMargin() + 10,
+                element.getTopMargin(),
+                element.getWidth(),
+                element.getHeight()
+        );
+    }
 
     public static void saveProfile(final VirtualKeyboard virtualKeyboard, final Context context) {
         deleteProfile(context);

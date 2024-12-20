@@ -361,5 +361,8 @@
     <string name="edit_button">Edit</string>
     <string name="del_button">Delete</string>
     <string name="macro_editor_add_button">Add Macro</string>
+    <string name="virtual_keyboard_menu_button_type_hint">按钮类型</string>
+    <string name="virtual_keyboard_menu_macro_edit_button">宏编辑</string>
+    <string name="virtual_keyboard_menu_delete_group_button">删除相同组所有按钮</string>
 
 </resources>

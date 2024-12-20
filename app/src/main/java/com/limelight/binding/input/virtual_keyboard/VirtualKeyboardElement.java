@@ -13,6 +13,7 @@ import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewTreeObserver;
 import android.widget.FrameLayout;
 import androidx.annotation.NonNull;
 import org.json.JSONException;
@@ -31,6 +32,9 @@ public abstract class VirtualKeyboardElement extends View {
     public int opacity;
     public ButtonType buttonType = ButtonType.Button;
     public JSONObject buttonData;
+    public Boolean isHide = false;
+    public int group = -1;
+
 
 
     protected VirtualKeyboard virtualKeyboard;
@@ -97,7 +101,17 @@ public abstract class VirtualKeyboardElement extends View {
         }catch (JSONException e){
             Log.e("heokami", e.toString(), e);
         }
+    }
 
+    protected void moveGroupElement(int pressed_x, int pressed_y, int x, int y) {
+        if (currentMode != Mode.Move) {
+            return;
+        }
+        for (VirtualKeyboardElement element : virtualKeyboard.getElements()) {
+            if (group != -1 && element.group == group && element.elementId != elementId) {
+                element.moveElement(pressed_x, pressed_y, x, y);
+            }
+        }
     }
 
     protected void moveElement(int pressed_x, int pressed_y, int x, int y) {
@@ -124,6 +138,7 @@ public abstract class VirtualKeyboardElement extends View {
         layoutParams.bottomMargin = 0;
 
         requestLayout();
+        moveGroupElement(pressed_x, pressed_y, x , y);
     }
 
     protected void resizeElement(int pressed_x, int pressed_y, int width, int height) {
@@ -369,12 +384,6 @@ public abstract class VirtualKeyboardElement extends View {
 
     abstract public boolean onElementTouchEvent(MotionEvent event);
 
-    protected static final void _DBG(String text) {
-        if (_PRINT_DEBUG_INFORMATION) {
-            System.out.println(text);
-        }
-    }
-
     public void setText(String text) {
         this.text = text;
         invalidate();
@@ -421,6 +430,21 @@ public abstract class VirtualKeyboardElement extends View {
         this.buttonData = button_data;
     }
 
+    public void setHide(Boolean isHide) {
+        this.isHide = isHide;
+        if (isHide) {
+            this.setVisibility(GONE);
+        }else {
+            this.setVisibility(VISIBLE);
+        }
+        invalidate();
+    }
+
+    public void setGroup(int group) {
+        this.group = group;
+        invalidate();
+    }
+
     protected final float getPercent(float value, float percent) {
         return value / 100 * percent;
     }
@@ -449,6 +473,8 @@ public abstract class VirtualKeyboardElement extends View {
         configuration.put("PRESSED_COLOR", pressedColor);
         configuration.put("TYPE", buttonType.toString());
         configuration.put("BUTTON_DATA", buttonData);
+        configuration.put("IS_HIDE", isHide);
+        configuration.put("GROUP", group);
 
         return configuration;
     }
@@ -469,6 +495,23 @@ public abstract class VirtualKeyboardElement extends View {
         setColors(configuration.getInt("NORMAL_COLOR"), configuration.getInt("PRESSED_COLOR"));
         setType(ButtonType.valueOf(configuration.getString("TYPE")));
         setButtonData(configuration.getJSONObject("BUTTON_DATA"));
+
+        try {
+            setHide(configuration.getBoolean("IS_HIDE"));
+            setGroup(configuration.getInt("GROUP"));
+            Log.d("heokami", "loadConfiguration -> "+ elementId + " isHide:" + isHide + " group:" + group);
+            // 等待布局完成恢复隐藏
+            ViewTreeObserver vto = getViewTreeObserver();
+            vto.addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
+                @Override
+                public void onGlobalLayout() {
+                    setVisibility(isHide ? GONE : VISIBLE);
+                    getViewTreeObserver().removeOnGlobalLayoutListener(this);
+                }
+            });
+        }catch (JSONException e){
+            Log.e("heokami", e.toString(), e);
+        }
 
         requestLayout();
     }

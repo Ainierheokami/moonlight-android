@@ -20,6 +20,7 @@ import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import com.limelight.R
 import com.limelight.binding.input.virtual_keyboard.VirtualKeyboard
+import com.limelight.binding.input.virtual_keyboard.VirtualKeyboardElement
 import com.limelight.heokami.VirtualKeyboardVkCode.replaceSpecialKeys
 import org.json.JSONObject
 import java.lang.reflect.Type
@@ -31,6 +32,7 @@ enum class MacroType(val displayName: String) { // 添加 displayName 方便显�
     KEY_DOWN("按键按下"),
     SLEEP("延迟"),
     KEY_TOGGLE("按键切换"),
+    KEY_TOGGLE_GROUP("组键切换")
 }
 
 interface OnMacroDataChangedListener {
@@ -45,6 +47,13 @@ class MacroEditor(private val context: Context, private var jsonData: JSONObject
 
     private val gson = Gson()
     private val macroActions = loadMacro()
+
+    private val elements = mutableListOf<VirtualKeyboardElement>()
+
+    fun setElements(elements: List<VirtualKeyboardElement>) {
+        this.elements.clear()
+        this.elements.addAll(elements)
+    }
 
     private fun loadMacro(): MutableList<MacroAction> {
         try {
@@ -163,46 +172,6 @@ class MacroEditor(private val context: Context, private var jsonData: JSONObject
             checkBox.isChecked = quickKeyDownAndUp
         }
 
-        val contextThemeWrapper = ContextThemeWrapper(context, com.google.android.material.R.style.Theme_AppCompat)
-        val tabLayout = TabLayout(contextThemeWrapper).apply {
-            for (type in MacroType.entries) {
-                addTab(newTab().setText(type.displayName))
-            }
-            layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.MATCH_PARENT
-            )
-        }
-        // 设置 TabLayout 的监听器
-        tabLayout.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
-            override fun onTabSelected(tab: TabLayout.Tab?) {
-                // 当选项卡被选中时调用
-                if (tab != null) {
-                    macroType = MacroType.entries.toTypedArray()[tab.position]
-                    when(macroType){
-                        MacroType.KEY_UP -> {
-                            checkBox.visibility = View.VISIBLE
-                        }
-                        MacroType.KEY_DOWN -> {
-                            checkBox.visibility = View.VISIBLE
-                        }
-                        else -> {
-                            checkBox.visibility = View.GONE
-                        }
-                    }
-                    checkBox.invalidate()
-                }
-            }
-
-            override fun onTabUnselected(tab: TabLayout.Tab?) {
-                // 当选项卡取消选中时调用 (通常在切换选项卡时会触发)
-            }
-
-            override fun onTabReselected(tab: TabLayout.Tab?) {
-                // 当已选中的选项卡再次被点击时调用
-            }
-        })
-
         val linearLayout = LinearLayout(context).apply {
             orientation = LinearLayout.HORIZONTAL
             layoutParams = LinearLayout.LayoutParams(
@@ -228,8 +197,81 @@ class MacroEditor(private val context: Context, private var jsonData: JSONObject
                 VirtualKeyboardMenu.showVKCodeDialog(context, null, macroData)
             }
         }
+        val idButton = Button(context).apply {
+            text = "已有按键"
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            )
+            visibility = View.GONE
+        }
         linearLayout.addView(macroData)
         linearLayout.addView(vkButton)
+        linearLayout.addView(idButton)
+
+        val contextThemeWrapper = ContextThemeWrapper(context, com.google.android.material.R.style.Theme_AppCompat)
+        val tabLayout = TabLayout(contextThemeWrapper).apply {
+            for (type in MacroType.entries) {
+                addTab(newTab().setText(type.displayName))
+            }
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.MATCH_PARENT
+            )
+        }
+        // 设置 TabLayout 的监听器
+        tabLayout.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
+            override fun onTabSelected(tab: TabLayout.Tab?) {
+                // 当选项卡被选中时调用
+                if (tab != null) {
+                    macroType = MacroType.entries.toTypedArray()[tab.position]
+                    when(macroType){
+                        MacroType.KEY_UP -> {
+                            checkBox.visibility = View.VISIBLE
+                            vkButton.visibility = View.VISIBLE
+                            idButton.visibility = View.GONE
+                        }
+                        MacroType.KEY_DOWN -> {
+                            checkBox.visibility = View.VISIBLE
+                            vkButton.visibility = View.VISIBLE
+                            idButton.visibility = View.GONE
+                        }
+                        MacroType.KEY_TOGGLE -> {
+                            checkBox.visibility = View.GONE
+                            vkButton.visibility = View.GONE
+                            idButton.visibility = View.VISIBLE
+                            idButton.setOnClickListener {
+                                VirtualKeyboardMenu.showHasButtonDialog(context, elements, macroData, null)
+                            }
+                        }
+                        MacroType.KEY_TOGGLE_GROUP -> {
+                            checkBox.visibility = View.GONE
+                            vkButton.visibility = View.GONE
+                            idButton.visibility = View.VISIBLE
+                            idButton.setOnClickListener {
+                                VirtualKeyboardMenu.showHasButtonDialog(context, elements, null, macroData)
+                            }
+                        }
+                        else -> {
+                            checkBox.visibility = View.GONE
+                            vkButton.visibility = View.GONE
+                            idButton.visibility = View.GONE
+                        }
+                    }
+                    checkBox.invalidate()
+                }
+            }
+
+            override fun onTabUnselected(tab: TabLayout.Tab?) {
+                // 当选项卡取消选中时调用 (通常在切换选项卡时会触发)
+            }
+
+            override fun onTabReselected(tab: TabLayout.Tab?) {
+                // 当已选中的选项卡再次被点击时调用
+            }
+        })
+
+
 
         val layout = LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
@@ -252,7 +294,7 @@ class MacroEditor(private val context: Context, private var jsonData: JSONObject
             if (type.isNotBlank()){
                 Log.d("MacroEditor", "添加宏操作前: $macroActions")
                 if(index == -1){
-                    if (quickKeyDownAndUp){
+                    if (quickKeyDownAndUp && checkBox.visibility == View.VISIBLE){
                         macroActions.add(MacroAction(MacroType.KEY_DOWN.toString(), data))
                         macroActions.add(MacroAction(MacroType.KEY_UP.toString(), data))
                     }else{
@@ -323,8 +365,18 @@ class MacroEditor(private val context: Context, private var jsonData: JSONObject
             }
             MacroType.KEY_TOGGLE.toString() -> {
                 val element = virtualKeyboard.getElementByElementId(action.data)
-                element?.visibility = (element?.visibility?.inv() ?: false) as Int
+                element.setHide(!element.isHide)
                 element?.invalidate()
+                executeNextActionWithDelay(virtualKeyboard, index, 0) // KEY_TOGGLE 后立即执行下一个
+            }
+            MacroType.KEY_TOGGLE_GROUP.toString() -> {
+                val elements = virtualKeyboard.elements
+                for (element in elements) {
+                    if (element.group == action.data) {
+                        element.setHide(!element.isHide)
+                        element.invalidate()
+                    }
+                }
                 executeNextActionWithDelay(virtualKeyboard, index, 0) // KEY_TOGGLE 后立即执行下一个
             }
         }

@@ -395,7 +395,7 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
             )
         }
         linearLayout3.addView(TextView(context).apply {
-            text = "按钮类型"
+            text = context.getString(R.string.virtual_keyboard_menu_button_type_hint)
         })
 
         val buttonTypeSpinner = createSpinner(context)
@@ -424,6 +424,20 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
         }
 
         linearLayout3.addView(buttonTypeSpinner)
+
+        // 编组
+        linearLayout3.addView(TextView(context).apply {
+            text = "编组"
+        })
+        val groupEditText = EditText(context).apply {
+            layoutParams = LinearLayout.LayoutParams(
+                0,
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                1f // 权重为1，表示EditText占据可用空间的一部分
+            )
+            hint = "组id"
+        }
+        linearLayout3.addView(groupEditText)
         layout.addView(linearLayout3)
 
 
@@ -433,25 +447,26 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
             layout.addView(Button(context).apply {
                 text = context.getString(R.string.virtual_keyboard_menu_copy_button)
                 setOnClickListener {
-                    VirtualKeyboardConfigurationLoader.addButton2(
-                        virtualKeyboard,
-                        context,
-                        virtualKeyboard.lastElementId + 1,
-                        vkCodeEditText.text.toString(),
-                        buttonTextEditText.text.toString(),
-                        element?.buttonType,
-                        element?.buttonData,
-                        element?.leftMargin,
-                        element?.topMargin,
-                        element?.width,
-                        element?.height
-                    )
+                    VirtualKeyboardConfigurationLoader.copyButton(virtualKeyboard, element, context)
+//                    VirtualKeyboardConfigurationLoader.addButton2(
+//                        virtualKeyboard,
+//                        context,
+//                        virtualKeyboard.lastElementId + 1,
+//                        vkCodeEditText.text.toString(),
+//                        buttonTextEditText.text.toString(),
+//                        element?.buttonType,
+//                        element?.buttonData,
+//                        element?.leftMargin,
+//                        element?.topMargin,
+//                        element?.width,
+//                        element?.height,
+//                    )
                 }
                 Log.d("vk", "复制按钮"+ element?.leftMargin+","+element?.topMargin+","+element?.width+","+element?.height)
             })
 
             layout.addView(Button(context).apply {
-                text = "宏编辑"
+                text = context.getString(R.string.virtual_keyboard_menu_macro_edit_button)
                 setOnClickListener {
                     val macroEditor = MacroEditor(context, element!!.buttonData, object : OnMacroDataChangedListener {
                         override fun onMacroDataChanged(newData: JSONObject) {
@@ -461,6 +476,7 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
                             Log.d("MacroEditor", "onMacroDataChanged: $newData")
                         }
                     })
+                    macroEditor.setElements(virtualKeyboard.elements)
                     macroEditor.showMacroEditor()
                 }
             })
@@ -471,17 +487,7 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
         var dialog = builder.setTitle(context.getString(R.string.virtual_keyboard_menu_add_button_title))
             .setView(scrollView)
             .setNegativeButton(R.string.virtual_keyboard_menu_cancel_button, null)
-            .setNeutralButton(R.string.virtual_keyboard_menu_confirm_button, { dialogInterface, which ->
-                VirtualKeyboardConfigurationLoader.addButton(
-                    virtualKeyboard,
-                    context,
-                    buttonIdEditText.text.toString().toInt(),
-                    vkCodeEditText.text.toString(),
-                    buttonTextEditText.text.toString(),
-                    VirtualKeyboardElement.ButtonType.Button,
-                    JSONObject("{}")
-                )
-            })
+            .setNeutralButton(R.string.virtual_keyboard_menu_confirm_button, null)
             .setCancelable(true)
             .create()
 
@@ -494,31 +500,76 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
             opacitySeekBar.progress = element?.opacity!!.toInt()
             radiusSeekBar.progress = element?.radius!!.toInt()
 
+
             dialog = builder.setTitle(context.getString(R.string.virtual_keyboard_menu_set_button_title))
                 .setView(scrollView)
+                .setCancelable(false)
                 .setNegativeButton(R.string.virtual_keyboard_menu_cancel_button, null)
                 .setPositiveButton(R.string.virtual_keyboard_menu_remove_button, { dialogInterface, which ->
                     virtualKeyboard.removeElementByElement(element)
                 })
-                .setNeutralButton(R.string.virtual_keyboard_menu_save_button, { dialogInterface, which ->
-                    element?.text = buttonTextEditText.text.toString()
-                    element?.vk_code = vkCodeEditText.text.toString()
-                    element?.elementId = buttonIdEditText.text.toString().toInt()
-                    element?.normalColor = getHexValue(normaColorEditText.text.toString()).toInt()
-                    element?.pressedColor = getHexValue(pressedColorEditText.text.toString()).toInt()
-                    element?.opacity = opacitySeekBar.progress
-                    element?.setOpacity(opacitySeekBar.progress)
-                    element?.radius = radiusSeekBar.progress.toFloat()
-                    element?.buttonType = selectedButtonType
-                    element?.invalidate()
-                    VirtualKeyboardConfigurationLoader.saveProfile(virtualKeyboard, context)
-                    virtualKeyboard.refreshLayout()
-                })
+                .setNeutralButton(R.string.virtual_keyboard_menu_save_button, null)
                 .setCancelable(true)
                 .create()
-        }
 
+
+            if (element?.group != -1) {
+                groupEditText.setText(element?.group.toString())
+                // 添加删除组按钮
+                layout.addView(Button(context).apply {
+                    text = context.getString(R.string.virtual_keyboard_menu_delete_group_button)
+                    setOnClickListener {
+                        val elements = virtualKeyboard.elements.filter { it.group == element?.group }
+                        elements.forEach {
+                            virtualKeyboard.removeElementByElement(it)
+                        }
+                        dialog.dismiss()
+                    }
+                })
+            }
+        }
         dialog.show()
+
+        // 确定/保存
+        dialog.getButton(AlertDialog.BUTTON_NEUTRAL).setOnClickListener {
+            if (element == null){
+                val defaultButtonId = virtualKeyboard.lastElementId + 1 // 默认按钮 ID
+                val defaultVkCode = "0"   // 默认 VK 代码
+                val defaultButtonText = "New Button" // 默认按钮文本
+
+                val buttonId = buttonIdEditText.text.toString().toIntOrNull() ?: defaultButtonId
+                val vkCode = vkCodeEditText.text.toString().ifEmpty { defaultVkCode }
+                val buttonText = buttonTextEditText.text.toString().ifEmpty { defaultButtonText }
+
+                VirtualKeyboardConfigurationLoader.addButton(
+                    virtualKeyboard,
+                    context,
+                    buttonId,
+                    vkCode,
+                    buttonText,
+                    VirtualKeyboardElement.ButtonType.Button,
+                    JSONObject("{}")
+                )
+
+            }else{
+                element?.text = buttonTextEditText.text.toString()
+                element?.vk_code = vkCodeEditText.text.toString()
+                element?.elementId = buttonIdEditText.text.toString().toInt()
+                element?.normalColor = getHexValue(normaColorEditText.text.toString()).toInt()
+                element?.pressedColor = getHexValue(pressedColorEditText.text.toString()).toInt()
+                element?.opacity = opacitySeekBar.progress
+                element?.setOpacity(opacitySeekBar.progress)
+                element?.radius = radiusSeekBar.progress.toFloat()
+                element?.buttonType = selectedButtonType
+                if (groupEditText.text != null && groupEditText.text.toString() != ""){
+                    element?.group = groupEditText.text.toString().toInt()
+                }
+                element?.invalidate()
+                VirtualKeyboardConfigurationLoader.saveProfile(virtualKeyboard, context)
+                virtualKeyboard.refreshLayout()
+            }
+            dialog.dismiss()
+        }
     }
 
     private fun createActionMap(): Map<String, () -> Unit> {
@@ -632,5 +683,67 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
             }
             scrollView.addView(gridLayout)
         }
+
+        fun showHasButtonDialog(context: Context, elements: List<VirtualKeyboardElement>, elementIDEditText: EditText?, groupEditText: EditText?) {
+            val scrollView = ScrollView(context)
+            val scrollParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            )
+            scrollView.layoutParams = scrollParams
+
+            val gridLayout = GridLayout(context).apply {
+                rowCount = (VirtualKeyboardVkCode.VKCode.entries.size + 3) / 4 // 计算行数，向上取整
+                columnCount = 4 // 每行 4 列
+                layoutParams = ViewGroup.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT
+                )
+            }
+
+            val builder = AlertDialog.Builder(context)
+            val dialog = builder.setTitle("BUTTON_LIST")
+                .setView(scrollView)
+                .setNegativeButton(R.string.virtual_keyboard_menu_cancel_button, null)
+                .setCancelable(true)
+                .create()
+
+            dialog.show()
+            val groupList = arrayListOf<Int>()
+            elements.forEach { element ->
+                if (elementIDEditText != null) {
+                    gridLayout.addView(Button(context).apply {
+                        text = "ID: ${element.elementId}  NAME: ${element.text}"
+                        setOnClickListener {
+                            elementIDEditText.setText(element.elementId.toString())
+                            dialog.dismiss()
+                        }
+                        layoutParams = GridLayout.LayoutParams().apply {
+                            width = 0
+                            height = ViewGroup.LayoutParams.WRAP_CONTENT
+                            columnSpec = GridLayout.spec(GridLayout.UNDEFINED, 2f) // 每个按钮占1列，权重1
+                            rowSpec = GridLayout.spec(GridLayout.UNDEFINED)
+                        }
+                    })
+                }else if (groupEditText != null && element.group != -1 && !groupList.contains(element.group)){
+                    groupList.add(element.group)
+                    gridLayout.addView(Button(context).apply {
+                        text = "GROUP_ID: ${element.group}"
+                        setOnClickListener {
+                            groupEditText.setText(element.elementId.toString())
+                            dialog.dismiss()
+                        }
+                        layoutParams = GridLayout.LayoutParams().apply {
+                            width = 0
+                            height = ViewGroup.LayoutParams.WRAP_CONTENT
+                            columnSpec = GridLayout.spec(GridLayout.UNDEFINED, 2f) // 每个按钮占1列，权重1
+                            rowSpec = GridLayout.spec(GridLayout.UNDEFINED)
+                        }
+                    })
+                }
+            }
+            scrollView.addView(gridLayout)
+        }
     }
+
 }
