@@ -345,7 +345,7 @@ class MacroEditor(private val context: Context, private var jsonData: JSONObject
 
         val action = macroActions[index]
         Log.d("MacroEditor", "$index-执行宏操作: Type: ${action.type}, Data: ${action.data}")
-        val inputContext = virtualKeyboard.controllerInputContext
+        val inputContext = virtualKeyboard.keyboardInputContext
 
         when (action.type) {
             MacroType.KEY_UP.toString() -> {

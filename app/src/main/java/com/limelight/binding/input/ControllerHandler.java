@@ -395,7 +395,7 @@ public class ControllerHandler implements InputManager.InputDeviceListener, UsbD
             }
         }
 
-        if (PreferenceConfiguration.readPreferences(context).onscreenController) {
+        if (PreferenceConfiguration.readPreferences(context).onscreenController || PreferenceConfiguration.readPreferences(context).onscreenKeyboard) {
             LimeLog.info("Counting OSC gamepad");
             mask |= 1;
         }
@@ -1065,7 +1065,7 @@ public class ControllerHandler implements InputManager.InputDeviceListener, UsbD
 
     private short getActiveControllerMask() {
         if (prefConfig.multiController) {
-            return (short)(currentControllers | initialControllers | (prefConfig.onscreenController ? 1 : 0));
+            return (short)(currentControllers | initialControllers | ((prefConfig.onscreenController || prefConfig.onscreenKeyboard) ? 1 : 0));
         }
         else {
             // Only Player 1 is active with multi-controller disabled

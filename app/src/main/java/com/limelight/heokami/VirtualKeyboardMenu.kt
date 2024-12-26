@@ -5,7 +5,9 @@ import android.app.AlertDialog
 import android.content.Context
 import android.content.Intent
 import android.preference.PreferenceManager
+import android.text.Editable
 import android.text.InputType
+import android.text.TextWatcher
 import android.util.Log
 import android.view.View
 import android.view.ViewGroup
@@ -27,6 +29,7 @@ import com.limelight.binding.input.virtual_keyboard.VirtualKeyboard
 import com.limelight.binding.input.virtual_keyboard.VirtualKeyboardConfigurationLoader
 import com.limelight.binding.input.virtual_keyboard.VirtualKeyboardElement
 import com.limelight.preferences.PreferenceConfiguration
+import org.json.JSONException
 import org.json.JSONObject
 import java.lang.Long.parseLong
 
@@ -306,7 +309,6 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
         }
 
         val vkCodeEditText = EditText(context).apply {
-            inputType = InputType.TYPE_CLASS_NUMBER
             layoutParams = LinearLayout.LayoutParams(
                 0,
                 LinearLayout.LayoutParams.WRAP_CONTENT,
@@ -314,7 +316,7 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
             )
         }
 
-        val button = Button(context).apply {
+        val vkCodeButton = Button(context).apply {
             text = context.getString(R.string.virtual_keyboard_menu_vk_code_button)
             layoutParams = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.WRAP_CONTENT,
@@ -327,7 +329,7 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
 
         // 将EditText和Button添加到水平排列的LinearLayout中
         linearLayout.addView(vkCodeEditText)
-        linearLayout.addView(button)
+        linearLayout.addView(vkCodeButton)
 
         // 将水平排列的LinearLayout添加到主布局中
         layout.addView(linearLayout)
@@ -409,11 +411,23 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
                 when (selectedEnum) {
                     VirtualKeyboardElement.ButtonType.Button -> {
                         selectedButtonType = VirtualKeyboardElement.ButtonType.Button
+                        vkCodeButton.text = "vkCode"
+                        vkCodeButton.setOnClickListener {
+                            showVKCodeDialog(context, buttonTextEditText, vkCodeEditText)
+                        }
                         Log.d("buttonType", "点击了 Button")
                     }
                     VirtualKeyboardElement.ButtonType.HotKeys -> {
                         selectedButtonType = VirtualKeyboardElement.ButtonType.HotKeys
                         Log.d("buttonType", "点击了 HotKeys")
+                    }
+                    VirtualKeyboardElement.ButtonType.JoyStick -> {
+                        selectedButtonType = VirtualKeyboardElement.ButtonType.JoyStick
+                        vkCodeButton.text = "JoyStick"
+                        vkCodeButton.setOnClickListener {
+                            showJoyStickVKCodeDialog(context, buttonTextEditText, vkCodeEditText)
+                        }
+                        Log.d("buttonType", "点击了 JoyStick")
                     }
                 }
             }
@@ -441,26 +455,56 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
         layout.addView(linearLayout3)
 
 
+
         if (element != null) {
+            val setJoyStickButton = Button(context).apply {
+                text = "设置手柄方向键"
+                setOnClickListener {
+                    setJoyStickVKCodeDialog(context, element!!)
+                }
+                visibility = View.GONE
+            }
+            layout.addView(setJoyStickButton)
+            vkCodeEditText.addTextChangedListener(object : TextWatcher {
+                val joy_s = VirtualKeyboardVkCode.JoyCode.JOY_PAD.code
+                override fun beforeTextChanged(
+                    s: CharSequence?,
+                    start: Int,
+                    count: Int,
+                    after: Int
+                ) {
+                    if (s.toString() == joy_s){
+                        setJoyStickButton.visibility = View.VISIBLE
+                    }else{
+                        setJoyStickButton.visibility = View.GONE
+                    }
+                }
+
+                override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                    if (s.toString() == joy_s){
+                        setJoyStickButton.visibility = View.VISIBLE
+                    }else{
+                        setJoyStickButton.visibility = View.GONE
+                    }
+                }
+
+                override fun afterTextChanged(s: Editable?) {
+                    if (s.toString() == joy_s){
+                        setJoyStickButton.visibility = View.VISIBLE
+                    }else{
+                        setJoyStickButton.visibility = View.GONE
+                    }
+                }
+
+            })
+
+
             selectedButtonType = element?.buttonType!!
             buttonTypeSpinner.setSelection(selectedButtonType.ordinal)
             layout.addView(Button(context).apply {
                 text = context.getString(R.string.virtual_keyboard_menu_copy_button)
                 setOnClickListener {
                     VirtualKeyboardConfigurationLoader.copyButton(virtualKeyboard, element, context)
-//                    VirtualKeyboardConfigurationLoader.addButton2(
-//                        virtualKeyboard,
-//                        context,
-//                        virtualKeyboard.lastElementId + 1,
-//                        vkCodeEditText.text.toString(),
-//                        buttonTextEditText.text.toString(),
-//                        element?.buttonType,
-//                        element?.buttonData,
-//                        element?.leftMargin,
-//                        element?.topMargin,
-//                        element?.width,
-//                        element?.height,
-//                    )
                 }
                 Log.d("vk", "复制按钮"+ element?.leftMargin+","+element?.topMargin+","+element?.width+","+element?.height)
             })
@@ -547,7 +591,7 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
                     buttonId,
                     vkCode,
                     buttonText,
-                    VirtualKeyboardElement.ButtonType.Button,
+                    selectedButtonType,
                     JSONObject("{}")
                 )
 
@@ -682,6 +726,224 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
                 gridLayout.addView(button)
             }
             scrollView.addView(gridLayout)
+        }
+
+        fun showJoyStickVKCodeDialog(context: Context, buttonTextEditText: EditText?, vkCodeEditText: EditText?) {
+            val scrollView = ScrollView(context)
+            val scrollParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            )
+            scrollView.layoutParams = scrollParams
+
+            val gridLayout = GridLayout(context).apply {
+                rowCount = (VirtualKeyboardVkCode.VKCode.entries.size + 3) / 4 // 计算行数，向上取整
+                columnCount = 4 // 每行 4 列
+                layoutParams = ViewGroup.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT
+                )
+            }
+
+            val builder = AlertDialog.Builder(context)
+            val dialog = builder.setTitle("JOY_CODE")
+                .setView(scrollView)
+                .setNegativeButton(R.string.virtual_keyboard_menu_cancel_button, null)
+                .setCancelable(true)
+                .create()
+
+            dialog.show()
+
+            VirtualKeyboardVkCode.JoyCode.entries.forEach { code ->
+                val button = Button(context).apply {
+                    text = VirtualKeyboardVkCode.replaceVkName(code.name)
+                    setOnClickListener {
+                        if (buttonTextEditText?.text.toString() == ""){
+                            buttonTextEditText?.setText(VirtualKeyboardVkCode.replaceVkName(code.name))
+                        }
+                        vkCodeEditText?.setText(code.code.toString())
+                        dialog.dismiss()
+                    }
+                    layoutParams = GridLayout.LayoutParams().apply {
+                        width = 0
+                        height = ViewGroup.LayoutParams.WRAP_CONTENT
+                        columnSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f) // 每个按钮占1列，权重1
+                        rowSpec = GridLayout.spec(GridLayout.UNDEFINED)
+                    }
+                }
+                gridLayout.addView(button)
+            }
+            scrollView.addView(gridLayout)
+        }
+
+        fun setJoyStickVKCodeDialog(context: Context, element: VirtualKeyboardElement) {
+            // 手柄方向键
+            val scrollView = ScrollView(context).apply {
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                )
+            }
+
+            val layout = LinearLayout(context).apply {
+                orientation = LinearLayout.VERTICAL
+            }
+
+            // 上
+            val linearLayout1 = LinearLayout(context).apply {
+                orientation = LinearLayout.HORIZONTAL
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                )
+            }
+            linearLayout1.addView(TextView(context).apply {
+                text = "手柄方向(上)"
+            })
+            val upEditText = EditText(context).apply {
+                layoutParams = LinearLayout.LayoutParams(
+                    0,
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                    1f // 权重为1，表示EditText占据可用空间的一部分
+                )
+            }
+            linearLayout1.addView(upEditText)
+            linearLayout1.addView(Button(context).apply {
+                text = "vkCode"
+                setOnClickListener {
+                    showVKCodeDialog(context, null, upEditText)
+                }
+            })
+
+            // 下
+            val linearLayout2 = LinearLayout(context).apply {
+                orientation = LinearLayout.HORIZONTAL
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                )
+            }
+            linearLayout2.addView(TextView(context).apply {
+                text = "手柄方向(下)"
+            })
+            val downEditText = EditText(context).apply {
+                layoutParams = LinearLayout.LayoutParams(
+                    0,
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                    1f // 权重为1，表示EditText占据可用空间的一部分
+                )
+            }
+            linearLayout2.addView(downEditText)
+            linearLayout2.addView(Button(context).apply {
+                text = "vkCode"
+                setOnClickListener {
+                    showVKCodeDialog(context, null, downEditText)
+                }
+            })
+
+            // 左
+            val linearLayout3 = LinearLayout(context).apply {
+                orientation = LinearLayout.HORIZONTAL
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                )
+            }
+            linearLayout3.addView(TextView(context).apply {
+                text = "手柄方向(左)"
+            })
+            val leftEditText = EditText(context).apply {
+                layoutParams = LinearLayout.LayoutParams(
+                    0,
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                    1f // 权重为1，表示EditText占据可用空间的一部分
+                )
+            }
+            linearLayout3.addView(leftEditText)
+            linearLayout3.addView(Button(context).apply {
+                text = "vkCode"
+                setOnClickListener {
+                    showVKCodeDialog(context, null, leftEditText)
+                }
+            })
+
+            // 右
+            val linearLayout4 = LinearLayout(context).apply {
+                orientation = LinearLayout.HORIZONTAL
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                )
+            }
+            linearLayout4.addView(TextView(context).apply {
+                text = "手柄方向(左)"
+            })
+            val rightEditText = EditText(context).apply {
+                layoutParams = LinearLayout.LayoutParams(
+                    0,
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                    1f // 权重为1，表示EditText占据可用空间的一部分
+                )
+            }
+            linearLayout4.addView(rightEditText)
+            linearLayout4.addView(Button(context).apply {
+                text = "vkCode"
+                setOnClickListener {
+                    showVKCodeDialog(context, null, rightEditText)
+                }
+            })
+
+            scrollView.addView(layout)
+            layout.addView(linearLayout1)
+            layout.addView(linearLayout2)
+            layout.addView(linearLayout3)
+            layout.addView(linearLayout4)
+
+            if (element.buttonData != null) {
+                val jsonData = element.buttonData
+                if (jsonData.has("UP_VK_CODE")) {
+                    upEditText.setText(jsonData.getString("UP_VK_CODE"))
+                }
+                if (jsonData.has("DOWN_VK_CODE")) {
+                    downEditText.setText(jsonData.getString("DOWN_VK_CODE"))
+                }
+                if (jsonData.has("LEFT_VK_CODE")) {
+                    leftEditText.setText(jsonData.getString("LEFT_VK_CODE"))
+                }
+                if (jsonData.has("RIGHT_VK_CODE")) {
+                    rightEditText.setText(jsonData.getString("RIGHT_VK_CODE"))
+                }
+            }
+
+            val builder = AlertDialog.Builder(context)
+            val dialog = builder.setTitle("设置方向键")
+                .setView(scrollView)
+                .setPositiveButton(R.string.virtual_keyboard_menu_confirm_button) { _, _ ->
+                    try {
+                        val jsonData = JSONObject()
+                        jsonData.put("UP_VK_CODE", upEditText.text.toString())
+                        jsonData.put("DOWN_VK_CODE", downEditText.text.toString())
+                        jsonData.put("LEFT_VK_CODE", leftEditText.text.toString())
+                        jsonData.put("RIGHT_VK_CODE", rightEditText.text.toString())
+                        element.buttonData = jsonData
+                    } catch (e: JSONException) {
+                        Log.e("heokami", e.toString(), e)
+                    }
+                }
+                .setNeutralButton(R.string.default_button){_,_ ->
+                    try {
+                        val jsonData = JSONObject("{}")
+                        element.buttonData = jsonData
+                    } catch (e: JSONException) {
+                        Log.e("heokami", e.toString(), e)
+                    }
+                }
+                .setNegativeButton(R.string.virtual_keyboard_menu_cancel_button, null)
+                .setCancelable(true)
+                .create()
+
+            dialog.show()
+
         }
 
         fun showHasButtonDialog(context: Context, elements: List<VirtualKeyboardElement>, elementIDEditText: EditText?, groupEditText: EditText?) {

@@ -107,7 +107,7 @@ public class DigitalButton extends VirtualKeyboardElement {
         }
     }
 
-    public DigitalButton(VirtualKeyboard virtualKeyboard, int elementId, int layer, Context context) {
+    public DigitalButton(VirtualKeyboard virtualKeyboard, Context context, int elementId, int layer) {
         super(virtualKeyboard, context, elementId, layer);
     }
 

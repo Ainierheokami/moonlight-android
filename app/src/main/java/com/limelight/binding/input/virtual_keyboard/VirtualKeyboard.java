@@ -4,6 +4,8 @@
 
 package com.limelight.binding.input.virtual_keyboard;
 
+import android.annotation.SuppressLint;
+import android.content.Context;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.DisplayMetrics;
@@ -11,23 +13,23 @@ import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.FrameLayout;
-import android.widget.Switch;
 import android.widget.Toast;
 
 import com.limelight.Game;
-import com.limelight.LimeLog;
 import com.limelight.R;
 import com.limelight.heokami.GameGridLines;
 import com.limelight.heokami.VirtualKeyboardVkCode;
 import com.limelight.nvstream.NvConnection;
+import com.limelight.nvstream.input.ControllerPacket;
 import com.limelight.nvstream.input.KeyboardPacket;
 import com.limelight.preferences.PreferenceConfiguration;
+import com.limelight.binding.input.ControllerHandler;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public class VirtualKeyboard {
-    public static class ControllerInputContext {
+    public static class KeyboardInputContext {
         public short key = 0;
         public byte modifier = (byte) 0;
     }
@@ -45,17 +47,10 @@ public class VirtualKeyboard {
     private final Game context;
     private final Handler handler;
 
-//    private final Runnable delayedRetransmitRunnable = new Runnable() {
-//        @Override
-//        public void run() {
-//            sendControllerInputContextInternal();
-//        }
-//    };
-
     private FrameLayout frame_layout = null;
 
     ControllerMode currentMode = ControllerMode.Active;
-    ControllerInputContext inputContext = new ControllerInputContext();
+    KeyboardInputContext keyboardInputContext = new KeyboardInputContext();
 
     private Button buttonConfigure = null;
 
@@ -63,7 +58,8 @@ public class VirtualKeyboard {
     public List<String> historyElements = new ArrayList<>();
     public int historyIndex = 0;
 
-    public VirtualKeyboard(NvConnection conn, FrameLayout layout, final Game context) {
+    public VirtualKeyboard(ControllerHandler controllerHandler, NvConnection conn, FrameLayout layout, final Game context) {
+        this.controllerHandler = controllerHandler;
         this.conn = conn;
         this.frame_layout = layout;
         this.context = context;
@@ -267,8 +263,8 @@ public class VirtualKeyboard {
         return currentMode;
     }
 
-    public ControllerInputContext getControllerInputContext() {
-        return inputContext;
+    public KeyboardInputContext getKeyboardInputContext() {
+        return keyboardInputContext;
     }
 
     public void sendDownKey(short key){
@@ -281,7 +277,7 @@ public class VirtualKeyboard {
             conn.sendMouseButtonDown((byte)key);
             return;
         }
-        conn.sendKeyboardInput(key, KeyboardPacket.KEY_DOWN, inputContext.modifier, (byte) 0);
+        conn.sendKeyboardInput(key, KeyboardPacket.KEY_DOWN, keyboardInputContext.modifier, (byte) 0);
     }
 
     public void sendUpKey(short key){
@@ -294,7 +290,7 @@ public class VirtualKeyboard {
             conn.sendMouseButtonUp((byte)key);
             return;
         }
-        conn.sendKeyboardInput(key, KeyboardPacket.KEY_UP, inputContext.modifier, (byte) 0);
+        conn.sendKeyboardInput(key, KeyboardPacket.KEY_UP, keyboardInputContext.modifier, (byte) 0);
     }
 
     public void sendKeys(short[] keys) {
@@ -375,4 +371,68 @@ public class VirtualKeyboard {
         historyIndex = 0;
     }
 
+    // 手柄控制器相关
+    private final ControllerHandler controllerHandler;
+    private final ControllerInputContext controllerInputContext = new ControllerInputContext();
+
+//    public void setControllerHandler(ControllerHandler controllerHandler){
+//        this.controllerHandler = controllerHandler;
+//    }
+
+    public static class ControllerInputContext {
+        public short inputMap = 0x0000;
+        public byte leftTrigger = 0x00;
+        public byte rightTrigger = 0x00;
+        public short rightStickX = 0x0000;
+        public short rightStickY = 0x0000;
+        public short leftStickX = 0x0000;
+        public short leftStickY = 0x0000;
+    }
+
+    public ControllerInputContext getControllerInputContext() {
+        return controllerInputContext;
+    }
+
+    private final Runnable delayedRetransmitRunnable = new Runnable() {
+        @Override
+        public void run() {
+            sendControllerInputContextInternal();
+        }
+    };
+
+    private void sendControllerInputContextInternal() {
+        Log.d("vk", "INPUT_MAP + " + controllerInputContext.inputMap);
+        Log.d("vk", "LEFT_TRIGGER " + controllerInputContext.leftTrigger);
+        Log.d("vk", "RIGHT_TRIGGER " + controllerInputContext.rightTrigger);
+        Log.d("vk", "LEFT STICK X: " + controllerInputContext.leftStickX + " Y: " + controllerInputContext.leftStickY);
+        Log.d("vk", "RIGHT STICK X: " + controllerInputContext.rightStickX + " Y: " + controllerInputContext.rightStickY);
+
+
+        if (controllerHandler != null) {
+            controllerHandler.reportOscState(
+                    controllerInputContext.inputMap,
+                    controllerInputContext.leftStickX,
+                    controllerInputContext.leftStickY,
+                    controllerInputContext.rightStickX,
+                    controllerInputContext.rightStickY,
+                    controllerInputContext.leftTrigger,
+                    controllerInputContext.rightTrigger
+            );
+        }
+    }
+
+    void sendControllerInputContext() {
+        // Cancel retransmissions of prior gamepad inputs
+        handler.removeCallbacks(delayedRetransmitRunnable);
+
+        sendControllerInputContextInternal();
+
+        // HACK: GFE sometimes discards gamepad packets when they are received
+        // very shortly after another. This can be critical if an axis zeroing packet
+        // is lost and causes an analog stick to get stuck. To avoid this, we retransmit
+        // the gamepad state a few times unless another input event happens before then.
+        handler.postDelayed(delayedRetransmitRunnable, 25);
+        handler.postDelayed(delayedRetransmitRunnable, 50);
+        handler.postDelayed(delayedRetransmitRunnable, 75);
+    }
 }

@@ -1,11 +1,10 @@
 package com.limelight.heokami
 
 import com.limelight.nvstream.input.KeyboardPacket
+import com.limelight.nvstream.input.ControllerPacket
 
 object VirtualKeyboardVkCode {
     enum class VKCode(val code: Int) {
-        VK_LBUTTON(0x01),
-        VK_RBUTTON(0x02),
         VK_LCONTROL(0xA2),
         VK_RCONTROL(0xA3),
 
@@ -119,11 +118,32 @@ object VirtualKeyboardVkCode {
         VK_DELETE(0x2E), // DEL 键
         VK_HELP(0x2F), // HELP 键
 
+        // 鼠标
+        VK_LBUTTON(0x01),
+        VK_RBUTTON(0x02),
         VK_MBUTTON(0x04), // 鼠标中键
         VK_XBUTTON1(0x05), // X1 鼠标按钮
         VK_XBUTTON2(0x06), // X2 鼠标按钮
 
     }
+
+    enum class JoyCode(val code: String) {
+        // 手柄
+        JOY_A("A"),
+        JOY_B("B"),
+        JOY_X("X"),
+        JOY_Y("Y"),
+        JOY_LB("LB"),
+        JOY_RB("RB"),
+        JOY_BACK("BACK"),
+        JOY_START("START"),
+        JOY_RT("RT"),
+        JOY_LT("LT"),
+        JOY_LS("LS"),
+        JOY_RS("RS"),
+        JOY_PAD("PAD"),
+    }
+
     fun replaceSpecialKeys(vkCode: Short): Byte {
         val modifierMask = when (vkCode) {
             VKCode.VK_LCONTROL.code.toShort(), VKCode.VK_RCONTROL.code.toShort() -> KeyboardPacket.MODIFIER_CTRL
@@ -141,7 +161,7 @@ object VirtualKeyboardVkCode {
         newText = newText.replace("DOWN","↓")
         newText = newText.replace("LEFT","←")
         newText = newText.replace("RIGHT","→")
-        newText = newText.replace("RETURN","RENTER")
+        newText = newText.replace("RETURN","ENTER")
         newText = newText.replace("PRIOR","PAGE_UP")
         newText = newText.replace("NEXT","PAGE_DOWN")
         newText = newText.replace("CAPITAL","CAPS_LOCK")
@@ -171,6 +191,37 @@ object VirtualKeyboardVkCode {
         newText = newText.replace("OEM_7","'")
         return newText
     }
+
+//    enum class KeyType(val code: Int) {
+//        MOUSE(0),
+//        KEYBOARD(1),
+//        JOYSTICK(2),
+//    }
+
+//    fun getKeyType(vkCode: Short): KeyType {
+//        return when (vkCode) {
+//            VKCode.VK_LBUTTON.code.toShort(),
+//            VKCode.VK_RBUTTON.code.toShort(),
+//            VKCode.VK_MBUTTON.code.toShort(),
+//            VKCode.VK_XBUTTON1.code.toShort(),
+//            VKCode.VK_XBUTTON2.code.toShort()
+//                -> KeyType.MOUSE
+//
+//            VKCode.JOY_LB.code.toShort(),
+//            VKCode.JOY_RB.code.toShort(),
+//            VKCode.JOY_A.code.toShort(),
+//            VKCode.JOY_B.code.toShort(),
+//            VKCode.JOY_X.code.toShort(),
+//            VKCode.JOY_Y.code.toShort(),
+//            VKCode.JOY_START.code.toShort(),
+//            VKCode.JOY_BACK.code.toShort(),
+//            VKCode.JOY_A.code.toShort(),
+//            VKCode.JOY_A.code.toShort(),
+//                     -> KeyType.JOYSTICK
+//
+//            else -> KeyType.KEYBOARD
+//        }
+//    }
 }
 
 

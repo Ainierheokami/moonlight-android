@@ -507,7 +507,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
             // of gamepads removed and replugged at runtime.
             gamepadMask = 1;
         }
-        if (prefConfig.onscreenController) {
+        if (prefConfig.onscreenController || prefConfig.onscreenKeyboard) {
             // If we're using OSC, always set at least gamepad 1.
             gamepadMask |= 1;
         }
@@ -590,7 +590,11 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         }
 
         if (prefConfig.onscreenKeyboard) {
-            virtualKeyboard = new VirtualKeyboard(conn, (FrameLayout)streamView.getParent(), this);
+            virtualKeyboard = new VirtualKeyboard(
+                    controllerHandler,
+                    conn,
+                    (FrameLayout)streamView.getParent(),
+                    this);
             virtualKeyboard.refreshLayout();
             virtualKeyboard.show();
         }
@@ -2823,9 +2827,12 @@ public class Game extends Activity implements SurfaceHolder.Callback,
     public void toggleVirtualKeyboard() {
         if (virtualKeyboard == null) {
             streamView = this.findViewById(R.id.surfaceView);
-            virtualKeyboard = new VirtualKeyboard(conn,
+            virtualKeyboard = new VirtualKeyboard(
+                    controllerHandler,
+                    conn,
                     (FrameLayout) streamView.getParent(),
-                    this);
+                    this
+            );
             virtualKeyboard.refreshLayout();
             // 保存一次最初的记录
             virtualKeyboard.addHistory();
