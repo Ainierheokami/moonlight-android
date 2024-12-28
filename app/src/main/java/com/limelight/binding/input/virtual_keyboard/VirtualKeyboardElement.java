@@ -23,25 +23,6 @@ import com.limelight.heokami.VirtualKeyboardMenu;
 
 public abstract class VirtualKeyboardElement extends View {
 
-    // 手柄控制器相关
-    public static final int EID_DPAD = 1;
-    public static final int EID_LT = 2;
-    public static final int EID_RT = 3;
-    public static final int EID_LB = 4;
-    public static final int EID_RB = 5;
-    public static final int EID_A = 6;
-    public static final int EID_B = 7;
-    public static final int EID_X = 8;
-    public static final int EID_Y = 9;
-    public static final int EID_BACK = 10;
-    public static final int EID_START = 11;
-    public static final int EID_LS = 12;
-    public static final int EID_RS = 13;
-    public static final int EID_LSB = 14;
-    public static final int EID_RSB = 15;
-    public static final int EID_GDB = 16;
-
-
     public int elementId;
     public int layer;
     public String vk_code;
@@ -85,6 +66,7 @@ public abstract class VirtualKeyboardElement extends View {
         Button,
         HotKeys,
         JoyStick,
+        TouchPad
     }
 
     private Mode currentMode = Mode.Normal;
@@ -331,7 +313,7 @@ public abstract class VirtualKeyboardElement extends View {
         // NB: We can get an additional pointer down if the user touches a non-StreamView area
         // while also touching an OSC control, even if that pointer down doesn't correspond to
         // an area of the OSC control.
-        if (event.getActionIndex() != 0) {
+        if (event.getActionIndex() != 0 && buttonType != ButtonType.TouchPad) {
             return true;
         }
 

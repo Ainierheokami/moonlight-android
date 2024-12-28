@@ -123,8 +123,15 @@ object VirtualKeyboardVkCode {
         VK_RBUTTON(0x02),
         VK_MBUTTON(0x04), // 鼠标中键
         VK_XBUTTON1(0x05), // X1 鼠标按钮
-        VK_XBUTTON2(0x06), // X2 鼠标按钮
+        VK_XBUTTON2(0x06); // X2 鼠标按钮
 
+        companion object { // 添加 companion object
+            private val codeMap: Map<Int, VKCode> = entries.associateBy { it.code }
+
+            fun fromCode(code: Int): VKCode? {
+                return codeMap[code]
+            }
+        }
     }
 
     enum class JoyCode(val code: String) {

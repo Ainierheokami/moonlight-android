@@ -40,7 +40,6 @@ public class VirtualKeyboardConfigurationLoader {
         return (int) (((float) height / (float) 72) * (float) units);
     }
 
-
     public static DigitalButton createDigitalButton(
             final VirtualKeyboard virtualKeyboard,
             final Context context,
@@ -147,6 +146,20 @@ public class VirtualKeyboardConfigurationLoader {
         }
 
         return button;
+    }
+
+    private static TouchPad createTouchPad(
+            final VirtualKeyboard virtualKeyboard,
+            final Context context,
+            final int elementId,
+            final int layer,
+            final VirtualKeyboardElement.ButtonType buttonType,
+            final JSONObject buttonData
+    ){
+        TouchPad touchPad = new RelativeTouchPad(virtualKeyboard, context, elementId, layer);
+        touchPad.setType(buttonType);
+        touchPad.setButtonData(buttonData);
+        return touchPad;
     }
 
     private static DigitalButton createLeftTrigger(
@@ -278,6 +291,8 @@ public class VirtualKeyboardConfigurationLoader {
                         }
                     }catch (JSONException e){
                         Log.e("heokami", e.toString(), e);
+                    } catch (Exception e) {
+                        Log.e("heokami", e.toString(), e);
                     }
                 }
             });
@@ -326,12 +341,16 @@ public class VirtualKeyboardConfigurationLoader {
     private static final int TEST_WIDTH = 10;
     private static final int TEST_HEIGHT = 5;
 
-    public static void addButton(final VirtualKeyboard virtualKeyboard, final Context context,
-                                 Integer buttonId,
-                                 String vkCode,
-                                 String buttonName,
-                                 VirtualKeyboardElement.ButtonType buttonType,
-                                 JSONObject buttonData
+    public static void createElement(final VirtualKeyboard virtualKeyboard, final Context context,
+                                     Integer elementId,
+                                     String vkCode,
+                                     String elementName,
+                                     VirtualKeyboardElement.ButtonType elementType,
+                                     JSONObject elementData,
+                                     int elementX,
+                                     int elementY,
+                                     int elementWidth,
+                                     int elementHeight
     ) throws JSONException {
         DisplayMetrics screen = context.getResources().getDisplayMetrics();
         PreferenceConfiguration config = PreferenceConfiguration.readPreferences(context);
@@ -340,91 +359,106 @@ public class VirtualKeyboardConfigurationLoader {
 
         int height = screen.heightPixels;
         Integer lastElementId = virtualKeyboard.getLastElementId();
-        if (buttonId <= lastElementId){
-            buttonId = lastElementId + 1;
+        if (elementId <= lastElementId){
+            elementId = lastElementId + 1;
         }
 
-
-        if (Objects.requireNonNull(buttonType) == VirtualKeyboardElement.ButtonType.JoyStick) {
+        if (Objects.requireNonNull(elementType) == VirtualKeyboardElement.ButtonType.TouchPad) {
+            virtualKeyboard.addElement(
+                    createTouchPad(
+                            virtualKeyboard,
+                            context,
+                            elementId,
+                            1,
+                            elementType,
+                            elementData
+                    ),
+                    elementX,
+                    elementY,
+                    elementWidth,
+                    elementHeight
+            );
+        }
+        else if (Objects.requireNonNull(elementType) == VirtualKeyboardElement.ButtonType.JoyStick) {
             if (Objects.equals(vkCode, VirtualKeyboardVkCode.JoyCode.JOY_LS.getCode())) {
                 virtualKeyboard.addElement(
                         createLeftStick(
                                 virtualKeyboard,
                                 context,
-                                buttonId,
+                                elementId,
                                 1,
                                 vkCode,
-                                buttonType,
-                                buttonData
+                                elementType,
+                                elementData
                         ),
-                        screenScale(TEST_X, height) + rightDisplacement,
-                        screenScale(TEST_Y, height),
-                        screenScale(TEST_WIDTH, height),
-                        screenScale(TEST_HEIGHT, height)
+                        elementX,
+                        elementY,
+                        elementWidth,
+                        elementHeight
                 );
             } else if (Objects.equals(vkCode, VirtualKeyboardVkCode.JoyCode.JOY_RS.getCode())) {
                 virtualKeyboard.addElement(
                         createRightStick(
                                 virtualKeyboard,
                                 context,
-                                buttonId,
+                                elementId,
                                 1,
                                 vkCode,
-                                buttonType,
-                                buttonData
+                                elementType,
+                                elementData
                         ),
-                        screenScale(TEST_X, height) + rightDisplacement,
-                        screenScale(TEST_Y, height),
-                        screenScale(TEST_WIDTH, height),
-                        screenScale(TEST_HEIGHT, height)
+                        elementX,
+                        elementY,
+                        elementWidth,
+                        elementHeight
                 );
             } else if (Objects.equals(vkCode, VirtualKeyboardVkCode.JoyCode.JOY_LT.getCode())) {
                 virtualKeyboard.addElement(
                         createLeftTrigger(
                                 virtualKeyboard,
                                 context,
-                                buttonId,
+                                elementId,
                                 1,
                                 vkCode,
-                                buttonType,
-                                buttonData
+                                elementType,
+                                elementData
                         ),
-                        screenScale(TEST_X, height) + rightDisplacement,
-                        screenScale(TEST_Y, height),
-                        screenScale(TEST_WIDTH, height),
-                        screenScale(TEST_HEIGHT, height)
+                        elementX,
+                        elementY,
+                        elementWidth,
+                        elementHeight
                 );
             } else if (Objects.equals(vkCode, VirtualKeyboardVkCode.JoyCode.JOY_RT.getCode())) {
                 virtualKeyboard.addElement(
                         createRightTrigger(
                                 virtualKeyboard,
                                 context,
-                                buttonId,
+                                elementId,
                                 1,
                                 vkCode,
-                                buttonType,
-                                buttonData
+                                elementType,
+                                elementData
                         ),
-                        screenScale(TEST_X, height) + rightDisplacement,
-                        screenScale(TEST_Y, height),
-                        screenScale(TEST_WIDTH, height),
-                        screenScale(TEST_HEIGHT, height)
+                        elementX,
+                        elementY,
+                        elementWidth,
+                        elementHeight
                 );
             } else if (Objects.equals(vkCode, VirtualKeyboardVkCode.JoyCode.JOY_PAD.getCode())) {
                 virtualKeyboard.addElement(
                         createDigitalPad(
                                 virtualKeyboard,
                                 context,
-                                buttonId,
+                                elementId,
                                 1,
                                 vkCode,
-                                buttonType,
-                                buttonData
+                                elementType,
+                                elementData
                         ),
-                        screenScale(TEST_X, height) + rightDisplacement,
-                        screenScale(TEST_Y, height),
-                        screenScale(TEST_WIDTH, height),
-                        screenScale(TEST_HEIGHT, height)
+                        elementX,
+                        elementY,
+                        elementWidth,
+                        elementHeight
                 );
             } else {
                 int newCode = 0;
@@ -458,67 +492,104 @@ public class VirtualKeyboardConfigurationLoader {
                         createDigitalButton(
                                 virtualKeyboard,
                                 context,
-                                buttonId,
+                                elementId,
                                 (short)newCode,
                                 1,
-                                buttonName,
+                                elementName,
                                 -1,
-                                buttonType,
-                                buttonData
+                                elementType,
+                                elementData
                         ),
-                        screenScale(TEST_X, height) + rightDisplacement,
-                        screenScale(TEST_Y, height),
-                        screenScale(TEST_WIDTH, height),
-                        screenScale(TEST_HEIGHT, height)
+                        elementX,
+                        elementY,
+                        elementWidth,
+                        elementHeight
                 );
             }
         } else {
+            short buttonVkCode = 0;
+            try {
+                buttonVkCode = Short.parseShort(vkCode);
+            }catch (Exception e){
+                Log.e("heokami", e.toString(), e);
+            }
             virtualKeyboard.addElement(
                     createDigitalButton(
                             virtualKeyboard,
                             context,
-                            buttonId,
-                            Short.parseShort(vkCode),
+                            elementId,
+                            buttonVkCode,
                             1,
-                            buttonName,
+                            elementName,
                             -1,
-                            buttonType,
-                            buttonData
+                            elementType,
+                            elementData
                     ),
-                    screenScale(TEST_X, height) + rightDisplacement,
-                    screenScale(TEST_Y, height),
-                    screenScale(TEST_WIDTH, height),
-                    screenScale(TEST_HEIGHT, height)
+                    elementX,
+                    elementY,
+                    elementWidth,
+                    elementHeight
             );
         }
 
         virtualKeyboard.setOpacity(config.oscOpacity);
     }
 
+    public static void addButton(final VirtualKeyboard virtualKeyboard, final Context context,
+                                 Integer buttonId,
+                                 String vkCode,
+                                 String buttonName,
+                                 VirtualKeyboardElement.ButtonType buttonType,
+                                 JSONObject buttonData
+    ) throws JSONException {
+        DisplayMetrics screen = context.getResources().getDisplayMetrics();
+        int rightDisplacement = screen.widthPixels - screen.heightPixels * 16 / 9;
+        int height = screen.heightPixels;
+        createElement(
+                virtualKeyboard,
+                context,
+                buttonId,
+                vkCode,
+                buttonName,
+                buttonType,
+                buttonData,
+                screenScale(TEST_X, height) + rightDisplacement,
+                screenScale(TEST_Y, height),
+                screenScale(TEST_WIDTH, height),
+                screenScale(TEST_HEIGHT, height)
+        );
+    }
+
     public static void copyButton(final VirtualKeyboard virtualKeyboard, final VirtualKeyboardElement element, final Context context){
+        int newElementId = virtualKeyboard.getLastElementId() + 1;
 
-        VirtualKeyboardElement button = createDigitalButton(
-          virtualKeyboard,
-          context,
-          virtualKeyboard.getLastElementId() + 1,
-          Short.parseShort(element.vk_code),
-          1,
-          element.text,
-          -1,
-          element.buttonType,
-          element.buttonData
-        );
+        try {
+            Log.d("copyButton", String.format("elementId: %s vk_code: %s text: %s buttonType: %s buttonData: %s", element.elementId, element.vk_code, element.text, element.buttonType, element.buttonData));
+            Log.d("copyButton2", String.format("x: %s y: %s width: %s height: %s", element.getLeftMargin(), element.getTopMargin(), element.getWidth(), element.getHeight()));
+             createElement(
+                    virtualKeyboard,
+                    context,
+                    newElementId,
+                    element.vk_code,
+                    element.text,
+                    element.buttonType,
+                    element.buttonData,
+                    element.getLeftMargin(),
+                    element.getTopMargin(),
+                    element.getWidth(),
+                    element.getHeight()
+            );
+        }catch (JSONException e){
+            Log.e("heokami", e.toString(), e);
+        }
+        VirtualKeyboardElement newElement = virtualKeyboard.getElementByElementId(newElementId);
 
-        button.setHide(element.isHide);
-        button.setGroup(element.group);
-
-        virtualKeyboard.addElement(
-                button,
-                element.getLeftMargin() + 10,
-                element.getTopMargin(),
-                element.getWidth(),
-                element.getHeight()
-        );
+        newElement.setLayer(element.layer);
+        newElement.setColors(element.normalColor, element.pressedColor);
+        newElement.setGroup(element.group);
+        newElement.setRadius(element.radius);
+        newElement.setOpacity(element.opacity);
+        newElement.setHide(element.isHide);
     }
 
     public static void saveProfile(final VirtualKeyboard virtualKeyboard, final Context context) {

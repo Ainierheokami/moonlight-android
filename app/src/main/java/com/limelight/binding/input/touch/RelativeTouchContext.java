@@ -2,6 +2,7 @@ package com.limelight.binding.input.touch;
 
 import android.os.Handler;
 import android.os.Looper;
+import android.util.Log;
 import android.view.View;
 
 import com.limelight.nvstream.NvConnection;
@@ -24,7 +25,7 @@ public class RelativeTouchContext implements TouchContext {
     private int maxPointerCountInGesture;
 
     private final NvConnection conn;
-    private final int actionIndex;
+    private int actionIndex;
     private final int referenceWidth;
     private final int referenceHeight;
     private final View targetView;
@@ -234,6 +235,7 @@ public class RelativeTouchContext implements TouchContext {
         // Enter scrolling mode if we've already left the tap zone
         // and we have 2 fingers on screen. Leave scroll mode if
         // we no longer have 2 fingers on screen
+        Log.d("Touch", String.format("checkForConfirmedScroll %s, %s, %s", actionIndex, pointerCount, confirmedMove));
         confirmedScroll = (actionIndex == 0 && pointerCount == 2 && confirmedMove);
     }
 
@@ -241,6 +243,7 @@ public class RelativeTouchContext implements TouchContext {
     public boolean touchMoveEvent(int eventX, int eventY, long eventTime)
     {
         if (cancelled) {
+            Log.d("Touch", "touchMoveEvent cancelled");
             return true;
         }
 
@@ -327,5 +330,9 @@ public class RelativeTouchContext implements TouchContext {
         if (pointerCount > maxPointerCountInGesture) {
             maxPointerCountInGesture = pointerCount;
         }
+    }
+
+    public void setActionIndex(int actionIndex){
+        this.actionIndex = actionIndex;
     }
 }

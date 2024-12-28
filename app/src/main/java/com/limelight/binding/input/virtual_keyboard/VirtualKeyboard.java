@@ -21,12 +21,14 @@ import com.limelight.heokami.GameGridLines;
 import com.limelight.heokami.VirtualKeyboardVkCode;
 import com.limelight.nvstream.NvConnection;
 import com.limelight.nvstream.input.ControllerPacket;
+import com.limelight.nvstream.input.MouseButtonPacket;
 import com.limelight.nvstream.input.KeyboardPacket;
 import com.limelight.preferences.PreferenceConfiguration;
 import com.limelight.binding.input.ControllerHandler;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 public class VirtualKeyboard {
     public static class KeyboardInputContext {
@@ -98,8 +100,8 @@ public class VirtualKeyboard {
                     message = context.getString(R.string.controller_mode_active_buttons);
                 }
 
-                Toast.makeText(context, message, Toast.LENGTH_SHORT).show();
-
+//                Toast.makeText(context, message, Toast.LENGTH_SHORT).show();
+                context.postNotification(message, 2000);
                 buttonConfigure.invalidate();
 
                 for (VirtualKeyboardElement element : elements) {
@@ -112,6 +114,14 @@ public class VirtualKeyboard {
 
     Handler getHandler() {
         return handler;
+    }
+
+    public NvConnection getNvConnection() {
+        return conn;
+    }
+
+    public Game getGameContext() {
+        return context;
     }
 
     public void hide() {
@@ -268,29 +278,49 @@ public class VirtualKeyboard {
     }
 
     public void sendDownKey(short key){
-        if (key == VirtualKeyboardVkCode.VKCode.VK_LBUTTON.getCode()
-                || key == VirtualKeyboardVkCode.VKCode.VK_RBUTTON.getCode()
-                || key == VirtualKeyboardVkCode.VKCode.VK_MBUTTON.getCode()
-                || key == VirtualKeyboardVkCode.VKCode.VK_XBUTTON1.getCode()
-                || key == VirtualKeyboardVkCode.VKCode.VK_XBUTTON2.getCode()
-        ){
-            conn.sendMouseButtonDown((byte)key);
-            return;
+        VirtualKeyboardVkCode.VKCode vkCode = VirtualKeyboardVkCode.VKCode.Companion.fromCode((int)key);
+        switch (Objects.requireNonNull(vkCode)){
+            case VK_LBUTTON:
+                conn.sendMouseButtonDown(MouseButtonPacket.BUTTON_LEFT);
+                break;
+            case VK_RBUTTON:
+                conn.sendMouseButtonDown(MouseButtonPacket.BUTTON_RIGHT);
+                break;
+            case VK_MBUTTON:
+                conn.sendMouseButtonDown(MouseButtonPacket.BUTTON_MIDDLE);
+                break;
+            case VK_XBUTTON1:
+                conn.sendMouseButtonDown(MouseButtonPacket.BUTTON_X1);
+                break;
+            case VK_XBUTTON2:
+                conn.sendMouseButtonDown(MouseButtonPacket.BUTTON_X2);
+                break;
+            default:
+                conn.sendKeyboardInput(key, KeyboardPacket.KEY_DOWN, keyboardInputContext.modifier, (byte) 0);
         }
-        conn.sendKeyboardInput(key, KeyboardPacket.KEY_DOWN, keyboardInputContext.modifier, (byte) 0);
     }
 
     public void sendUpKey(short key){
-        if (key == VirtualKeyboardVkCode.VKCode.VK_LBUTTON.getCode()
-                || key == VirtualKeyboardVkCode.VKCode.VK_RBUTTON.getCode()
-                || key == VirtualKeyboardVkCode.VKCode.VK_MBUTTON.getCode()
-                || key == VirtualKeyboardVkCode.VKCode.VK_XBUTTON1.getCode()
-                || key == VirtualKeyboardVkCode.VKCode.VK_XBUTTON2.getCode()
-        ){
-            conn.sendMouseButtonUp((byte)key);
-            return;
+        VirtualKeyboardVkCode.VKCode vkCode = VirtualKeyboardVkCode.VKCode.Companion.fromCode((int)key);
+        switch (Objects.requireNonNull(vkCode)){
+            case VK_LBUTTON:
+                conn.sendMouseButtonUp(MouseButtonPacket.BUTTON_LEFT);
+                break;
+            case VK_RBUTTON:
+                conn.sendMouseButtonUp(MouseButtonPacket.BUTTON_RIGHT);
+                break;
+            case VK_MBUTTON:
+                conn.sendMouseButtonUp(MouseButtonPacket.BUTTON_MIDDLE);
+                break;
+            case VK_XBUTTON1:
+                conn.sendMouseButtonUp(MouseButtonPacket.BUTTON_X1);
+                break;
+            case VK_XBUTTON2:
+                conn.sendMouseButtonUp(MouseButtonPacket.BUTTON_X2);
+                break;
+            default:
+                conn.sendKeyboardInput(key, KeyboardPacket.KEY_UP, keyboardInputContext.modifier, (byte) 0);
         }
-        conn.sendKeyboardInput(key, KeyboardPacket.KEY_UP, keyboardInputContext.modifier, (byte) 0);
     }
 
     public void sendKeys(short[] keys) {

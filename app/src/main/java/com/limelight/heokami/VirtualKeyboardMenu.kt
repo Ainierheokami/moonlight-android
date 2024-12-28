@@ -429,6 +429,10 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
                         }
                         Log.d("buttonType", "点击了 JoyStick")
                     }
+                    VirtualKeyboardElement.ButtonType.TouchPad -> {
+                        selectedButtonType = VirtualKeyboardElement.ButtonType.TouchPad
+                        Log.d("buttonType", "点击了 TouchPad")
+                    }
                 }
             }
 
