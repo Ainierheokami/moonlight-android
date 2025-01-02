@@ -25,7 +25,7 @@ public class RelativeTouchContext implements TouchContext {
     private int maxPointerCountInGesture;
 
     private final NvConnection conn;
-    private int actionIndex;
+    private final int actionIndex;
     private final int referenceWidth;
     private final int referenceHeight;
     private final View targetView;

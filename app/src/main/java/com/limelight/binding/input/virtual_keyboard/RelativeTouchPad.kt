@@ -56,7 +56,7 @@ class RelativeTouchPad(
                         touchContext.touchDownEvent(eventX, eventY, event.eventTime, true)
                     }
                     MotionEvent.ACTION_UP, MotionEvent.ACTION_POINTER_UP -> {
-                        touchContext.touchUpEvent(eventX, eventY, event.eventTime);
+                        touchContext.touchUpEvent(eventX, eventY, event.eventTime)
                         for (aTouchContext in touchContextMap) {
                             aTouchContext?.setPointerCount(event.pointerCount - 1)
                         }
