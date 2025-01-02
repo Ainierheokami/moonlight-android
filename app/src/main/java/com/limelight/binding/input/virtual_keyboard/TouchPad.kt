@@ -70,7 +70,18 @@ open class TouchPad(
         val x = this.x + event.x
         val y = this.y + event.y
         Log.d("Touch", "index ${event.actionIndex} pointers ${event.pointerCount} x $x y $y")
+        when (event.actionMasked) {
+            MotionEvent.ACTION_DOWN, MotionEvent.ACTION_POINTER_DOWN -> {
+                setPressed(true)
+            }
+            MotionEvent.ACTION_UP, MotionEvent.ACTION_POINTER_UP -> {
+                if (event.pointerCount <= 1) {
+                    setPressed(false)
+                }
+            }
+        }
         listeners.forEach { it.onTouch(x,y,event) }
+        invalidate()
         return true
     }
 }

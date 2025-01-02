@@ -331,8 +331,4 @@ public class RelativeTouchContext implements TouchContext {
             maxPointerCountInGesture = pointerCount;
         }
     }
-
-    public void setActionIndex(int actionIndex){
-        this.actionIndex = actionIndex;
-    }
 }
