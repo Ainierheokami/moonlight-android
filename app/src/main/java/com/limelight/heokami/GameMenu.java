@@ -1,7 +1,11 @@
 package com.limelight.heokami;
 
 import android.app.AlertDialog;
+import android.content.ClipData;
+import android.content.ClipboardManager;
+import android.content.Context;
 import android.os.Handler;
+import android.os.Looper;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
 import android.widget.Toast;
@@ -131,6 +135,36 @@ public class GameMenu {
         runWithGameFocus(game::toggleKeyboard);
     }
 
+    public static CharSequence getClipboardContent(Game context, final int[] retryCount, final long[] retryDelay) {
+        ClipboardManager clipboard = (ClipboardManager) context.getSystemService(Context.CLIPBOARD_SERVICE);
+        ClipData clipData = clipboard.getPrimaryClip();
+
+        if (clipData != null && clipData.getItemCount() > 0) {
+            ClipData.Item item = clipData.getItemAt(0);
+            return item.getText();
+        } else if (retryCount[0] > 0) {
+            new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    retryCount[0]--;
+                    retryDelay[0] *= 2;
+                    getClipboardContent(context, retryCount, retryDelay);
+                }
+            }, retryDelay[0]);
+        }
+
+        return null;
+    }
+
+    public static String getClipboardContentAsString(Game context, final int[] retryCount, final long[] retryDelay) {
+        CharSequence charSequence = getClipboardContent(context, retryCount, retryDelay);
+        if (charSequence != null) {
+            return charSequence.toString(); // 转换为 String
+        } else {
+            return null; // 或者返回空字符串 ""，根据你的需求
+        }
+    }
+
     // 创建方法映射
     private Map<String, Runnable> createActionMap() {
         Map<String, Runnable> actionMap = new LinkedHashMap<>();
@@ -145,6 +179,9 @@ public class GameMenu {
         actionMap.put(game.getString(R.string.game_menu_hotkey_screen_keyboard), () -> sendKeys(new short[]{(short) VirtualKeyboardVkCode.VKCode.VK_LCONTROL.getCode(), (short) VirtualKeyboardVkCode.VKCode.VK_LWIN.getCode(), (short) VirtualKeyboardVkCode.VKCode.VK_O.getCode()}));
         actionMap.put(game.getString(R.string.game_menu_hotkey_ctrl_c), () -> sendKeys(new short[]{(short)VirtualKeyboardVkCode.VKCode.VK_LCONTROL.getCode(), (short)VirtualKeyboardVkCode.VKCode.VK_C.getCode()}));
         actionMap.put(game.getString(R.string.game_menu_hotkey_ctrl_v), () -> sendKeys(new short[]{(short)VirtualKeyboardVkCode.VKCode.VK_LCONTROL.getCode(), (short)VirtualKeyboardVkCode.VKCode.VK_V.getCode()}));
+        actionMap.put("输入粘贴板内容", () ->
+                conn.sendUtf8Text(getClipboardContentAsString(game, new int[]{3}, new long[]{30}))
+        );
         actionMap.put(game.getString(R.string.game_menu_hotkey_home), () -> sendKeys(new short[]{(short)VirtualKeyboardVkCode.VKCode.VK_LWIN.getCode(), (short)VirtualKeyboardVkCode.VKCode.VK_D.getCode()}));
 
         return actionMap;

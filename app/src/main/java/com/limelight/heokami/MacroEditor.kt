@@ -15,6 +15,9 @@ import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.Toast
 import androidx.appcompat.view.ContextThemeWrapper
+import androidx.recyclerview.widget.ItemTouchHelper
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.tabs.TabLayout
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
@@ -41,6 +44,10 @@ interface OnMacroDataChangedListener {
 
 fun getIndexByDisplayName(displayName: String): Int {
     return MacroType.entries.toTypedArray().indexOfFirst { it.displayName == displayName }
+}
+
+fun getDisplayNameByType(type: String): String {
+    return MacroType.entries.toTypedArray().find { it.toString() == type }?.displayName ?: ""
 }
 
 class MacroEditor(private val context: Context, private var jsonData: JSONObject, private val listener: OnMacroDataChangedListener?) {
@@ -109,52 +116,129 @@ class MacroEditor(private val context: Context, private var jsonData: JSONObject
         dialog.show()
     }
 
+    private lateinit var recyclerView: RecyclerView
+    private lateinit var macroAdapter: MacroAdapter
+
     @SuppressLint("SetTextI18n")
     private fun updateMacroDisplay(layout: LinearLayout, actions: MutableList<MacroAction>, dialog: AlertDialog) {
-        Log.d("MacroEditor", "更新显示: $actions")
         layout.removeAllViews() // 每次更新前先清空所有 View
-        actions.forEachIndexed { index, action ->
-            val horizontalLayout = LinearLayout(context).apply {
-                orientation = LinearLayout.HORIZONTAL
-            }
 
-            val editText = EditText(context).apply {
-                setText("Index: $index, Type: ${action.type}, Data: ${action.data}")
-                isFocusable = false // 不允许编辑，只用于展示
-                layoutParams = LinearLayout.LayoutParams(
-                    0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f
-                )
-            }
+        Log.d("MacroEditor", "更新显示: $actions")
 
-            val deleteButton = Button(context).apply {
-                text = context.getString(R.string.del_button)
-                setOnClickListener {
-                    actions.removeAt(index)
-                    updateMacroDisplay(layout, actions, dialog) // 重新绘制 UI
-                }
-                layoutParams = LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT
-                )
-            }
-            val editButton = Button(context).apply {
-                text = context.getString(R.string.edit_button)
-                setOnClickListener {
-                    showAddMacroDialog(index)
-                    dialog.dismiss()
-                }
-                layoutParams = LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT
-                )
-            }
-
-            horizontalLayout.addView(editText)
-            horizontalLayout.addView(editButton)
-            horizontalLayout.addView(deleteButton)
-            layout.addView(horizontalLayout)
+        recyclerView = RecyclerView(context).apply {
+            layoutManager = LinearLayoutManager(context)
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            )
+            layout.addView(this)
         }
+
+        macroAdapter = MacroAdapter(actions, dialog, ::showAddMacroDialog).apply {
+            recyclerView.adapter = this
+        }
+
+        ItemTouchHelper(object : ItemTouchHelper.Callback() {
+            override fun getMovementFlags(recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder): Int {
+                val dragFlags = ItemTouchHelper.UP or ItemTouchHelper.DOWN
+                return makeMovementFlags(dragFlags, 0)
+            }
+
+            override fun onMove(recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder, target: RecyclerView.ViewHolder): Boolean {
+                val fromPosition = viewHolder.adapterPosition
+                val toPosition = target.adapterPosition
+                macroAdapter.onItemMove(fromPosition, toPosition)
+                return true
+            }
+
+            override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
+                // 不需要滑动删除
+            }
+
+//            override fun onChildDraw(c: Canvas, recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder, dX: Float, dY: Float, actionState: Int, isCurrentlyActive: Boolean) {
+//                super.onChildDraw(c, recyclerView, viewHolder, dX, dY, actionState, isCurrentlyActive)
+//            }
+        }).apply {
+            attachToRecyclerView(recyclerView)
+        }
+        macroAdapter.submitList(actions.toList())
     }
 
-    private var quickKeyDownAndUp = true
+//    @SuppressLint("SetTextI18n")
+//    private fun updateMacroDisplay(layout: LinearLayout, actions: MutableList<MacroAction>, dialog: AlertDialog) {
+//        Log.d("MacroEditor", "更新显示: $actions")
+//        layout.removeAllViews() // 每次更新前先清空所有 View
+//        actions.forEachIndexed { index, action ->
+//            val horizontalLayout = LinearLayout(context).apply {
+//                orientation = LinearLayout.HORIZONTAL
+//            }
+//
+//            val editText = EditText(context).apply {
+//                setText("Index: $index, Type: ${action.type}, Data: ${action.data}")
+//                isFocusable = false // 不允许编辑，只用于展示
+//                layoutParams = LinearLayout.LayoutParams(
+//                    0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f
+//                )
+//            }
+//
+//            val deleteButton = Button(context).apply {
+//                text = context.getString(R.string.del_button)
+//                setOnClickListener {
+//                    actions.removeAt(index)
+//                    updateMacroDisplay(layout, actions, dialog) // 重新绘制 UI
+//                }
+//                layoutParams = LinearLayout.LayoutParams(
+//                    LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT
+//                )
+//            }
+//            val editButton = Button(context).apply {
+//                text = context.getString(R.string.edit_button)
+//                setOnClickListener {
+//                    showAddMacroDialog(index)
+//                    dialog.dismiss()
+//                }
+//                layoutParams = LinearLayout.LayoutParams(
+//                    LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT
+//                )
+//            }
+//
+//            horizontalLayout.addView(editText)
+//            horizontalLayout.addView(editButton)
+//            horizontalLayout.addView(deleteButton)
+//            layout.addView(horizontalLayout)
+//        }
+//    }
+
+    private fun hotKeyMacro() {
+        // 将macroActions重新排序使全部按键先按下，并延迟35后释放
+        val keyDownActions = mutableListOf<MacroAction>()
+        val keyUpActions = mutableListOf<MacroAction>()
+        val hotKeyActions = mutableListOf<MacroAction>()
+
+        for (action in macroActions) {
+            when (action.type) {
+                MacroType.KEY_DOWN.toString() -> {
+                    keyDownActions.add(action)
+                }
+                MacroType.KEY_UP.toString() -> {
+                    keyUpActions.add(action)
+                }
+            }
+        }
+
+        // keyup 倒序
+        keyUpActions.reverse()
+
+        hotKeyActions.addAll(keyDownActions)
+        hotKeyActions.add(MacroAction(MacroType.SLEEP.toString(), 35))
+        hotKeyActions.addAll(keyUpActions)
+
+        macroActions.clear()
+        macroActions.addAll(hotKeyActions)
+    }
+
+    private var fastKeyDownAndUp = true
+    private var fastHotKey = !fastKeyDownAndUp
 
     @SuppressLint("SetTextI18n")
     private fun showAddMacroDialog(index: Int = -1) {
@@ -163,13 +247,35 @@ class MacroEditor(private val context: Context, private var jsonData: JSONObject
 
         var macroType = MacroType.KEY_UP
 
-        val checkBox = CheckBox(context).apply {
+        val fastKeyDownUpCheckBox = CheckBox(context).apply {
             text = "快速添加按下松开按键"
-            isChecked = quickKeyDownAndUp
+            isChecked = fastKeyDownAndUp
         }
-        checkBox.setOnClickListener {
-            quickKeyDownAndUp = !quickKeyDownAndUp
-            checkBox.isChecked = quickKeyDownAndUp
+
+        val fastHotKeyCheckBox = CheckBox(context).apply {
+            text = "快速添加快捷键"
+            isChecked = fastHotKey
+        }
+
+        fastKeyDownUpCheckBox.setOnClickListener {
+            fastKeyDownAndUp = !fastKeyDownAndUp
+            fastKeyDownUpCheckBox.isChecked = fastKeyDownAndUp
+            // close fastHotKey
+            if (fastKeyDownAndUp){
+                fastHotKey = false
+                fastHotKeyCheckBox.isChecked = fastHotKey
+            }
+
+        }
+
+        fastHotKeyCheckBox.setOnClickListener {
+            fastHotKey = !fastHotKey
+            fastHotKeyCheckBox.isChecked = fastHotKey
+            // close fastKeyDownAndUp
+            if (fastHotKey){
+                fastKeyDownAndUp = false
+                fastKeyDownUpCheckBox.isChecked = fastKeyDownAndUp
+            }
         }
 
         val linearLayout = LinearLayout(context).apply {
@@ -227,17 +333,20 @@ class MacroEditor(private val context: Context, private var jsonData: JSONObject
                     macroType = MacroType.entries.toTypedArray()[tab.position]
                     when(macroType){
                         MacroType.KEY_UP -> {
-                            checkBox.visibility = View.VISIBLE
+                            fastKeyDownUpCheckBox.visibility = View.VISIBLE
+                            fastHotKeyCheckBox.visibility = View.VISIBLE
                             vkButton.visibility = View.VISIBLE
                             idButton.visibility = View.GONE
                         }
                         MacroType.KEY_DOWN -> {
-                            checkBox.visibility = View.VISIBLE
+                            fastKeyDownUpCheckBox.visibility = View.VISIBLE
+                            fastHotKeyCheckBox.visibility = View.VISIBLE
                             vkButton.visibility = View.VISIBLE
                             idButton.visibility = View.GONE
                         }
                         MacroType.KEY_TOGGLE -> {
-                            checkBox.visibility = View.GONE
+                            fastKeyDownUpCheckBox.visibility = View.GONE
+                            fastHotKeyCheckBox.visibility = View.GONE
                             vkButton.visibility = View.GONE
                             idButton.visibility = View.VISIBLE
                             idButton.setOnClickListener {
@@ -245,7 +354,8 @@ class MacroEditor(private val context: Context, private var jsonData: JSONObject
                             }
                         }
                         MacroType.KEY_TOGGLE_GROUP -> {
-                            checkBox.visibility = View.GONE
+                            fastKeyDownUpCheckBox.visibility = View.GONE
+                            fastHotKeyCheckBox.visibility = View.GONE
                             vkButton.visibility = View.GONE
                             idButton.visibility = View.VISIBLE
                             idButton.setOnClickListener {
@@ -253,12 +363,14 @@ class MacroEditor(private val context: Context, private var jsonData: JSONObject
                             }
                         }
                         else -> {
-                            checkBox.visibility = View.GONE
+                            fastKeyDownUpCheckBox.visibility = View.GONE
+                            fastHotKeyCheckBox.visibility = View.GONE
                             vkButton.visibility = View.GONE
                             idButton.visibility = View.GONE
                         }
                     }
-                    checkBox.invalidate()
+                    fastKeyDownUpCheckBox.invalidate()
+                    fastHotKeyCheckBox.invalidate()
                 }
             }
 
@@ -285,7 +397,8 @@ class MacroEditor(private val context: Context, private var jsonData: JSONObject
             tabLayout.selectTab(tabLayout.getTabAt(getIndexByDisplayName(macroActions[index].type)))
             macroType = MacroType.valueOf(macroActions[index].type)
         }else{
-            layout.addView(checkBox)
+            layout.addView(fastKeyDownUpCheckBox)
+            layout.addView(fastHotKeyCheckBox)
         }
 
         builder.setPositiveButton(context.getString(R.string.confirm_button)) { _, _ ->
@@ -294,10 +407,15 @@ class MacroEditor(private val context: Context, private var jsonData: JSONObject
             if (type.isNotBlank()){
                 Log.d("MacroEditor", "添加宏操作前: $macroActions")
                 if(index == -1){
-                    if (quickKeyDownAndUp && checkBox.visibility == View.VISIBLE){
+                    if (fastKeyDownAndUp && fastKeyDownUpCheckBox.visibility == View.VISIBLE){
                         macroActions.add(MacroAction(MacroType.KEY_DOWN.toString(), data))
                         macroActions.add(MacroAction(MacroType.KEY_UP.toString(), data))
-                    }else{
+                    }else if(fastHotKey && fastHotKeyCheckBox.visibility == View.VISIBLE){
+                        macroActions.add(MacroAction(MacroType.KEY_DOWN.toString(), data))
+                        macroActions.add(MacroAction(MacroType.KEY_UP.toString(), data))
+                        hotKeyMacro()
+                    }
+                    else{
                         macroActions.add(MacroAction(type, data))
                     }
                 }else{

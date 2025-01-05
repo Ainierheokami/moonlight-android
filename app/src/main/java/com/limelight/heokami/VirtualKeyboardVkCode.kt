@@ -1,7 +1,6 @@
 package com.limelight.heokami
 
 import com.limelight.nvstream.input.KeyboardPacket
-import com.limelight.nvstream.input.ControllerPacket
 
 object VirtualKeyboardVkCode {
     enum class VKCode(val code: Int) {
@@ -61,6 +60,18 @@ object VirtualKeyboardVkCode {
         VK_X(0x58),
         VK_Y(0x59),
         VK_Z(0x5A),
+
+        // 0~9
+        VK_0(0x30),
+        VK_1(0x31),
+        VK_2(0x32),
+        VK_3(0x33),
+        VK_4(0x34),
+        VK_5(0x35),
+        VK_6(0x36),
+        VK_7(0x37),
+        VK_8(0x38),
+        VK_9(0x39),
 
         // 特殊标点
         VK_OEM_1(0xBA), // ;:
@@ -159,7 +170,7 @@ object VirtualKeyboardVkCode {
             VKCode.VK_LWIN.code.toShort(), VKCode.VK_RWIN.code.toShort() -> KeyboardPacket.MODIFIER_META
             else -> 0
         }
-        return modifierMask.toByte()
+        return modifierMask
     }
 
     fun replaceVkName(text:String): String{
@@ -184,6 +195,8 @@ object VirtualKeyboardVkCode {
         newText = newText.replace("RMENU","RALT")
         newText = newText.replace("RBUTTON","RMOUSE")
         newText = newText.replace("LBUTTON","LMOUSE")
+        newText = newText.replace("LCONTROL","LCTRL")
+        newText = newText.replace("RCONTROL","RCTRL")
         newText = newText.replace("OEM_PLUS","+")
         newText = newText.replace("OEM_COMMA",",")
         newText = newText.replace("OEM_MINUS","-")
@@ -197,6 +210,16 @@ object VirtualKeyboardVkCode {
         newText = newText.replace("OEM_6","]}")
         newText = newText.replace("OEM_7","'")
         return newText
+    }
+
+    fun getVKNameByCode(vkCode: Int): String {
+        val vkCodeEnum = VKCode.fromCode(vkCode)
+        return replaceVkName(vkCodeEnum?.name ?: "Unknown")
+    }
+
+    fun getJoyNameByCode(joyCode: String): String {
+        val joyCodeEnum = JoyCode.entries.find { it.code == joyCode }
+        return replaceVkName(joyCodeEnum?.name ?: "Unknown")
     }
 
 //    enum class KeyType(val code: Int) {

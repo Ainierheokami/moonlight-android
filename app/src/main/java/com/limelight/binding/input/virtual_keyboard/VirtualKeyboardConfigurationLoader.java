@@ -352,14 +352,10 @@ public class VirtualKeyboardConfigurationLoader {
                                      int elementWidth,
                                      int elementHeight
     ) throws JSONException {
-        DisplayMetrics screen = context.getResources().getDisplayMetrics();
         PreferenceConfiguration config = PreferenceConfiguration.readPreferences(context);
-
-        int rightDisplacement = screen.widthPixels - screen.heightPixels * 16 / 9;
-
-        int height = screen.heightPixels;
         Integer lastElementId = virtualKeyboard.getLastElementId();
-        if (elementId <= lastElementId){
+
+        if (Objects.equals(elementId, lastElementId)){
             elementId = lastElementId + 1;
         }
 
@@ -617,30 +613,32 @@ public class VirtualKeyboardConfigurationLoader {
             for (Map.Entry<String, Object> entry : sortedKeys.entrySet()) {
                 String elementId = entry.getKey();
                 String jsonConfig = (String) entry.getValue();
-                Log.d("heokami", "elementId: "+ elementId + " jsonConfig: "+ jsonConfig);
-                if (jsonConfig != null){
-                    JSONObject json = new JSONObject(jsonConfig);
-                    Log.d("heokami", " elementId:" + elementId + " buttonName:" + json.getString("TEXT") + " vk_code:" + json.getString("VK_CODE"));
-                    addButton(
-                            virtualKeyboard,
-                            context,
-                            Integer.parseInt(elementId),
-                            json.getString("VK_CODE"),
-                            json.getString("TEXT"),
-                            VirtualKeyboardElement.ButtonType.valueOf(json.getString("TYPE")),
-                            json.getJSONObject("BUTTON_DATA")
-                    );
-                    Log.d("heokami", "addButton -> "+ elementId);
-                    // 重新加载配置
-                    virtualKeyboard.getElementByElementId(Integer.parseInt(elementId)).loadConfiguration(json);
+                try {
+                    Log.d("heokami", "elementId: "+ elementId + " jsonConfig: "+ jsonConfig);
+                    if (jsonConfig != null){
+                        JSONObject json = new JSONObject(jsonConfig);
+                        Log.d("heokami", " elementId:" + elementId + " buttonName:" + json.getString("TEXT") + " vk_code:" + json.getString("VK_CODE"));
+                        addButton(
+                                virtualKeyboard,
+                                context,
+                                Integer.parseInt(elementId),
+                                json.getString("VK_CODE"),
+                                json.getString("TEXT"),
+                                VirtualKeyboardElement.ButtonType.valueOf(json.getString("TYPE")),
+                                json.getJSONObject("BUTTON_DATA")
+                        );
+                        Log.d("heokami", "addButton -> "+ elementId);
+                        // 重新加载配置
+                        virtualKeyboard.getElementByElementId(Integer.parseInt(elementId)).loadConfiguration(json);
+                    }
+                }catch (Exception e){
+                    Toast.makeText(context, String.format("elementId %s 载入异常", elementId) + e.getMessage(), Toast.LENGTH_SHORT).show();
+                    Log.e("heokami", String.format("elementId %s 载入异常 \n Json: %s", elementId, jsonConfig), e);
+
+                    Log.e("heokami", e.toString(), e);
                 }
             }
-        }catch (JSONException e) {
-            Log.d("heokami", e.toString(), e);
-            Toast.makeText(context, "JSONException" + e.getMessage(), Toast.LENGTH_SHORT).show();
-            // 报错则还原默认
-            virtualKeyboard.loadDefaultLayout();
-        }catch (Exception e) {
+        } catch (Exception e) {
             Toast.makeText(context, "载入异常，清空配置文件" + e.getMessage(), Toast.LENGTH_SHORT).show();
             Log.e("heokami", e.toString(), e);
             // 报错则还原默认

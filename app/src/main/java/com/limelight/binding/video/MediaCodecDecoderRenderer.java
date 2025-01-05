@@ -1491,9 +1491,9 @@ public class MediaCodecDecoderRenderer extends VideoDecoderRenderer implements C
                     perfListener.onPerfUpdate(sb.toString());
                 }
                 else if (prefs.enableSimplifyPerfOverlay){
-                    SharedPreferences simplifyTemplatePerfs = PreferenceManager.getDefaultSharedPreferences(context);
+                    SharedPreferences simplifyTemplatePrefs = PreferenceManager.getDefaultSharedPreferences(context);
 //                    String template = "FPS:@data1 解码:@data2 延迟:@data3 处理:@data4 丢包:@data5";
-                    String template = simplifyTemplatePerfs.getString(PreferenceConfiguration.EDITTEXT_SIMPLE_PERF_OVERLAY_PREF_STRING, PreferenceConfiguration.DEFAULT_EDITTEXT_SIMPLE_PERF_OVERLAY_PREF);
+                    String template = simplifyTemplatePrefs.getString(PreferenceConfiguration.EDITTEXT_SIMPLE_PERF_OVERLAY_PREF_STRING, PreferenceConfiguration.DEFAULT_EDITTEXT_SIMPLE_PERF_OVERLAY_PREF);
 
                     // 计算当前流量速率
                     long currentTimeMs = System.currentTimeMillis();
@@ -1529,13 +1529,13 @@ public class MediaCodecDecoderRenderer extends VideoDecoderRenderer implements C
                     data.put("@data5", String.format(Locale.getDefault(),"%1$.2f%%", (float)lastTwo.framesLost / lastTwo.totalFrames * 100));
                     data.put("@data6", String.format(Locale.getDefault(), "%.2fMB/s", inputRateMBps)); // 输入流量速率
                     data.put("@data7", String.format(Locale.getDefault(), "%.2fMB/s", outputRateMBps)); // 输出流量速率
-                    data.put("@data8", String.format(Locale.getDefault(), "%.2fMB/s", simplifyTemplatePerfs.getFloat("audio_input_rate", (float) 0)));
-                    data.put("@data9", String.format(Locale.getDefault(), "%.2fMB/s", simplifyTemplatePerfs.getFloat("audio_output_rate", (float) 0)));
+                    data.put("@data8", String.format(Locale.getDefault(), "%.2fMB/s", simplifyTemplatePrefs.getFloat("audio_input_rate", (float) 0)));
+                    data.put("@data9", String.format(Locale.getDefault(), "%.2fMB/s", simplifyTemplatePrefs.getFloat("audio_output_rate", (float) 0)));
                     data.put("@data10", String.format(Locale.getDefault(), "%.2fMB/s",
                             inputRateMBps
                                     + outputRateMBps
-                                    + simplifyTemplatePerfs.getFloat("audio_input_rate", (float) 0)
-                                    + simplifyTemplatePerfs.getFloat("audio_output_rate", (float) 0)
+                                    + simplifyTemplatePrefs.getFloat("audio_input_rate", (float) 0)
+                                    + simplifyTemplatePrefs.getFloat("audio_output_rate", (float) 0)
                     ));
                     data.put("@data11", String.format(Locale.getDefault(), "%.2fMB/s", relinputRateMBps)); // 真实输入流量速率);
                     data.put("@data12", String.format(Locale.getDefault(), "%.2fMB/s", reloutputRateMBps)); // 真实输出流量速率);
