@@ -161,7 +161,7 @@ public class GameMenu {
         if (charSequence != null) {
             return charSequence.toString(); // 转换为 String
         } else {
-            return null; // 或者返回空字符串 ""，根据你的需求
+            return ""; // 或者返回空字符串 ""
         }
     }
 

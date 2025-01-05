@@ -222,7 +222,13 @@ public class VirtualKeyboard {
 
     public Integer getLastElementId() {
         if (!elements.isEmpty()) {
-            return elements.get(elements.size() - 1).elementId;
+            int maxElementId = 0;
+            for (VirtualKeyboardElement element : elements) {
+                if (element.elementId > maxElementId) {
+                    maxElementId = element.elementId;
+                }
+            }
+            return maxElementId;
         }
         return 0;
     }
