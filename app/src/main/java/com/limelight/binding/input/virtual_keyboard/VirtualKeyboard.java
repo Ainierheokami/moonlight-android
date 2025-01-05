@@ -60,6 +60,8 @@ public class VirtualKeyboard {
     public List<String> historyElements = new ArrayList<>();
     public int historyIndex = 0;
 
+    public boolean groupMove = false;
+
     public VirtualKeyboard(ControllerHandler controllerHandler, NvConnection conn, FrameLayout layout, final Game context) {
         this.controllerHandler = controllerHandler;
         this.conn = conn;

@@ -570,7 +570,7 @@ public class VirtualKeyboardConfigurationLoader {
                     element.text,
                     element.buttonType,
                     element.buttonData,
-                    element.getLeftMargin(),
+                    element.getLeftMargin() + 10,
                     element.getTopMargin(),
                     element.getWidth(),
                     element.getHeight()

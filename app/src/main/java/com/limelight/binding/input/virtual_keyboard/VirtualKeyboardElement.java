@@ -106,7 +106,7 @@ public abstract class VirtualKeyboardElement extends View {
     }
 
     protected void moveGroupElement(int pressed_x, int pressed_y, int x, int y) {
-        if (currentMode != Mode.Move) {
+        if (currentMode != Mode.Move || !virtualKeyboard.groupMove) {
             return;
         }
         for (VirtualKeyboardElement element : virtualKeyboard.getElements()) {

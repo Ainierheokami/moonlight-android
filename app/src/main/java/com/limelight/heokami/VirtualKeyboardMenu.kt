@@ -509,6 +509,7 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
                 text = context.getString(R.string.virtual_keyboard_menu_copy_button)
                 setOnClickListener {
                     VirtualKeyboardConfigurationLoader.copyButton(virtualKeyboard, element, context)
+                    game?.postNotification("复制按钮: \n" + element?.elementId, 300)
                 }
                 Log.d("vk", "复制按钮"+ element?.leftMargin+","+element?.topMargin+","+element?.width+","+element?.height)
             })
@@ -640,6 +641,9 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
         }
         actionMap[context.getString(R.string.menu_title_grid_lines)] = {
             showGridLinesDialog()
+        }
+        actionMap["编组移动"] = {
+            virtualKeyboard.groupMove = !virtualKeyboard.groupMove
         }
         actionMap[context.getString(R.string.virtual_keyboard_menu_save_profile)] = {
             VirtualKeyboardConfigurationLoader.saveProfile(virtualKeyboard, context)
