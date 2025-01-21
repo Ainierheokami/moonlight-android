@@ -275,7 +275,7 @@ public class StreamSettings extends Activity {
         // 2024-11-22 10:35:43 显示精简信息模板设置
         private void showSimplifyPerfOverlayPref(SharedPreferences prefs) {
             Context context = getActivity(); // 或者如果是 AndroidX：getContext()
-            String template = prefs.getString(PreferenceConfiguration.EDITTEXT_SIMPLE_PERF_OVERLAY_PREF_STRING, PreferenceConfiguration.DEFAULT_EDITTEXT_SIMPLE_PERF_OVERLAY_PREF);
+            String template = prefs.getString(PreferenceConfiguration.EDITTEXT_SIMPLE_PERF_OVERLAY_PREF_STRING, context.getString(R.string.default_template_simple_perf_overlay));
 
             // 创建一个带滚动的对话框布局
             ScrollView scrollView = new ScrollView(context);
@@ -294,8 +294,12 @@ public class StreamSettings extends Activity {
 
             // 添加说明文本
             TextView instructionText = new TextView(context);
-            instructionText.setText(String.format(context.getString(R.string.instruction_text_simple_perf_overlay)
-                    , PreferenceConfiguration.DEFAULT_EDITTEXT_SIMPLE_PERF_OVERLAY_PREF));
+            instructionText.setText(
+                    String.format(
+                        context.getString(R.string.instruction_text_simple_perf_overlay),
+                        context.getString(R.string.default_template_simple_perf_overlay)
+                    )
+            );
             instructionText.setPadding(32, 16, 32, 16); // 增加左右内边距
             layout.addView(instructionText);
 
@@ -303,17 +307,18 @@ public class StreamSettings extends Activity {
             final EditText input = new EditText(context);
             input.setText(template);
             input.setHint("请输入文本");
-            input.setMinLines(3);
-            input.setMaxLines(5);
-            input.setGravity(Gravity.TOP);
-            input.setPadding(32, 8, 32, 8); // 增加左右内边距
+            input.setPadding(32, input.getPaddingTop(), 32, input.getPaddingBottom()); // 增加左右内边距
+//            input.setMinLines(3);
+//            input.setMaxLines(5);
+//            input.setGravity(Gravity.TOP);
+
 
             // 设置 EditText 的布局参数
-            LinearLayout.LayoutParams editTextParams = new LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.MATCH_PARENT,
-                    LinearLayout.LayoutParams.WRAP_CONTENT);
-            editTextParams.setMargins(32, 0, 32, 16); // 设置左右外边距
-            input.setLayoutParams(editTextParams);
+//            LinearLayout.LayoutParams editTextParams = new LinearLayout.LayoutParams(
+//                    LinearLayout.LayoutParams.WRAP_CONTENT,
+//                    LinearLayout.LayoutParams.WRAP_CONTENT);
+//            editTextParams.setMargins(0, 0, 0, 16); // 设置左右外边距
+//            input.setLayoutParams(editTextParams);
             layout.addView(input);
 
             // 将主布局添加到滚动视图中
@@ -327,7 +332,7 @@ public class StreamSettings extends Activity {
                     .setPositiveButton(context.getString(R.string.default_button), (dialogInterface, which) -> {
                         prefs.edit()
                                 .putString(PreferenceConfiguration.EDITTEXT_SIMPLE_PERF_OVERLAY_PREF_STRING,
-                                        PreferenceConfiguration.DEFAULT_EDITTEXT_SIMPLE_PERF_OVERLAY_PREF)
+                                        context.getString(R.string.default_template_simple_perf_overlay))
                                 .apply();
                     })
                     .setNeutralButton(context.getString(R.string.confirm_button), (dialogInterface, which) -> {
@@ -345,22 +350,22 @@ public class StreamSettings extends Activity {
             dialog.setCanceledOnTouchOutside(true);
 
             // 设置对话框的最大高度（可选，防止对话框太长）
-            dialog.setOnShowListener(dialogInterface -> {
-                // 获取屏幕高度
-                WindowManager windowManager = (WindowManager) context.getSystemService(Context.WINDOW_SERVICE);
-                DisplayMetrics metrics = new DisplayMetrics();
-                windowManager.getDefaultDisplay().getMetrics(metrics);
-
-                // 设置对话框最大高度为屏幕高度的80%
-                int maxHeight = (int) (metrics.heightPixels * 0.8);
-
-                // 获取对话框窗口并设置最大高度
-                Window window = dialog.getWindow();
-                if (window != null) {
-                    window.setLayout(WindowManager.LayoutParams.MATCH_PARENT,
-                            Math.min(scrollView.getHeight(), maxHeight));
-                }
-            });
+//            dialog.setOnShowListener(dialogInterface -> {
+//                // 获取屏幕高度
+//                WindowManager windowManager = (WindowManager) context.getSystemService(Context.WINDOW_SERVICE);
+//                DisplayMetrics metrics = new DisplayMetrics();
+//                windowManager.getDefaultDisplay().getMetrics(metrics);
+//
+//                // 设置对话框最大高度为屏幕高度的80%
+//                int maxHeight = (int) (metrics.heightPixels * 0.8);
+//
+//                // 获取对话框窗口并设置最大高度
+//                Window window = dialog.getWindow();
+//                if (window != null) {
+//                    window.setLayout(WindowManager.LayoutParams.MATCH_PARENT,
+//                            Math.min(scrollView.getHeight(), maxHeight));
+//                }
+//            });
 
             // 显示对话框
             dialog.show();

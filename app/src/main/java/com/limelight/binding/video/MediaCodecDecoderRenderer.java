@@ -1493,7 +1493,7 @@ public class MediaCodecDecoderRenderer extends VideoDecoderRenderer implements C
                 else if (prefs.enableSimplifyPerfOverlay){
                     SharedPreferences simplifyTemplatePrefs = PreferenceManager.getDefaultSharedPreferences(context);
 //                    String template = "FPS:@data1 解码:@data2 延迟:@data3 处理:@data4 丢包:@data5";
-                    String template = simplifyTemplatePrefs.getString(PreferenceConfiguration.EDITTEXT_SIMPLE_PERF_OVERLAY_PREF_STRING, PreferenceConfiguration.DEFAULT_EDITTEXT_SIMPLE_PERF_OVERLAY_PREF);
+                    String template = simplifyTemplatePrefs.getString(PreferenceConfiguration.EDITTEXT_SIMPLE_PERF_OVERLAY_PREF_STRING, context.getString(R.string.default_template_simple_perf_overlay));
 
                     // 计算当前流量速率
                     long currentTimeMs = System.currentTimeMillis();

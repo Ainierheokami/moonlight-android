@@ -44,10 +44,10 @@ public abstract class VirtualKeyboardElement extends View {
 
     public int normalColor = 0xF0888888;
     public int pressedColor = 0xF00000FF;
-    private int configMoveColor = 0xF0FF0000;
-    private int configResizeColor = 0xF0FF00FF;
-    private int configSettingsColor = 0xF090e494;
-    private int configSelectedColor = 0xF000FF00;
+    private final int configMoveColor = 0xF0FF0000;
+    private final int configResizeColor = 0xF0FF00FF;
+    private final int configSettingsColor = 0xF090e494;
+    private final int configSelectedColor = 0xF000FF00;
 
     protected int startSize_x;
     protected int startSize_y;

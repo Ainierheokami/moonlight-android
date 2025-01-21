@@ -7,6 +7,7 @@ import android.os.Build;
 import android.preference.PreferenceManager;
 import android.view.Display;
 
+import com.limelight.R;
 import com.limelight.nvstream.jni.MoonBridge;
 
 public class PreferenceConfiguration {
@@ -166,8 +167,6 @@ public class PreferenceConfiguration {
     public boolean gamepadMotionSensorsFallbackToDevice;
 
     public String simplifyPerfOverlayPrefTemplate;
-
-    public static final String DEFAULT_EDITTEXT_SIMPLE_PERF_OVERLAY_PREF = "FPS:@data1 解码:@data2 延迟:@data3 处理:@data4 丢包:@data5 流量:@data11";
 
     // 多点触摸配置
     private static final String MULTITOUCH_SCREEN_PREF_STRING = "checkbox_multitouch_screen";
@@ -632,7 +631,7 @@ public class PreferenceConfiguration {
         config.gamepadTouchpadAsMouse = prefs.getBoolean(GAMEPAD_TOUCHPAD_AS_MOUSE_PREF_STRING, DEFAULT_GAMEPAD_TOUCHPAD_AS_MOUSE);
         config.gamepadMotionSensors = prefs.getBoolean(GAMEPAD_MOTION_SENSORS_PREF_STRING, DEFAULT_GAMEPAD_MOTION_SENSORS);
         config.gamepadMotionSensorsFallbackToDevice = prefs.getBoolean(GAMEPAD_MOTION_FALLBACK_PREF_STRING, DEFAULT_GAMEPAD_MOTION_FALLBACK);
-        config.simplifyPerfOverlayPrefTemplate = prefs.getString(EDITTEXT_SIMPLE_PERF_OVERLAY_PREF_STRING, DEFAULT_EDITTEXT_SIMPLE_PERF_OVERLAY_PREF);
+        config.simplifyPerfOverlayPrefTemplate = prefs.getString(EDITTEXT_SIMPLE_PERF_OVERLAY_PREF_STRING, context.getString(R.string.default_template_simple_perf_overlay));
         config.multiTouchScreen = prefs.getBoolean(MULTITOUCH_SCREEN_PREF_STRING, DEFAULT_MULTITOUCH_SCREEN);
         config.enableGridLayout = prefs.getBoolean(ENABLE_GRID_LAYOUT_PREF_STRING, DEFAULT_ENABLE_GRID_LAYOUT);
         config.enableGroupMove = prefs.getBoolean(ENABLE_GROUP_MOVE_PREF_STRING, DEFAULT_ENABLE_GROUP_MOVE);

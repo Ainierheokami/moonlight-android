@@ -2875,28 +2875,32 @@ public class Game extends Activity implements SurfaceHolder.Callback,
             touchMode = 0;
         }
 
-        switch (touchMode){
+        changeTouchMode(touchMode);
+
+        touchMode = (touchMode + 1) % 3;
+
+    }
+
+    public void changeTouchMode(int mode){
+        switch (mode){
             case 0:
                 prefConfig.multiTouchScreen = true;
                 prefConfig.touchscreenTrackpad = false;
-//                Toast.makeText(this, "切换为多点触摸模式", Toast.LENGTH_SHORT).show();
                 postNotification("切换为多点触摸模式", 2000);
 
                 break;
             case 1:
                 prefConfig.multiTouchScreen = false;
                 prefConfig.touchscreenTrackpad = true;
-//                Toast.makeText(this, "切换为触摸板模式", Toast.LENGTH_SHORT).show();
                 postNotification("切换为触摸板模式", 2000);
                 break;
             default:
                 prefConfig.multiTouchScreen = false;
                 prefConfig.touchscreenTrackpad = false;
-//                Toast.makeText(this, "切换为绝对定位模式", Toast.LENGTH_SHORT).show();
                 postNotification("切换为绝对定位模式", 2000);
                 break;
         }
-        touchMode = (touchMode + 1) % 3;
+
         for (int i = 0; i < touchContextMap.length; i++) {
             if (!prefConfig.touchscreenTrackpad) {
                 touchContextMap[i] = new AbsoluteTouchContext(conn, i, streamView);

@@ -41,6 +41,12 @@ class MacroAdapter(private val actions: MutableList<MacroAction>, private val di
             MacroType.KEY_TOGGLE.toString() -> dataText = "按键id ${action.data}"
             MacroType.KEY_TOGGLE_GROUP.toString() -> dataText = "组id ${action.data}"
             MacroType.SLEEP.toString() -> dataText = "${action.data}ms"
+            MacroType.TOUCH_TOGGLE.toString() ->
+                when(action.data){
+                    0 -> dataText = "触摸屏模式"
+                    1 -> dataText = "触摸板模式"
+                    2 -> dataText = "鼠标模式"
+                }
         }
 
         holder.editText.setText("Index: $position, Type: ${typeText}, Data: $dataText")

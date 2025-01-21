@@ -305,7 +305,7 @@
     <string name="analogscroll_left">Left analog stick</string>
     <string name="title_edittext_simple_perf_overlay">Edit simplify performance display templates</string>
     <string name="summary_edittext_simple_perf_overlay">Click edit to simplify performance template</string>
-    <string name="template_simple_perf_overlay">FPS:@data1 decode:@data2 ping:@data3 time:@data4 loss:@data5 Traffic:@data11</string>
+    <string name="default_template_simple_perf_overlay">\@data13 @data2 FPS:@data1 Encoding/decoding:@data4 Delay:@data3 Loss:@data5 Traffic:@data11</string>
     <string name="game_menu_disconnect">Disconnect</string>
     <string name="game_menu_change_touch">Switch to touch mode</string>
     <string name="game_menu_enable_keyboard" >Enable Input Method</string>
@@ -357,7 +357,7 @@
     <string name="virtual_keyboard_menu_opacity_hint">Opacity</string>
     <string name="virtual_keyboard_menu_pressed_color_hint">Pressed button color</string>
     <string name="virtual_keyboard_menu_normal_color_hint">Normal button color</string>
-    <string name="instruction_text_simple_perf_overlay">Default Template: %s\n\nBrief Description:\n\nFPS: @data1 (Frames Per Second)\nDecoding Algorithm: @data2\nAverage Connection Latency: @data3\nProcessing Latency (Avg. Encoding / Avg. Decoding): @data4\nPacket Loss: @data5\nVideo Download Speed: @data6 (Actual)\nVideo Upload Speed: @data7 (Not Applicable/N/A)\nAudio Download Speed: @data8 (Estimated)\nAudio Upload Speed: @data9 (Estimated)\nTotal Speed: @data10 (Estimated)\nActual Download Speed: @data11\nActual Upload Speed: @data12\nResolution: @data13</string>
+    <string name="instruction_text_simple_perf_overlay">Default Template:  %s --------- Brief Description: FPS: @data1 (Frames Per Second) Decoding Algorithm: @data2 Average Connection Latency: @data3 Processing Latency (Avg. Encoding / Avg. Decoding): @data4 Packet Loss: @data5 Video Download Speed: @data6 (Actual) Video Upload Speed: @data7 (Not Applicable/N/A) Audio Download Speed: @data8 (Estimated) Audio Upload Speed: @data9 (Estimated) Total Speed: @data10 (Estimated) Actual Download Speed: @data11 Actual Upload Speed: @data12 Resolution: @data13</string>
     <string name="edit_button">Edit</string>
     <string name="del_button">Delete</string>
     <string name="macro_editor_add_button">Add Macro</string>

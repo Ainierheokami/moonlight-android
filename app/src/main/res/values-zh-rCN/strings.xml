@@ -291,7 +291,7 @@
     <string name="title_checkbox_center_video">将画面全屏居中显示(忽略挖孔屏)</string>
     <string name="title_edittext_simple_perf_overlay">编辑精简性能显示模板</string>
     <string name="summary_edittext_simple_perf_overlay">点击编辑精简性能模板</string>
-    <string name="template_simple_perf_overlay">FPS:@data1 解码:@data2 延迟:@data3 处理:@data4 丢包:@data5 流量:@data11</string>
+    <string name="default_template_simple_perf_overlay">\@data13 @data2 FPS:@data1 编码/解码:@data4 延迟:@data3 丢包:@data5 流量:@data11</string>
     <string name="game_menu_disconnect">断开连接</string>
     <string name="game_menu_change_touch">切换触屏模式</string>
     <string name="game_menu_enable_keyboard" >开启输入法</string>
@@ -337,13 +337,13 @@
     <string name="grid_lines_y_axis_count">Y轴数量</string>
     <string name="grid_lines_x_axis_count">X轴数量</string>
     <string name="virtual_keyboard_menu_vk_code_button">VK表</string>
-    <string name="virtual_keyboard_menu_copy_button">复制当前按钮</string>
+    <string name="virtual_keyboard_menu_copy_button">复制</string>
     <string name="grid_lines_enable">显示网格</string>
     <string name="virtual_keyboard_menu_radius_hint">圆角</string>
     <string name="virtual_keyboard_menu_opacity_hint">透明度</string>
     <string name="virtual_keyboard_menu_pressed_color_hint">按下时颜色</string>
     <string name="virtual_keyboard_menu_normal_color_hint">按钮常态颜色</string>
-    <string name="instruction_text_simple_perf_overlay">默认模板 %s\n简单说明：\nFPS @data1\n解码算法 @data2\n平均连接延迟 @data3\n处理延迟 平均编码/平均解码 @data4\n丢包 @data5\n视频下载速度 @data6（实际）\n视频上传速度 @data7（并无作用) \n音频下载速度 @data8（预计）\n音频上传速度 @data9（预计）\n总速度 @data10（预计）\n实际下载速度 @data11\n实际上传速度 @data12\n分辨率 @data13</string>
+    <string name="instruction_text_simple_perf_overlay">默认模板：\n%s\n---------\n简单说明：\nFPS @data1\n解码算法 @data2\n平均连接延迟 @data3\n处理延迟 平均编码/平均解码 @data4\n丢包 @data5\n视频下载速度 @data6（实际）\n视频上传速度 @data7（并无作用) \n音频下载速度 @data8（预计）\n音频上传速度 @data9（预计）\n总速度 @data10（预计）\n实际下载速度 @data11\n实际上传速度 @data12\n分辨率 @data13</string>
     <string name="edit_button">编辑</string>
     <string name="del_button">删除</string>
     <string name="macro_editor_add_button">添加操作</string>

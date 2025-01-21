@@ -35,7 +35,8 @@ enum class MacroType(val displayName: String) { // 添加 displayName 方便显�
     KEY_DOWN("按键按下"),
     SLEEP("延迟"),
     KEY_TOGGLE("按键切换"),
-    KEY_TOGGLE_GROUP("组键切换")
+    KEY_TOGGLE_GROUP("组键切换"),
+    TOUCH_TOGGLE("触摸切换")
 }
 
 interface OnMacroDataChangedListener {
@@ -164,51 +165,6 @@ class MacroEditor(private val context: Context, private var jsonData: JSONObject
         macroAdapter.submitList(actions.toList())
     }
 
-//    @SuppressLint("SetTextI18n")
-//    private fun updateMacroDisplay(layout: LinearLayout, actions: MutableList<MacroAction>, dialog: AlertDialog) {
-//        Log.d("MacroEditor", "更新显示: $actions")
-//        layout.removeAllViews() // 每次更新前先清空所有 View
-//        actions.forEachIndexed { index, action ->
-//            val horizontalLayout = LinearLayout(context).apply {
-//                orientation = LinearLayout.HORIZONTAL
-//            }
-//
-//            val editText = EditText(context).apply {
-//                setText("Index: $index, Type: ${action.type}, Data: ${action.data}")
-//                isFocusable = false // 不允许编辑，只用于展示
-//                layoutParams = LinearLayout.LayoutParams(
-//                    0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f
-//                )
-//            }
-//
-//            val deleteButton = Button(context).apply {
-//                text = context.getString(R.string.del_button)
-//                setOnClickListener {
-//                    actions.removeAt(index)
-//                    updateMacroDisplay(layout, actions, dialog) // 重新绘制 UI
-//                }
-//                layoutParams = LinearLayout.LayoutParams(
-//                    LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT
-//                )
-//            }
-//            val editButton = Button(context).apply {
-//                text = context.getString(R.string.edit_button)
-//                setOnClickListener {
-//                    showAddMacroDialog(index)
-//                    dialog.dismiss()
-//                }
-//                layoutParams = LinearLayout.LayoutParams(
-//                    LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT
-//                )
-//            }
-//
-//            horizontalLayout.addView(editText)
-//            horizontalLayout.addView(editButton)
-//            horizontalLayout.addView(deleteButton)
-//            layout.addView(horizontalLayout)
-//        }
-//    }
-
     private fun hotKeyMacro() {
         // 将macroActions重新排序使全部按键先按下，并延迟35后释放
         val keyDownActions = mutableListOf<MacroAction>()
@@ -320,10 +276,7 @@ class MacroEditor(private val context: Context, private var jsonData: JSONObject
             for (type in MacroType.entries) {
                 addTab(newTab().setText(type.displayName))
             }
-            layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.MATCH_PARENT
-            )
+            tabMode = TabLayout.MODE_SCROLLABLE
         }
         // 设置 TabLayout 的监听器
         tabLayout.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
@@ -495,6 +448,12 @@ class MacroEditor(private val context: Context, private var jsonData: JSONObject
                         element.invalidate()
                     }
                 }
+                executeNextActionWithDelay(virtualKeyboard, index, 0) // KEY_TOGGLE 后立即执行下一个
+            }
+            MacroType.TOUCH_TOGGLE.toString() -> {
+                val game = virtualKeyboard.gameContext
+                val mode = action.data
+                game.changeTouchMode(mode)
                 executeNextActionWithDelay(virtualKeyboard, index, 0) // KEY_TOGGLE 后立即执行下一个
             }
         }
