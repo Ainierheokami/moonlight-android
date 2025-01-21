@@ -65,14 +65,15 @@ public class VirtualKeyboardConfigurationLoader {
                 button.addDigitalButtonListener(new DigitalButton.DigitalButtonListener() {
                     @Override
                     public void onClick() {
-                        VirtualKeyboard.KeyboardInputContext inputContext =
-                                virtualKeyboard.getKeyboardInputContext();
+                        if (vk_code == 0) return;
+                        VirtualKeyboard.KeyboardInputContext inputContext = virtualKeyboard.getKeyboardInputContext();
                         inputContext.modifier |= VirtualKeyboardVkCode.INSTANCE.replaceSpecialKeys(vk_code);
                         virtualKeyboard.sendDownKey(vk_code);
                     }
 
                     @Override
                     public void onLongClick() {
+                        if (vk_code == 0) return;
                         VirtualKeyboard.KeyboardInputContext inputContext =
                                 virtualKeyboard.getKeyboardInputContext();
                         inputContext.modifier |= VirtualKeyboardVkCode.INSTANCE.replaceSpecialKeys(vk_code);
@@ -82,6 +83,7 @@ public class VirtualKeyboardConfigurationLoader {
 
                     @Override
                     public void onRelease() {
+                        if (vk_code == 0) return;
                         VirtualKeyboard.KeyboardInputContext inputContext =
                                 virtualKeyboard.getKeyboardInputContext();
                         inputContext.modifier &= (byte) ~VirtualKeyboardVkCode.INSTANCE.replaceSpecialKeys(vk_code);

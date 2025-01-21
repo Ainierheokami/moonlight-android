@@ -179,6 +179,11 @@ public class PreferenceConfiguration {
     public static final String GRID_LAYOUT_PREF_STRING = "grid_layout";
     public boolean enableGridLayout;
 
+    // 編組移動
+    public static final String ENABLE_GROUP_MOVE_PREF_STRING = "checkbox_enable_enable_group_move";
+    public static final boolean DEFAULT_ENABLE_GROUP_MOVE = true;
+    public boolean enableGroupMove;
+
     public static boolean isNativeResolution(int width, int height) {
         // It's not a native resolution if it matches an existing resolution option
         if (width == 640 && height == 360) {
@@ -630,6 +635,7 @@ public class PreferenceConfiguration {
         config.simplifyPerfOverlayPrefTemplate = prefs.getString(EDITTEXT_SIMPLE_PERF_OVERLAY_PREF_STRING, DEFAULT_EDITTEXT_SIMPLE_PERF_OVERLAY_PREF);
         config.multiTouchScreen = prefs.getBoolean(MULTITOUCH_SCREEN_PREF_STRING, DEFAULT_MULTITOUCH_SCREEN);
         config.enableGridLayout = prefs.getBoolean(ENABLE_GRID_LAYOUT_PREF_STRING, DEFAULT_ENABLE_GRID_LAYOUT);
+        config.enableGroupMove = prefs.getBoolean(ENABLE_GROUP_MOVE_PREF_STRING, DEFAULT_ENABLE_GROUP_MOVE);
 
         return config;
     }

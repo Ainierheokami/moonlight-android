@@ -350,4 +350,8 @@
     <string name="virtual_keyboard_menu_button_type_hint">按钮类型</string>
     <string name="virtual_keyboard_menu_macro_edit_button">宏编辑</string>
     <string name="virtual_keyboard_menu_delete_group_button">删除相同组所有按钮</string>
+    <string name="title_enable_group_move">编组移动</string>
+    <string name="summary_enable_group_move">相同编组的按钮会一起移动</string>
+    <string name="virtual_keyboard_menu_load_profile_summary">通过文件加载配置</string>
+    <string name="virtual_keyboard_menu_save_profile_summary">保存配置到文件中</string>
 </resources>

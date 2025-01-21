@@ -71,6 +71,7 @@ public class VirtualKeyboard {
 
         GameGridLines gameGridLines = context.getGameGridLines();
         PreferenceConfiguration pref = context.getPrefConfig();
+        groupMove = pref.enableGroupMove;
 
         buttonConfigure = new Button(context);
         buttonConfigure.setAlpha(0.25f);

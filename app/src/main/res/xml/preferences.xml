@@ -22,7 +22,7 @@
             android:key="seekbar_bitrate_kbps"
             android:dialogMessage="@string/summary_seekbar_bitrate"
             seekbar:min="500"
-            android:max="150000"
+            android:max="500000"
             seekbar:step="500"
             seekbar:keyStep="1000"
             seekbar:divisor="1000"
@@ -220,10 +220,30 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:defaultValue="false"
-            android:dependency="checkbox_show_onscreen_keyboard"
             android:key="checkbox_enable_grid_layout"
             android:summary="@string/summary_enable_grid_layout"
             android:title="@string/title_enable_grid_layout" />
+        <CheckBoxPreference
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:defaultValue="true"
+            android:key="checkbox_enable_enable_group_move"
+            android:summary="@string/summary_enable_group_move"
+            android:title="@string/title_enable_group_move" />
+        <com.limelight.heokami.pref.SaveFilePreference
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:title="@string/virtual_keyboard_menu_save_profile"
+            android:summary="@string/virtual_keyboard_menu_save_profile_summary"
+            />
+        <com.limelight.heokami.pref.LoadFilePreference
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:title="@string/virtual_keyboard_menu_load_profile"
+            android:summary="@string/virtual_keyboard_menu_load_profile_summary"
+            />
+
+
     </PreferenceCategory>
 
     <PreferenceCategory android:title="@string/category_host_settings">
@@ -311,6 +331,7 @@
             android:title="@string/title_enable_post_stream_toast"
             android:summary="@string/summary_enable_post_stream_toast"
             android:defaultValue="false"/>
+
     </PreferenceCategory>
     <!--PreferenceCategory android:title="@string/category_help"
         android:key="category_help">
