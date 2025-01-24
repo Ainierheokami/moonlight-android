@@ -12,10 +12,11 @@ import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.limelight.R
 import java.util.Collections
+import android.content.Context
 
 // ... MacroAction 数据类
 
-class MacroAdapter(private val actions: MutableList<MacroAction>, private val dialog: AlertDialog, private val showAddMacroDialog: (Int) -> Unit) :
+class MacroAdapter(private val actions: MutableList<MacroAction>, private val dialog: AlertDialog, private val showAddMacroDialog: (Int) -> Unit, private val context: Context) :
     ListAdapter<MacroAction, MacroAdapter.MacroViewHolder>(MacroDiffCallback()) {
 
     inner class MacroViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
@@ -34,7 +35,7 @@ class MacroAdapter(private val actions: MutableList<MacroAction>, private val di
         val action = getItem(position)
 //        holder.editText.setText("Index: $position, Type: ${action.type}, Data: ${action.data}")
         var dataText = "${action.data}"
-        val typeText = getDisplayNameByType(action.type)
+        val typeText = getDisplayNameByType(action.type, context)
 
         when(action.type){
             MacroType.KEY_DOWN.toString(), MacroType.KEY_UP.toString() -> dataText = VirtualKeyboardVkCode.getVKNameByCode(action.data)
@@ -43,9 +44,9 @@ class MacroAdapter(private val actions: MutableList<MacroAction>, private val di
             MacroType.SLEEP.toString() -> dataText = "${action.data}ms"
             MacroType.TOUCH_TOGGLE.toString() ->
                 when(action.data){
-                    0 -> dataText = "触摸屏模式"
-                    1 -> dataText = "触摸板模式"
-                    2 -> dataText = "鼠标模式"
+                    0 -> dataText = context.getString(R.string.game_switch_to_multi_touch_mode)
+                    1 -> dataText = context.getString(R.string.game_switch_to_touch_pad_mode)
+                    2 -> dataText = context.getString(R.string.game_switch_to_mouse_mode)
                 }
         }
 

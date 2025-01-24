@@ -179,9 +179,10 @@ public class GameMenu {
         actionMap.put(game.getString(R.string.game_menu_hotkey_screen_keyboard), () -> sendKeys(new short[]{(short) VirtualKeyboardVkCode.VKCode.VK_LCONTROL.getCode(), (short) VirtualKeyboardVkCode.VKCode.VK_LWIN.getCode(), (short) VirtualKeyboardVkCode.VKCode.VK_O.getCode()}));
         actionMap.put(game.getString(R.string.game_menu_hotkey_ctrl_c), () -> sendKeys(new short[]{(short)VirtualKeyboardVkCode.VKCode.VK_LCONTROL.getCode(), (short)VirtualKeyboardVkCode.VKCode.VK_C.getCode()}));
         actionMap.put(game.getString(R.string.game_menu_hotkey_ctrl_v), () -> sendKeys(new short[]{(short)VirtualKeyboardVkCode.VKCode.VK_LCONTROL.getCode(), (short)VirtualKeyboardVkCode.VKCode.VK_V.getCode()}));
-        actionMap.put("输入粘贴板内容", () ->
+        actionMap.put(game.getString(R.string.game_menu_send_clipboard_content), () ->
                 conn.sendUtf8Text(getClipboardContentAsString(game, new int[]{3}, new long[]{30}))
         );
+        actionMap.put(game.getString(R.string.game_menu_hotkey_alt_tab), () -> sendKeys(new short[]{(short)VirtualKeyboardVkCode.VKCode.VK_LWIN.getCode(), (short)VirtualKeyboardVkCode.VKCode.VK_TAB.getCode()}));
         actionMap.put(game.getString(R.string.game_menu_hotkey_home), () -> sendKeys(new short[]{(short)VirtualKeyboardVkCode.VKCode.VK_LWIN.getCode(), (short)VirtualKeyboardVkCode.VKCode.VK_D.getCode()}));
 
         return actionMap;

@@ -4,6 +4,7 @@
 
 package com.limelight.binding.input.virtual_keyboard;
 
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Context;
 import android.content.SharedPreferences;
@@ -685,6 +686,38 @@ public class VirtualKeyboardConfigurationLoader {
                 pref.edit()
                         .putString(elementId, jsonConfig)
                         .apply();
+            }
+        }catch (JSONException e){
+            Log.e("heokami", e.toString(), e);
+        }
+    }
+
+    public static void loadForFileAdd(final Context context, final String data) {
+        SharedPreferences pref = context.getSharedPreferences(OSK_PREFERENCE, Activity.MODE_PRIVATE);
+        @SuppressLint("CommitPrefEdits")
+        SharedPreferences.Editor editor = pref.edit(); // 获取Editor，一次性提交所有修改
+
+        try {
+            JSONObject json = new JSONObject(data);
+            Iterator<String> keys = json.keys();
+            while (keys.hasNext()) {
+                String elementId = keys.next();
+                String jsonConfig = json.getString(elementId);
+                if (pref.contains(elementId)){
+                    // 处理冲突：创建新的elementId
+                    int counter = 1;
+                    int newElementId;
+                    do {
+                        newElementId = Integer.parseInt(elementId) + counter; // 例如：1_1, 1_2, 1_3...
+                        counter++;
+                    } while (pref.contains(String.valueOf(newElementId))); // 确保新ID不重复
+
+                    Log.w("SharedPreferencesUtils", "ElementId冲突: " + elementId + "，已重命名为: " + newElementId);
+                    editor.putString(String.valueOf(newElementId), jsonConfig); // 存储到新的ID
+                }else {
+                    editor.putString(elementId, jsonConfig);
+                }
+            editor.apply(); // 提交所有修改
             }
         }catch (JSONException e){
             Log.e("heokami", e.toString(), e);

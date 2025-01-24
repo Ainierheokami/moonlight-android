@@ -1,4 +1,4 @@
-package com.limelight.heokami
+package com.limelight.heokami.activity
 
 import android.net.Uri
 import android.os.Bundle
@@ -9,6 +9,7 @@ import androidx.appcompat.app.AppCompatActivity
 
 import com.limelight.R
 import com.limelight.binding.input.virtual_keyboard.VirtualKeyboardConfigurationLoader
+import com.limelight.heokami.FilePickerUtils
 
 class LoadFileActivity : AppCompatActivity() {
 
@@ -25,7 +26,8 @@ class LoadFileActivity : AppCompatActivity() {
             finish()
         }
         filePicker = FilePickerUtils(this)
-        filePicker.pickFile(mimeType = "text/*", callback = object : FilePickerUtils.FilePickerCallback {
+        filePicker.pickFile(mimeType = "text/*", callback = object :
+            FilePickerUtils.FilePickerCallback {
             override fun onCallBack(fileName: String, content: String, uri: Uri) {
                 // 处理选中的文件
                 Log.d("pickFile", "文件名: $fileName")

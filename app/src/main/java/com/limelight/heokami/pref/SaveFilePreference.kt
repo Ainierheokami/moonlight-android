@@ -4,7 +4,7 @@ import android.content.Context
 import android.content.Intent
 import android.preference.Preference
 import android.util.AttributeSet
-import com.limelight.heokami.SaveFileActivity
+import com.limelight.heokami.activity.SaveFileActivity
 
 class SaveFilePreference(context: Context, attrs: AttributeSet?) :
     Preference(context, attrs) {

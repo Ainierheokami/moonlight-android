@@ -16,8 +16,12 @@ import android.view.View;
 import android.view.ViewTreeObserver;
 import android.widget.FrameLayout;
 import androidx.annotation.NonNull;
+import androidx.annotation.StringRes;
+
 import org.json.JSONException;
 import org.json.JSONObject;
+
+import com.limelight.R;
 import com.limelight.heokami.GameGridLines;
 import com.limelight.heokami.VirtualKeyboardMenu;
 
@@ -63,10 +67,21 @@ public abstract class VirtualKeyboardElement extends View {
     }
 
     public enum ButtonType {
-        Button,
-        HotKeys,
-        JoyStick,
-        TouchPad
+        Button(R.string.button_type_button),
+        HotKeys(R.string.button_type_hot_keys),
+        JoyStick(R.string.button_type_joystick),
+        TouchPad(R.string.button_type_touch_pad);
+
+        @StringRes
+        private final int displayNameRes;
+
+        ButtonType(@StringRes int displayNameRes) {
+            this.displayNameRes = displayNameRes;
+        }
+
+        public String getDisplayName(Context context) {
+            return context.getString(displayNameRes);
+        }
     }
 
     private Mode currentMode = Mode.Normal;

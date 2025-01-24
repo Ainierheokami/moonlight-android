@@ -138,6 +138,7 @@ public class VirtualKeyboard {
     public void show() {
         for (VirtualKeyboardElement element : elements) {
             element.setVisibility(View.VISIBLE);
+            element.setHide(element.isHide);
         }
 
         buttonConfigure.setVisibility(View.VISIBLE);

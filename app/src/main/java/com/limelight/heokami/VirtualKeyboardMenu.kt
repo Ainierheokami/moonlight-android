@@ -28,9 +28,10 @@ import com.limelight.R
 import com.limelight.binding.input.virtual_keyboard.VirtualKeyboard
 import com.limelight.binding.input.virtual_keyboard.VirtualKeyboardConfigurationLoader
 import com.limelight.binding.input.virtual_keyboard.VirtualKeyboardElement
-import com.limelight.nvstream.http.NvApp
+import com.limelight.heokami.activity.LoadFileActivity
+import com.limelight.heokami.activity.LoadFileActivityAdd
+import com.limelight.heokami.activity.SaveFileActivity
 import com.limelight.preferences.PreferenceConfiguration
-import com.limelight.utils.ServerHelper
 import org.json.JSONException
 import org.json.JSONObject
 import java.lang.Long.parseLong
@@ -67,7 +68,7 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
 
     private fun createSpinner(context: Context): Spinner {
         val spinner = Spinner(context)
-        val items = VirtualKeyboardElement.ButtonType.entries.map { it.name }
+        val items = VirtualKeyboardElement.ButtonType.entries.map { it.getDisplayName(context) }
         val adapter = ArrayAdapter(context, android.R.layout.simple_spinner_dropdown_item, items)
         spinner.adapter = adapter
         return spinner
@@ -406,8 +407,8 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
         Log.d("buttonType", "前elementButtonType: "+ element?.buttonType + " selectedButtonType: "+ selectedButtonType)
         buttonTypeSpinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
             override fun onItemSelected(parent: AdapterView<*>, view: View?, position: Int, id: Long) {
-                val selectedItem = parent.getItemAtPosition(position) as String
-                val selectedEnum = VirtualKeyboardElement.ButtonType.valueOf(selectedItem)
+//                val selectedItem = parent.getItemAtPosition(position)
+                val selectedEnum = VirtualKeyboardElement.ButtonType.entries[position]
 
                 // Do something with the selected enum value
                 when (selectedEnum) {
@@ -447,7 +448,7 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
 
         // 编组
         linearLayout3.addView(TextView(context).apply {
-            text = "编组"
+            text = context.getString(R.string.virtual_keyboard_menu_grouping)
         })
         val groupEditText = EditText(context).apply {
             layoutParams = LinearLayout.LayoutParams(
@@ -455,7 +456,7 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
                 LinearLayout.LayoutParams.WRAP_CONTENT,
                 1f // 权重为1，表示EditText占据可用空间的一部分
             )
-            hint = "组id"
+            hint = context.getString(R.string.virtual_keyboard_menu_group_hint_id)
         }
         linearLayout3.addView(groupEditText)
         layout.addView(linearLayout3)
@@ -464,7 +465,7 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
 
         if (element != null) {
             val setJoyStickButton = Button(context).apply {
-                text = "设置手柄方向键"
+                text = context.getString(R.string.virtual_keyboard_menu_set_the_handle_arrow_keys)
                 setOnClickListener {
                     setJoyStickVKCodeDialog(context, element!!)
                 }
@@ -511,7 +512,7 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
                 text = context.getString(R.string.virtual_keyboard_menu_copy_button)
                 setOnClickListener {
                     VirtualKeyboardConfigurationLoader.copyButton(virtualKeyboard, element, context)
-                    game?.postNotification("复制按钮: \n" + element?.elementId, 300)
+                    game?.postNotification(context.getString(R.string.virtual_keyboard_menu_copy_button) + "\n" + element?.elementId, 2000)
                 }
                 Log.d("vk", "复制按钮"+ element?.leftMargin+","+element?.topMargin+","+element?.width+","+element?.height)
             })
@@ -644,7 +645,7 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
         actionMap[context.getString(R.string.menu_title_grid_lines)] = {
             showGridLinesDialog()
         }
-        actionMap["编组移动"] = {
+        actionMap[context.getString(R.string.title_enable_group_move)] = {
             virtualKeyboard.groupMove = !virtualKeyboard.groupMove
         }
         actionMap[context.getString(R.string.virtual_keyboard_menu_save_profile)] = {
@@ -659,6 +660,11 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
             context.startActivity(intent)
 //            Toast.makeText(context, "加载配置文件", Toast.LENGTH_SHORT).show()
+        }
+        actionMap[context.getString(R.string.virtual_keyboard_menu_load_profile_add)] = {
+            val intent = Intent(context, LoadFileActivityAdd::class.java)
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+            context.startActivity(intent)
         }
         actionMap[context.getString(R.string.virtual_keyboard_menu_delete_profile)] = {
             VirtualKeyboardConfigurationLoader.deleteProfile(context)
@@ -926,7 +932,7 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
             }
 
             val builder = AlertDialog.Builder(context)
-            val dialog = builder.setTitle("设置方向键")
+            val dialog = builder.setTitle(context.getString(R.string.virtual_keyboard_menu_set_the_handle_arrow_keys))
                 .setView(scrollView)
                 .setPositiveButton(R.string.virtual_keyboard_menu_confirm_button) { _, _ ->
                     try {

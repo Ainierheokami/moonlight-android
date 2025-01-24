@@ -14,6 +14,7 @@ import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.Toast
+import androidx.annotation.StringRes
 import androidx.appcompat.view.ContextThemeWrapper
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -30,25 +31,29 @@ import java.lang.reflect.Type
 import kotlin.experimental.inv
 
 data class MacroAction(var type: String, var data: Int)
-enum class MacroType(val displayName: String) { // 添加 displayName 方便显示
-    KEY_UP("按键抬起"),
-    KEY_DOWN("按键按下"),
-    SLEEP("延迟"),
-    KEY_TOGGLE("按键切换"),
-    KEY_TOGGLE_GROUP("组键切换"),
-    TOUCH_TOGGLE("触摸切换")
+enum class MacroType(@StringRes val displayNameRes: Int) {
+    KEY_UP(R.string.macro_type_key_up),
+    KEY_DOWN(R.string.macro_type_key_down),
+    SLEEP(R.string.macro_type_sleep),
+    KEY_TOGGLE(R.string.macro_type_key_toggle),
+    KEY_TOGGLE_GROUP(R.string.macro_type_key_toggle_group),
+    TOUCH_TOGGLE(R.string.macro_type_touch_toggle);
+
+    fun getDisplayName(context: Context): String {
+        return context.getString(displayNameRes)
+    }
 }
 
 interface OnMacroDataChangedListener {
     fun onMacroDataChanged(newData: JSONObject)
 }
 
-fun getIndexByDisplayName(displayName: String): Int {
-    return MacroType.entries.toTypedArray().indexOfFirst { it.displayName == displayName }
+fun getIndexByDisplayName(displayName: String, context: Context): Int {
+    return MacroType.entries.toTypedArray().indexOfFirst { it.getDisplayName(context) == displayName }
 }
 
-fun getDisplayNameByType(type: String): String {
-    return MacroType.entries.toTypedArray().find { it.toString() == type }?.displayName ?: ""
+fun getDisplayNameByType(type: String, context: Context): String {
+    return MacroType.entries.toTypedArray().find { it.toString() == type }?.getDisplayName(context) ?: ""
 }
 
 class MacroEditor(private val context: Context, private var jsonData: JSONObject, private val listener: OnMacroDataChangedListener?) {
@@ -87,7 +92,7 @@ class MacroEditor(private val context: Context, private var jsonData: JSONObject
     @SuppressLint("SetTextI18n")
     fun showMacroEditor() {
         val builder = AlertDialog.Builder(context)
-        builder.setTitle("宏编辑器")
+        builder.setTitle(context.getString(R.string.macro_editor_title))
 
         val layout = LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
@@ -135,7 +140,7 @@ class MacroEditor(private val context: Context, private var jsonData: JSONObject
             layout.addView(this)
         }
 
-        macroAdapter = MacroAdapter(actions, dialog, ::showAddMacroDialog).apply {
+        macroAdapter = MacroAdapter(actions, dialog, ::showAddMacroDialog, context).apply {
             recyclerView.adapter = this
         }
 
@@ -199,17 +204,17 @@ class MacroEditor(private val context: Context, private var jsonData: JSONObject
     @SuppressLint("SetTextI18n")
     private fun showAddMacroDialog(index: Int = -1) {
         val builder = AlertDialog.Builder(context)
-        builder.setTitle("编辑宏操作")
+        builder.setTitle(context.getString(R.string.macro_editor_add_title))
 
         var macroType = MacroType.KEY_UP
 
         val fastKeyDownUpCheckBox = CheckBox(context).apply {
-            text = "快速添加按下松开按键"
+            text = context.getString(R.string.macro_editor_fast_key_down_up)
             isChecked = fastKeyDownAndUp
         }
 
         val fastHotKeyCheckBox = CheckBox(context).apply {
-            text = "快速添加快捷键"
+            text = context.getString(R.string.macro_editor_fast_hot_key)
             isChecked = fastHotKey
         }
 
@@ -274,7 +279,7 @@ class MacroEditor(private val context: Context, private var jsonData: JSONObject
         val contextThemeWrapper = ContextThemeWrapper(context, com.google.android.material.R.style.Theme_AppCompat)
         val tabLayout = TabLayout(contextThemeWrapper).apply {
             for (type in MacroType.entries) {
-                addTab(newTab().setText(type.displayName))
+                addTab(newTab().setText(type.getDisplayName(context)))
             }
             tabMode = TabLayout.MODE_SCROLLABLE
         }
@@ -347,7 +352,7 @@ class MacroEditor(private val context: Context, private var jsonData: JSONObject
 
         if(index != -1 && index <= macroActions.size){
             macroData.setText(macroActions[index].data.toString())
-            tabLayout.selectTab(tabLayout.getTabAt(getIndexByDisplayName(macroActions[index].type)))
+            tabLayout.selectTab(tabLayout.getTabAt(getIndexByDisplayName(macroActions[index].type, context)))
             macroType = MacroType.valueOf(macroActions[index].type)
         }else{
             layout.addView(fastKeyDownUpCheckBox)

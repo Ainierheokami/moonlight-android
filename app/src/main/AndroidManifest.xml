@@ -188,11 +188,15 @@
             <meta-data android:name="WindowManagerPreference:FreeformWindowOrientation" android:value="landscape" />
         </activity>
         <activity
-            android:name=".heokami.LoadFileActivity"
+            android:name=".heokami.activity.LoadFileActivity"
             android:theme="@style/Theme.AppCompat.Dialog">
         </activity>
         <activity
-            android:name=".heokami.SaveFileActivity"
+            android:name=".heokami.activity.SaveFileActivity"
+            android:theme="@style/Theme.AppCompat.Dialog">
+        </activity>
+        <activity
+            android:name=".heokami.activity.LoadFileActivityAdd"
             android:theme="@style/Theme.AppCompat.Dialog">
         </activity>
         <activity

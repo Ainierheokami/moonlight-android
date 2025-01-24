@@ -354,4 +354,27 @@
     <string name="summary_enable_group_move">相同编组的按钮会一起移动</string>
     <string name="virtual_keyboard_menu_load_profile_summary">通过文件加载配置</string>
     <string name="virtual_keyboard_menu_save_profile_summary">保存配置到文件中</string>
+    <string name="game_menu_hotkey_alt_tab">热键：切换窗口</string>
+    <string name="game_menu_send_clipboard_content">输入粘贴板内容</string>
+    <string name="game_switch_to_multi_touch_mode">切换为多点触摸模式</string>
+    <string name="game_switch_to_touch_pad_mode">切换为触摸板模式</string>
+    <string name="game_switch_to_mouse_mode">切换为鼠标模式</string>
+    <string name="virtual_keyboard_menu_load_profile_add">载入配置文件(添加)</string>
+    <string name="virtual_keyboard_menu_grouping">编组</string>
+    <string name="virtual_keyboard_menu_group_hint_id">组id</string>
+    <string name="virtual_keyboard_menu_set_the_handle_arrow_keys">设置手柄方向键</string>
+    <string name="macro_editor_title">宏编辑器</string>
+    <string name="macro_editor_add_title">编辑宏操作</string>
+    <string name="macro_editor_fast_key_down_up">快速添加按下松开按键</string>
+    <string name="macro_editor_fast_hot_key">快速添加快捷键</string>
+    <string name="macro_type_key_up">按键抬起</string>
+    <string name="macro_type_key_down">按键按下</string>
+    <string name="macro_type_sleep">延迟</string>
+    <string name="macro_type_key_toggle">按键切换</string>
+    <string name="macro_type_key_toggle_group">组键切换</string>
+    <string name="macro_type_touch_toggle">触摸切换</string>
+    <string name="button_type_button">按钮</string>
+    <string name="button_type_hot_keys">宏/热键</string>
+    <string name="button_type_joystick">手柄按键</string>
+    <string name="button_type_touch_pad">触摸板</string>
 </resources>

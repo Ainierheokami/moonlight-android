@@ -2886,18 +2886,18 @@ public class Game extends Activity implements SurfaceHolder.Callback,
             case 0:
                 prefConfig.multiTouchScreen = true;
                 prefConfig.touchscreenTrackpad = false;
-                postNotification("切换为多点触摸模式", 2000);
+                postNotification(this.getResources().getString(R.string.game_switch_to_multi_touch_mode), 2000);
 
                 break;
             case 1:
                 prefConfig.multiTouchScreen = false;
                 prefConfig.touchscreenTrackpad = true;
-                postNotification("切换为触摸板模式", 2000);
+                postNotification(this.getResources().getString(R.string.game_switch_to_touch_pad_mode), 2000);
                 break;
             default:
                 prefConfig.multiTouchScreen = false;
                 prefConfig.touchscreenTrackpad = false;
-                postNotification("切换为绝对定位模式", 2000);
+                postNotification(this.getResources().getString(R.string.game_switch_to_mouse_mode), 2000);
                 break;
         }
 
