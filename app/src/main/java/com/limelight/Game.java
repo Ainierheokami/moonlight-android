@@ -2098,7 +2098,8 @@ public class Game extends Activity implements SurfaceHolder.Callback,
                 }
                 if (virtualKeyboard != null &&
                         (virtualKeyboard.getControllerMode() == VirtualKeyboard.ControllerMode.MoveButtons ||
-                         virtualKeyboard.getControllerMode() == VirtualKeyboard.ControllerMode.ResizeButtons)) {
+                         virtualKeyboard.getControllerMode() == VirtualKeyboard.ControllerMode.ResizeButtons ||
+                        virtualKeyboard.getControllerMode() == VirtualKeyboard.ControllerMode.SettingsButtons)) {
                     // Ignore presses when the virtual controller is being configured
                     return true;
                 }

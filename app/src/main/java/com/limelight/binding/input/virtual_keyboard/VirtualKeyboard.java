@@ -40,7 +40,8 @@ public class VirtualKeyboard {
         Active,
         MoveButtons,
         ResizeButtons,
-        SettingsButtons
+        SettingsButtons,
+        NewSettingButtons
     }
 
     private static final boolean _PRINT_DEBUG_INFORMATION = false;
@@ -77,11 +78,24 @@ public class VirtualKeyboard {
         buttonConfigure.setAlpha(0.25f);
         buttonConfigure.setFocusable(false);
         buttonConfigure.setBackgroundResource(R.drawable.ic_settings);
-        buttonConfigure.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                String message;
-
+        buttonConfigure.setOnClickListener(v -> {
+            String message;
+            if (pref.enableNewSettingButton){
+                if (currentMode == ControllerMode.Active){
+                    currentMode = ControllerMode.NewSettingButtons;
+                    if (pref.enableGridLayout){
+                        gameGridLines.show();
+                    }
+                    message = context.getString(R.string.controller_mode_new_setting_button);
+                }else {
+                    currentMode = ControllerMode.Active;
+                    VirtualKeyboardConfigurationLoader.saveProfile(VirtualKeyboard.this, context);
+                    if (gameGridLines != null) {
+                        gameGridLines.hide();
+                    }
+                    message = context.getString(R.string.controller_mode_active_buttons);
+                }
+            }else {
                 if (currentMode == ControllerMode.Active){
                     currentMode = ControllerMode.MoveButtons;
                     if (pref.enableGridLayout){
@@ -102,14 +116,12 @@ public class VirtualKeyboard {
                     }
                     message = context.getString(R.string.controller_mode_active_buttons);
                 }
+            }
+            context.postNotification(message, 2000);
+            buttonConfigure.invalidate();
 
-//                Toast.makeText(context, message, Toast.LENGTH_SHORT).show();
-                context.postNotification(message, 2000);
-                buttonConfigure.invalidate();
-
-                for (VirtualKeyboardElement element : elements) {
-                    element.invalidate();
-                }
+            for (VirtualKeyboardElement element : elements) {
+                element.invalidate();
             }
         });
 

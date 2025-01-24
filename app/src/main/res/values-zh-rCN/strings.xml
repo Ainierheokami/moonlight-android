@@ -377,4 +377,7 @@
     <string name="button_type_hot_keys">宏/热键</string>
     <string name="button_type_joystick">手柄按键</string>
     <string name="button_type_touch_pad">触摸板</string>
+    <string name="summary_enable_new_setting_button">是否启用新版按钮设置(长按移动、双击编辑、双指缩放）</string>
+    <string name="title_enable_new_setting_button">新的按钮设置</string>
+    <string name="controller_mode_new_setting_button">进入配置模式\n单击：移动按钮\n长按：缩放按钮\n双击：编辑菜单</string>
 </resources>

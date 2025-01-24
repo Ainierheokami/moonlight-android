@@ -231,6 +231,13 @@
             android:key="checkbox_enable_enable_group_move"
             android:summary="@string/summary_enable_group_move"
             android:title="@string/title_enable_group_move" />
+        <CheckBoxPreference
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:defaultValue="false"
+            android:key="checkbox_enable_new_setting_button"
+            android:summary="@string/summary_enable_new_setting_button"
+            android:title="@string/title_enable_new_setting_button" />
         <com.limelight.heokami.pref.SaveFilePreference
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"

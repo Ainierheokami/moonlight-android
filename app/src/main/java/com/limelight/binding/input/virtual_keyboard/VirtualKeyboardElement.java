@@ -14,6 +14,7 @@ import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewTreeObserver;
+import android.view.GestureDetector;
 import android.widget.FrameLayout;
 import androidx.annotation.NonNull;
 import androidx.annotation.StringRes;
@@ -63,7 +64,8 @@ public abstract class VirtualKeyboardElement extends View {
         Normal,
         Resize,
         Move,
-        Settings
+        Settings,
+        NewSettings
     }
 
     public enum ButtonType {
@@ -118,6 +120,37 @@ public abstract class VirtualKeyboardElement extends View {
         }catch (JSONException e){
             Log.e("heokami", e.toString(), e);
         }
+        gestureDetector = new GestureDetector(getContext(), new GestureDetector.SimpleOnGestureListener() {
+            @Override
+            public boolean onDown(MotionEvent e) {
+                // 必须重写 onDown() 方法，否则其他手势检测无效
+                actionEnableMove();
+                return true;
+            }
+
+            @Override
+            public boolean onSingleTapUp(MotionEvent e) {
+                // 单击事件
+                Log.d("Gesture", "Single Tap");
+                actionEnableMove();
+                return true;
+            }
+
+            @Override
+            public boolean onDoubleTap(MotionEvent e) {
+                // 双击事件
+                Log.d("Gesture", "Double Tap");
+                actionEnableSettings();
+                return true;
+            }
+
+            @Override
+            public void onLongPress(MotionEvent e) {
+                // 长按事件
+                Log.d("Gesture", "Long Press");
+                actionEnableResize();
+            }
+        });
     }
 
     protected void moveGroupElement(int pressed_x, int pressed_y, int x, int y) {
@@ -251,7 +284,8 @@ public abstract class VirtualKeyboardElement extends View {
             return configMoveColor;
         else if (virtualKeyboard.getControllerMode() == VirtualKeyboard.ControllerMode.ResizeButtons)
             return configResizeColor;
-        else if (virtualKeyboard.getControllerMode() == VirtualKeyboard.ControllerMode.SettingsButtons)
+        else if (virtualKeyboard.getControllerMode() == VirtualKeyboard.ControllerMode.SettingsButtons ||
+                virtualKeyboard.getControllerMode() == VirtualKeyboard.ControllerMode.NewSettingButtons)
             return configSettingsColor;
         else
             return normalColor;
@@ -270,55 +304,10 @@ public abstract class VirtualKeyboardElement extends View {
         return ((FrameLayout.LayoutParams) getLayoutParams()).topMargin;
     }
 
-    protected void showConfigurationDialog() {
-        AlertDialog.Builder alertBuilder = new AlertDialog.Builder(getContext());
+    protected GestureDetector gestureDetector;
+    public GestureDetector getGestureDetector() {
 
-        alertBuilder.setTitle("Configuration");
-
-        CharSequence functions[] = new CharSequence[]{
-                "Move",
-                "Resize",
-            /*election
-            "Set n
-            Disable color sormal color",
-            "Set pressed color",
-            */
-                "Cancel"
-        };
-
-        alertBuilder.setItems(functions, new DialogInterface.OnClickListener() {
-
-            @Override
-            public void onClick(DialogInterface dialog, int which) {
-                switch (which) {
-                    case 0: { // move
-                        actionEnableMove();
-                        break;
-                    }
-                    case 1: { // resize
-                        actionEnableResize();
-                        break;
-                    }
-                /*
-                case 2: { // set default color
-                    actionShowNormalColorChooser();
-                    break;
-                }
-                case 3: { // set pressed color
-                    actionShowPressedColorChooser();
-                    break;
-                }
-                */
-                    default: { // cancel
-                        actionCancel();
-                        break;
-                    }
-                }
-            }
-        });
-        AlertDialog alert = alertBuilder.create();
-        // show menu
-        alert.show();
+        return gestureDetector;
     }
 
     @Override
@@ -334,6 +323,9 @@ public abstract class VirtualKeyboardElement extends View {
 
         if (virtualKeyboard.getControllerMode() == VirtualKeyboard.ControllerMode.Active) {
             return onElementTouchEvent(event);
+        }
+        else if (virtualKeyboard.getControllerMode() == VirtualKeyboard.ControllerMode.NewSettingButtons) {
+            getGestureDetector().onTouchEvent(event);
         }
 
         switch (event.getActionMasked()) {

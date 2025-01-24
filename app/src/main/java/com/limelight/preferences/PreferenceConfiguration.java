@@ -183,6 +183,11 @@ public class PreferenceConfiguration {
     public static final boolean DEFAULT_ENABLE_GROUP_MOVE = true;
     public boolean enableGroupMove;
 
+    // 新版按钮设置
+    public static final  String ENABLE_NEW_SETTING_BUTTON_PREF_STRING = "checkbox_enable_new_setting_button";
+    public static final boolean DEFAULT_ENABLE_NEW_SETTING_BUTTON = false;
+    public boolean enableNewSettingButton;
+
     public static boolean isNativeResolution(int width, int height) {
         // It's not a native resolution if it matches an existing resolution option
         if (width == 640 && height == 360) {
@@ -635,7 +640,7 @@ public class PreferenceConfiguration {
         config.multiTouchScreen = prefs.getBoolean(MULTITOUCH_SCREEN_PREF_STRING, DEFAULT_MULTITOUCH_SCREEN);
         config.enableGridLayout = prefs.getBoolean(ENABLE_GRID_LAYOUT_PREF_STRING, DEFAULT_ENABLE_GRID_LAYOUT);
         config.enableGroupMove = prefs.getBoolean(ENABLE_GROUP_MOVE_PREF_STRING, DEFAULT_ENABLE_GROUP_MOVE);
-
+        config.enableNewSettingButton = prefs.getBoolean(ENABLE_NEW_SETTING_BUTTON_PREF_STRING, DEFAULT_ENABLE_NEW_SETTING_BUTTON);
         return config;
     }
 }

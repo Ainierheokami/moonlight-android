@@ -647,6 +647,7 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
         }
         actionMap[context.getString(R.string.title_enable_group_move)] = {
             virtualKeyboard.groupMove = !virtualKeyboard.groupMove
+            game?.postNotification(context.getString(R.string.title_enable_group_move) + ":"+ virtualKeyboard.groupMove, 2000)
         }
         actionMap[context.getString(R.string.virtual_keyboard_menu_save_profile)] = {
             VirtualKeyboardConfigurationLoader.saveProfile(virtualKeyboard, context)

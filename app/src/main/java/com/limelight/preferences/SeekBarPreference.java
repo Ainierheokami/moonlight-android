@@ -7,9 +7,11 @@ import android.preference.DialogPreference;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.Gravity;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.SeekBar;
 import android.widget.TextView;
@@ -126,6 +128,19 @@ public class SeekBarPreference extends DialogPreference
         });
 
         layout.addView(seekBar, new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
+
+        valueText.setOnClickListener(view -> {
+            AlertDialog.Builder dialog = new AlertDialog.Builder(context);
+            EditText valueEditText = new EditText(context);
+            valueEditText.setText(String.valueOf(currentValue));
+            dialog.setView(valueEditText);
+            dialog.setPositiveButton(android.R.string.ok, (dialogInterface, i) -> {
+                currentValue = Integer.parseInt(valueEditText.getText().toString());
+                seekBar.setProgress(currentValue);
+            });
+            dialog.setNegativeButton(android.R.string.cancel, null);
+            dialog.show();
+        });
 
         if (shouldPersist()) {
             currentValue = getPersistedInt(defaultValue);
