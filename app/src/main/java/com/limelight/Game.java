@@ -2820,6 +2820,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
             prefConfig.onscreenController = true;
         }else{
             virtualController.hide();
+            virtualController = null;
             prefConfig.onscreenController = false;
         }
     }
@@ -2843,8 +2844,9 @@ public class Game extends Activity implements SurfaceHolder.Callback,
             prefConfig.onscreenKeyboard = true;
         }else{
             virtualKeyboard.hide();
-            prefConfig.onscreenKeyboard = false;
             virtualKeyboard.clearHistory();
+            virtualKeyboard = null;
+            prefConfig.onscreenKeyboard = false;
         }
     }
 
