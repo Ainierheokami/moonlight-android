@@ -18,6 +18,10 @@ You can follow development on our [Discord server](https://moonlight-stream.org/
 - 返回菜单（快捷切换触摸、虚拟手柄、虚拟键盘）
 - 可自定义虚拟键盘 需参考 [按键码映射表](https://learn.microsoft.com/zh-cn/windows/win32/inputdev/virtual-key-codes) 进行配置（需要16进制转10进制使用，如：0x41=65）
 - 可导入导出自定义虚拟按键
+- 简单的键盘宏
+- 自定义快捷键
+- 按键显示隐藏切换
+- 按键编组
 
 ### en language
 
@@ -25,6 +29,10 @@ You can follow development on our [Discord server](https://moonlight-stream.org/
 - Return menu (quick switch touch, virtual joystick, virtual keyboard)
 - Customizable virtual keyboard (refer to [Virtual Key Code Mapping Table](https://docs.microsoft.com/en-us/windows/win32/inputdev/virtual-key-codes) for configuration, need to convert hexadecimal to decimal, such as 0x41=65)
 - Import and export custom virtual keysboard
+- Simple keyboard macros
+- Customizable hotkeys
+- Key display toggle
+- Key grouping
 
 ## Thanks
 
