@@ -250,6 +250,12 @@
             android:title="@string/virtual_keyboard_menu_load_profile"
             android:summary="@string/virtual_keyboard_menu_load_profile_summary"
             />
+        <com.limelight.heokami.pref.LoadFilePreferenceAdd
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:title="@string/virtual_keyboard_menu_load_profile_add"
+            android:summary="@string/virtual_keyboard_menu_load_profile_add_summary"
+            />
 
 
     </PreferenceCategory>

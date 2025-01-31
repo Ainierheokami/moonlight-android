@@ -691,7 +691,7 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
             dialog.getButton(AlertDialog.BUTTON_POSITIVE).isEnabled = false
         }
         if (virtualKeyboard.historyIndex == 0) {
-            dialog.getButton(AlertDialog.BUTTON_NEGATIVE).isEnabled = false
+            dialog.getButton(AlertDialog.BUTTON_NEUTRAL).isEnabled = false
         }
     }
 

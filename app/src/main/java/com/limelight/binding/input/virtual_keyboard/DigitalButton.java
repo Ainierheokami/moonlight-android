@@ -11,6 +11,8 @@ import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.RectF;
 import android.graphics.drawable.Drawable;
+import android.text.TextPaint;
+import android.text.TextUtils;
 import android.view.MotionEvent;
 
 import java.util.ArrayList;
@@ -141,7 +143,8 @@ public class DigitalButton extends VirtualKeyboardElement {
         } else {
             paint.setStyle(Paint.Style.FILL_AND_STROKE);
             paint.setStrokeWidth((float) getDefaultStrokeWidth() /2);
-            canvas.drawText(text, getPercent(getWidth(), 50), getPercent(getHeight(), 63), paint);
+            String ellipsizedText = (String) TextUtils.ellipsize(text, new TextPaint(paint), getWidth(), TextUtils.TruncateAt.END);
+            canvas.drawText(ellipsizedText, getPercent(getWidth(), 50), getPercent(getHeight(), 63), paint);
         }
     }
 

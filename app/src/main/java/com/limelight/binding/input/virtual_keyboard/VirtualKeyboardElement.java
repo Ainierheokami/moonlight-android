@@ -159,7 +159,7 @@ public abstract class VirtualKeyboardElement extends View {
         }
         for (VirtualKeyboardElement element : virtualKeyboard.getElements()) {
             if (group != -1 && element.group == group && element.elementId != elementId) {
-                element.moveElement(pressed_x, pressed_y, x, y);
+                element.moveElementNoMax(pressed_x, pressed_y, x, y);
             }
         }
     }
@@ -184,6 +184,27 @@ public abstract class VirtualKeyboardElement extends View {
 
         layoutParams.leftMargin = Math.max(0, Math.min(newPos_x, maxX));
         layoutParams.topMargin = Math.max(0, Math.min(newPos_y, maxY));
+        layoutParams.rightMargin = 0;
+        layoutParams.bottomMargin = 0;
+
+        requestLayout();
+        moveGroupElement(pressed_x, pressed_y, x , y);
+    }
+
+    protected void moveElementNoMax(int pressed_x, int pressed_y, int x, int y) {
+        int newPos_x = (int) getX() + x - pressed_x;
+        int newPos_y = (int) getY() + y - pressed_y;
+
+        // 吸附逻辑
+        newPos_x = snapToGrid(newPos_x, gridLines.getCellWidth());
+        newPos_y = snapToGrid(newPos_y, gridLines.getCellHeight());
+
+        Log.d("vk", "吸附："+newPos_x+","+newPos_y+"cell:"+gridLines.getCellWidth()+","+gridLines.getCellHeight());
+
+        FrameLayout.LayoutParams layoutParams = (FrameLayout.LayoutParams) getLayoutParams();
+
+        layoutParams.leftMargin = newPos_x;
+        layoutParams.topMargin = newPos_y;
         layoutParams.rightMargin = 0;
         layoutParams.bottomMargin = 0;
 

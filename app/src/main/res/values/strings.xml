@@ -391,8 +391,9 @@
     <string name="button_type_hot_keys">Macros/hotkeys</string>
     <string name="button_type_joystick">Joystick</string>
     <string name="button_type_touch_pad">Touchpad</string>
-    <string name="summary_enable_new_setting_button">Whether to enable the new button settings (click to move, long press to zoom, double click to edit)</string>
+    <string name="summary_enable_new_setting_button">Whether to enable the new button settings (click to move, long press to zoom, double tap settings)</string>
     <string name="title_enable_new_setting_button">New button settings</string>
     <string name="controller_mode_new_setting_button">Enter the configuration mode\nClick: Move button\nPress and hold: Zoom button\nDouble-click: Edit menu</string>
+    <string name="virtual_keyboard_menu_load_profile_add_summary">Keep the current existing configuration and add and merge the new configuration</string>
 
 </resources>
