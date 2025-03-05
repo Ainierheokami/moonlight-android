@@ -296,8 +296,28 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
             text = context.getString(R.string.virtual_keyboard_menu_button_text_hint) // "按钮文本"
         })
 
-        val buttonTextEditText = EditText(context)
-        layout.addView(buttonTextEditText)
+        val buttonTextEditText = EditText(context).apply {
+            layoutParams = LinearLayout.LayoutParams(
+                0,
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                1f // 权重为1，表示EditText占据可用空间的一部分
+            )
+        }
+//        layout.addView(buttonTextEditText)
+        layout.addView(LinearLayout(context).apply {
+            orientation = LinearLayout.HORIZONTAL
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            )
+            addView(buttonTextEditText)
+            addView(Button(context).apply {
+                text = "X"
+                setOnClickListener {
+                    buttonTextEditText.setText("")
+                }
+            })
+        })
 
         layout.addView(TextView(context).apply {
             text = context.getString(R.string.virtual_keyboard_menu_vk_code_hint) // "VK按钮编码(数字)"
@@ -362,6 +382,7 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
             progress = 100
         }
         layout.addView(opacitySeekBar)
+        Log.d("opacitySeekBar", "before: "+ opacitySeekBar.progress)
         // 滑块监听
         opacitySeekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
@@ -645,7 +666,8 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
         actionMap[context.getString(R.string.menu_title_grid_lines)] = {
             showGridLinesDialog()
         }
-        actionMap[context.getString(R.string.title_enable_group_move)] = {
+        val titleGroupMove = context.getString(R.string.title_enable_group_move) + "(" + virtualKeyboard.groupMove + ")"
+        actionMap[titleGroupMove] = {
             virtualKeyboard.groupMove = !virtualKeyboard.groupMove
             game?.postNotification(context.getString(R.string.title_enable_group_move) + ":"+ virtualKeyboard.groupMove, 2000)
         }
@@ -725,10 +747,10 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
 
             VirtualKeyboardVkCode.VKCode.entries.forEach { vkCode ->
                 val button = Button(context).apply {
-                    text = VirtualKeyboardVkCode.replaceVkName(vkCode.name)
+                    text = vkCode.getVKName()
                     setOnClickListener {
                         if (buttonTextEditText?.text.toString() == ""){
-                            buttonTextEditText?.setText(VirtualKeyboardVkCode.replaceVkName(vkCode.name))
+                            buttonTextEditText?.setText(vkCode.getVKName())
                         }
                         vkCodeEditText?.setText(vkCode.code.toString())
                         dialog.dismiss()
@@ -773,10 +795,10 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
 
             VirtualKeyboardVkCode.JoyCode.entries.forEach { code ->
                 val button = Button(context).apply {
-                    text = VirtualKeyboardVkCode.replaceVkName(code.name)
+                    text = code.name
                     setOnClickListener {
                         if (buttonTextEditText?.text.toString() == ""){
-                            buttonTextEditText?.setText(VirtualKeyboardVkCode.replaceVkName(code.name))
+                            buttonTextEditText?.setText(code.name)
                         }
                         vkCodeEditText?.setText(code.code.toString())
                         dialog.dismiss()
@@ -1009,7 +1031,7 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
                     gridLayout.addView(Button(context).apply {
                         text = "GROUP_ID: ${element.group}"
                         setOnClickListener {
-                            groupEditText.setText(element.elementId.toString())
+                            groupEditText.setText(element.group.toString())
                             dialog.dismiss()
                         }
                         layoutParams = GridLayout.LayoutParams().apply {

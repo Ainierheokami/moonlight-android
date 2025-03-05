@@ -18,11 +18,21 @@ android {
         //noinspection OldTargetApi
         targetSdk 34
 
-        versionName "12.1-heokami"
+        def baseVersion = "12.1"
+        def customTag = "-heokami-" + new Date().format("yyyyMMdd")
+        versionName baseVersion + customTag
         versionCode = 315
 
         // Generate native debug symbols to allow Google Play to symbolicate our native crashes
         ndk.debugSymbolLevel = 'FULL'
+    }
+
+    applicationVariants.all { variant ->
+        variant.outputs.all { output ->
+            def versionName = variant.versionName // 获取动态生成的 versionName
+            def newName = "Moonlight-${versionName}-${variant.buildType.name}.apk"
+            outputFileName = newName
+        }
     }
 
     flavorDimensions.add("root")

@@ -521,7 +521,6 @@ public abstract class VirtualKeyboardElement extends View {
         setLayer(configuration.getInt("LAYER"));
         setVkCode(configuration.getString("VK_CODE"));
         setRadius(configuration.getInt("RADIUS"));
-        setOpacity(configuration.getInt("OPACITY"));
         setColors(configuration.getInt("NORMAL_COLOR"), configuration.getInt("PRESSED_COLOR"));
         setType(ButtonType.valueOf(configuration.getString("TYPE")));
         setButtonData(configuration.getJSONObject("BUTTON_DATA"));
@@ -529,7 +528,7 @@ public abstract class VirtualKeyboardElement extends View {
         try {
             setHide(configuration.getBoolean("IS_HIDE"));
             setGroup(configuration.getInt("GROUP"));
-            Log.d("heokami", "loadConfiguration -> "+ elementId + " isHide:" + isHide + " group:" + group);
+            setOpacity(configuration.getInt("OPACITY")); // 必须放在颜色设置之后，因为颜色设置会改变透明度
             // 等待布局完成恢复隐藏
             ViewTreeObserver vto = getViewTreeObserver();
             vto.addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {

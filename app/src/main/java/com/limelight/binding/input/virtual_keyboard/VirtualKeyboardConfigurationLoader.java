@@ -531,7 +531,7 @@ public class VirtualKeyboardConfigurationLoader {
             );
         }
 
-        virtualKeyboard.setOpacity(config.oscOpacity);
+//        virtualKeyboard.setOpacity(config.oscOpacity);
     }
 
     public static void addButton(final VirtualKeyboard virtualKeyboard, final Context context,
