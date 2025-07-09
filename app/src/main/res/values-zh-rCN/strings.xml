@@ -381,4 +381,6 @@
     <string name="title_enable_new_setting_button">新的按钮设置</string>
     <string name="controller_mode_new_setting_button">进入配置模式\n单击：移动按钮\n长按：缩放按钮\n双击：编辑菜单</string>
     <string name="virtual_keyboard_menu_load_profile_add_summary">保留当前已有配置，并添加合并新的配置</string>
+    <string name="title_checkbox_virtual_keyboard_safe_settings_button">防误触设置按钮</string>
+    <string name="summary_checkbox_virtual_keyboard_safe_settings_button">启用后需长按设置按钮才能进入设置，防止误触</string>
 </resources>

@@ -395,5 +395,7 @@
     <string name="title_enable_new_setting_button">New button settings</string>
     <string name="controller_mode_new_setting_button">Enter the configuration mode\nClick: Move button\nPress and hold: Zoom button\nDouble-click: Edit menu</string>
     <string name="virtual_keyboard_menu_load_profile_add_summary">Keep the current existing configuration and add and merge the new configuration</string>
+    <string name="title_checkbox_virtual_keyboard_safe_settings_button">防误触设置按钮</string>
+    <string name="summary_checkbox_virtual_keyboard_safe_settings_button">启用后需长按设置按钮才能进入设置，防止误触</string>
 
 </resources>

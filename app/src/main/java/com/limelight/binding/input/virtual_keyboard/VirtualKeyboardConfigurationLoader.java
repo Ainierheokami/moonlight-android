@@ -241,99 +241,120 @@ public class VirtualKeyboardConfigurationLoader {
         digitalPad.setType(buttonType);
         digitalPad.setButtonData(buttonData);
         digitalPad.setVkCode(vkCode);
-        if (buttonData != null && (buttonData.has("LEFT_VK_CODE") || buttonData.has("RIGHT_VK_CODE") || buttonData.has("UP_VK_CODE") || buttonData.has("DOWN_VK_CODE") )) {
-            digitalPad.addDigitalPadListener(new DigitalPad.DigitalPadListener() {
-                @Override
-                public void onDirectionChange(int direction){
-                    try {
+
+        // 使用匿名内部类，可以在其中维护状态
+        DigitalPad.DigitalPadListener listener = new DigitalPad.DigitalPadListener() {
+            // 添加一个字段来存储上一次的方向状态，初始为 0
+            private int previousDirection = 0;
+
+            @Override
+            public void onDirectionChange(int direction){
+                try {
+                    // 只处理 VK_CODE 相关的逻辑，因为用户的问题集中在这里
+                    if (buttonData != null && (buttonData.has("LEFT_VK_CODE") || buttonData.has("RIGHT_VK_CODE") || buttonData.has("UP_VK_CODE") || buttonData.has("DOWN_VK_CODE") )) {
                         VirtualKeyboard.KeyboardInputContext inputContext = virtualKeyboard.getKeyboardInputContext();
+
+                        // 处理 LEFT 方向
                         if (buttonData.has("LEFT_VK_CODE") && !buttonData.getString("LEFT_VK_CODE").isEmpty()){
                             short leftVKCode = Short.parseShort(buttonData.getString("LEFT_VK_CODE"));
-                            if ((direction & DigitalPad.DIGITAL_PAD_DIRECTION_LEFT) != 0) {
+                            boolean currentLeft = (direction & DigitalPad.DIGITAL_PAD_DIRECTION_LEFT) != 0;
+                            boolean previousLeft = (previousDirection & DigitalPad.DIGITAL_PAD_DIRECTION_LEFT) != 0;
+
+                            if (currentLeft && !previousLeft) { // LEFT 从未按变为按下
                                 inputContext.modifier |= VirtualKeyboardVkCode.INSTANCE.replaceSpecialKeys(leftVKCode);
                                 virtualKeyboard.sendDownKey(leftVKCode);
-                            }
-                            else {
+                            } else if (!currentLeft && previousLeft) { // LEFT 从按下变为未按
                                 inputContext.modifier &= (byte) ~VirtualKeyboardVkCode.INSTANCE.replaceSpecialKeys(leftVKCode);
                                 virtualKeyboard.sendUpKey(leftVKCode);
                             }
                         }
 
+                        // 处理 RIGHT 方向 (逻辑同上)
                         if (buttonData.has("RIGHT_VK_CODE") && !buttonData.getString("RIGHT_VK_CODE").isEmpty()) {
                             short rightVKCode = Short.parseShort(buttonData.getString("RIGHT_VK_CODE"));
-                            if ((direction & DigitalPad.DIGITAL_PAD_DIRECTION_RIGHT) != 0) {
+                            boolean currentRight = (direction & DigitalPad.DIGITAL_PAD_DIRECTION_RIGHT) != 0;
+                            boolean previousRight = (previousDirection & DigitalPad.DIGITAL_PAD_DIRECTION_RIGHT) != 0;
+
+                            if (currentRight && !previousRight) { // RIGHT 从未按变为按下
                                 inputContext.modifier |= VirtualKeyboardVkCode.INSTANCE.replaceSpecialKeys(rightVKCode);
                                 virtualKeyboard.sendDownKey(rightVKCode);
-                            } else {
+                            } else if (!currentRight && previousRight) { // RIGHT 从按下变为未按
                                 inputContext.modifier &= (byte) ~VirtualKeyboardVkCode.INSTANCE.replaceSpecialKeys(rightVKCode);
                                 virtualKeyboard.sendUpKey(rightVKCode);
                             }
                         }
 
+                        // 处理 UP 方向 (逻辑同上)
                         if (buttonData.has("UP_VK_CODE") && !buttonData.getString("UP_VK_CODE").isEmpty()){
                             short upVKCode = Short.parseShort(buttonData.getString("UP_VK_CODE"));
-                            if ((direction & DigitalPad.DIGITAL_PAD_DIRECTION_UP) != 0) {
+                            boolean currentUp = (direction & DigitalPad.DIGITAL_PAD_DIRECTION_UP) != 0;
+                            boolean previousUp = (previousDirection & DigitalPad.DIGITAL_PAD_DIRECTION_UP) != 0;
+
+                            if (currentUp && !previousUp) { // UP 从未按变为按下
                                 inputContext.modifier |= VirtualKeyboardVkCode.INSTANCE.replaceSpecialKeys(upVKCode);
                                 virtualKeyboard.sendDownKey(upVKCode);
-                            }
-                            else {
+                            } else if (!currentUp && previousUp) { // UP 从按下变为未按
                                 inputContext.modifier &= (byte) ~VirtualKeyboardVkCode.INSTANCE.replaceSpecialKeys(upVKCode);
                                 virtualKeyboard.sendUpKey(upVKCode);
                             }
                         }
 
+                        // 处理 DOWN 方向 (逻辑同上)
                         if (buttonData.has("DOWN_VK_CODE") && !buttonData.getString("DOWN_VK_CODE").isEmpty()) {
                             short downVKCode = Short.parseShort(buttonData.getString("DOWN_VK_CODE"));
-                            if ((direction & DigitalPad.DIGITAL_PAD_DIRECTION_DOWN) != 0) {
+                            boolean currentDown = (direction & DigitalPad.DIGITAL_PAD_DIRECTION_DOWN) != 0;
+                            boolean previousDown = (previousDirection & DigitalPad.DIGITAL_PAD_DIRECTION_DOWN) != 0;
+
+                            if (currentDown && !previousDown) { // DOWN 从未按变为按下
                                 inputContext.modifier |= VirtualKeyboardVkCode.INSTANCE.replaceSpecialKeys(downVKCode);
                                 virtualKeyboard.sendDownKey(downVKCode);
-                            } else {
+                            } else if (!currentDown && previousDown) { // DOWN 从按下变为未按
                                 inputContext.modifier &= (byte) ~VirtualKeyboardVkCode.INSTANCE.replaceSpecialKeys(downVKCode);
                                 virtualKeyboard.sendUpKey(downVKCode);
                             }
                         }
-                    }catch (JSONException e){
-                        Log.e("heokami", e.toString(), e);
-                    } catch (Exception e) {
-                        Log.e("heokami", e.toString(), e);
-                    }
-                }
-            });
-        }else {
-            digitalPad.addDigitalPadListener(new DigitalPad.DigitalPadListener() {
-                @Override
-                public void onDirectionChange(int direction) {
-                    VirtualKeyboard.ControllerInputContext inputContext = virtualKeyboard.getControllerInputContext();
 
-                    if ((direction & DigitalPad.DIGITAL_PAD_DIRECTION_LEFT) != 0) {
-                        inputContext.inputMap |= ControllerPacket.LEFT_FLAG;
-                    }
-                    else {
-                        inputContext.inputMap &= ~ControllerPacket.LEFT_FLAG;
-                    }
-                    if ((direction & DigitalPad.DIGITAL_PAD_DIRECTION_RIGHT) != 0) {
-                        inputContext.inputMap |= ControllerPacket.RIGHT_FLAG;
-                    }
-                    else {
-                        inputContext.inputMap &= ~ControllerPacket.RIGHT_FLAG;
-                    }
-                    if ((direction & DigitalPad.DIGITAL_PAD_DIRECTION_UP) != 0) {
-                        inputContext.inputMap |= ControllerPacket.UP_FLAG;
-                    }
-                    else {
-                        inputContext.inputMap &= ~ControllerPacket.UP_FLAG;
-                    }
-                    if ((direction & DigitalPad.DIGITAL_PAD_DIRECTION_DOWN) != 0) {
-                        inputContext.inputMap |= ControllerPacket.DOWN_FLAG;
-                    }
-                    else {
-                        inputContext.inputMap &= ~ControllerPacket.DOWN_FLAG;
+                        // 在处理完所有方向后，更新上一次的方向状态
+                        previousDirection = direction;
+
+                    } else {
+                        // Controller 输入的处理保持不变，因为它似乎是通过更新状态并发送一次性包来工作的
+                        VirtualKeyboard.ControllerInputContext inputContext = virtualKeyboard.getControllerInputContext();
+
+                        // 重置 inputMap，只设置当前按下的方向
+                        inputContext.inputMap = 0; // 清除所有方向标志
+
+                        if ((direction & DigitalPad.DIGITAL_PAD_DIRECTION_LEFT) != 0) {
+                            inputContext.inputMap |= ControllerPacket.LEFT_FLAG;
+                        }
+                        if ((direction & DigitalPad.DIGITAL_PAD_DIRECTION_RIGHT) != 0) {
+                            inputContext.inputMap |= ControllerPacket.RIGHT_FLAG;
+                        }
+                        if ((direction & DigitalPad.DIGITAL_PAD_DIRECTION_UP) != 0) {
+                            inputContext.inputMap |= ControllerPacket.UP_FLAG;
+                        }
+                        if ((direction & DigitalPad.DIGITAL_PAD_DIRECTION_DOWN) != 0) {
+                            inputContext.inputMap |= ControllerPacket.DOWN_FLAG;
+                        }
+
+                        // 每次方向变化时发送一次 controller 输入上下文
+                        virtualKeyboard.sendControllerInputContext();
+
+                        // 对于 Controller 模式，也更新 previousDirection，虽然在这个逻辑分支中它没有被使用，
+                        // 但如果将来需要基于状态变化进行更精细的控制，保留它是有益的。
+                        previousDirection = direction;
                     }
 
-                    virtualKeyboard.sendControllerInputContext();
+                } catch (JSONException e){
+                    Log.e("heokami", e.toString(), e);
+                } catch (Exception e) {
+                    Log.e("heokami", e.toString(), e);
                 }
-            });
-        }
+            }
+        };
+
+        digitalPad.addDigitalPadListener(listener);
+
 
         return digitalPad;
     }

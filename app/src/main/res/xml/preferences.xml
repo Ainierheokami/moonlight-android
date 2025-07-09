@@ -256,6 +256,13 @@
             android:title="@string/virtual_keyboard_menu_load_profile_add"
             android:summary="@string/virtual_keyboard_menu_load_profile_add_summary"
             />
+        <CheckBoxPreference
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:defaultValue="false"
+            android:key="checkbox_virtual_keyboard_safe_settings_button"
+            android:summary="@string/summary_checkbox_virtual_keyboard_safe_settings_button"
+            android:title="@string/title_checkbox_virtual_keyboard_safe_settings_button" />
 
 
     </PreferenceCategory>

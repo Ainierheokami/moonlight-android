@@ -78,53 +78,89 @@ public class VirtualKeyboard {
         buttonConfigure.setAlpha(0.25f);
         buttonConfigure.setFocusable(false);
         buttonConfigure.setBackgroundResource(R.drawable.ic_settings);
-        buttonConfigure.setOnClickListener(v -> {
-            String message;
-            if (pref.enableNewSettingButton){
-                if (currentMode == ControllerMode.Active){
-                    currentMode = ControllerMode.NewSettingButtons;
-                    if (pref.enableGridLayout){
-                        gameGridLines.show();
-                    }
-                    message = context.getString(R.string.controller_mode_new_setting_button);
-                }else {
-                    currentMode = ControllerMode.Active;
-                    VirtualKeyboardConfigurationLoader.saveProfile(VirtualKeyboard.this, context);
-                    if (gameGridLines != null) {
-                        gameGridLines.hide();
-                    }
-                    message = context.getString(R.string.controller_mode_active_buttons);
-                }
-            }else {
-                if (currentMode == ControllerMode.Active){
-                    currentMode = ControllerMode.MoveButtons;
-                    if (pref.enableGridLayout){
-                        gameGridLines.show();
-                    }
-                    message = context.getString(R.string.controller_mode_move_buttons);
-                } else if (currentMode == ControllerMode.MoveButtons) {
-                    currentMode = ControllerMode.ResizeButtons;
-                    message = context.getString(R.string.controller_mode_resize_buttons);
-                }else if (currentMode == ControllerMode.ResizeButtons) {
-                    currentMode = ControllerMode.SettingsButtons;
-                    message = context.getString(R.string.controller_mode_settings_buttons);
-                }else {
-                    currentMode = ControllerMode.Active;
-                    VirtualKeyboardConfigurationLoader.saveProfile(VirtualKeyboard.this, context);
-                    if (gameGridLines != null) {
-                        gameGridLines.hide();
-                    }
-                    message = context.getString(R.string.controller_mode_active_buttons);
-                }
-            }
-            context.postNotification(message, 2000);
-            buttonConfigure.invalidate();
+        // 只在开关打开时添加设置按钮
+        if (pref.enableNewSettingButton) {
+            int buttonSize = (int)(context.getResources().getDisplayMetrics().heightPixels*0.06f);
+            FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(buttonSize, buttonSize);
+            params.leftMargin = 15;
+            params.topMargin = 15;
+            frame_layout.addView(buttonConfigure, params);
 
-            for (VirtualKeyboardElement element : elements) {
-                element.invalidate();
+            // 防误触：切换点击/长按行为
+            if (pref.enableSafeSettingsButton) {
+                buttonConfigure.setOnClickListener(null);
+                buttonConfigure.setOnLongClickListener(v -> {
+                    String message;
+                    if (currentMode == ControllerMode.Active){
+                        currentMode = ControllerMode.NewSettingButtons;
+                        if (pref.enableGridLayout){
+                            gameGridLines.show();
+                        }
+                        message = context.getString(R.string.controller_mode_new_setting_button);
+                    }else {
+                        currentMode = ControllerMode.Active;
+                        VirtualKeyboardConfigurationLoader.saveProfile(VirtualKeyboard.this, context);
+                        if (gameGridLines != null) {
+                            gameGridLines.hide();
+                        }
+                        message = context.getString(R.string.controller_mode_active_buttons);
+                    }
+                    context.postNotification(message, 2000);
+                    buttonConfigure.invalidate();
+                    for (VirtualKeyboardElement element : elements) {
+                        element.invalidate();
+                    }
+                    return true;
+                });
+            } else {
+                buttonConfigure.setOnLongClickListener(null);
+                buttonConfigure.setOnClickListener(v -> {
+                    String message;
+                    if (pref.enableNewSettingButton){
+                        if (currentMode == ControllerMode.Active){
+                            currentMode = ControllerMode.NewSettingButtons;
+                            if (pref.enableGridLayout){
+                                gameGridLines.show();
+                            }
+                            message = context.getString(R.string.controller_mode_new_setting_button);
+                        }else {
+                            currentMode = ControllerMode.Active;
+                            VirtualKeyboardConfigurationLoader.saveProfile(VirtualKeyboard.this, context);
+                            if (gameGridLines != null) {
+                                gameGridLines.hide();
+                            }
+                            message = context.getString(R.string.controller_mode_active_buttons);
+                        }
+                    }else {
+                        if (currentMode == ControllerMode.Active){
+                            currentMode = ControllerMode.MoveButtons;
+                            if (pref.enableGridLayout){
+                                gameGridLines.show();
+                            }
+                            message = context.getString(R.string.controller_mode_move_buttons);
+                        } else if (currentMode == ControllerMode.MoveButtons) {
+                            currentMode = ControllerMode.ResizeButtons;
+                            message = context.getString(R.string.controller_mode_resize_buttons);
+                        }else if (currentMode == ControllerMode.ResizeButtons) {
+                            currentMode = ControllerMode.SettingsButtons;
+                            message = context.getString(R.string.controller_mode_settings_buttons);
+                        }else {
+                            currentMode = ControllerMode.Active;
+                            VirtualKeyboardConfigurationLoader.saveProfile(VirtualKeyboard.this, context);
+                            if (gameGridLines != null) {
+                                gameGridLines.hide();
+                            }
+                            message = context.getString(R.string.controller_mode_active_buttons);
+                        }
+                    }
+                    context.postNotification(message, 2000);
+                    buttonConfigure.invalidate();
+                    for (VirtualKeyboardElement element : elements) {
+                        element.invalidate();
+                    }
+                });
             }
-        });
-
+        }
     }
 
     Handler getHandler() {
@@ -143,7 +179,6 @@ public class VirtualKeyboard {
         for (VirtualKeyboardElement element : elements) {
             element.setVisibility(View.INVISIBLE);
         }
-
         buttonConfigure.setVisibility(View.INVISIBLE);
     }
 
@@ -152,8 +187,13 @@ public class VirtualKeyboard {
             element.setVisibility(View.VISIBLE);
             element.setHide(element.isHide);
         }
-
-        buttonConfigure.setVisibility(View.VISIBLE);
+        // 只在开关打开时显示设置按钮
+        PreferenceConfiguration pref = context.getPrefConfig();
+        if (pref.enableNewSettingButton) {
+            buttonConfigure.setVisibility(View.VISIBLE);
+        } else {
+            buttonConfigure.setVisibility(View.GONE);
+        }
     }
 
     public void hideElement(VirtualKeyboardElement element) {

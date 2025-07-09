@@ -2917,6 +2917,8 @@ public class Game extends Activity implements SurfaceHolder.Callback,
     }
 
     public void showMenu() {
+        // 修复：每次显示菜单时刷新prefConfig，确保设置项立即生效
+        this.prefConfig = com.limelight.preferences.PreferenceConfiguration.readPreferences(this);
         if (virtualKeyboard != null && virtualKeyboard.getControllerMode() != VirtualKeyboard.ControllerMode.Active){
             VirtualKeyboardMenu virtualKeyboardMenu = new VirtualKeyboardMenu(this, virtualKeyboard);
             virtualKeyboardMenu.setGameView(this);
