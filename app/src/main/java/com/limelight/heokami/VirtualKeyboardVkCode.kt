@@ -12,6 +12,7 @@ object VirtualKeyboardVkCode {
         VK_LWIN(0x5B, "LWIN"),
         VK_RWIN(0x5C, "RWIN"),
 
+        VK_APPS(0x5D, "APPS"),
         VK_LMENU(0xA4, "LALT"),
         VK_RMENU(0xA5, "RALT"),
         VK_ESCAPE(0x1B),
@@ -137,7 +138,10 @@ object VirtualKeyboardVkCode {
         VK_XBUTTON2(0x06, "鼠标侧键2");
 
         fun getVKName(): String {
-            return keyName ?: name.removePrefix("VK_")
+            return when (this) {
+                VK_APPS -> "菜单"
+                else -> keyName ?: name.removePrefix("VK_")
+            }
         }
 
         companion object {

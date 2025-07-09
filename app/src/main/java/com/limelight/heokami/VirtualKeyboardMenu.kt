@@ -8,7 +8,9 @@ import android.preference.PreferenceManager
 import android.text.Editable
 import android.text.InputType
 import android.text.TextWatcher
+import android.text.TextUtils
 import android.util.Log
+import android.util.TypedValue
 import android.view.View
 import android.view.ViewGroup
 import android.widget.AdapterView
@@ -17,6 +19,7 @@ import android.widget.Button
 import android.widget.CheckBox
 import android.widget.EditText
 import android.widget.GridLayout
+import android.widget.HorizontalScrollView
 import android.widget.LinearLayout
 import android.widget.ListView
 import android.widget.ScrollView
@@ -35,6 +38,8 @@ import com.limelight.preferences.PreferenceConfiguration
 import org.json.JSONException
 import org.json.JSONObject
 import java.lang.Long.parseLong
+import android.widget.FrameLayout
+import android.view.WindowManager
 
 
 class VirtualKeyboardMenu(private val context: Context, private val virtualKeyboard: VirtualKeyboard) {
@@ -92,7 +97,8 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
             orientation = LinearLayout.VERTICAL
         }
 
-        val pref = PreferenceManager.getDefaultSharedPreferences(context)
+        // val pref = PreferenceManager.getDefaultSharedPreferences(context)
+        val pref = context.getSharedPreferences("moonlight_prefs", Context.MODE_PRIVATE)
         val enableGridLayout = pref.getBoolean(PreferenceConfiguration.ENABLE_GRID_LAYOUT_PREF_STRING, PreferenceConfiguration.DEFAULT_ENABLE_GRID_LAYOUT)
         val checkBot = CheckBox(context).apply {
             text = context.getString(R.string.grid_lines_enable)
@@ -727,15 +733,6 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
             )
             scrollView.layoutParams = scrollParams
 
-            val gridLayout = GridLayout(context).apply {
-                rowCount = (VirtualKeyboardVkCode.VKCode.entries.size + 3) / 4 // 计算行数，向上取整
-                columnCount = 4 // 每行 4 列
-                layoutParams = ViewGroup.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT,
-                    ViewGroup.LayoutParams.WRAP_CONTENT
-                )
-            }
-
             val builder = AlertDialog.Builder(context)
             val dialog = builder.setTitle("VK_CODE")
                 .setView(scrollView)
@@ -743,28 +740,160 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
                 .setCancelable(true)
                 .create()
 
-            dialog.show()
+            // 弹窗宽度拉宽到屏幕宽度的 90%
+            dialog.setOnShowListener {
+                val window = dialog.window
+                window?.setLayout((context.resources.displayMetrics.widthPixels * 0.9).toInt(),
+                    WindowManager.LayoutParams.WRAP_CONTENT)
+            }
 
-            VirtualKeyboardVkCode.VKCode.entries.forEach { vkCode ->
-                val button = Button(context).apply {
-                    text = vkCode.getVKName()
-                    setOnClickListener {
-                        if (buttonTextEditText?.text.toString() == ""){
-                            buttonTextEditText?.setText(vkCode.getVKName())
+            // 外层加一层 HorizontalScrollView 让键盘可以左右滑动
+            val horizontalScroll = HorizontalScrollView(context).apply {
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                )
+            }
+
+            // 键盘整体竖直布局
+            val keyboardLayout = LinearLayout(context).apply {
+                orientation = LinearLayout.VERTICAL
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                )
+            }
+
+            // QWERTY键盘布局及权重
+            val qwertyRows = listOf(
+                // 第一行：ESC F1~F12
+                listOf(
+                    Triple("VK_ESCAPE", 1f, null),
+                    Triple("VK_F1", 1f, null), Triple("VK_F2", 1f, null), Triple("VK_F3", 1f, null), Triple("VK_F4", 1f, null),
+                    Triple("VK_F5", 1f, null), Triple("VK_F6", 1f, null), Triple("VK_F7", 1f, null), Triple("VK_F8", 1f, null),
+                    Triple("VK_F9", 1f, null), Triple("VK_F10", 1f, null), Triple("VK_F11", 1f, null), Triple("VK_F12", 1f, null)
+                ),
+                // 第二行：` 1~0 - = Backspace
+                listOf(
+                    Triple("VK_OEM_3", 1f, null),
+                    Triple("VK_1", 1f, null), Triple("VK_2", 1f, null), Triple("VK_3", 1f, null), Triple("VK_4", 1f, null),
+                    Triple("VK_5", 1f, null), Triple("VK_6", 1f, null), Triple("VK_7", 1f, null), Triple("VK_8", 1f, null),
+                    Triple("VK_9", 1f, null), Triple("VK_0", 1f, null), Triple("VK_OEM_MINUS", 1f, null), Triple("VK_OEM_PLUS", 1f, null),
+                    Triple("VK_BACK", 2f, null)
+                ),
+                // 第三行：Tab Q~] \
+                listOf(
+                    Triple("VK_TAB", 1.5f, null),
+                    Triple("VK_Q", 1f, null), Triple("VK_W", 1f, null), Triple("VK_E", 1f, null), Triple("VK_R", 1f, null),
+                    Triple("VK_T", 1f, null), Triple("VK_Y", 1f, null), Triple("VK_U", 1f, null), Triple("VK_I", 1f, null),
+                    Triple("VK_O", 1f, null), Triple("VK_P", 1f, null), Triple("VK_OEM_4", 1f, null), Triple("VK_OEM_6", 1f, null),
+                    Triple("VK_OEM_5", 1.5f, null)
+                ),
+                // 第四行：Caps A~' Enter
+                listOf(
+                    Triple("VK_CAPITAL", 1.8f, null),
+                    Triple("VK_A", 1f, null), Triple("VK_S", 1f, null), Triple("VK_D", 1f, null), Triple("VK_F", 1f, null),
+                    Triple("VK_G", 1f, null), Triple("VK_H", 1f, null), Triple("VK_J", 1f, null), Triple("VK_K", 1f, null),
+                    Triple("VK_L", 1f, null), Triple("VK_OEM_1", 1f, null), Triple("VK_OEM_7", 1f, null),
+                    Triple("VK_RETURN", 2.2f, null)
+                ),
+                // 第五行：Shift Z~? Shift
+                listOf(
+                    Triple("VK_LSHIFT", 2.2f, null),
+                    Triple("VK_Z", 1f, null), Triple("VK_X", 1f, null), Triple("VK_C", 1f, null), Triple("VK_V", 1f, null),
+                    Triple("VK_B", 1f, null), Triple("VK_N", 1f, null), Triple("VK_M", 1f, null), Triple("VK_OEM_COMMA", 1f, null),
+                    Triple("VK_OEM_PERIOD", 1f, null), Triple("VK_OEM_2", 1f, null),
+                    Triple("VK_RSHIFT", 2.2f, null)
+                ),
+                // 第六行：Ctrl Win Alt Space Alt Win Menu Ctrl 方向键
+                listOf(
+                    Triple("VK_LCONTROL", 1.5f, null), Triple("VK_LWIN", 1.2f, null), Triple("VK_LMENU", 1.2f, null),
+                    Triple("VK_SPACE", 7f, null),
+                    Triple("VK_RMENU", 1.2f, null), Triple("VK_RWIN", 1.2f, null), Triple("VK_APPS", 1.2f, null), Triple("VK_RCONTROL", 1.5f, null),
+                    Triple("VK_LEFT", 1f, null), Triple("VK_UP", 1f, null), Triple("VK_DOWN", 1f, null), Triple("VK_RIGHT", 1f, null)
+                )
+            )
+
+            val vkMap = VirtualKeyboardVkCode.VKCode.entries.associateBy { it.name }
+
+            // 构建每一行，按钮宽度缩小为 64dp，内容能显示完全
+            for (row in qwertyRows) {
+                val rowLayout = LinearLayout(context).apply {
+                    orientation = LinearLayout.HORIZONTAL
+                    layoutParams = LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.WRAP_CONTENT,
+                        LinearLayout.LayoutParams.WRAP_CONTENT
+                    )
+                }
+                for ((vkName, weight, _) in row) {
+                    val button = Button(context)
+                    val widthDp = 64f * weight // 基础宽度 64dp，权重大的更宽
+                    button.layoutParams = LinearLayout.LayoutParams(
+                        TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, widthDp, context.resources.displayMetrics).toInt(),
+                        TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 40f, context.resources.displayMetrics).toInt()
+                    ).apply {
+                        setMargins(4, 4, 4, 4)
+                    }
+                    button.text = vkMap[vkName]?.getVKName() ?: vkName
+                    button.textSize = 12f
+                    button.setSingleLine(true)
+                    button.ellipsize = TextUtils.TruncateAt.END
+                    button.setBackgroundResource(R.drawable.keyboard_key_bg)
+                    button.setOnClickListener {
+                        if (buttonTextEditText?.text.toString() == "") {
+                            buttonTextEditText?.setText(vkMap[vkName]?.getVKName() ?: vkName)
                         }
-                        vkCodeEditText?.setText(vkCode.code.toString())
+                        vkCodeEditText?.setText(vkMap[vkName]?.code?.toString() ?: "")
                         dialog.dismiss()
                     }
-                    layoutParams = GridLayout.LayoutParams().apply {
-                        width = 0
-                        height = ViewGroup.LayoutParams.WRAP_CONTENT
-                        columnSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f) // 每个按钮占1列，权重1
-                        rowSpec = GridLayout.spec(GridLayout.UNDEFINED)
-                    }
+                    rowLayout.addView(button)
                 }
-                gridLayout.addView(button)
+                keyboardLayout.addView(rowLayout)
             }
-            scrollView.addView(gridLayout)
+            // 鼠标键一行
+            val mouseRow = LinearLayout(context).apply {
+                orientation = LinearLayout.HORIZONTAL
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                )
+            }
+            val mouseKeys = listOf(
+                Triple("VK_LBUTTON", 1.5f, null),
+                Triple("VK_RBUTTON", 1.5f, null),
+                Triple("VK_MBUTTON", 1.5f, null),
+                Triple("VK_XBUTTON1", 1.5f, null),
+                Triple("VK_XBUTTON2", 1.5f, null)
+            )
+            for ((vkName, weight, _) in mouseKeys) {
+                val button = Button(context)
+                val widthDp = 64f * weight
+                button.layoutParams = LinearLayout.LayoutParams(
+                    TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, widthDp, context.resources.displayMetrics).toInt(),
+                    TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 40f, context.resources.displayMetrics).toInt()
+                ).apply {
+                    setMargins(4, 4, 4, 4)
+                }
+                button.text = vkMap[vkName]?.getVKName() ?: vkName
+                button.textSize = 12f
+                button.setSingleLine(true)
+                button.ellipsize = TextUtils.TruncateAt.END
+                button.setBackgroundResource(R.drawable.keyboard_key_bg)
+                button.setOnClickListener {
+                    if (buttonTextEditText?.text.toString() == "") {
+                        buttonTextEditText?.setText(vkMap[vkName]?.getVKName() ?: vkName)
+                    }
+                    vkCodeEditText?.setText(vkMap[vkName]?.code?.toString() ?: "")
+                    dialog.dismiss()
+                }
+                mouseRow.addView(button)
+            }
+            keyboardLayout.addView(mouseRow)
+
+            horizontalScroll.addView(keyboardLayout)
+            scrollView.addView(horizontalScroll)
+
+            dialog.show()
         }
 
         fun showJoyStickVKCodeDialog(context: Context, buttonTextEditText: EditText?, vkCodeEditText: EditText?) {
