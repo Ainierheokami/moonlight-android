@@ -87,18 +87,47 @@ public class NvConnection {
     }
 
     public void stop() {
-        // Interrupt any pending connection. This is thread-safe.
-        MoonBridge.interruptConnection();
+        LimeLog.info("NvConnection.stop() called");
+        
+        try {
+            // Interrupt any pending connection. This is thread-safe.
+            LimeLog.info("Interrupting connection...");
+            MoonBridge.interruptConnection();
+            LimeLog.info("Connection interrupted");
 
-        // Moonlight-core is not thread-safe with respect to connection start and stop, so
-        // we must not invoke that functionality in parallel.
-        synchronized (MoonBridge.class) {
-            MoonBridge.stopConnection();
-            MoonBridge.cleanupBridge();
+            // Moonlight-core is not thread-safe with respect to connection start and stop, so
+            // we must not invoke that functionality in parallel.
+            synchronized (MoonBridge.class) {
+                try {
+                    LimeLog.info("Stopping connection...");
+                    MoonBridge.stopConnection();
+                    LimeLog.info("Connection stopped");
+                    
+                    LimeLog.info("Cleaning up bridge...");
+                    MoonBridge.cleanupBridge();
+                    LimeLog.info("Bridge cleaned up");
+                } catch (Exception e) {
+                    LimeLog.severe("Exception during connection stop: " + e.getMessage());
+                    e.printStackTrace();
+                }
+            }
+
+            // Now a pending connection can be processed
+            LimeLog.info("Releasing connection semaphore");
+            connectionAllowed.release();
+            LimeLog.info("Connection semaphore released");
+        } catch (Exception e) {
+            LimeLog.severe("Exception in stop method: " + e.getMessage());
+            e.printStackTrace();
+            
+            // Make sure we always release the semaphore
+            try {
+                connectionAllowed.release();
+                LimeLog.info("Connection semaphore released after exception");
+            } catch (Exception ex) {
+                LimeLog.severe("Exception releasing semaphore: " + ex.getMessage());
+            }
         }
-
-        // Now a pending connection can be processed
-        connectionAllowed.release();
     }
 
     private InetAddress resolveServerAddress() throws IOException {
@@ -392,17 +421,20 @@ public class NvConnection {
 
                 try {
                     if (!startApp()) {
+                        LimeLog.severe("Failed to start app");
                         context.connListener.stageFailed(appName, 0, 0);
                         return;
                     }
                     context.connListener.stageComplete(appName);
                 } catch (HostHttpResponseException e) {
                     e.printStackTrace();
+                    LimeLog.severe("HostHttpResponseException: " + e.getMessage() + " (Error code: " + e.getErrorCode() + ")");
                     context.connListener.displayMessage(e.getMessage());
                     context.connListener.stageFailed(appName, 0, e.getErrorCode());
                     return;
                 } catch (XmlPullParserException | IOException e) {
                     e.printStackTrace();
+                    LimeLog.severe("XmlPullParserException or IOException: " + e.getMessage());
                     context.connListener.displayMessage(e.getMessage());
                     context.connListener.stageFailed(appName, MoonBridge.ML_PORT_FLAG_TCP_47984 | MoonBridge.ML_PORT_FLAG_TCP_47989, 0);
                     return;
@@ -414,8 +446,12 @@ public class NvConnection {
                 // Acquire the connection semaphore to ensure we only have one
                 // connection going at once.
                 try {
+                    LimeLog.info("Acquiring connection semaphore...");
                     connectionAllowed.acquire();
+                    LimeLog.info("Connection semaphore acquired");
                 } catch (InterruptedException e) {
+                    e.printStackTrace();
+                    LimeLog.severe("InterruptedException while acquiring connection semaphore: " + e.getMessage());
                     context.connListener.displayMessage(e.getMessage());
                     context.connListener.stageFailed(appName, 0, 0);
                     return;
@@ -424,25 +460,40 @@ public class NvConnection {
                 // Moonlight-core is not thread-safe with respect to connection start and stop, so
                 // we must not invoke that functionality in parallel.
                 synchronized (MoonBridge.class) {
-                    MoonBridge.setupBridge(videoDecoderRenderer, audioRenderer, connectionListener);
-                    int ret = MoonBridge.startConnection(context.serverAddress.address,
-                            context.serverAppVersion, context.serverGfeVersion, context.rtspSessionUrl,
-                            context.serverCodecModeSupport,
-                            context.negotiatedWidth, context.negotiatedHeight,
-                            context.streamConfig.getRefreshRate(), context.streamConfig.getBitrate(),
-                            context.negotiatedPacketSize, context.negotiatedRemoteStreaming,
-                            context.streamConfig.getAudioConfiguration().toInt(),
-                            context.streamConfig.getSupportedVideoFormats(),
-                            context.streamConfig.getClientRefreshRateX100(),
-                            context.riKey.getEncoded(), ib.array(),
-                            context.videoCapabilities,
-                            context.streamConfig.getColorSpace(),
-                            context.streamConfig.getColorRange());
-                    if (ret != 0) {
-                        // LiStartConnection() failed, so the caller is not expected
-                        // to stop the connection themselves. We need to release their
-                        // semaphore count for them.
+                    try {
+                        LimeLog.info("Setting up bridge...");
+                        MoonBridge.setupBridge(videoDecoderRenderer, audioRenderer, connectionListener);
+                        
+                        LimeLog.info("Starting connection to " + context.serverAddress.address);
+                        int ret = MoonBridge.startConnection(context.serverAddress.address,
+                                context.serverAppVersion, context.serverGfeVersion, context.rtspSessionUrl,
+                                context.serverCodecModeSupport,
+                                context.negotiatedWidth, context.negotiatedHeight,
+                                context.streamConfig.getRefreshRate(), context.streamConfig.getBitrate(),
+                                context.negotiatedPacketSize, context.negotiatedRemoteStreaming,
+                                context.streamConfig.getAudioConfiguration().toInt(),
+                                context.streamConfig.getSupportedVideoFormats(),
+                                context.streamConfig.getClientRefreshRateX100(),
+                                context.riKey.getEncoded(), ib.array(),
+                                context.videoCapabilities,
+                                context.streamConfig.getColorSpace(),
+                                context.streamConfig.getColorRange());
+                        
+                        if (ret != 0) {
+                            LimeLog.severe("MoonBridge.startConnection failed with error: " + ret);
+                            // LiStartConnection() failed, so the caller is not expected
+                            // to stop the connection themselves. We need to release their
+                            // semaphore count for them.
+                            connectionAllowed.release();
+                            return;
+                        }
+                        LimeLog.info("Connection started successfully");
+                    } catch (Exception e) {
+                        LimeLog.severe("Exception during connection start: " + e.getMessage());
+                        e.printStackTrace();
                         connectionAllowed.release();
+                        context.connListener.displayMessage("Connection error: " + e.getMessage());
+                        context.connListener.stageFailed(appName, 0, -1);
                         return;
                     }
                 }

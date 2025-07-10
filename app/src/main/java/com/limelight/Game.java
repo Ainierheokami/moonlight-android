@@ -156,6 +156,11 @@ public class Game extends Activity implements SurfaceHolder.Callback,
     private NvApp app;
     private float desiredRefreshRate;
 
+    // 添加后台挂起相关变量
+    private boolean isBackgroundSuspended = false;
+    private long backgroundStartTime = 0;
+    private static final long MAX_BACKGROUND_DURATION = 30000; // 30秒最大后台时间
+
     private InputCaptureProvider inputCaptureProvider;
     private int modifierFlags = 0;
     private boolean grabbedInput = true;
@@ -208,6 +213,33 @@ public class Game extends Activity implements SurfaceHolder.Callback,
     public static final String EXTRA_APP_HDR = "HDR";
     public static final String EXTRA_SERVER_CERT = "ServerCert";
 
+    // 新增：标记是否需要恢复流
+    // 删除不再需要的变量
+
+    // 添加一个标志来跟踪是否需要在返回前台时重新连接
+    private boolean shouldReconnectOnForeground = false;
+    
+    // 保存连接参数，以便在重新连接时使用
+    private String lastHost;
+    private int lastPort;
+    private int lastHttpsPort;
+    private String lastUniqueId;
+    private String lastAppName;
+    private int lastAppId;
+    private boolean lastAppWasHdr;
+    private byte[] lastServCert;
+    
+    // 保存这些参数，以便在重新连接时使用
+    private void saveConnectionParams() {
+        lastHost = getIntent().getStringExtra(EXTRA_HOST);
+        lastPort = getIntent().getIntExtra(EXTRA_PORT, 0);
+        lastHttpsPort = getIntent().getIntExtra(EXTRA_HTTPS_PORT, 0);
+        lastUniqueId = getIntent().getStringExtra(EXTRA_UNIQUEID);
+        lastAppName = getIntent().getStringExtra(EXTRA_APP_NAME);
+        lastAppId = getIntent().getIntExtra(EXTRA_APP_ID, 0);
+        lastAppWasHdr = getIntent().getBooleanExtra(EXTRA_APP_HDR, false);
+        lastServCert = getIntent().getByteArrayExtra(EXTRA_SERVER_CERT);
+    }
 
     private void useSimplifyPerfOverlay(FrameLayout.LayoutParams params) {
         params.gravity = Gravity.TOP | Gravity.CENTER;
@@ -795,13 +827,13 @@ public class Game extends Activity implements SurfaceHolder.Callback,
                 LimeLog.warning("SemWindowManager.getInstance() returned null");
             }
         } catch (ClassNotFoundException e) {
-            e.printStackTrace();
+            // 三星设备特有的API，非三星设备会抛出此异常，忽略即可
         } catch (NoSuchMethodException e) {
-            e.printStackTrace();
+            // 忽略方法不存在异常
         } catch (InvocationTargetException e) {
-            e.printStackTrace();
+            // 忽略调用异常
         } catch (IllegalAccessException e) {
-            e.printStackTrace();
+            // 忽略访问异常
         }
     }
 
@@ -1163,16 +1195,53 @@ public class Game extends Activity implements SurfaceHolder.Callback,
 
     @Override
     protected void onPause() {
+        Log.i("MoonDebug", "[Game] onPause: isFinishing=" + isFinishing() + ", connected=" + connected + ", connecting=" + connecting);
+        
         if (isFinishing()) {
-            // Stop any further input device notifications before we lose focus (and pointer capture)
+            Log.i("MoonDebug", "[Game] onPause: stopping controller and input");
             if (controllerHandler != null) {
                 controllerHandler.stop();
             }
-
-            // Ungrab input to prevent further input device notifications
             setInputGrabState(false);
-        }
+        } else {
+            Log.i("MoonDebug", "[Game] onPause: full background suspension");
+            isBackgroundSuspended = true;
+            backgroundStartTime = System.currentTimeMillis();
+            // shouldReconnectOnForeground = connected || connecting;
+            shouldReconnectOnForeground = true; // 无条件允许重连
+            
+            // 保存连接参数，以便在重新连接时使用
+            // if (shouldReconnectOnForeground) {
+            //     saveConnectionParams();
+            // }
+            saveConnectionParams();
 
+            try {
+                // 先暂停控制器
+                if (controllerHandler != null) {
+                    Log.i("MoonDebug", "[Game] onPause: controllerHandler.pause()");
+                    controllerHandler.pause();
+                }
+
+                // 完全停止连接
+                if (conn != null) {
+                    Log.i("MoonDebug", "[Game] onPause: conn.stop()");
+                    conn.stop();
+                }
+                
+                // 清理解码器
+                if (decoderRenderer != null) {
+                    Log.i("MoonDebug", "[Game] onPause: decoderRenderer.cleanup()");
+                    decoderRenderer.cleanup();
+                }
+                
+                Log.i("MoonDebug", "[Game] onPause: UiHelper.notifyStreamEnteringPiP");
+                UiHelper.notifyStreamEnteringPiP(this);
+            } catch (Exception e) {
+                Log.e("MoonDebug", "[Game] onPause: exception during background suspension: " + e.getMessage());
+                e.printStackTrace();
+            }
+        }
         super.onPause();
     }
 
@@ -1190,7 +1259,8 @@ public class Game extends Activity implements SurfaceHolder.Callback,
             virtualKeyboard.hide();
         }
 
-        if (conn != null) {
+        // 修改：只有在真正结束Activity时才断开连接
+        if (conn != null && isFinishing()) {
             int videoFormat = decoderRenderer.getActiveVideoFormat();
 
             displayedFailureDialog = true;
@@ -1246,9 +1316,32 @@ public class Game extends Activity implements SurfaceHolder.Callback,
                         .putInt("LastNotifiedCrashCount", 0)
                         .apply();
             }
+            
+            finish();
         }
+    }
 
-        finish();
+    @Override
+    protected void onResume() {
+        super.onResume();
+        Log.i("MoonDebug", "[Game] onResume: isBackgroundSuspended=" + isBackgroundSuspended + ", shouldReconnectOnForeground=" + shouldReconnectOnForeground);
+        if (isBackgroundSuspended && backgroundStartTime > 0) {
+            long backgroundDuration = System.currentTimeMillis() - backgroundStartTime;
+            Log.i("MoonDebug", "[Game] onResume: backgroundDuration=" + backgroundDuration + "ms");
+            if (backgroundDuration > MAX_BACKGROUND_DURATION) {
+                Log.i("MoonDebug", "[Game] onResume: duration exceeded, disconnecting");
+                stopConnection();
+                finish();
+                return;
+            }
+        }
+        
+        if (isBackgroundSuspended && shouldReconnectOnForeground) {
+            Log.i("MoonDebug", "[Game] onResume: need to reconnect");
+            // 不要在这里清零变量，等 surfaceCreated/surfaceChanged 真正重连时再清零
+            UiHelper.notifyStreamExitingPiP(this);
+            // displayTransientMessage(getResources().getString(R.string.conn_resumed));
+        }
     }
 
     private void setInputGrabState(boolean grab) {
@@ -2336,7 +2429,10 @@ public class Game extends Activity implements SurfaceHolder.Callback,
             connecting = connected = false;
             updatePipAutoEnter();
 
-            controllerHandler.stop();
+            // 只有在不是后台挂起状态时才停止输入处理
+            if (!isBackgroundSuspended) {
+                controllerHandler.stop();
+            }
 
             // Update GameManager state to indicate we're no longer in game
             UiHelper.notifyStreamEnded(this);
@@ -2407,8 +2503,10 @@ public class Game extends Activity implements SurfaceHolder.Callback,
                 // Let the display go to sleep now
                 getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
-                // Stop processing controller input
-                controllerHandler.stop();
+                // Stop processing controller input (only if not in background suspension)
+                if (!isBackgroundSuspended) {
+                    controllerHandler.stop();
+                }
 
                 // Ungrab input
                 setInputGrabState(false);
@@ -2509,6 +2607,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
 
     @Override
     public void connectionStarted() {
+        // streamResumeInProgress = false; // Removed: obsolete and undefined
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
@@ -2610,11 +2709,23 @@ public class Game extends Activity implements SurfaceHolder.Callback,
 
     @Override
     public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
+        Log.i("MoonDebug", "[Game] surfaceChanged: holder=" + holder + ", format=" + format + ", width=" + width + ", height=" + height + ", surface valid=" + (holder != null && holder.getSurface() != null && holder.getSurface().isValid()));
+        Log.i("MoonDebug", "[Game] surfaceChanged: isBackgroundSuspended=" + isBackgroundSuspended + ", shouldReconnectOnForeground=" + shouldReconnectOnForeground + ", lastHost=" + lastHost);
         if (!surfaceCreated) {
             throw new IllegalStateException("Surface changed before creation!");
         }
-
-        if (!attemptedConnection) {
+        
+        // 如果我们需要重新连接，在这里开始（防止某些设备只触发surfaceChanged）
+        if (isBackgroundSuspended && shouldReconnectOnForeground && lastHost != null) {
+            Log.i("MoonDebug", "[Game] surfaceChanged: starting connection after background");
+            startConnection(holder);
+            isBackgroundSuspended = false;
+            shouldReconnectOnForeground = false;
+            backgroundStartTime = 0;
+            return;
+        }
+        
+        if (!attemptedConnection && !isBackgroundSuspended) {
             attemptedConnection = true;
 
             // Update GameManager state to indicate we're "loading" while connecting
@@ -2628,8 +2739,9 @@ public class Game extends Activity implements SurfaceHolder.Callback,
 
     @Override
     public void surfaceCreated(SurfaceHolder holder) {
+        Log.i("MoonDebug", "[Game] surfaceCreated: holder=" + holder + ", surface valid=" + (holder != null && holder.getSurface() != null && holder.getSurface().isValid()));
+        Log.i("MoonDebug", "[Game] surfaceCreated: isBackgroundSuspended=" + isBackgroundSuspended + ", shouldReconnectOnForeground=" + shouldReconnectOnForeground + ", lastHost=" + lastHost);
         float desiredFrameRate;
-
         surfaceCreated = true;
 
         // Android will pick the lowest matching refresh rate for a given frame rate value, so we want
@@ -2660,10 +2772,20 @@ public class Game extends Activity implements SurfaceHolder.Callback,
             holder.getSurface().setFrameRate(desiredFrameRate,
                     Surface.FRAME_RATE_COMPATIBILITY_FIXED_SOURCE);
         }
+        
+        // 如果我们需要重新连接，在这里开始
+        if (isBackgroundSuspended && shouldReconnectOnForeground && lastHost != null) {
+            Log.i("MoonDebug", "[Game] surfaceCreated: starting connection after background");
+            startConnection(holder);
+            isBackgroundSuspended = false;
+            shouldReconnectOnForeground = false;
+            backgroundStartTime = 0;
+        }
     }
 
     @Override
     public void surfaceDestroyed(SurfaceHolder holder) {
+        Log.i("MoonDebug", "[Game] surfaceDestroyed");
         if (!surfaceCreated) {
             throw new IllegalStateException("Surface destroyed before creation!");
         }
@@ -2672,7 +2794,8 @@ public class Game extends Activity implements SurfaceHolder.Callback,
             // Let the decoder know immediately that the surface is gone
             decoderRenderer.prepareForStop();
 
-            if (connected) {
+            // 只有在不是后台挂起状态时才停止连接
+            if (connected && !isBackgroundSuspended) {
                 stopConnection();
             }
         }
@@ -2932,5 +3055,163 @@ public class Game extends Activity implements SurfaceHolder.Callback,
     public void onBackPressed(){
 //        showMenu(tombstonePrefs);
         showMenu();
+    }
+
+    // 新方法：启动连接
+    private void startConnection(SurfaceHolder holder) {
+        Log.i("MoonDebug", "[Game] startConnection: holder=" + holder + ", surface valid=" + (holder != null && holder.getSurface() != null && holder.getSurface().isValid()));
+
+        // 彻底释放旧的连接和解码器
+        if (conn != null) {
+            Log.i("MoonDebug", "[Game] startConnection: conn already exists, stopping old connection");
+            stopConnection();
+        }
+        if (decoderRenderer != null) {
+            Log.i("MoonDebug", "[Game] startConnection: cleaning up decoderRenderer");
+            decoderRenderer.cleanup();
+        }
+
+        // new NvApp
+        NvApp app = new NvApp(lastAppName != null ? lastAppName : "app", lastAppId, lastAppWasHdr);
+
+        // 重新读取 prefConfig，防止配置变动
+        prefConfig = PreferenceConfiguration.readPreferences(this);
+
+        // 重新初始化 decoderRenderer
+        decoderRenderer = new MediaCodecDecoderRenderer(
+            this,
+            prefConfig,
+            new CrashListener() {
+                @Override
+                public void notifyCrash(Exception e) {
+                    tombstonePrefs.edit().putInt("CrashCount", tombstonePrefs.getInt("CrashCount", 0) + 1).apply();
+                    reportedCrash = true;
+                }
+            },
+            tombstonePrefs.getInt("CrashCount", 0),
+            false, // meteredData，重连时一般为 false
+            lastAppWasHdr,
+            GlPreferences.readPreferences(this).glRenderer,
+            this
+        );
+
+        // 重新计算 supportedVideoFormats
+        int supportedVideoFormats = MoonBridge.VIDEO_FORMAT_H264;
+        if (decoderRenderer.isHevcSupported()) {
+            supportedVideoFormats |= MoonBridge.VIDEO_FORMAT_H265;
+            if (lastAppWasHdr && decoderRenderer.isHevcMain10Hdr10Supported()) {
+                supportedVideoFormats |= MoonBridge.VIDEO_FORMAT_H265_MAIN10;
+            }
+        }
+        if (decoderRenderer.isAv1Supported()) {
+            supportedVideoFormats |= MoonBridge.VIDEO_FORMAT_AV1_MAIN8;
+            if (lastAppWasHdr && decoderRenderer.isAv1Main10Supported()) {
+                supportedVideoFormats |= MoonBridge.VIDEO_FORMAT_AV1_MAIN10;
+            }
+        }
+
+        // 重新计算 gamepadMask
+        int gamepadMask = ControllerHandler.getAttachedControllerMask(this);
+        if (!prefConfig.multiController) {
+            gamepadMask = 1;
+        }
+        if (prefConfig.onscreenController || prefConfig.onscreenKeyboard) {
+            gamepadMask |= 1;
+        }
+
+        // 重新计算 desiredRefreshRate
+        float displayRefreshRate = prepareDisplayForRendering();
+        int roundedRefreshRate = Math.round(displayRefreshRate);
+        int chosenFrameRate = prefConfig.fps;
+        if (prefConfig.framePacing == PreferenceConfiguration.FRAME_PACING_CAP_FPS) {
+            if (prefConfig.fps >= roundedRefreshRate) {
+                if (prefConfig.fps > roundedRefreshRate + 3) {
+                    prefConfig.framePacing = PreferenceConfiguration.FRAME_PACING_BALANCED;
+                } else if (roundedRefreshRate <= 49) {
+                    prefConfig.framePacing = PreferenceConfiguration.FRAME_PACING_BALANCED;
+                } else {
+                    chosenFrameRate = roundedRefreshRate - 1;
+                }
+            }
+        }
+
+        // new StreamConfiguration
+        StreamConfiguration config = new StreamConfiguration.Builder()
+            .setResolution(prefConfig.width, prefConfig.height)
+            .setLaunchRefreshRate(prefConfig.fps)
+            .setRefreshRate(chosenFrameRate)
+            .setApp(app)
+            .setBitrate(prefConfig.bitrate)
+            .setEnableSops(prefConfig.enableSops)
+            .enableLocalAudioPlayback(prefConfig.playHostAudio)
+            .setMaxPacketSize(1392)
+            .setRemoteConfiguration(StreamConfiguration.STREAM_CFG_AUTO)
+            .setSupportedVideoFormats(supportedVideoFormats)
+            .setAttachedGamepadMask(gamepadMask)
+            .setClientRefreshRateX100((int)(displayRefreshRate * 100))
+            .setAudioConfiguration(prefConfig.audioConfiguration)
+            .setColorSpace(decoderRenderer.getPreferredColorSpace())
+            .setColorRange(decoderRenderer.getPreferredColorRange())
+            .setPersistGamepadsAfterDisconnect(!prefConfig.multiController)
+            .build();
+
+        // new NvConnection
+        X509Certificate serverCert = null;
+        try {
+            if (lastServCert != null) {
+                serverCert = (X509Certificate) CertificateFactory.getInstance("X.509")
+                    .generateCertificate(new ByteArrayInputStream(lastServCert));
+            }
+        } catch (CertificateException e) {
+            e.printStackTrace();
+        }
+
+        conn = new NvConnection(getApplicationContext(),
+            new ComputerDetails.AddressTuple(lastHost, lastPort),
+            lastHttpsPort, lastUniqueId, config,
+            PlatformBinding.getCryptoProvider(this), serverCert);
+
+        // 重新初始化 controllerHandler、keyboardTranslator
+        controllerHandler = new ControllerHandler(this, conn, this, prefConfig);
+        keyboardTranslator = new KeyboardTranslator();
+        InputManager inputManager = (InputManager) getSystemService(Context.INPUT_SERVICE);
+        inputManager.registerInputDeviceListener(keyboardTranslator, null);
+
+        // 重新初始化 touchContextMap
+        for (int i = 0; i < touchContextMap.length; i++) {
+            if (!prefConfig.touchscreenTrackpad) {
+                touchContextMap[i] = new AbsoluteTouchContext(conn, i, streamView);
+            } else {
+                touchContextMap[i] = new RelativeTouchContext(conn, i,
+                        REFERENCE_HORIZ_RES, REFERENCE_VERT_RES,
+                        streamView, prefConfig);
+            }
+        }
+
+        // 重新初始化虚拟手柄/键盘
+        if (prefConfig.onscreenController) {
+            virtualController = new VirtualController(controllerHandler,
+                    (FrameLayout)streamView.getParent(),
+                    this);
+            virtualController.refreshLayout();
+            virtualController.show();
+        }
+        if (prefConfig.onscreenKeyboard) {
+            virtualKeyboard = new VirtualKeyboard(
+                    controllerHandler,
+                    conn,
+                    (FrameLayout)streamView.getParent(),
+                    this);
+            virtualKeyboard.refreshLayout();
+            virtualKeyboard.show();
+        }
+
+        // 设置 surface
+        Log.i("MoonDebug", "[Game] startConnection: setRenderTarget(holder)");
+        decoderRenderer.setRenderTarget(holder);
+
+        // 启动连接
+        Log.i("MoonDebug", "[Game] startConnection: conn.start");
+        conn.start(new AndroidAudioRenderer(Game.this, prefConfig.enableAudioFx), decoderRenderer, Game.this);
     }
 }

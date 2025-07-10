@@ -32,6 +32,7 @@ import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.Surface;
 import android.widget.Toast;
+import android.util.Log;
 
 import com.limelight.LimeLog;
 import com.limelight.R;
@@ -265,6 +266,7 @@ public class ControllerHandler implements InputManager.InputDeviceListener, UsbD
     }
 
     public void stop() {
+        Log.i("MoonDebug", "[ControllerHandler] stop() called");
         if (stopped) {
             return;
         }
@@ -295,6 +297,37 @@ public class ControllerHandler implements InputManager.InputDeviceListener, UsbD
 
         sceManager.stop();
         backgroundHandlerThread.quit();
+    }
+
+    public void pause() {
+        Log.i("MoonDebug", "[ControllerHandler] pause() called - stopped: " + stopped);
+        if (stopped) {
+            return;
+        }
+
+        // 暂停传感器
+        for (int i = 0; i < inputDeviceContexts.size(); i++) {
+            InputDeviceContext deviceContext = inputDeviceContexts.valueAt(i);
+            deviceContext.disableSensors();
+        }
+
+        // 暂停震动
+        deviceVibrator.cancel();
+        Log.i("MoonDebug", "[ControllerHandler] paused");
+    }
+
+    public void resume() {
+        Log.i("MoonDebug", "[ControllerHandler] resume() called - stopped: " + stopped);
+        if (stopped) {
+            return;
+        }
+
+        // 恢复传感器
+        for (int i = 0; i < inputDeviceContexts.size(); i++) {
+            InputDeviceContext deviceContext = inputDeviceContexts.valueAt(i);
+            deviceContext.enableSensors();
+        }
+        Log.i("MoonDebug", "[ControllerHandler] resumed");
     }
 
     public void disableSensors() {

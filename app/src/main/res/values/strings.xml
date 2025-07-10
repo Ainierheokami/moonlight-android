@@ -91,6 +91,7 @@
     <string name="conn_error_msg">Failed to start</string>
     <string name="conn_terminated_title">Connection Terminated</string>
     <string name="conn_terminated_msg">The connection was terminated.</string>
+    <string name="conn_resumed">Stream resumed from background</string>
     <string name="error_code_prefix">Error code:</string>
 
     <!-- General strings -->

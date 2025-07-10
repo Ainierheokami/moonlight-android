@@ -45,6 +45,7 @@ import com.limelight.heokami.NetSpeedMonitor;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Locale;
+import android.util.Log;
 
 
 public class MediaCodecDecoderRenderer extends VideoDecoderRenderer implements Choreographer.FrameCallback {
@@ -146,6 +147,9 @@ public class MediaCodecDecoderRenderer extends VideoDecoderRenderer implements C
     private long lastUpdateTimeMs = 0;  // 上次更新的时间戳
 
     private NetSpeedMonitor netSpeedMonitor;
+
+    // 添加一个标志来跟踪解码器是否已被释放
+    private boolean decoderReleased = false;
 
     private MediaCodecInfo findAvcDecoder() {
         MediaCodecInfo decoder = MediaCodecHelper.findProbableSafeDecoder("video/avc", MediaCodecInfo.CodecProfileLevel.AVCProfileHigh);
@@ -310,7 +314,20 @@ public class MediaCodecDecoderRenderer extends VideoDecoderRenderer implements C
     }
 
     public void setRenderTarget(SurfaceHolder renderTarget) {
+        Log.i("MoonDebug", "[Decoder] setRenderTarget: renderTarget=" + (renderTarget != null));
         this.renderTarget = renderTarget;
+        if (videoDecoder != null && !isDecoderReleased() && renderTarget != null && renderTarget.getSurface() != null && renderTarget.getSurface().isValid()) {
+            try {
+                // 如果解码器已经被释放，这里不会尝试重新配置
+                Log.i("MoonDebug", "[Decoder] setRenderTarget: reconfiguring decoder with new Surface");
+                videoDecoder.setOutputSurface(renderTarget.getSurface());
+                Log.i("MoonDebug", "[Decoder] setRenderTarget: decoder output surface updated");
+            } catch (Exception e) {
+                Log.w("MoonDebug", "[Decoder] setRenderTarget: failed to reconfigure decoder: " + e.getMessage());
+            }
+        } else if (isDecoderReleased()) {
+            Log.i("MoonDebug", "[Decoder] setRenderTarget: decoder is released, cannot reconfigure");
+        }
     }
 
     public MediaCodecDecoderRenderer(Activity activity, PreferenceConfiguration prefs,
@@ -478,6 +495,115 @@ public class MediaCodecDecoderRenderer extends VideoDecoderRenderer implements C
         foreground = false;
     }
 
+    public void pauseRendering() {
+        // 暂停视频渲染，但保持解码器运行
+        LimeLog.info("MediaCodecDecoderRenderer.pauseRendering() called");
+        foreground = false;
+        
+        // 暂停Choreographer回调
+        if (choreographerHandler != null) {
+            Choreographer.getInstance().removeFrameCallback(this);
+            LimeLog.info("Choreographer frame callback removed");
+        }
+        LimeLog.info("Video rendering paused successfully");
+    }
+
+    public void resumeRendering() {
+        // 恢复视频渲染
+        LimeLog.info("MediaCodecDecoderRenderer.resumeRendering() called");
+        foreground = true;
+        
+        // 检查Surface是否有效
+        if (renderTarget != null && renderTarget.getSurface() != null && renderTarget.getSurface().isValid()) {
+            LimeLog.info("Surface is valid, resuming rendering");
+            
+            // 检查解码器是否还在运行
+            if (videoDecoder != null) {
+                try {
+                    // 尝试获取解码器状态
+                    videoDecoder.getInputBuffers();
+                    LimeLog.info("Decoder is still running");
+                } catch (IllegalStateException e) {
+                    LimeLog.warning("Decoder is not in valid state: " + e.getMessage());
+                    // 解码器可能已经停止，需要重新初始化
+                    return;
+                }
+            }
+            
+            // 恢复Choreographer回调
+            if (choreographerHandler != null) {
+                Choreographer.getInstance().postFrameCallback(this);
+                LimeLog.info("Choreographer frame callback posted");
+            }
+            LimeLog.info("Video rendering resumed successfully");
+        } else {
+            LimeLog.warning("Surface is not valid, cannot resume rendering - renderTarget: " + (renderTarget != null) + 
+                          ", surface: " + (renderTarget != null && renderTarget.getSurface() != null) + 
+                          ", valid: " + (renderTarget != null && renderTarget.getSurface() != null && renderTarget.getSurface().isValid()));
+        }
+    }
+
+    public void restartChoreographer() {
+        // 重新启动Choreographer回调
+        if (choreographerHandler != null) {
+            // 先移除现有的回调
+            Choreographer.getInstance().removeFrameCallback(this);
+            
+            // 如果线程已经存在，先停止它
+            if (choreographerHandlerThread != null && choreographerHandlerThread.isAlive()) {
+                choreographerHandlerThread.quit();
+                try {
+                    choreographerHandlerThread.join(1000); // 等待最多1秒
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+            
+            // 重新启动Choreographer线程
+            startChoreographerThread();
+        }
+    }
+
+    public void forceRestartRendering() {
+        Log.i("MoonDebug", "[Decoder] forceRestartRendering");
+        // 确保在前台状态
+        foreground = true;
+        
+        // 重新启动Choreographer
+        restartChoreographer();
+        
+        // 强制刷新输出缓冲区队列
+        if (videoDecoder != null) {
+            try {
+                // 清空输出缓冲区队列
+                outputBufferQueue.clear();
+                LimeLog.info("Output buffer queue cleared");
+                
+                // 检查解码器状态，只有在Executing状态才能flush
+                try {
+                    // 尝试获取解码器状态，如果解码器已释放会抛出异常
+                    videoDecoder.getInputBuffers(); // 这会检查解码器是否还在运行
+                    
+                    // 强制刷新解码器
+                    videoDecoder.flush();
+                    LimeLog.info("Video decoder flushed");
+                    
+                    LimeLog.info("Video rendering force restarted successfully");
+                } catch (IllegalStateException e) {
+                    LimeLog.warning("Decoder is not in Executing state, cannot flush: " + e.getMessage());
+                    // 解码器可能已经停止，尝试重新启动
+                    LimeLog.info("Attempting to restart decoder...");
+                    // 这里可以添加重新启动解码器的逻辑
+                }
+            } catch (Exception e) {
+                LimeLog.warning("Failed to force restart rendering: " + e.getMessage());
+                e.printStackTrace();
+            }
+        } else {
+            LimeLog.warning("Video decoder is null, cannot force restart");
+        }
+    }
+
     public int getActiveVideoFormat() {
         return this.videoFormat;
     }
@@ -525,6 +651,7 @@ public class MediaCodecDecoderRenderer extends VideoDecoderRenderer implements C
     }
 
     private void configureAndStartDecoder(MediaFormat format) {
+        Log.i("MoonDebug", "[Decoder] configureAndStartDecoder: format=" + format);
         netSpeedMonitor = new NetSpeedMonitor();
         // Set HDR metadata if present
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
@@ -615,6 +742,11 @@ public class MediaCodecDecoderRenderer extends VideoDecoderRenderer implements C
     }
 
     public int initializeDecoder(boolean throwOnCodecError) {
+        Log.i("MoonDebug", "[Decoder] initializeDecoder: videoFormat=" + videoFormat + ", width=" + initialWidth + ", height=" + initialHeight);
+        
+        // 重置解码器释放标志
+        decoderReleased = false;
+        
         String mimeType;
         MediaCodecInfo selectedDecoderInfo;
 
@@ -997,6 +1129,13 @@ public class MediaCodecDecoderRenderer extends VideoDecoderRenderer implements C
             return;
         }
 
+        // 新增：如果不在前台，不进行渲染
+        if (!foreground) {
+            // 仍然请求下一帧回调，但跳过渲染
+            Choreographer.getInstance().postFrameCallback(this);
+            return;
+        }
+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             frameTimeNanos -= activity.getWindowManager().getDefaultDisplay().getAppVsyncOffsetNanos();
         }
@@ -1321,7 +1460,26 @@ public class MediaCodecDecoderRenderer extends VideoDecoderRenderer implements C
 
     @Override
     public void cleanup() {
-        videoDecoder.release();
+        Log.i("MoonDebug", "[Decoder] cleanup");
+        if (videoDecoder != null && !decoderReleased) {
+            try {
+                videoDecoder.release();
+                decoderReleased = true;
+                Log.i("MoonDebug", "[Decoder] cleanup: decoder released successfully");
+            } catch (Exception e) {
+                Log.w("MoonDebug", "[Decoder] cleanup: exception releasing decoder: " + e.getMessage());
+            }
+        } else {
+            if (decoderReleased) {
+                Log.i("MoonDebug", "[Decoder] cleanup: decoder was already released");
+            } else {
+                Log.i("MoonDebug", "[Decoder] cleanup: decoder was already null");
+            }
+        }
+    }
+
+    public boolean isDecoderReleased() {
+        return decoderReleased || videoDecoder == null;
     }
 
     @Override
@@ -1420,6 +1578,7 @@ public class MediaCodecDecoderRenderer extends VideoDecoderRenderer implements C
     public int submitDecodeUnit(byte[] decodeUnitData, int decodeUnitLength, int decodeUnitType,
                                 int frameNumber, int frameType, char frameHostProcessingLatency,
                                 long receiveTimeMs, long enqueueTimeMs) {
+        Log.i("MoonDebug", "[Decoder] submitDecodeUnit: frameNumber=" + frameNumber + ", decodeUnitLength=" + decodeUnitLength + ", frameType=" + frameType);
         if (stopping) {
             // Don't bother if we're stopping
             return MoonBridge.DR_OK;
