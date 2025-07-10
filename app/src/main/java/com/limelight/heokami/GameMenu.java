@@ -184,6 +184,12 @@ public class GameMenu {
         );
         actionMap.put(game.getString(R.string.game_menu_hotkey_alt_tab), () -> sendKeys(new short[]{(short)VirtualKeyboardVkCode.VKCode.VK_LWIN.getCode(), (short)VirtualKeyboardVkCode.VKCode.VK_TAB.getCode()}));
         actionMap.put(game.getString(R.string.game_menu_hotkey_home), () -> sendKeys(new short[]{(short)VirtualKeyboardVkCode.VKCode.VK_LWIN.getCode(), (short)VirtualKeyboardVkCode.VKCode.VK_D.getCode()}));
+        // 添加虚拟全键盘菜单项（放在最后）
+        actionMap.put("虚拟全键盘", () -> {
+            // 显示虚拟全键盘DialogFragment（叠加在串流画面上）
+            com.limelight.heokami.VirtualKeyboardDialogFragment fragment = new com.limelight.heokami.VirtualKeyboardDialogFragment();
+            fragment.show(game.getFragmentManager(), "VirtualKeyboard");
+        });
 
         return actionMap;
     }

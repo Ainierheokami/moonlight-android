@@ -1195,6 +1195,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
 
     @Override
     protected void onPause() {
+        currentGameInstance = null;
         Log.i("MoonDebug", "[Game] onPause: isFinishing=" + isFinishing() + ", connected=" + connected + ", connecting=" + connecting);
         
         if (isFinishing()) {
@@ -1324,6 +1325,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
     @Override
     protected void onResume() {
         super.onResume();
+        currentGameInstance = this;
         Log.i("MoonDebug", "[Game] onResume: isBackgroundSuspended=" + isBackgroundSuspended + ", shouldReconnectOnForeground=" + shouldReconnectOnForeground);
         if (isBackgroundSuspended && backgroundStartTime > 0) {
             long backgroundDuration = System.currentTimeMillis() - backgroundStartTime;
@@ -2930,6 +2932,10 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         return prefConfig;
     }
 
+    public VirtualKeyboard getVirtualKeyboard(){
+        return virtualKeyboard;
+    }
+
     public void toggleVirtualController() {
         if (virtualController == null) {
             streamView = this.findViewById(R.id.surfaceView);
@@ -3213,5 +3219,18 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         // 启动连接
         Log.i("MoonDebug", "[Game] startConnection: conn.start");
         conn.start(new AndroidAudioRenderer(Game.this, prefConfig.enableAudioFx), decoderRenderer, Game.this);
+    }
+
+    // 静态变量和方法，供VirtualKeyboardActivity获取当前连接
+    private static Game currentGameInstance = null;
+
+    // 获取当前Game实例的NvConnection
+    public static NvConnection getCurrentConnection() {
+        return currentGameInstance != null ? currentGameInstance.conn : null;
+    }
+
+    // 获取当前Game实例的VirtualKeyboard
+    public static VirtualKeyboard getCurrentVirtualKeyboard() {
+        return currentGameInstance != null ? currentGameInstance.virtualKeyboard : null;
     }
 }

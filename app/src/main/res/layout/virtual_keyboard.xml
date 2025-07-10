@@ -5,40 +5,165 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
+    <!-- 横向滚动，适配大屏幕全键盘 -->
     <HorizontalScrollView
-        android:layout_width="wrap_content"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginStart="1dp"
-        android:layout_marginTop="1dp"
-        android:layout_marginEnd="1dp"
-        android:layout_marginBottom="1dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent">
 
         <LinearLayout
+            android:id="@+id/keyboard_layout"
             android:layout_width="wrap_content"
             android:layout_height="match_parent"
-            android:orientation="vertical">
+            android:orientation="vertical"
+            android:padding="8dp">
 
-            <Button
-                android:id="@+id/button3"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="Button" />
-
-            <Button
-                android:id="@+id/button2"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="Button" />
-
-            <Button
-                android:id="@+id/button"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="Button" />
+            <!-- 第一行：ESC F1~F12 -->
+            <LinearLayout 
+                android:layout_width="wrap_content" 
+                android:layout_height="wrap_content" 
+                android:orientation="horizontal"
+                android:layout_marginBottom="4dp">
+                <Button android:text="Esc" android:tag="0x1B" style="@style/KeyboardButton" />
+                <Button android:text="F1" android:tag="0x70" style="@style/KeyboardButton" />
+                <Button android:text="F2" android:tag="0x71" style="@style/KeyboardButton" />
+                <Button android:text="F3" android:tag="0x72" style="@style/KeyboardButton" />
+                <Button android:text="F4" android:tag="0x73" style="@style/KeyboardButton" />
+                <Button android:text="F5" android:tag="0x74" style="@style/KeyboardButton" />
+                <Button android:text="F6" android:tag="0x75" style="@style/KeyboardButton" />
+                <Button android:text="F7" android:tag="0x76" style="@style/KeyboardButton" />
+                <Button android:text="F8" android:tag="0x77" style="@style/KeyboardButton" />
+                <Button android:text="F9" android:tag="0x78" style="@style/KeyboardButton" />
+                <Button android:text="F10" android:tag="0x79" style="@style/KeyboardButton" />
+                <Button android:text="F11" android:tag="0x7A" style="@style/KeyboardButton" />
+                <Button android:text="F12" android:tag="0x7B" style="@style/KeyboardButton" />
+            </LinearLayout>
+            
+            <!-- 第二行：` 1~0 - = Backspace -->
+            <LinearLayout 
+                android:layout_width="wrap_content" 
+                android:layout_height="wrap_content" 
+                android:orientation="horizontal"
+                android:layout_marginBottom="4dp">
+                <Button android:text="~`" android:tag="0xC0" style="@style/KeyboardButton" />
+                <Button android:text="1!" android:tag="0x31" style="@style/KeyboardButton" />
+                <Button android:text="2@" android:tag="0x32" style="@style/KeyboardButton" />
+                <Button android:text="3#" android:tag="0x33" style="@style/KeyboardButton" />
+                <Button android:text="4$" android:tag="0x34" style="@style/KeyboardButton" />
+                <Button android:text="5%" android:tag="0x35" style="@style/KeyboardButton" />
+                <Button android:text="6^" android:tag="0x36" style="@style/KeyboardButton" />
+                <Button android:text="7&amp;" android:tag="0x37" style="@style/KeyboardButton" />
+                <Button android:text="8*" android:tag="0x38" style="@style/KeyboardButton" />
+                <Button android:text="9(" android:tag="0x39" style="@style/KeyboardButton" />
+                <Button android:text="0)" android:tag="0x30" style="@style/KeyboardButton" />
+                <Button android:text="-_" android:tag="0xBD" style="@style/KeyboardButton" />
+                <Button android:text="+=" android:tag="0xBB" style="@style/KeyboardButton" />
+                <Button android:text="Bksp" android:tag="0x08" style="@style/KeyboardButton" android:layout_width="72dp" />
+            </LinearLayout>
+            
+            <!-- 第三行：Tab Q~] \ -->
+            <LinearLayout 
+                android:layout_width="wrap_content" 
+                android:layout_height="wrap_content" 
+                android:orientation="horizontal"
+                android:layout_marginBottom="4dp">
+                <Button android:text="Tab" android:tag="0x09" style="@style/KeyboardButton" android:layout_width="72dp" />
+                <Button android:text="Q" android:tag="0x51" style="@style/KeyboardButton" />
+                <Button android:text="W" android:tag="0x57" style="@style/KeyboardButton" />
+                <Button android:text="E" android:tag="0x45" style="@style/KeyboardButton" />
+                <Button android:text="R" android:tag="0x52" style="@style/KeyboardButton" />
+                <Button android:text="T" android:tag="0x54" style="@style/KeyboardButton" />
+                <Button android:text="Y" android:tag="0x59" style="@style/KeyboardButton" />
+                <Button android:text="U" android:tag="0x55" style="@style/KeyboardButton" />
+                <Button android:text="I" android:tag="0x49" style="@style/KeyboardButton" />
+                <Button android:text="O" android:tag="0x4F" style="@style/KeyboardButton" />
+                <Button android:text="P" android:tag="0x50" style="@style/KeyboardButton" />
+                <Button android:text="[{" android:tag="0xDB" style="@style/KeyboardButton" />
+                <Button android:text="]}" android:tag="0xDD" style="@style/KeyboardButton" />
+                <Button android:text="\\|" android:tag="0xDC" style="@style/KeyboardButton" />
+            </LinearLayout>
+            
+            <!-- 第四行：Caps A~' Enter -->
+            <LinearLayout 
+                android:layout_width="wrap_content" 
+                android:layout_height="wrap_content" 
+                android:orientation="horizontal"
+                android:layout_marginBottom="4dp">
+                <Button android:text="Caps" android:tag="0x14" style="@style/KeyboardButton" android:layout_width="84dp" />
+                <Button android:text="A" android:tag="0x41" style="@style/KeyboardButton" />
+                <Button android:text="S" android:tag="0x53" style="@style/KeyboardButton" />
+                <Button android:text="D" android:tag="0x44" style="@style/KeyboardButton" />
+                <Button android:text="F" android:tag="0x46" style="@style/KeyboardButton" />
+                <Button android:text="G" android:tag="0x47" style="@style/KeyboardButton" />
+                <Button android:text="H" android:tag="0x48" style="@style/KeyboardButton" />
+                <Button android:text="J" android:tag="0x4A" style="@style/KeyboardButton" />
+                <Button android:text="K" android:tag="0x4B" style="@style/KeyboardButton" />
+                <Button android:text="L" android:tag="0x4C" style="@style/KeyboardButton" />
+                <Button android:text=";:" android:tag="0xBA" style="@style/KeyboardButton" />
+                <Button android:text="&apos;&quot;" android:tag="0xDE" style="@style/KeyboardButton" />
+                <Button android:text="Ent" android:tag="0x0D" style="@style/KeyboardButton" android:layout_width="84dp" />
+            </LinearLayout>
+            
+            <!-- 第五行：Shift Z~? Shift -->
+            <LinearLayout 
+                android:layout_width="wrap_content" 
+                android:layout_height="wrap_content" 
+                android:orientation="horizontal"
+                android:layout_marginBottom="4dp">
+                <Button android:text="Shift" android:tag="0xA0" style="@style/KeyboardButton" android:layout_width="96dp" />
+                <Button android:text="Z" android:tag="0x5A" style="@style/KeyboardButton" />
+                <Button android:text="X" android:tag="0x58" style="@style/KeyboardButton" />
+                <Button android:text="C" android:tag="0x43" style="@style/KeyboardButton" />
+                <Button android:text="V" android:tag="0x56" style="@style/KeyboardButton" />
+                <Button android:text="B" android:tag="0x42" style="@style/KeyboardButton" />
+                <Button android:text="N" android:tag="0x4E" style="@style/KeyboardButton" />
+                <Button android:text="M" android:tag="0x4D" style="@style/KeyboardButton" />
+                <Button android:text=",&lt;" android:tag="0xBC" style="@style/KeyboardButton" />
+                <Button android:text=".&gt;" android:tag="0xBE" style="@style/KeyboardButton" />
+                <Button android:text="&lt;&gt;" android:tag="0xBF" style="@style/KeyboardButton" />
+                <Button android:text="Shift" android:tag="0xA1" style="@style/KeyboardButton" android:layout_width="96dp" />
+            </LinearLayout>
+            
+            <!-- 第六行：Ctrl Win Alt Space Alt Win Menu Ctrl 方向键 -->
+            <LinearLayout 
+                android:layout_width="wrap_content" 
+                android:layout_height="wrap_content" 
+                android:orientation="horizontal"
+                android:layout_marginBottom="4dp">
+                <Button android:text="Ctrl" android:tag="0xA2" style="@style/KeyboardButton" android:layout_width="60dp" />
+                <Button android:text="Win" android:tag="0x5B" style="@style/KeyboardButton" android:layout_width="60dp" />
+                <Button android:text="Alt" android:tag="0xA4" style="@style/KeyboardButton" android:layout_width="60dp" />
+                <Button android:text="Space" android:tag="0x20" style="@style/KeyboardButton" android:layout_width="240dp" />
+                <Button android:text="Alt" android:tag="0xA5" style="@style/KeyboardButton" android:layout_width="60dp" />
+                <Button android:text="Win" android:tag="0x5C" style="@style/KeyboardButton" android:layout_width="60dp" />
+                <Button android:text="Menu" android:tag="0x5D" style="@style/KeyboardButton" android:layout_width="60dp" />
+                <Button android:text="Ctrl" android:tag="0xA3" style="@style/KeyboardButton" android:layout_width="60dp" />
+                <Button android:text="←" android:tag="0x25" style="@style/KeyboardButton" />
+                <Button android:text="↑" android:tag="0x26" style="@style/KeyboardButton" />
+                <Button android:text="↓" android:tag="0x28" style="@style/KeyboardButton" />
+                <Button android:text="→" android:tag="0x27" style="@style/KeyboardButton" />
+            </LinearLayout>
+            
+            <!-- 第七行：Insert Delete Home End PgUp PgDn Pause PrtSc ScrLk Help -->
+            <LinearLayout 
+                android:layout_width="wrap_content" 
+                android:layout_height="wrap_content" 
+                android:orientation="horizontal">
+                <Button android:text="Ins" android:tag="0x2D" style="@style/KeyboardButton" />
+                <Button android:text="Del" android:tag="0x2E" style="@style/KeyboardButton" />
+                <Button android:text="Home" android:tag="0x24" style="@style/KeyboardButton" />
+                <Button android:text="End" android:tag="0x23" style="@style/KeyboardButton" />
+                <Button android:text="PgUp" android:tag="0x21" style="@style/KeyboardButton" />
+                <Button android:text="PgDn" android:tag="0x22" style="@style/KeyboardButton" />
+                <Button android:text="Pause" android:tag="0x13" style="@style/KeyboardButton" />
+                <Button android:text="PrtSc" android:tag="0x2C" style="@style/KeyboardButton" />
+                <Button android:text="ScrLk" android:tag="0x91" style="@style/KeyboardButton" />
+                <Button android:text="Caps" android:tag="0x14" style="@style/KeyboardButton" />
+                <Button android:text="Help" android:tag="0x2F" style="@style/KeyboardButton" />
+            </LinearLayout>
         </LinearLayout>
     </HorizontalScrollView>
 </androidx.constraintlayout.widget.ConstraintLayout>

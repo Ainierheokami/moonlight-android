@@ -130,6 +130,21 @@ object VirtualKeyboardVkCode {
         VK_DELETE(0x2E), // DEL 键
         VK_HELP(0x2F), // HELP 键
 
+        // 补全主键区常用键（如有遗漏）
+        // VK_BACKSPACE(0x08, "Bksp"), // 退格键，等价于VK_BACK
+        // VK_ENTER(0x0D, "Ent"), // 回车键，等价于VK_RETURN
+        // VK_PAGEUP(0x21, "PgUp"), // 上翻页，等价于VK_PRIOR
+        // VK_PAGEDOWN(0x22, "PgDn"), // 下翻页，等价于VK_NEXT
+        // VK_BREAK(0x13, "Pause"), // 暂停/中断
+        // VK_PRINTSCREEN(0x2C, "PrtSc"), // 打印屏幕，等价于VK_SNAPSHOT
+        // VK_INSERT(0x2D, "Ins"), // 插入键
+        // VK_DELETE(0x2E, "Del"), // 删除键
+        // VK_HOME(0x24, "Home"), // Home键
+        // VK_END(0x23, "End"), // End键
+        // VK_SCROLLLOCK(0x91, "ScrLk"), // 滚动锁定，等价于VK_SCROLL
+        // VK_CAPSLOCK(0x14, "Caps"), // 大小写锁定，等价于VK_CAPITAL
+        // VK_HELP(0x2F, "Help"), // 帮助键
+
         // 鼠标
         VK_LBUTTON(0x01, "鼠标左键"),
         VK_RBUTTON(0x02, "鼠标右键"),
