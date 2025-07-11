@@ -1,169 +1,1069 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
+<HorizontalScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="wrap_content"
+    android:background="@android:color/transparent"
+    android:padding="4dp">
 
-    <!-- 横向滚动，适配大屏幕全键盘 -->
-    <HorizontalScrollView
-        android:layout_width="match_parent"
+    <LinearLayout
+        android:id="@+id/keyboard_layout"
+        android:layout_width="1500dp"
         android:layout_height="wrap_content"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent">
+        android:orientation="vertical">
 
+        <!-- 第一行：功能区 + 小键盘区 -->
         <LinearLayout
-            android:id="@+id/keyboard_layout"
-            android:layout_width="wrap_content"
-            android:layout_height="match_parent"
-            android:orientation="vertical"
-            android:padding="8dp">
-
-            <!-- 第一行：ESC F1~F12 -->
-            <LinearLayout 
-                android:layout_width="wrap_content" 
-                android:layout_height="wrap_content" 
-                android:orientation="horizontal"
-                android:layout_marginBottom="4dp">
-                <Button android:text="Esc" android:tag="0x1B" style="@style/KeyboardButton" />
-                <Button android:text="F1" android:tag="0x70" style="@style/KeyboardButton" />
-                <Button android:text="F2" android:tag="0x71" style="@style/KeyboardButton" />
-                <Button android:text="F3" android:tag="0x72" style="@style/KeyboardButton" />
-                <Button android:text="F4" android:tag="0x73" style="@style/KeyboardButton" />
-                <Button android:text="F5" android:tag="0x74" style="@style/KeyboardButton" />
-                <Button android:text="F6" android:tag="0x75" style="@style/KeyboardButton" />
-                <Button android:text="F7" android:tag="0x76" style="@style/KeyboardButton" />
-                <Button android:text="F8" android:tag="0x77" style="@style/KeyboardButton" />
-                <Button android:text="F9" android:tag="0x78" style="@style/KeyboardButton" />
-                <Button android:text="F10" android:tag="0x79" style="@style/KeyboardButton" />
-                <Button android:text="F11" android:tag="0x7A" style="@style/KeyboardButton" />
-                <Button android:text="F12" android:tag="0x7B" style="@style/KeyboardButton" />
-            </LinearLayout>
-            
-            <!-- 第二行：` 1~0 - = Backspace -->
-            <LinearLayout 
-                android:layout_width="wrap_content" 
-                android:layout_height="wrap_content" 
-                android:orientation="horizontal"
-                android:layout_marginBottom="4dp">
-                <Button android:text="~`" android:tag="0xC0" style="@style/KeyboardButton" />
-                <Button android:text="1!" android:tag="0x31" style="@style/KeyboardButton" />
-                <Button android:text="2@" android:tag="0x32" style="@style/KeyboardButton" />
-                <Button android:text="3#" android:tag="0x33" style="@style/KeyboardButton" />
-                <Button android:text="4$" android:tag="0x34" style="@style/KeyboardButton" />
-                <Button android:text="5%" android:tag="0x35" style="@style/KeyboardButton" />
-                <Button android:text="6^" android:tag="0x36" style="@style/KeyboardButton" />
-                <Button android:text="7&amp;" android:tag="0x37" style="@style/KeyboardButton" />
-                <Button android:text="8*" android:tag="0x38" style="@style/KeyboardButton" />
-                <Button android:text="9(" android:tag="0x39" style="@style/KeyboardButton" />
-                <Button android:text="0)" android:tag="0x30" style="@style/KeyboardButton" />
-                <Button android:text="-_" android:tag="0xBD" style="@style/KeyboardButton" />
-                <Button android:text="+=" android:tag="0xBB" style="@style/KeyboardButton" />
-                <Button android:text="Bksp" android:tag="0x08" style="@style/KeyboardButton" android:layout_width="72dp" />
-            </LinearLayout>
-            
-            <!-- 第三行：Tab Q~] \ -->
-            <LinearLayout 
-                android:layout_width="wrap_content" 
-                android:layout_height="wrap_content" 
-                android:orientation="horizontal"
-                android:layout_marginBottom="4dp">
-                <Button android:text="Tab" android:tag="0x09" style="@style/KeyboardButton" android:layout_width="72dp" />
-                <Button android:text="Q" android:tag="0x51" style="@style/KeyboardButton" />
-                <Button android:text="W" android:tag="0x57" style="@style/KeyboardButton" />
-                <Button android:text="E" android:tag="0x45" style="@style/KeyboardButton" />
-                <Button android:text="R" android:tag="0x52" style="@style/KeyboardButton" />
-                <Button android:text="T" android:tag="0x54" style="@style/KeyboardButton" />
-                <Button android:text="Y" android:tag="0x59" style="@style/KeyboardButton" />
-                <Button android:text="U" android:tag="0x55" style="@style/KeyboardButton" />
-                <Button android:text="I" android:tag="0x49" style="@style/KeyboardButton" />
-                <Button android:text="O" android:tag="0x4F" style="@style/KeyboardButton" />
-                <Button android:text="P" android:tag="0x50" style="@style/KeyboardButton" />
-                <Button android:text="[{" android:tag="0xDB" style="@style/KeyboardButton" />
-                <Button android:text="]}" android:tag="0xDD" style="@style/KeyboardButton" />
-                <Button android:text="\\|" android:tag="0xDC" style="@style/KeyboardButton" />
-            </LinearLayout>
-            
-            <!-- 第四行：Caps A~' Enter -->
-            <LinearLayout 
-                android:layout_width="wrap_content" 
-                android:layout_height="wrap_content" 
-                android:orientation="horizontal"
-                android:layout_marginBottom="4dp">
-                <Button android:text="Caps" android:tag="0x14" style="@style/KeyboardButton" android:layout_width="84dp" />
-                <Button android:text="A" android:tag="0x41" style="@style/KeyboardButton" />
-                <Button android:text="S" android:tag="0x53" style="@style/KeyboardButton" />
-                <Button android:text="D" android:tag="0x44" style="@style/KeyboardButton" />
-                <Button android:text="F" android:tag="0x46" style="@style/KeyboardButton" />
-                <Button android:text="G" android:tag="0x47" style="@style/KeyboardButton" />
-                <Button android:text="H" android:tag="0x48" style="@style/KeyboardButton" />
-                <Button android:text="J" android:tag="0x4A" style="@style/KeyboardButton" />
-                <Button android:text="K" android:tag="0x4B" style="@style/KeyboardButton" />
-                <Button android:text="L" android:tag="0x4C" style="@style/KeyboardButton" />
-                <Button android:text=";:" android:tag="0xBA" style="@style/KeyboardButton" />
-                <Button android:text="&apos;&quot;" android:tag="0xDE" style="@style/KeyboardButton" />
-                <Button android:text="Ent" android:tag="0x0D" style="@style/KeyboardButton" android:layout_width="84dp" />
-            </LinearLayout>
-            
-            <!-- 第五行：Shift Z~? Shift -->
-            <LinearLayout 
-                android:layout_width="wrap_content" 
-                android:layout_height="wrap_content" 
-                android:orientation="horizontal"
-                android:layout_marginBottom="4dp">
-                <Button android:text="Shift" android:tag="0xA0" style="@style/KeyboardButton" android:layout_width="96dp" />
-                <Button android:text="Z" android:tag="0x5A" style="@style/KeyboardButton" />
-                <Button android:text="X" android:tag="0x58" style="@style/KeyboardButton" />
-                <Button android:text="C" android:tag="0x43" style="@style/KeyboardButton" />
-                <Button android:text="V" android:tag="0x56" style="@style/KeyboardButton" />
-                <Button android:text="B" android:tag="0x42" style="@style/KeyboardButton" />
-                <Button android:text="N" android:tag="0x4E" style="@style/KeyboardButton" />
-                <Button android:text="M" android:tag="0x4D" style="@style/KeyboardButton" />
-                <Button android:text=",&lt;" android:tag="0xBC" style="@style/KeyboardButton" />
-                <Button android:text=".&gt;" android:tag="0xBE" style="@style/KeyboardButton" />
-                <Button android:text="&lt;&gt;" android:tag="0xBF" style="@style/KeyboardButton" />
-                <Button android:text="Shift" android:tag="0xA1" style="@style/KeyboardButton" android:layout_width="96dp" />
-            </LinearLayout>
-            
-            <!-- 第六行：Ctrl Win Alt Space Alt Win Menu Ctrl 方向键 -->
-            <LinearLayout 
-                android:layout_width="wrap_content" 
-                android:layout_height="wrap_content" 
-                android:orientation="horizontal"
-                android:layout_marginBottom="4dp">
-                <Button android:text="Ctrl" android:tag="0xA2" style="@style/KeyboardButton" android:layout_width="60dp" />
-                <Button android:text="Win" android:tag="0x5B" style="@style/KeyboardButton" android:layout_width="60dp" />
-                <Button android:text="Alt" android:tag="0xA4" style="@style/KeyboardButton" android:layout_width="60dp" />
-                <Button android:text="Space" android:tag="0x20" style="@style/KeyboardButton" android:layout_width="240dp" />
-                <Button android:text="Alt" android:tag="0xA5" style="@style/KeyboardButton" android:layout_width="60dp" />
-                <Button android:text="Win" android:tag="0x5C" style="@style/KeyboardButton" android:layout_width="60dp" />
-                <Button android:text="Menu" android:tag="0x5D" style="@style/KeyboardButton" android:layout_width="60dp" />
-                <Button android:text="Ctrl" android:tag="0xA3" style="@style/KeyboardButton" android:layout_width="60dp" />
-                <Button android:text="←" android:tag="0x25" style="@style/KeyboardButton" />
-                <Button android:text="↑" android:tag="0x26" style="@style/KeyboardButton" />
-                <Button android:text="↓" android:tag="0x28" style="@style/KeyboardButton" />
-                <Button android:text="→" android:tag="0x27" style="@style/KeyboardButton" />
-            </LinearLayout>
-            
-            <!-- 第七行：Insert Delete Home End PgUp PgDn Pause PrtSc ScrLk Help -->
-            <LinearLayout 
-                android:layout_width="wrap_content" 
-                android:layout_height="wrap_content" 
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+            <!-- 主键区功能键 -->
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="7"
                 android:orientation="horizontal">
-                <Button android:text="Ins" android:tag="0x2D" style="@style/KeyboardButton" />
-                <Button android:text="Del" android:tag="0x2E" style="@style/KeyboardButton" />
-                <Button android:text="Home" android:tag="0x24" style="@style/KeyboardButton" />
-                <Button android:text="End" android:tag="0x23" style="@style/KeyboardButton" />
-                <Button android:text="PgUp" android:tag="0x21" style="@style/KeyboardButton" />
-                <Button android:text="PgDn" android:tag="0x22" style="@style/KeyboardButton" />
-                <Button android:text="Pause" android:tag="0x13" style="@style/KeyboardButton" />
-                <Button android:text="PrtSc" android:tag="0x2C" style="@style/KeyboardButton" />
-                <Button android:text="ScrLk" android:tag="0x91" style="@style/KeyboardButton" />
-                <Button android:text="Caps" android:tag="0x14" style="@style/KeyboardButton" />
-                <Button android:text="Help" android:tag="0x2F" style="@style/KeyboardButton" />
+
+                <Button
+                    style="@style/KeyboardButton"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:tag="0x1B"
+                    android:text="ESC" />
+
+                <Button
+                    style="@style/KeyboardButton"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:tag="0x70"
+                    android:text="F1" />
+
+                <Button
+                    style="@style/KeyboardButton"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:tag="0x71"
+                    android:text="F2" />
+
+                <Button
+                    style="@style/KeyboardButton"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:tag="0x72"
+                    android:text="F3" />
+
+                <Button
+                    style="@style/KeyboardButton"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:tag="0x73"
+                    android:text="F4" />
+
+                <Button
+                    style="@style/KeyboardButton"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:tag="0x74"
+                    android:text="F5" />
+
+                <Button
+                    style="@style/KeyboardButton"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:tag="0x75"
+                    android:text="F6" />
+
+                <Button
+                    style="@style/KeyboardButton"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:tag="0x76"
+                    android:text="F7" />
+
+                <Button
+                    style="@style/KeyboardButton"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:tag="0x77"
+                    android:text="F8" />
+
+                <Button
+                    style="@style/KeyboardButton"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:tag="0x78"
+                    android:text="F9" />
+
+                <Button
+                    style="@style/KeyboardButton"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:tag="0x79"
+                    android:text="F10" />
+
+                <Button
+                    style="@style/KeyboardButton"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:tag="0x7A"
+                    android:text="F11" />
+
+                <Button
+                    style="@style/KeyboardButton"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:tag="0x7B"
+                    android:text="F12" />
+            </LinearLayout>
+            <!-- 小键盘功能键 -->
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="3"
+                android:orientation="horizontal">
+
+                <Button
+                    style="@style/KeyboardButton"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:tag="0x2D"
+                    android:text="INS" />
+
+                <Button
+                    style="@style/KeyboardButton"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:tag="0x2E"
+                    android:text="DEL" />
+
+                <Button
+                    style="@style/KeyboardButton"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:tag="0x24"
+                    android:text="HOME" />
+
+                <Button
+                    style="@style/KeyboardButton"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:tag="0x23"
+                    android:text="END" />
+
+                <Button
+                    style="@style/KeyboardButton"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:tag="0x21"
+                    android:text="PGUP" />
+
+                <Button
+                    style="@style/KeyboardButton"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:tag="0x22"
+                    android:text="PGDN" />
             </LinearLayout>
         </LinearLayout>
-    </HorizontalScrollView>
-</androidx.constraintlayout.widget.ConstraintLayout>
+
+        <!-- 第二行：主键区数字行 + 小键盘区 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+            <!-- 主键区数字行 -->
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="7"
+                android:orientation="horizontal">
+
+                <Button
+                    style="@style/KeyboardButton"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:tag="0xC0"
+                    android:text="~`" />
+
+                <Button
+                    style="@style/KeyboardButton"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:tag="0x31"
+                    android:text="1!" />
+
+                <Button
+                    style="@style/KeyboardButton"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:tag="0x32"
+                    android:text="2@" />
+
+                <Button
+                    style="@style/KeyboardButton"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:tag="0x33"
+                    android:text="3#" />
+
+                <Button
+                    style="@style/KeyboardButton"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:tag="0x34"
+                    android:text="4$" />
+
+                <Button
+                    style="@style/KeyboardButton"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:tag="0x35"
+                    android:text="5%" />
+
+                <Button
+                    style="@style/KeyboardButton"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:tag="0x36"
+                    android:text="6^" />
+
+                <Button
+                    style="@style/KeyboardButton"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:tag="0x37"
+                    android:text="7&amp;" />
+
+                <Button
+                    style="@style/KeyboardButton"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:tag="0x38"
+                    android:text="8*" />
+
+                <Button
+                    style="@style/KeyboardButton"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:tag="0x39"
+                    android:text="9(" />
+
+                <Button
+                    style="@style/KeyboardButton"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:tag="0x30"
+                    android:text="0)" />
+
+                <Button
+                    style="@style/KeyboardButton"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:tag="0xBD"
+                    android:text="-_" />
+
+                <Button
+                    style="@style/KeyboardButton"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:tag="0xBB"
+                    android:text="+=" />
+
+                <Button
+                    style="@style/KeyboardButton"
+                    android:layout_width="0dp"
+                    android:layout_weight="2"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:tag="0x08"
+                    android:text="Backspace" />
+            </LinearLayout>
+            <!-- 小键盘区 -->
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="3"
+                android:orientation="horizontal">
+
+                <Button
+                    style="@style/KeyboardButton"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:tag="0x90"
+                    android:text="Num" />
+
+                <Button
+                    style="@style/KeyboardButton"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:tag="0x6F"
+                    android:text="/" />
+
+                <Button
+                    style="@style/KeyboardButton"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:tag="0x6A"
+                    android:text="*" />
+
+                <Button
+                    style="@style/KeyboardButton"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:tag="0x6D"
+                    android:text="-" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- 第三行：主键区QWERTY行 + 小键盘区 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+            <!-- 主键区QWERTY行 -->
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="7"
+                android:orientation="horizontal">
+
+                <Button
+                    style="@style/KeyboardButton"
+                    android:layout_width="0dp"
+                    android:layout_weight="1.5"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:tag="0x09"
+                    android:text="Tab" />
+
+                <Button
+                    style="@style/KeyboardButton"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:tag="0x51"
+                    android:text="Q" />
+
+                <Button
+                    style="@style/KeyboardButton"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:tag="0x57"
+                    android:text="W" />
+
+                <Button
+                    style="@style/KeyboardButton"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:tag="0x45"
+                    android:text="E" />
+
+                <Button
+                    style="@style/KeyboardButton"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:tag="0x52"
+                    android:text="R" />
+
+                <Button
+                    style="@style/KeyboardButton"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:tag="0x54"
+                    android:text="T" />
+
+                <Button
+                    style="@style/KeyboardButton"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:tag="0x59"
+                    android:text="Y" />
+
+                <Button
+                    style="@style/KeyboardButton"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:tag="0x55"
+                    android:text="U" />
+
+                <Button
+                    style="@style/KeyboardButton"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:tag="0x49"
+                    android:text="I" />
+
+                <Button
+                    style="@style/KeyboardButton"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:tag="0x4F"
+                    android:text="O" />
+
+                <Button
+                    style="@style/KeyboardButton"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:tag="0x50"
+                    android:text="P" />
+
+                <Button
+                    style="@style/KeyboardButton"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:tag="0xDB"
+                    android:text="[" />
+
+                <Button
+                    style="@style/KeyboardButton"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:tag="0xDD"
+                    android:text="]" />
+
+                <Button
+                    style="@style/KeyboardButton"
+                    android:layout_width="0dp"
+                    android:layout_weight="1.2"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:tag="0xDC"
+                    android:text="\\" />
+            </LinearLayout>
+            <!-- 小键盘区 -->
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="3"
+                android:orientation="horizontal">
+
+                <Button
+                    style="@style/KeyboardButton"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:tag="0x67"
+                    android:text="7" />
+
+                <Button
+                    style="@style/KeyboardButton"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:tag="0x68"
+                    android:text="8" />
+
+                <Button
+                    style="@style/KeyboardButton"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:tag="0x69"
+                    android:text="9" />
+
+                <Button
+                    style="@style/KeyboardButton"
+                    android:layout_width="0dp"
+                    android:layout_weight="1.5"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:tag="0x6B"
+                    android:text="+" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- 第四行：主键区ASDF行 + 小键盘区 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+            <!-- 主键区ASDF行 -->
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="7"
+                android:orientation="horizontal">
+
+                <Button
+                    style="@style/KeyboardButton"
+                    android:layout_width="0dp"
+                    android:layout_weight="1.7"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:tag="0x14"
+                    android:text="Caps" />
+
+                <Button
+                    style="@style/KeyboardButton"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:tag="0x41"
+                    android:text="A" />
+
+                <Button
+                    style="@style/KeyboardButton"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:tag="0x53"
+                    android:text="S" />
+
+                <Button
+                    style="@style/KeyboardButton"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:tag="0x44"
+                    android:text="D" />
+
+                <Button
+                    style="@style/KeyboardButton"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:tag="0x46"
+                    android:text="F" />
+
+                <Button
+                    style="@style/KeyboardButton"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:tag="0x47"
+                    android:text="G" />
+
+                <Button
+                    style="@style/KeyboardButton"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:tag="0x48"
+                    android:text="H" />
+
+                <Button
+                    style="@style/KeyboardButton"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:tag="0x4A"
+                    android:text="J" />
+
+                <Button
+                    style="@style/KeyboardButton"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:tag="0x4B"
+                    android:text="K" />
+
+                <Button
+                    style="@style/KeyboardButton"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:tag="0x4C"
+                    android:text="L" />
+
+                <Button
+                    style="@style/KeyboardButton"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:tag="0xBA"
+                    android:text=";&lt;" />
+
+                <Button
+                    style="@style/KeyboardButton"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:tag="0xDE"
+                    android:text="'" />
+
+                <Button
+                    style="@style/KeyboardButton"
+                    android:layout_width="0dp"
+                    android:layout_weight="2.2"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:tag="0x0D"
+                    android:text="Enter" />
+            </LinearLayout>
+            <!-- 小键盘区 -->
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="3"
+                android:orientation="horizontal">
+
+                <Button
+                    style="@style/KeyboardButton"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:tag="0x64"
+                    android:text="4" />
+
+                <Button
+                    style="@style/KeyboardButton"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:tag="0x65"
+                    android:text="5" />
+
+                <Button
+                    style="@style/KeyboardButton"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:tag="0x66"
+                    android:text="6" />
+
+                <Button
+                    style="@style/KeyboardButton"
+                    android:layout_width="0dp"
+                    android:layout_weight="1.5"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:tag="0x0D"
+                    android:text="Enter" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- 第五行：主键区ZXCV行 + 小键盘区 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+            <!-- 主键区ZXCV行 -->
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="7"
+                android:orientation="horizontal">
+
+                <Button
+                    style="@style/KeyboardButton"
+                    android:layout_width="0dp"
+                    android:layout_weight="2.2"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:tag="0xA0"
+                    android:text="Shift" />
+
+                <Button
+                    style="@style/KeyboardButton"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:tag="0x5A"
+                    android:text="Z" />
+
+                <Button
+                    style="@style/KeyboardButton"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:tag="0x58"
+                    android:text="X" />
+
+                <Button
+                    style="@style/KeyboardButton"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:tag="0x43"
+                    android:text="C" />
+
+                <Button
+                    style="@style/KeyboardButton"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:tag="0x56"
+                    android:text="V" />
+
+                <Button
+                    style="@style/KeyboardButton"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:tag="0x42"
+                    android:text="B" />
+
+                <Button
+                    style="@style/KeyboardButton"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:tag="0x4E"
+                    android:text="N" />
+
+                <Button
+                    style="@style/KeyboardButton"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:tag="0x4D"
+                    android:text="M" />
+
+                <Button
+                    style="@style/KeyboardButton"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:tag="0xBC"
+                    android:text=",&lt;" />
+
+                <Button
+                    style="@style/KeyboardButton"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:tag="0xBE"
+                    android:text=".>" />
+
+                <Button
+                    style="@style/KeyboardButton"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:tag="0xBF"
+                    android:text="/?" />
+
+                <Button
+                    style="@style/KeyboardButton"
+                    android:layout_width="0dp"
+                    android:layout_weight="1.7"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:tag="0xA1"
+                    android:text="Shift" />
+            </LinearLayout>
+            <!-- 小键盘区 -->
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="3"
+                android:orientation="horizontal">
+
+                <Button
+                    style="@style/KeyboardButton"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:tag="0x61"
+                    android:text="1" />
+
+                <Button
+                    style="@style/KeyboardButton"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:tag="0x62"
+                    android:text="2" />
+
+                <Button
+                    style="@style/KeyboardButton"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:tag="0x63"
+                    android:text="3" />
+
+                <Button
+                    style="@style/KeyboardButton"
+                    android:layout_width="0dp"
+                    android:layout_weight="1.5"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:tag="0x0D"
+                    android:text="Enter" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- 第六行：主键区空格行 + 小键盘区 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+            <!-- 主键区空格行 -->
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="7"
+                android:orientation="horizontal">
+
+                <Button
+                    style="@style/KeyboardButton"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1.2"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:tag="0xA2"
+                    android:text="Ctrl" />
+
+                <Button
+                    style="@style/KeyboardButton"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:tag="0x5B"
+                    android:text="Win" />
+
+                <Button
+                    style="@style/KeyboardButton"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:tag="0xA4"
+                    android:text="Alt" />
+
+                <Button
+                    style="@style/KeyboardButton"
+                    android:layout_width="0dp"
+                    android:layout_weight="6"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:tag="0x20"
+                    android:text="Space" />
+
+                <Button
+                    style="@style/KeyboardButton"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:tag="0xA5"
+                    android:text="Alt" />
+
+                <Button
+                    style="@style/KeyboardButton"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:tag="0x00"
+                    android:text="Fn" />
+
+                <Button
+                    style="@style/KeyboardButton"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1.2"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:tag="0xA3"
+                    android:text="Ctrl" />
+            </LinearLayout>
+            <!-- 小键盘区 -->
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="3"
+                android:orientation="horizontal">
+
+                <Button
+                    style="@style/KeyboardButton"
+                    android:layout_width="0dp"
+                    android:layout_weight="2"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:tag="0x60"
+                    android:text="0" />
+
+                <Button
+                    style="@style/KeyboardButton"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:tag="0x6E"
+                    android:text="." />
+
+                <View
+                    android:layout_width="0dp"
+                    android:layout_height="0dp"
+                    android:layout_weight="2.5" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- 第七行：方向键行（嵌在主键区和小键盘之间） -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <View
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:layout_weight="7" />
+
+            <Button
+                style="@style/KeyboardButton"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:tag="0x25"
+                android:text="←" />
+
+            <Button
+                style="@style/KeyboardButton"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:tag="0x28"
+                android:text="↓" />
+
+            <Button
+                style="@style/KeyboardButton"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:tag="0x26"
+                android:text="↑" />
+
+            <Button
+                style="@style/KeyboardButton"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:tag="0x27"
+                android:text="→" />
+        </LinearLayout>
+    </LinearLayout>
+</HorizontalScrollView>

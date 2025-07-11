@@ -63,6 +63,63 @@ class VirtualKeyboardDialogFragment : DialogFragment() {
         }
     }
 
+    private fun pressButton(button: Button, vkCode: Int) {
+        try {
+            Log.d("VirtualKeyboard", "Button pressed: ${button.text}, vkCode: 0x${vkCode.toString(16).uppercase()}")
+
+            // 记录按下的按钮
+            pressedButtons.add(button)
+
+            // 获取键盘输入上下文
+            val inputContext = virtualKeyboard.getKeyboardInputContext()
+
+            // 检查是否是修饰键
+            val modifierMask = VirtualKeyboardVkCode.replaceSpecialKeys(vkCode.toShort())
+            Log.d("VirtualKeyboard", "Modifier mask: 0x${modifierMask.toString(16).uppercase()}")
+
+            if (modifierMask != 0.toByte()) {
+                // 这是修饰键，按下时设置修饰符
+                inputContext.modifier = (inputContext.modifier.toInt() or modifierMask.toInt()).toByte()
+                Log.d("VirtualKeyboard", "Modifier key pressed: ${button.text}, modifier: 0x${inputContext.modifier.toString(16).uppercase()}")
+            } else {
+                // 这是普通键
+                Log.d("VirtualKeyboard", "Sending regular key: ${button.text}")
+            }
+            button.setBackgroundResource(R.drawable.keyboard_key_pressed_bg)
+            virtualKeyboard.sendDownKey(vkCode.toShort())
+        } catch (e: Exception) {
+            Log.e("VirtualKeyboard", "Error pressing button: ${button.text}", e)
+        }
+    }
+
+    private fun releaseButton(button: Button, vkCode: Int) {
+        try {
+            Log.d("VirtualKeyboard", "Button released: ${button.text}, vkCode: 0x${vkCode.toString(16).uppercase()}")
+
+            // 获取键盘输入上下文
+            val inputContext = virtualKeyboard.getKeyboardInputContext()
+
+            // 检查是否是修饰键
+            val modifierMask = VirtualKeyboardVkCode.replaceSpecialKeys(vkCode.toShort())
+
+            if (modifierMask != 0.toByte()) {
+                // 这是修饰键，释放时清除修饰符
+                inputContext.modifier = (inputContext.modifier.toInt() and modifierMask.toInt().inv()).toByte()
+                Log.d("VirtualKeyboard", "Modifier key released: ${button.text}, modifier: 0x${inputContext.modifier.toString(16).uppercase()}")
+            } else {
+                // 这是普通键
+                Log.d("VirtualKeyboard", "Releasing regular key: ${button.text}")
+            }
+            virtualKeyboard.sendUpKey(vkCode.toShort())
+        } catch (e: Exception) {
+            Log.e("VirtualKeyboard", "Error in releaseButton logic for ${button.text}", e)
+        } finally {
+            // 无论如何都恢复视觉状态并从集合中移除
+            button.setBackgroundResource(R.drawable.keyboard_key_bg)
+            pressedButtons.remove(button)
+        }
+    }
+
     private fun setupKeyboardButtons(view: View) {
         // 获取键盘布局
         val keyboardLayout = view.findViewById<LinearLayout>(R.id.keyboard_layout)
@@ -90,66 +147,17 @@ class VirtualKeyboardDialogFragment : DialogFragment() {
             val vkCode = vkCodeString.removePrefix("0x").toInt(16)
             
             // 使用触摸事件来处理按下和释放
-            button.setOnTouchListener { v, event ->
+            button.setOnTouchListener { _, event ->
                 when (event.action) {
                     MotionEvent.ACTION_DOWN -> {
-                        Log.d("VirtualKeyboard", "Button pressed: ${button.text}, vkCode: 0x${vkCode.toString(16).uppercase()}")
-                        
-                        // 记录按下的按钮
-                        pressedButtons.add(button)
-                        
-                        // 获取键盘输入上下文
-                        val inputContext = virtualKeyboard.getKeyboardInputContext()
-                        
-                        // 检查是否是修饰键
-                        val modifierMask = VirtualKeyboardVkCode.replaceSpecialKeys(vkCode.toShort())
-                        Log.d("VirtualKeyboard", "Modifier mask: 0x${modifierMask.toString(16).uppercase()}")
-                        
-                        if (modifierMask != 0.toByte()) {
-                            // 这是修饰键，按下时设置修饰符并发送按键
-                            inputContext.modifier = (inputContext.modifier.toInt() or modifierMask.toInt()).toByte()
-                            button.setBackgroundResource(R.drawable.keyboard_key_pressed_bg)
-                            virtualKeyboard.sendDownKey(vkCode.toShort())
-                            Log.d("VirtualKeyboard", "Modifier key pressed: ${button.text}, modifier: 0x${inputContext.modifier.toString(16).uppercase()}")
-                        } else {
-                            // 这是普通键，直接发送按键并设置按下状态
-                            Log.d("VirtualKeyboard", "Sending regular key: ${button.text}")
-                            button.setBackgroundResource(R.drawable.keyboard_key_pressed_bg)
-                            virtualKeyboard.sendDownKey(vkCode.toShort())
-                        }
+                        pressButton(button, vkCode)
                         true
                     }
-                    MotionEvent.ACTION_UP -> {
-                        Log.d("VirtualKeyboard", "Button released: ${button.text}, vkCode: 0x${vkCode.toString(16).uppercase()}")
-                        
-                        // 移除按下的按钮
-                        pressedButtons.remove(button)
-                        
-                        // 获取键盘输入上下文
-                        val inputContext = virtualKeyboard.getKeyboardInputContext()
-                        
-                        // 检查是否是修饰键
-                        val modifierMask = VirtualKeyboardVkCode.replaceSpecialKeys(vkCode.toShort())
-                        
-                        if (modifierMask != 0.toByte()) {
-                            // 这是修饰键，释放时清除修饰符并发送按键释放
-                            inputContext.modifier = (inputContext.modifier.toInt() and modifierMask.toInt().inv()).toByte()
-                            button.setBackgroundResource(R.drawable.keyboard_key_bg)
-                            virtualKeyboard.sendUpKey(vkCode.toShort())
-                            Log.d("VirtualKeyboard", "Modifier key released: ${button.text}, modifier: 0x${inputContext.modifier.toString(16).uppercase()}")
-                        } else {
-                            // 这是普通键，发送按键释放并恢复背景
-                            Log.d("VirtualKeyboard", "Releasing regular key: ${button.text}")
-                            button.setBackgroundResource(R.drawable.keyboard_key_bg)
-                            virtualKeyboard.sendUpKey(vkCode.toShort())
+                    MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                        // 只有在按钮确实被按下的情况下才释放
+                        if (pressedButtons.contains(button)) {
+                            releaseButton(button, vkCode)
                         }
-                        true
-                    }
-                    MotionEvent.ACTION_CANCEL -> {
-                        // 处理触摸取消事件，确保按键状态正确
-                        Log.d("VirtualKeyboard", "Button touch cancelled: ${button.text}")
-                        pressedButtons.remove(button)
-                        button.setBackgroundResource(R.drawable.keyboard_key_bg)
                         true
                     }
                     else -> false

@@ -50,11 +50,11 @@
         <item name="android:layout_width">48dp</item>
         <item name="android:layout_height">48dp</item>
         <item name="android:background">@drawable/keyboard_key_bg</item>
-        <item name="android:textColor">#FFFFFF</item>
+        <item name="android:textColor">@android:color/white</item>
         <item name="android:textSize">12sp</item>
         <item name="android:gravity">center</item>
-        <item name="android:padding">4dp</item>
-        <item name="android:minWidth">0dp</item>
+        <item name="android:padding">2dp</item>
+        <item name="android:minWidth">48dp</item>
         <item name="android:minHeight">0dp</item>
         <item name="android:layout_margin">2dp</item>
         <item name="android:clickable">true</item>

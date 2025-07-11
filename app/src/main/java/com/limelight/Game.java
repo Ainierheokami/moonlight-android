@@ -2996,37 +2996,35 @@ public class Game extends Activity implements SurfaceHolder.Callback,
     }
 
     // 2024-11-27 23:48:26 添加触摸模式切换
-    private int touchMode = 0;
+    private int temporaryTouchMode = -1; // -1: no temp setting, 0: multi-touch, 1: trackpad, 2: mouse
 
-    public void toggleTouchscreenMode(){
+    public void toggleTouchscreenMode() {
+        int currentMode = 2; // Default to mouse mode (multiTouchScreen=false, touchscreenTrackpad=false)
         if (!prefConfig.touchscreenTrackpad && prefConfig.multiTouchScreen) {
-            touchMode = 1;
-        }else if (!prefConfig.multiTouchScreen && prefConfig.touchscreenTrackpad) {
-            touchMode = 2;
-        }else {
-            touchMode = 0;
+            currentMode = 0; // multi-touch
+        } else if (!prefConfig.multiTouchScreen && prefConfig.touchscreenTrackpad) {
+            currentMode = 1; // trackpad
         }
 
-        changeTouchMode(touchMode);
-
-        touchMode = (touchMode + 1) % 3;
-
+        int nextMode = (currentMode + 1) % 3;
+        changeTouchMode(nextMode);
     }
 
     public void changeTouchMode(int mode){
+        this.temporaryTouchMode = mode; // Store the temporary choice
+
         switch (mode){
-            case 0:
+            case 0: // multi-touch
                 prefConfig.multiTouchScreen = true;
                 prefConfig.touchscreenTrackpad = false;
                 postNotification(this.getResources().getString(R.string.game_switch_to_multi_touch_mode), 2000);
-
                 break;
-            case 1:
+            case 1: // trackpad
                 prefConfig.multiTouchScreen = false;
                 prefConfig.touchscreenTrackpad = true;
                 postNotification(this.getResources().getString(R.string.game_switch_to_touch_pad_mode), 2000);
                 break;
-            default:
+            default: // case 2, mouse mode
                 prefConfig.multiTouchScreen = false;
                 prefConfig.touchscreenTrackpad = false;
                 postNotification(this.getResources().getString(R.string.game_switch_to_mouse_mode), 2000);
@@ -3048,6 +3046,12 @@ public class Game extends Activity implements SurfaceHolder.Callback,
     public void showMenu() {
         // 修复：每次显示菜单时刷新prefConfig，确保设置项立即生效
         this.prefConfig = com.limelight.preferences.PreferenceConfiguration.readPreferences(this);
+
+        // 如果存在临时触摸模式设置，则重新应用它
+        if (temporaryTouchMode != -1) {
+            changeTouchMode(temporaryTouchMode);
+        }
+
         if (virtualKeyboard != null && virtualKeyboard.getControllerMode() != VirtualKeyboard.ControllerMode.Active){
             VirtualKeyboardMenu virtualKeyboardMenu = new VirtualKeyboardMenu(this, virtualKeyboard);
             virtualKeyboardMenu.setGameView(this);
