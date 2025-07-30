@@ -3063,7 +3063,22 @@ public class Game extends Activity implements SurfaceHolder.Callback,
 
     @Override
     public void onBackPressed(){
-//        showMenu(tombstonePrefs);
+        android.util.Log.d("GameMenu", "onBackPressed called, isMenuShowing: " + com.limelight.heokami.GameMenu.isMenuShowing());
+        
+        // 检查菜单是否已经显示
+        if (com.limelight.heokami.GameMenu.isMenuShowing()) {
+            // 如果菜单已经显示，则关闭菜单
+            // 查找并移除菜单Fragment
+            android.app.Fragment menuFragment = getFragmentManager().findFragmentByTag("GameMenu");
+            android.util.Log.d("GameMenu", "Menu fragment found: " + (menuFragment != null));
+            if (menuFragment != null && menuFragment instanceof com.limelight.heokami.GameMenuFragment) {
+                ((com.limelight.heokami.GameMenuFragment) menuFragment).hideMenuWithAnimation();
+            }
+            return;
+        }
+        
+        // 如果菜单没有显示，则显示菜单
+        android.util.Log.d("GameMenu", "Showing menu");
         showMenu();
     }
 

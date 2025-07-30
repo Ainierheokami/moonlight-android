@@ -1,0 +1,336 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#80000000">
+
+    <!-- 背景遮罩，点击可关闭菜单 -->
+    <View
+        android:id="@+id/menu_background"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@android:color/transparent" />
+
+    <!-- 侧边菜单面板 -->
+    <androidx.cardview.widget.CardView
+        android:id="@+id/menu_panel"
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_alignParentEnd="true"
+        android:layout_marginEnd="0dp"
+        android:visibility="invisible"
+        app:cardCornerRadius="0dp"
+        app:cardElevation="8dp"
+        app:cardBackgroundColor="#F5F5F5">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="vertical"
+            android:padding="16dp">
+
+            <!-- 菜单标题栏 -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:paddingStart="16dp"
+                android:paddingEnd="16dp"
+                android:background="@drawable/menu_header_background">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="@string/game_menu_title"
+                    android:textSize="20sp"
+                    android:textStyle="bold"
+                    android:textColor="#333333"
+                    android:drawableStart="@drawable/ic_menu"
+                    android:drawablePadding="8dp"
+                    android:gravity="center_vertical|start"
+                    android:minHeight="48dp" />
+
+                <ImageButton
+                    android:id="@+id/btn_close_menu"
+                    android:layout_width="32dp"
+                    android:layout_height="32dp"
+                    android:background="@android:color/transparent"
+                    android:src="@drawable/ic_close"
+                    android:contentDescription="关闭菜单"
+                    android:padding="4dp"
+                    android:scaleType="centerInside" />
+            </LinearLayout>
+
+            <!-- 滚动菜单内容 -->
+            <ScrollView
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:scrollbars="none">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
+
+                    <!-- 输入控制组 -->
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="输入控制"
+                        android:textSize="16sp"
+                        android:textStyle="bold"
+                        android:textColor="#666666"
+                        android:paddingTop="8dp"
+                        android:paddingBottom="8dp" />
+
+                    <Button
+                        android:id="@+id/btn_enable_keyboard"
+                        android:layout_width="match_parent"
+                        android:layout_height="48dp"
+                        android:layout_marginBottom="8dp"
+                        android:text="@string/game_menu_enable_keyboard"
+                        android:textAllCaps="false"
+                        android:background="@drawable/button_background"
+                        android:textColor="#333333"
+                        android:drawableStart="@drawable/ic_keyboard"
+                        android:drawablePadding="8dp"
+                        android:paddingStart="16dp"
+                        android:paddingEnd="16dp" />
+
+                    <Button
+                        android:id="@+id/btn_toggle_virtual_controller"
+                        android:layout_width="match_parent"
+                        android:layout_height="48dp"
+                        android:layout_marginBottom="8dp"
+                        android:text="@string/game_menu_toggle_virtual_controller"
+                        android:textAllCaps="false"
+                        android:background="@drawable/button_background"
+                        android:textColor="#333333"
+                        android:drawableStart="@drawable/ic_gamepad"
+                        android:drawablePadding="8dp"
+                        android:paddingStart="16dp"
+                        android:paddingEnd="16dp" />
+
+                    <Button
+                        android:id="@+id/btn_toggle_virtual_keyboard"
+                        android:layout_width="match_parent"
+                        android:layout_height="48dp"
+                        android:layout_marginBottom="16dp"
+                        android:text="@string/game_menu_toggle_virtual_keyboard"
+                        android:textAllCaps="false"
+                        android:background="@drawable/button_background"
+                        android:textColor="#333333"
+                        android:drawableStart="@drawable/ic_virtual_keyboard"
+                        android:drawablePadding="8dp"
+                        android:paddingStart="16dp"
+                        android:paddingEnd="16dp" />
+
+                    <!-- 热键组 -->
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="常用热键"
+                        android:textSize="16sp"
+                        android:textStyle="bold"
+                        android:textColor="#666666"
+                        android:paddingTop="8dp"
+                        android:paddingBottom="8dp" />
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:layout_marginBottom="8dp">
+
+                        <Button
+                            android:id="@+id/btn_hotkey_copy"
+                            android:layout_width="0dp"
+                            android:layout_height="48dp"
+                            android:layout_weight="1"
+                            android:layout_marginEnd="4dp"
+                            android:text="复制"
+                            android:textAllCaps="false"
+                            android:background="@drawable/button_background"
+                            android:textColor="#333333"
+                            android:drawableStart="@drawable/ic_copy"
+                            android:drawablePadding="8dp"
+                            android:paddingStart="12dp"
+                            android:paddingEnd="12dp"
+                            android:maxLines="1"
+                            android:ellipsize="end"
+                            android:gravity="center_vertical|start" />
+
+                        <Button
+                            android:id="@+id/btn_hotkey_paste"
+                            android:layout_width="0dp"
+                            android:layout_height="48dp"
+                            android:layout_weight="1"
+                            android:layout_marginStart="4dp"
+                            android:text="粘贴"
+                            android:textAllCaps="false"
+                            android:background="@drawable/button_background"
+                            android:textColor="#333333"
+                            android:drawableStart="@drawable/ic_paste"
+                            android:drawablePadding="8dp"
+                            android:paddingStart="12dp"
+                            android:paddingEnd="12dp"
+                            android:maxLines="1"
+                            android:ellipsize="end"
+                            android:gravity="center_vertical|start" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:layout_marginBottom="8dp">
+
+                        <Button
+                            android:id="@+id/btn_hotkey_screen_keyboard"
+                            android:layout_width="0dp"
+                            android:layout_height="48dp"
+                            android:layout_weight="1"
+                            android:layout_marginEnd="4dp"
+                            android:text="虚拟键盘"
+                            android:textAllCaps="false"
+                            android:background="@drawable/button_background"
+                            android:textColor="#333333"
+                            android:drawableStart="@drawable/ic_keyboard"
+                            android:drawablePadding="8dp"
+                            android:paddingStart="12dp"
+                            android:paddingEnd="12dp"
+                            android:maxLines="2"
+                            android:ellipsize="end"
+                            android:gravity="center_vertical|start" />
+
+                        <Button
+                            android:id="@+id/btn_hotkey_alt_tab"
+                            android:layout_width="0dp"
+                            android:layout_height="48dp"
+                            android:layout_weight="1"
+                            android:layout_marginStart="4dp"
+                            android:text="切换窗口"
+                            android:textAllCaps="false"
+                            android:background="@drawable/button_background"
+                            android:textColor="#333333"
+                            android:drawableStart="@drawable/ic_switch_window"
+                            android:drawablePadding="8dp"
+                            android:paddingStart="12dp"
+                            android:paddingEnd="12dp"
+                            android:maxLines="2"
+                            android:ellipsize="end"
+                            android:gravity="center_vertical|start" />
+                    </LinearLayout>
+
+                    <Button
+                        android:id="@+id/btn_hotkey_home"
+                        android:layout_width="match_parent"
+                        android:layout_height="48dp"
+                        android:layout_marginBottom="16dp"
+                        android:text="@string/game_menu_hotkey_home"
+                        android:textAllCaps="false"
+                        android:background="@drawable/button_background"
+                        android:textColor="#333333"
+                        android:drawableStart="@drawable/ic_home"
+                        android:drawablePadding="8dp"
+                        android:paddingStart="16dp"
+                        android:paddingEnd="16dp" />
+
+                    <!-- 剪贴板组 -->
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="剪贴板"
+                        android:textSize="16sp"
+                        android:textStyle="bold"
+                        android:textColor="#666666"
+                        android:paddingTop="8dp"
+                        android:paddingBottom="8dp" />
+
+                    <Button
+                        android:id="@+id/btn_send_clipboard"
+                        android:layout_width="match_parent"
+                        android:layout_height="48dp"
+                        android:layout_marginBottom="16dp"
+                        android:text="@string/game_menu_send_clipboard_content"
+                        android:textAllCaps="false"
+                        android:background="@drawable/button_background"
+                        android:textColor="#333333"
+                        android:drawableStart="@drawable/ic_clipboard"
+                        android:drawablePadding="8dp"
+                        android:paddingStart="16dp"
+                        android:paddingEnd="16dp" />
+
+                    <!-- 虚拟全键盘 -->
+                    <Button
+                        android:id="@+id/btn_virtual_full_keyboard"
+                        android:layout_width="match_parent"
+                        android:layout_height="48dp"
+                        android:layout_marginBottom="16dp"
+                        android:text="虚拟全键盘"
+                        android:textAllCaps="false"
+                        android:background="@drawable/button_background"
+                        android:textColor="#333333"
+                        android:drawableStart="@drawable/ic_full_keyboard"
+                        android:drawablePadding="8dp"
+                        android:paddingStart="16dp"
+                        android:paddingEnd="16dp" />
+
+                </LinearLayout>
+            </ScrollView>
+
+                         <!-- 底部操作按钮 -->
+             <LinearLayout
+                 android:layout_width="match_parent"
+                 android:layout_height="wrap_content"
+                 android:orientation="horizontal"
+                 android:baselineAligned="false"
+                 android:paddingTop="16dp">
+
+                <Button
+                    android:id="@+id/btn_change_touch"
+                    android:layout_width="0dp"
+                    android:layout_height="48dp"
+                    android:layout_weight="1"
+                    android:layout_marginEnd="8dp"
+                    android:text="@string/game_menu_change_touch"
+                    android:textAllCaps="false"
+                    android:background="@drawable/button_background"
+                    android:textColor="#333333"
+                    android:drawableStart="@drawable/ic_touch"
+                    android:drawablePadding="8dp"
+                    android:paddingStart="12dp"
+                    android:paddingEnd="12dp"
+                    android:maxLines="2"
+                    android:ellipsize="end"
+                    android:gravity="center_vertical|start" />
+
+                <Button
+                    android:id="@+id/btn_disconnect"
+                    android:layout_width="0dp"
+                    android:layout_height="48dp"
+                    android:layout_weight="1"
+                    android:layout_marginStart="8dp"
+                    android:text="@string/game_menu_disconnect"
+                    android:textAllCaps="false"
+                    android:background="@drawable/button_background_red"
+                    android:textColor="#FFFFFF"
+                    android:drawableStart="@drawable/ic_disconnect"
+                    android:drawablePadding="8dp"
+                    android:paddingStart="12dp"
+                    android:paddingEnd="12dp"
+                    android:maxLines="2"
+                    android:ellipsize="end"
+                    android:gravity="center_vertical|start" />
+
+            </LinearLayout>
+
+        </LinearLayout>
+
+    </androidx.cardview.widget.CardView>
+
+</RelativeLayout> 
