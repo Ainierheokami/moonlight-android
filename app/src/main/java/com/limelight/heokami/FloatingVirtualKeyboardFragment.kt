@@ -260,11 +260,13 @@ class FloatingVirtualKeyboardFragment : DialogFragment() {
         
         if (isPressed) {
             pressedButtons.add(button)
-            button.alpha = 0.7f
+            // 手动设置按下状态，让背景选择器的 state_pressed 生效
+            button.isPressed = true
             pressButton(button, vkCode)
         } else {
             pressedButtons.remove(button)
-            button.alpha = 0.95f
+            // 手动恢复正常状态
+            button.isPressed = false
             releaseButton(button, vkCode)
         }
     }
@@ -338,9 +340,9 @@ class FloatingVirtualKeyboardFragment : DialogFragment() {
                 Log.d("FloatingKeyboard", "All modifier keys released")
             }
             
-            // 重置按钮视觉状态
+            // 重置所有按钮的按下状态
             pressedButtons.forEach { button ->
-                button.alpha = 0.95f
+                button.isPressed = false
             }
             pressedButtons.clear()
         } catch (e: Exception) {
@@ -404,27 +406,27 @@ class FloatingVirtualKeyboardFragment : DialogFragment() {
     }
 
     /**
-     * 更新移动按钮状态
+     * 更新移动按钮状态 - 使用背景选择器的激活状态代替alpha修改
      */
     private fun updateMoveButtonState(view: View) {
         val moveButton = view.findViewById<ImageButton>(R.id.btn_move_keyboard)
-        moveButton.alpha = if (isDragging) 0.7f else 1.0f
+        moveButton.isActivated = isDragging
     }
 
     /**
-     * 更新数字键盘按钮状态
+     * 更新数字键盘按钮状态 - 使用背景选择器的激活状态代替alpha修改
      */
     private fun updateNumericButtonState(view: View) {
         val numericButton = view.findViewById<ImageButton>(R.id.btn_toggle_numeric)
-        numericButton.alpha = if (isNumericMode) 0.7f else 1.0f
+        numericButton.isActivated = isNumericMode
     }
 
     /**
-     * 更新功能键按钮状态
+     * 更新功能键按钮状态 - 使用背景选择器的激活状态代替alpha修改
      */
     private fun updateFunctionButtonState(view: View) {
         val functionButton = view.findViewById<ImageButton>(R.id.btn_toggle_function)
-        functionButton.alpha = if (isFunctionMode) 0.7f else 1.0f
+        functionButton.isActivated = isFunctionMode
     }
 
     /**
@@ -523,7 +525,7 @@ class FloatingVirtualKeyboardFragment : DialogFragment() {
                 text = "F$i"
                 tag = (0x6F + i).toString(16) // F1 = 0x70, F2 = 0x71, etc.
                 setTextSize(10f)
-                setBackgroundResource(R.drawable.floating_key_button_bg)
+                setBackgroundResource(R.drawable.floating_key_button_bg_enhanced)
                 layoutParams = LinearLayout.LayoutParams(
                     0,
                     LinearLayout.LayoutParams.WRAP_CONTENT,
@@ -563,7 +565,7 @@ class FloatingVirtualKeyboardFragment : DialogFragment() {
                 this.text = text
                 tag = code.toString(16)
                 setTextSize(10f)
-                setBackgroundResource(R.drawable.floating_key_button_bg)
+                setBackgroundResource(R.drawable.floating_key_button_bg_enhanced)
                 layoutParams = LinearLayout.LayoutParams(
                     0,
                     LinearLayout.LayoutParams.WRAP_CONTENT,

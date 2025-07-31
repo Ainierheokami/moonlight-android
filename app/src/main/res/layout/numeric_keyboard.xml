@@ -13,70 +13,70 @@
         android:baselineAligned="false">
 
         <Button
-            style="@style/FloatingKeyboardButton"
+            style="@style/FloatingKeyboardButtonEnhanced"
             android:layout_width="0dp"
             android:layout_weight="1"
             android:tag="0x31"
             android:text="1" />
 
         <Button
-            style="@style/FloatingKeyboardButton"
+            style="@style/FloatingKeyboardButtonEnhanced"
             android:layout_width="0dp"
             android:layout_weight="1"
             android:tag="0x32"
             android:text="2" />
 
         <Button
-            style="@style/FloatingKeyboardButton"
+            style="@style/FloatingKeyboardButtonEnhanced"
             android:layout_width="0dp"
             android:layout_weight="1"
             android:tag="0x33"
             android:text="3" />
 
         <Button
-            style="@style/FloatingKeyboardButton"
+            style="@style/FloatingKeyboardButtonEnhanced"
             android:layout_width="0dp"
             android:layout_weight="1"
             android:tag="0x34"
             android:text="4" />
 
         <Button
-            style="@style/FloatingKeyboardButton"
+            style="@style/FloatingKeyboardButtonEnhanced"
             android:layout_width="0dp"
             android:layout_weight="1"
             android:tag="0x35"
             android:text="5" />
 
         <Button
-            style="@style/FloatingKeyboardButton"
+            style="@style/FloatingKeyboardButtonEnhanced"
             android:layout_width="0dp"
             android:layout_weight="1"
             android:tag="0x36"
             android:text="6" />
 
         <Button
-            style="@style/FloatingKeyboardButton"
+            style="@style/FloatingKeyboardButtonEnhanced"
             android:layout_width="0dp"
             android:layout_weight="1"
             android:tag="0x37"
             android:text="7" />
 
         <Button
-            style="@style/FloatingKeyboardButton"
+            style="@style/FloatingKeyboardButtonEnhanced"
             android:layout_width="0dp"
             android:layout_weight="1"
             android:tag="0x38"
             android:text="8" />
 
         <Button
-            style="@style/FloatingKeyboardButton"
+            style="@style/FloatingKeyboardButtonEnhanced"
             android:layout_width="0dp"
             android:layout_weight="1"
             android:tag="0x39"
             android:text="9" />
 
         <Button
-            style="@style/FloatingKeyboardButton"
+            style="@style/FloatingKeyboardButtonEnhanced"
             android:layout_width="0dp"
             android:layout_weight="1"
             android:tag="0x30"
@@ -92,70 +92,70 @@
         android:baselineAligned="false">
 
         <Button
-            style="@style/FloatingKeyboardButton"
+            style="@style/FloatingKeyboardButtonEnhanced"
             android:layout_width="0dp"
             android:layout_weight="1"
             android:tag="0xBD"
             android:text="-" />
 
         <Button
-            style="@style/FloatingKeyboardButton"
+            style="@style/FloatingKeyboardButtonEnhanced"
             android:layout_width="0dp"
             android:layout_weight="1"
             android:tag="0xBB"
             android:text="=" />
 
         <Button
-            style="@style/FloatingKeyboardButton"
+            style="@style/FloatingKeyboardButtonEnhanced"
             android:layout_width="0dp"
             android:layout_weight="1"
             android:tag="0xDB"
             android:text="[" />
 
         <Button
-            style="@style/FloatingKeyboardButton"
+            style="@style/FloatingKeyboardButtonEnhanced"
             android:layout_width="0dp"
             android:layout_weight="1"
             android:tag="0xDD"
             android:text="]" />
 
         <Button
-            style="@style/FloatingKeyboardButton"
+            style="@style/FloatingKeyboardButtonEnhanced"
             android:layout_width="0dp"
             android:layout_weight="1"
             android:tag="0xDC"
             android:text="\" />
 
         <Button
-            style="@style/FloatingKeyboardButton"
+            style="@style/FloatingKeyboardButtonEnhanced"
             android:layout_width="0dp"
             android:layout_weight="1"
             android:tag="0xBA"
             android:text=";" />
 
         <Button
-            style="@style/FloatingKeyboardButton"
+            style="@style/FloatingKeyboardButtonEnhanced"
             android:layout_width="0dp"
             android:layout_weight="1"
             android:tag="0xDE"
             android:text="'" />
 
         <Button
-            style="@style/FloatingKeyboardButton"
+            style="@style/FloatingKeyboardButtonEnhanced"
             android:layout_width="0dp"
             android:layout_weight="1"
             android:tag="0xBC"
             android:text="," />
 
         <Button
-            style="@style/FloatingKeyboardButton"
+            style="@style/FloatingKeyboardButtonEnhanced"
             android:layout_width="0dp"
             android:layout_weight="1"
             android:tag="0xBE"
             android:text="." />
 
         <Button
-            style="@style/FloatingKeyboardButton"
+            style="@style/FloatingKeyboardButtonEnhanced"
             android:layout_width="0dp"
             android:layout_weight="1"
             android:tag="0xBF"
@@ -171,21 +171,21 @@
         android:baselineAligned="false">
 
         <Button
-            style="@style/FloatingKeyboardButton"
+            style="@style/FloatingKeyboardButtonEnhanced"
             android:layout_width="0dp"
             android:layout_weight="1.5"
             android:tag="0x09"
             android:text="Tab" />
 
         <Button
-            style="@style/FloatingKeyboardButton"
+            style="@style/FloatingKeyboardButtonEnhanced"
             android:layout_width="0dp"
             android:layout_weight="1"
             android:tag="0x20"
             android:text="Space" />
 
         <Button
-            style="@style/FloatingKeyboardButton"
+            style="@style/FloatingKeyboardButtonEnhanced"
             android:layout_width="0dp"
             android:layout_weight="1.5"
             android:tag="0x0D"

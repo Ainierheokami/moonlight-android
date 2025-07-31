@@ -94,4 +94,19 @@
         <item name="android:baselineAligned">false</item>
     </style>
 
+    <!-- 增强版悬浮键盘按钮样式 - 改进按下状态反馈 -->
+    <style name="FloatingKeyboardButtonEnhanced" parent="FloatingKeyboardButton">
+        <item name="android:background">@drawable/floating_key_button_bg_enhanced</item>
+    </style>
+
+    <!-- 增强版功能按钮样式 - 支持激活状态视觉反馈 -->
+    <style name="FunctionButtonEnhanced">
+        <item name="android:layout_width">28dp</item>
+        <item name="android:layout_height">28dp</item>
+        <item name="android:background">@drawable/function_button_bg_enhanced</item>
+        <item name="android:clickable">true</item>
+        <item name="android:focusable">true</item>
+        <item name="android:stateListAnimator">@null</item>
+    </style>
+
 </resources>
