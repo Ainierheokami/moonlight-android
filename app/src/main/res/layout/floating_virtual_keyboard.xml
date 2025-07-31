@@ -4,9 +4,7 @@
     android:layout_height="wrap_content"
     android:orientation="vertical"
     android:background="@drawable/floating_keyboard_bg"
-    android:padding="6dp"
-    android:minWidth="400dp"
-    android:maxWidth="500dp">
+    android:padding="6dp">
 
     <!-- 顶部功能条 -->
     <LinearLayout
@@ -50,6 +48,14 @@
             style="@style/FunctionButtonEnhanced"
             android:src="@drawable/ic_opacity"
             android:contentDescription="透明度"
+            android:layout_marginEnd="3dp" />
+
+        <!-- 大小调整按钮 -->
+        <ImageButton
+            android:id="@+id/btn_resize_keyboard"
+            style="@style/FunctionButtonEnhanced"
+            android:src="@drawable/ic_resize"
+            android:contentDescription="调整大小"
             android:layout_marginEnd="3dp" />
 
         <!-- 弹性空间 -->
