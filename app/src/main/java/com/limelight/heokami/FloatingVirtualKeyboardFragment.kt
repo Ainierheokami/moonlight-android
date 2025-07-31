@@ -2,6 +2,7 @@ package com.limelight.heokami
 
 import android.app.Dialog
 import android.app.DialogFragment
+import android.content.SharedPreferences
 import android.os.Bundle
 import android.util.Log
 import android.view.LayoutInflater
@@ -28,17 +29,50 @@ class FloatingVirtualKeyboardFragment : DialogFragment() {
     private lateinit var game: Game
     private lateinit var virtualKeyboard: VirtualKeyboard
     private val pressedButtons = mutableSetOf<Button>()
+    private lateinit var prefs: SharedPreferences
     
     // 键盘状态
     private var isNumericMode = false
     private var isFunctionMode = false
+    private var currentOpacity = 0.95f
     
     // 移动相关变量
     private var isDragging = false
     private var lastX = 0f
     private var lastY = 0f
+    
+    companion object {
+        private const val PREFS_NAME = "floating_keyboard_prefs"
+        private const val KEY_POSITION_X = "position_x"
+        private const val KEY_POSITION_Y = "position_y"
+        private const val KEY_NUMERIC_MODE = "numeric_mode"
+        private const val KEY_FUNCTION_MODE = "function_mode"
+        private const val KEY_OPACITY = "opacity"
+        private const val KEY_DRAGGING_MODE = "dragging_mode"
+        
+        @JvmStatic
+        fun show(game: Game) {
+            Log.d("FloatingKeyboard", "show() method called")
+            try {
+                val fragment = FloatingVirtualKeyboardFragment()
+                fragment.show(game.fragmentManager, "floating_keyboard")
+                Log.d("FloatingKeyboard", "Fragment shown successfully")
+            } catch (e: Exception) {
+                Log.e("FloatingKeyboard", "Error showing fragment", e)
+            }
+        }
+    }
 
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
+        Log.d("FloatingKeyboard", "onCreateDialog() called")
+        
+        // 初始化SharedPreferences
+        prefs = activity.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        Log.d("FloatingKeyboard", "SharedPreferences initialized")
+        
+        // 加载保存的状态
+        loadSavedStates()
+        
         return Dialog(activity, R.style.FloatingDialog).apply {
             // 设置对话框为悬浮模式，支持全屏移动
             window?.setFlags(
@@ -55,11 +89,24 @@ class FloatingVirtualKeyboardFragment : DialogFragment() {
                 WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS
             )
             
-            // 设置初始位置居中
+            // 恢复保存的位置，如果没有保存则使用默认居中位置
             window?.attributes?.apply {
-                gravity = android.view.Gravity.CENTER
-                x = 0
-                y = 0
+                val savedX = prefs.getInt(KEY_POSITION_X, 0)
+                val savedY = prefs.getInt(KEY_POSITION_Y, 0)
+                
+                if (savedX == 0 && savedY == 0) {
+                    // 首次使用，居中显示
+                    gravity = android.view.Gravity.CENTER
+                    x = 0
+                    y = 0
+                } else {
+                    // 恢复上次位置
+                    gravity = android.view.Gravity.TOP or android.view.Gravity.START
+                    x = savedX
+                    y = savedY
+                }
+                
+                Log.d("FloatingKeyboard", "Restored position: x=$x, y=$y")
             }
         }
     }
@@ -75,16 +122,35 @@ class FloatingVirtualKeyboardFragment : DialogFragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         
+        Log.d("FloatingKeyboard", "onViewCreated() called")
+        
         game = activity as Game
         virtualKeyboard = game.getVirtualKeyboard()
+        
+        // 应用保存的透明度
+        Log.d("FloatingKeyboard", "Applying initial opacity: $currentOpacity")
+        applyOpacity(view)
         
         setupFunctionBar(view)
         setupKeyboardButtons(view)
         setupDragListener(view)
+        
+        // 恢复键盘布局状态
+        Log.d("FloatingKeyboard", "Restoring layout state: numeric=$isNumericMode, function=$isFunctionMode")
+        updateKeyboardLayout(view)
+        
+        // 更新按钮状态以反映当前模式
+        updateNumericButtonState(view)
+        updateFunctionButtonState(view)
+        updateMoveButtonState(view) // 恢复拖拽按钮状态
+        
+        Log.d("FloatingKeyboard", "onViewCreated() completed")
     }
 
     override fun onDestroy() {
         super.onDestroy()
+        // 保存当前状态
+        saveCurrentStates()
         // 重置所有修饰键状态
         resetAllModifierKeys()
     }
@@ -97,27 +163,40 @@ class FloatingVirtualKeyboardFragment : DialogFragment() {
         view.findViewById<ImageButton>(R.id.btn_move_keyboard).setOnClickListener {
             isDragging = !isDragging
             updateMoveButtonState(view)
-            Log.d("FloatingKeyboard", "Drag mode ${if (isDragging) "enabled" else "disabled"}")
+            // 立即保存拖拽状态
+            prefs.edit().putBoolean(KEY_DRAGGING_MODE, isDragging).apply()
+            Log.d("FloatingKeyboard", "Drag mode ${if (isDragging) "enabled" else "disabled"}, saved to prefs")
         }
 
         // 数字键盘切换按钮
         view.findViewById<ImageButton>(R.id.btn_toggle_numeric).setOnClickListener {
             isNumericMode = !isNumericMode
+            isFunctionMode = false // 切换到数字模式时关闭功能模式
             updateKeyboardLayout(view)
             updateNumericButtonState(view)
+            updateFunctionButtonState(view)
+            // 立即保存状态
+            saveKeyboardModeStates()
+            Log.d("FloatingKeyboard", "Numeric mode: $isNumericMode, saved to prefs")
         }
 
         // 功能键切换按钮
         view.findViewById<ImageButton>(R.id.btn_toggle_function).setOnClickListener {
             isFunctionMode = !isFunctionMode
+            isNumericMode = false // 切换到功能模式时关闭数字模式
             updateKeyboardLayout(view)
+            updateNumericButtonState(view)
             updateFunctionButtonState(view)
+            // 立即保存状态
+            saveKeyboardModeStates()
+            Log.d("FloatingKeyboard", "Function mode: $isFunctionMode, saved to prefs")
         }
 
-        // 设置按钮
-        view.findViewById<ImageButton>(R.id.btn_settings).setOnClickListener {
-            showKeyboardSettings()
-        }
+        // 透明度调整按钮
+        view.findViewById<ImageButton>(R.id.btn_opacity)?.setOnClickListener {
+            Log.d("FloatingKeyboard", "Opacity button clicked")
+            adjustOpacity(view)
+        } ?: Log.e("FloatingKeyboard", "btn_opacity not found in layout")
 
         // 关闭按钮
         view.findViewById<ImageButton>(R.id.btn_close_keyboard).setOnClickListener {
@@ -314,8 +393,9 @@ class FloatingVirtualKeyboardFragment : DialogFragment() {
                     true
                 }
                 MotionEvent.ACTION_UP -> {
-                    // 拖拽结束，记录最终位置
+                    // 拖拽结束，记录最终位置并保存
                     Log.d("FloatingKeyboard", "Drag ended at: rawX=${event.rawX}, rawY=${event.rawY}")
+                    saveCurrentPosition()
                     true
                 }
                 else -> false
@@ -530,13 +610,95 @@ class FloatingVirtualKeyboardFragment : DialogFragment() {
         keyboardMenu.showMenu()
     }
 
-    companion object {
-        /**
-         * 显示悬浮键盘
-         */
-        fun show(game: Game) {
-            val fragment = FloatingVirtualKeyboardFragment()
-            fragment.show(game.getFragmentManager(), "floating_keyboard")
+    /**
+     * 加载保存的状态
+     */
+    private fun loadSavedStates() {
+        isNumericMode = prefs.getBoolean(KEY_NUMERIC_MODE, false)
+        isFunctionMode = prefs.getBoolean(KEY_FUNCTION_MODE, false)
+        currentOpacity = prefs.getFloat(KEY_OPACITY, 0.95f)
+        isDragging = prefs.getBoolean(KEY_DRAGGING_MODE, false)
+        
+        Log.d("FloatingKeyboard", "Loaded states: numeric=$isNumericMode, function=$isFunctionMode, opacity=$currentOpacity, dragging=$isDragging")
+    }
+
+    /**
+     * 保存当前状态
+     */
+    private fun saveCurrentStates() {
+        // 保存位置
+        val window = dialog?.window
+        val attributes = window?.attributes
+        attributes?.let {
+            prefs.edit().apply {
+                putInt(KEY_POSITION_X, it.x)
+                putInt(KEY_POSITION_Y, it.y)
+                putBoolean(KEY_NUMERIC_MODE, isNumericMode)
+                putBoolean(KEY_FUNCTION_MODE, isFunctionMode)
+                putFloat(KEY_OPACITY, currentOpacity)
+                putBoolean(KEY_DRAGGING_MODE, isDragging)
+                apply()
+            }
+            Log.d("FloatingKeyboard", "Saved states: pos(${it.x},${it.y}), numeric=$isNumericMode, function=$isFunctionMode, opacity=$currentOpacity, dragging=$isDragging")
         }
     }
+
+    /**
+     * 保存当前位置（拖拽结束时调用）
+     */
+    private fun saveCurrentPosition() {
+        val window = dialog?.window
+        val attributes = window?.attributes
+        attributes?.let {
+            prefs.edit().apply {
+                putInt(KEY_POSITION_X, it.x)
+                putInt(KEY_POSITION_Y, it.y)
+                apply()
+            }
+            Log.d("FloatingKeyboard", "Position saved: x=${it.x}, y=${it.y}")
+        }
+    }
+
+    /**
+     * 保存键盘模式状态（切换模式时调用）
+     */
+    private fun saveKeyboardModeStates() {
+        prefs.edit().apply {
+            putBoolean(KEY_NUMERIC_MODE, isNumericMode)
+            putBoolean(KEY_FUNCTION_MODE, isFunctionMode)
+            apply()
+        }
+        Log.d("FloatingKeyboard", "Keyboard modes saved: numeric=$isNumericMode, function=$isFunctionMode")
+    }
+
+    /**
+     * 调整透明度
+     */
+    private fun adjustOpacity(view: View) {
+        val oldOpacity = currentOpacity
+        
+        // 循环切换透明度: 0.95 -> 0.8 -> 0.6 -> 0.4 -> 0.95
+        currentOpacity = when {
+            currentOpacity > 0.9f -> 0.8f
+            currentOpacity > 0.7f -> 0.6f
+            currentOpacity > 0.5f -> 0.4f
+            else -> 0.95f
+        }
+        
+        Log.d("FloatingKeyboard", "Opacity changed from $oldOpacity to $currentOpacity")
+        applyOpacity(view)
+        
+        // 立即保存新的透明度设置
+        prefs.edit().putFloat(KEY_OPACITY, currentOpacity).apply()
+        Log.d("FloatingKeyboard", "Opacity saved to preferences")
+    }
+
+    /**
+     * 应用透明度到整个键盘
+     */
+    private fun applyOpacity(view: View) {
+        view.alpha = currentOpacity
+        Log.d("FloatingKeyboard", "Applied opacity $currentOpacity to view")
+    }
+
 } 

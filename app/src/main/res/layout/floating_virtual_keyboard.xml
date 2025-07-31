@@ -50,14 +50,14 @@
             android:contentDescription="功能键"
             android:layout_marginEnd="3dp" />
 
-        <!-- 设置按钮 -->
+        <!-- 透明度调整按钮 -->
         <ImageButton
-            android:id="@+id/btn_settings"
+            android:id="@+id/btn_opacity"
             android:layout_width="28dp"
             android:layout_height="28dp"
             android:background="@drawable/function_button_bg"
-            android:src="@drawable/ic_settings"
-            android:contentDescription="设置"
+            android:src="@drawable/ic_opacity"
+            android:contentDescription="透明度"
             android:layout_marginEnd="3dp" />
 
         <!-- 弹性空间 -->

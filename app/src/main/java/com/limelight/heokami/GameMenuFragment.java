@@ -9,6 +9,7 @@ import android.content.Context;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -243,7 +244,12 @@ public class GameMenuFragment extends Fragment {
         if (btnFloatingKeyboard != null) {
             btnFloatingKeyboard.setOnClickListener(v -> {
                 hideMenuWithAnimation();
-                FloatingVirtualKeyboardFragment.Companion.show(game);
+                try {
+                    Log.d("GameMenuFragment", "Attempting to show floating keyboard");
+                    FloatingVirtualKeyboardFragment.Companion.show(game);
+                } catch (Exception e) {
+                    Log.e("GameMenuFragment", "Error showing floating keyboard", e);
+                }
             });
         }
 
