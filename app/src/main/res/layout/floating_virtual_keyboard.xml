@@ -396,7 +396,7 @@
                     android:layout_width="0dp"
                     android:layout_weight="1"
                     android:tag="0xDC"
-                    android:text="\" />
+                    android:text="\\" />
 
             </LinearLayout>
 

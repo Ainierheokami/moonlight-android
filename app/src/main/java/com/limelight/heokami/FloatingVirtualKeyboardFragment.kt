@@ -127,19 +127,9 @@ class FloatingVirtualKeyboardFragment : DialogFragment() {
                 WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS
             )
             
-            // 这里只设置FLAG，尺寸和位置在 onResume() 中设置
-            window?.setFlags(
-                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
-                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
-            )
-            window?.setFlags(
-                WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
-                WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN
-            )
-            window?.setFlags(
-                WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
-                WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS
-            )
+            // 禁用背景变暗效果，实现完全透明
+            window?.clearFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND)
+            window?.setDimAmount(0.0f)
         }
     }
 
