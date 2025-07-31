@@ -2962,9 +2962,12 @@ public class Game extends Activity implements SurfaceHolder.Callback,
             prefConfig.onscreenController = true;
         }else{
             virtualController.hide();
-            virtualController = null;
             prefConfig.onscreenController = false;
         }
+
+        // Save the preference
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
+        prefs.edit().putBoolean("checkbox_show_onscreen_controls", prefConfig.onscreenController).apply();
     }
 
     public void toggleVirtualKeyboard() {
@@ -2987,9 +2990,12 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         }else{
             virtualKeyboard.hide();
             virtualKeyboard.clearHistory();
-            virtualKeyboard = null;
             prefConfig.onscreenKeyboard = false;
         }
+
+        // Save the preference
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
+        prefs.edit().putBoolean("checkbox_show_onscreen_keyboard", prefConfig.onscreenKeyboard).apply();
     }
 
     // 通知显示

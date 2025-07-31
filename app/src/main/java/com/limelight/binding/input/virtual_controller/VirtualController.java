@@ -103,6 +103,7 @@ public class VirtualController {
     }
 
     public void hide() {
+        currentMode = ControllerMode.Active;
         for (VirtualControllerElement element : elements) {
             element.setVisibility(View.INVISIBLE);
         }
@@ -111,6 +112,7 @@ public class VirtualController {
     }
 
     public void show() {
+        currentMode = ControllerMode.Active;
         for (VirtualControllerElement element : elements) {
             element.setVisibility(View.VISIBLE);
         }

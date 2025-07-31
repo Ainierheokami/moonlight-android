@@ -176,6 +176,7 @@ public class VirtualKeyboard {
     }
 
     public void hide() {
+        currentMode = ControllerMode.Active;
         for (VirtualKeyboardElement element : elements) {
             element.setVisibility(View.INVISIBLE);
         }
@@ -183,6 +184,7 @@ public class VirtualKeyboard {
     }
 
     public void show() {
+        currentMode = ControllerMode.Active;
         for (VirtualKeyboardElement element : elements) {
             element.setVisibility(View.VISIBLE);
             element.setHide(element.isHide);
