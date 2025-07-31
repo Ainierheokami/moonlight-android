@@ -81,7 +81,7 @@
     <ScrollView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:maxHeight="300dp">
+        android:maxHeight="240dp">
 
         <LinearLayout
             android:id="@+id/keyboard_container"

@@ -37,8 +37,6 @@ class FloatingVirtualKeyboardFragment : DialogFragment() {
     private var isDragging = false
     private var lastX = 0f
     private var lastY = 0f
-    private var initialX = 0
-    private var initialY = 0
 
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
         return Dialog(activity, R.style.FloatingDialog).apply {
@@ -57,14 +55,11 @@ class FloatingVirtualKeyboardFragment : DialogFragment() {
                 WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS
             )
             
-            // 设置初始位置在屏幕右下角
+            // 设置初始位置居中
             window?.attributes?.apply {
-                gravity = android.view.Gravity.TOP or android.view.Gravity.START
-                x = 50
-                y = 100
-                // 保存初始位置
-                initialX = x
-                initialY = y
+                gravity = android.view.Gravity.CENTER
+                x = 0
+                y = 0
             }
         }
     }
@@ -102,11 +97,7 @@ class FloatingVirtualKeyboardFragment : DialogFragment() {
         view.findViewById<ImageButton>(R.id.btn_move_keyboard).setOnClickListener {
             isDragging = !isDragging
             updateMoveButtonState(view)
-            
-            // 如果关闭拖拽模式，重置到初始位置
-            if (!isDragging) {
-                resetToInitialPosition()
-            }
+            Log.d("FloatingKeyboard", "Drag mode ${if (isDragging) "enabled" else "disabled"}")
         }
 
         // 数字键盘切换按钮
@@ -338,21 +329,6 @@ class FloatingVirtualKeyboardFragment : DialogFragment() {
     private fun updateMoveButtonState(view: View) {
         val moveButton = view.findViewById<ImageButton>(R.id.btn_move_keyboard)
         moveButton.alpha = if (isDragging) 0.7f else 1.0f
-    }
-    
-    /**
-     * 重置到初始位置
-     */
-    private fun resetToInitialPosition() {
-        val window = dialog.window
-        val attributes = window?.attributes
-        
-        attributes?.let {
-            it.x = initialX
-            it.y = initialY
-            window.attributes = it
-            Log.d("FloatingKeyboard", "Reset to initial position: x=$initialX, y=$initialY")
-        }
     }
 
     /**
