@@ -110,14 +110,20 @@ public class SeekBarPreference extends DialogPreference
                 }
 
                 String t;
-                if (divisor != 1) {
-                    float floatValue = roundedValue / (float)divisor;
-                    t = String.format((Locale)null, "%.1f", floatValue);
+                // 特殊处理：后台重连超时时间，当值为0时显示"永不超时"
+                if (getKey() != null && getKey().equals("seekbar_background_reconnect_timeout") && roundedValue == 0) {
+                    t = "永不超时";
+                    valueText.setText(t);
+                } else {
+                    if (divisor != 1) {
+                        float floatValue = roundedValue / (float)divisor;
+                        t = String.format((Locale)null, "%.1f", floatValue);
+                    }
+                    else {
+                        t = String.valueOf(value);
+                    }
+                    valueText.setText(suffix == null ? t : t.concat(suffix.length() > 1 ? " "+suffix : suffix));
                 }
-                else {
-                    t = String.valueOf(value);
-                }
-                valueText.setText(suffix == null ? t : t.concat(suffix.length() > 1 ? " "+suffix : suffix));
             }
 
             @Override

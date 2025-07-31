@@ -73,6 +73,10 @@ public class PreferenceConfiguration {
     private static final String GAMEPAD_TOUCHPAD_AS_MOUSE_PREF_STRING = "checkbox_gamepad_touchpad_as_mouse";
     private static final String GAMEPAD_MOTION_SENSORS_PREF_STRING = "checkbox_gamepad_motion_sensors";
     private static final String GAMEPAD_MOTION_FALLBACK_PREF_STRING = "checkbox_gamepad_motion_fallback";
+    
+    // 后台切回自动重连相关设置
+    private static final String BACKGROUND_RECONNECT_ENABLED_PREF_STRING = "checkbox_background_reconnect_enabled";
+    private static final String BACKGROUND_RECONNECT_TIMEOUT_PREF_STRING = "seekbar_background_reconnect_timeout";
 
     static final String DEFAULT_RESOLUTION = "1280x720";
     static final String DEFAULT_FPS = "60";
@@ -116,6 +120,10 @@ public class PreferenceConfiguration {
     private static final boolean DEFAULT_GAMEPAD_TOUCHPAD_AS_MOUSE = false;
     private static final boolean DEFAULT_GAMEPAD_MOTION_SENSORS = true;
     private static final boolean DEFAULT_GAMEPAD_MOTION_FALLBACK = false;
+    
+    // 后台切回自动重连默认值
+    private static final boolean DEFAULT_BACKGROUND_RECONNECT_ENABLED = true;
+    private static final int DEFAULT_BACKGROUND_RECONNECT_TIMEOUT = 0; // 0表示永不超时，单位：分钟
 
     public static String EDITTEXT_SIMPLE_PERF_OVERLAY_PREF_STRING = "edittext_simple_perf_overlay";
     public static final int FRAME_PACING_MIN_LATENCY = 0;
@@ -165,6 +173,10 @@ public class PreferenceConfiguration {
     public boolean gamepadMotionSensors;
     public boolean gamepadTouchpadAsMouse;
     public boolean gamepadMotionSensorsFallbackToDevice;
+    
+    // 后台切回自动重连设置
+    public boolean backgroundReconnectEnabled;
+    public int backgroundReconnectTimeout;
 
     public String simplifyPerfOverlayPrefTemplate;
 
@@ -646,6 +658,11 @@ public class PreferenceConfiguration {
         config.enableGroupMove = prefs.getBoolean(ENABLE_GROUP_MOVE_PREF_STRING, DEFAULT_ENABLE_GROUP_MOVE);
         config.enableNewSettingButton = prefs.getBoolean(ENABLE_NEW_SETTING_BUTTON_PREF_STRING, DEFAULT_ENABLE_NEW_SETTING_BUTTON);
         config.enableSafeSettingsButton = prefs.getBoolean(ENABLE_SAFE_SETTINGS_BUTTON_PREF_STRING, DEFAULT_ENABLE_SAFE_SETTINGS_BUTTON);
+        
+        // 读取后台切回自动重连设置
+        config.backgroundReconnectEnabled = prefs.getBoolean(BACKGROUND_RECONNECT_ENABLED_PREF_STRING, DEFAULT_BACKGROUND_RECONNECT_ENABLED);
+        config.backgroundReconnectTimeout = prefs.getInt(BACKGROUND_RECONNECT_TIMEOUT_PREF_STRING, DEFAULT_BACKGROUND_RECONNECT_TIMEOUT);
+        
         return config;
     }
 }

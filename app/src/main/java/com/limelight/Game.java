@@ -159,7 +159,6 @@ public class Game extends Activity implements SurfaceHolder.Callback,
     // 添加后台挂起相关变量
     private boolean isBackgroundSuspended = false;
     private long backgroundStartTime = 0;
-    private static final long MAX_BACKGROUND_DURATION = 30000; // 30秒最大后台时间
 
     private InputCaptureProvider inputCaptureProvider;
     private int modifierFlags = 0;
@@ -1208,14 +1207,16 @@ public class Game extends Activity implements SurfaceHolder.Callback,
             Log.i("MoonDebug", "[Game] onPause: full background suspension");
             isBackgroundSuspended = true;
             backgroundStartTime = System.currentTimeMillis();
-            // shouldReconnectOnForeground = connected || connecting;
-            shouldReconnectOnForeground = true; // 无条件允许重连
             
-            // 保存连接参数，以便在重新连接时使用
-            // if (shouldReconnectOnForeground) {
-            //     saveConnectionParams();
-            // }
-            saveConnectionParams();
+            // 只有在启用后台重连功能时才设置重连标志
+            if (prefConfig.backgroundReconnectEnabled) {
+                shouldReconnectOnForeground = true;
+                Log.i("MoonDebug", "[Game] onPause: background reconnect enabled, will attempt reconnect");
+                saveConnectionParams();
+            } else {
+                shouldReconnectOnForeground = false;
+                Log.i("MoonDebug", "[Game] onPause: background reconnect disabled, not saving connection params");
+            }
 
             try {
                 // 先暂停控制器
@@ -1327,10 +1328,21 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         super.onResume();
         currentGameInstance = this;
         Log.i("MoonDebug", "[Game] onResume: isBackgroundSuspended=" + isBackgroundSuspended + ", shouldReconnectOnForeground=" + shouldReconnectOnForeground);
+        
+        // 检查后台重连功能是否启用
+        if (!prefConfig.backgroundReconnectEnabled) {
+            Log.i("MoonDebug", "[Game] onResume: background reconnect disabled, not attempting reconnect");
+            return;
+        }
+        
         if (isBackgroundSuspended && backgroundStartTime > 0) {
             long backgroundDuration = System.currentTimeMillis() - backgroundStartTime;
-            Log.i("MoonDebug", "[Game] onResume: backgroundDuration=" + backgroundDuration + "ms");
-            if (backgroundDuration > MAX_BACKGROUND_DURATION) {
+            // 将分钟转换为毫秒
+            long timeoutMs = prefConfig.backgroundReconnectTimeout * 60 * 1000L;
+            Log.i("MoonDebug", "[Game] onResume: backgroundDuration=" + backgroundDuration + "ms, timeout=" + timeoutMs + "ms (" + prefConfig.backgroundReconnectTimeout + " minutes)");
+            
+            // 如果超时时间为0，表示永不超时
+            if (prefConfig.backgroundReconnectTimeout > 0 && backgroundDuration > timeoutMs) {
                 Log.i("MoonDebug", "[Game] onResume: duration exceeded, disconnecting");
                 stopConnection();
                 finish();

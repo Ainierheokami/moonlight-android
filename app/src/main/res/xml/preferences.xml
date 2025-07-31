@@ -353,6 +353,25 @@
             android:summary="@string/summary_enable_post_stream_toast"
             android:defaultValue="false"/>
 
+        <!-- 后台切回自动重连设置 -->
+        <CheckBoxPreference
+            android:key="checkbox_background_reconnect_enabled"
+            android:title="@string/title_background_reconnect_enabled"
+            android:summary="@string/summary_background_reconnect_enabled"
+            android:defaultValue="true" />
+        <com.limelight.preferences.SeekBarPreference
+            android:key="seekbar_background_reconnect_timeout"
+            android:dependency="checkbox_background_reconnect_enabled"
+            android:title="@string/title_background_reconnect_timeout"
+            android:summary="@string/summary_background_reconnect_timeout"
+            android:text="@string/suffix_background_reconnect_timeout_minutes"
+            seekbar:min="0"
+            android:max="60"
+            seekbar:step="1"
+            seekbar:keyStep="5"
+            seekbar:divisor="1"
+            android:defaultValue="0" />
+
     </PreferenceCategory>
     <!--PreferenceCategory android:title="@string/category_help"
         android:key="category_help">

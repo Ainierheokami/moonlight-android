@@ -256,9 +256,17 @@
     <string name="summary_enable_perf_overlay">Display real-time stream performance information while streaming</string>
     <string name="title_enable_simplify_perf_overlay">Show simplify performance stats while streaming</string>
     <string name="summary_enable_simplify_perf_overlay">Display simplify real-time stream performance information while streaming</string>
-    <string name="title_enable_post_stream_toast">Show latency message after streaming</string>
-    <string name="summary_enable_post_stream_toast">Display a latency information message after the stream ends</string>
+    <string name="title_enable_post_stream_toast">Show latency info after stream ends</string>
+    <string name="summary_enable_post_stream_toast">Display average latency information when the stream ends</string>
+    
+    <!-- 后台切回自动重连设置 -->
+    <string name="title_background_reconnect_enabled">Enable background reconnect</string>
+    <string name="summary_background_reconnect_enabled">Automatically reconnect when returning from background</string>
+    <string name="title_background_reconnect_timeout">Background reconnect timeout</string>
+    <string name="summary_background_reconnect_timeout">Maximum time to wait before attempting to reconnect (0 = never timeout)</string>
+    <string name="suffix_background_reconnect_timeout_minutes">minutes</string>
 
+    <!-- Help strings -->
     <string name="category_help">Help</string>
     <string name="title_setup_guide">Setup guide</string>
     <string name="summary_setup_guide">View instructions on how to set up your gaming PC for streaming</string>

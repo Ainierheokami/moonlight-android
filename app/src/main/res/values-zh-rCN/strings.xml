@@ -175,8 +175,17 @@
     <string name="summary_enable_perf_overlay"> 在串流中显示实时性能信息 </string>
     <string name="title_enable_simplify_perf_overlay">启用精简版性能信息</string>
     <string name="summary_enable_simplify_perf_overlay">一个精简版的实时性能信息</string>
-    <string name="title_enable_post_stream_toast">串流完毕显示延迟信息</string>
-    <string name="summary_enable_post_stream_toast">串流结束后显示延迟信息</string>
+    <string name="title_enable_post_stream_toast">串流结束后显示延迟信息</string>
+    <string name="summary_enable_post_stream_toast">串流结束时显示平均延迟信息</string>
+    
+    <!-- 后台切回自动重连设置 -->
+    <string name="title_background_reconnect_enabled">启用后台切回自动重连</string>
+    <string name="summary_background_reconnect_enabled">从后台切回时自动重新连接</string>
+    <string name="title_background_reconnect_timeout">后台重连超时时间</string>
+    <string name="summary_background_reconnect_timeout">尝试重连前的最大等待时间（0 = 永不超时）</string>
+    <string name="suffix_background_reconnect_timeout_minutes">分钟</string>
+
+    <!-- Help strings -->
     <string name="title_osc_opacity">更改屏幕按钮透明度</string>
     <string name="dialog_title_osc_opacity">透明度</string>
     <string name="suffix_osc_opacity">%</string>
