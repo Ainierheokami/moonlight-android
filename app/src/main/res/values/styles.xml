@@ -55,6 +55,8 @@
         <item name="android:navigationBarColor">@android:color/transparent</item>
         <item name="android:windowMinWidthMajor">0%</item>
         <item name="android:windowMinWidthMinor">0%</item>
+        <!-- 支持全屏移动，包括状态栏区域 -->
+        <item name="android:windowLayoutInDisplayCutoutMode">shortEdges</item>
     </style>
 
     <!-- 虚拟键盘按钮样式 -->

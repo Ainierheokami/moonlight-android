@@ -37,10 +37,12 @@ class FloatingVirtualKeyboardFragment : DialogFragment() {
     private var isDragging = false
     private var lastX = 0f
     private var lastY = 0f
+    private var initialX = 0
+    private var initialY = 0
 
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
         return Dialog(activity, R.style.FloatingDialog).apply {
-            // 设置对话框为悬浮模式
+            // 设置对话框为悬浮模式，支持全屏移动
             window?.setFlags(
                 WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
                 WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
@@ -49,12 +51,20 @@ class FloatingVirtualKeyboardFragment : DialogFragment() {
                 WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
                 WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN
             )
+            // 添加全屏移动标志，允许移动到状态栏区域
+            window?.setFlags(
+                WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
+                WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS
+            )
             
             // 设置初始位置在屏幕右下角
             window?.attributes?.apply {
-                gravity = android.view.Gravity.BOTTOM or android.view.Gravity.END
+                gravity = android.view.Gravity.TOP or android.view.Gravity.START
                 x = 50
                 y = 100
+                // 保存初始位置
+                initialX = x
+                initialY = y
             }
         }
     }
@@ -92,6 +102,11 @@ class FloatingVirtualKeyboardFragment : DialogFragment() {
         view.findViewById<ImageButton>(R.id.btn_move_keyboard).setOnClickListener {
             isDragging = !isDragging
             updateMoveButtonState(view)
+            
+            // 如果关闭拖拽模式，重置到初始位置
+            if (!isDragging) {
+                resetToInitialPosition()
+            }
         }
 
         // 数字键盘切换按钮
@@ -274,23 +289,42 @@ class FloatingVirtualKeyboardFragment : DialogFragment() {
             
             when (event.action) {
                 MotionEvent.ACTION_DOWN -> {
+                    // 记录触摸开始位置
+                    lastX = event.rawX
+                    lastY = event.rawY
+                    Log.d("FloatingKeyboard", "Drag started at: rawX=$lastX, rawY=$lastY")
+                    true
+                }
+                MotionEvent.ACTION_MOVE -> {
+                    // 计算移动距离
+                    val deltaX = event.rawX - lastX
+                    val deltaY = event.rawY - lastY
+                    
+                    // 获取当前窗口属性
+                    val window = dialog.window
+                    val attributes = window?.attributes
+                    
+                    attributes?.let {
+                        // 更新坐标
+                        val newX = it.x + deltaX.toInt()
+                        val newY = it.y + deltaY.toInt()
+                        
+                        // 应用新位置
+                        it.x = newX
+                        it.y = newY
+                        window.attributes = it
+                        
+                        Log.d("FloatingKeyboard", "Moving keyboard: deltaX=$deltaX, deltaY=$deltaY, newX=$newX, newY=$newY")
+                    }
+                    
+                    // 更新上次位置
                     lastX = event.rawX
                     lastY = event.rawY
                     true
                 }
-                MotionEvent.ACTION_MOVE -> {
-                    val deltaX = event.rawX - lastX
-                    val deltaY = event.rawY - lastY
-                    
-                    val layoutParams = dialog.window?.attributes
-                    layoutParams?.let {
-                        it.x += deltaX.toInt()
-                        it.y += deltaY.toInt()
-                        dialog.window?.attributes = it
-                    }
-                    
-                    lastX = event.rawX
-                    lastY = event.rawY
+                MotionEvent.ACTION_UP -> {
+                    // 拖拽结束，记录最终位置
+                    Log.d("FloatingKeyboard", "Drag ended at: rawX=${event.rawX}, rawY=${event.rawY}")
                     true
                 }
                 else -> false
@@ -304,6 +338,21 @@ class FloatingVirtualKeyboardFragment : DialogFragment() {
     private fun updateMoveButtonState(view: View) {
         val moveButton = view.findViewById<ImageButton>(R.id.btn_move_keyboard)
         moveButton.alpha = if (isDragging) 0.7f else 1.0f
+    }
+    
+    /**
+     * 重置到初始位置
+     */
+    private fun resetToInitialPosition() {
+        val window = dialog.window
+        val attributes = window?.attributes
+        
+        attributes?.let {
+            it.x = initialX
+            it.y = initialY
+            window.attributes = it
+            Log.d("FloatingKeyboard", "Reset to initial position: x=$initialX, y=$initialY")
+        }
     }
 
     /**
