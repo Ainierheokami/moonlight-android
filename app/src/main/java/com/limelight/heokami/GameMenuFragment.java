@@ -22,6 +22,7 @@ import com.limelight.Game;
 import com.limelight.R;
 import com.limelight.nvstream.NvConnection;
 import com.limelight.nvstream.input.KeyboardPacket;
+import com.limelight.heokami.FloatingVirtualKeyboardFragment;
 
 /**
  * 游戏菜单Fragment
@@ -234,6 +235,15 @@ public class GameMenuFragment extends Fragment {
             btnSendClipboard.setOnClickListener(v -> {
                 hideMenuWithAnimation();
                 conn.sendUtf8Text(getClipboardContentAsString(game, new int[]{3}, new long[]{30}));
+            });
+        }
+
+        // 悬浮键盘
+        Button btnFloatingKeyboard = getView().findViewById(R.id.btn_floating_keyboard);
+        if (btnFloatingKeyboard != null) {
+            btnFloatingKeyboard.setOnClickListener(v -> {
+                hideMenuWithAnimation();
+                FloatingVirtualKeyboardFragment.Companion.show(game);
             });
         }
 

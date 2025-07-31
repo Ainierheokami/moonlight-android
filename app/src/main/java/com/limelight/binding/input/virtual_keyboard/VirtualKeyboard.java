@@ -385,6 +385,17 @@ public class VirtualKeyboard {
         }
     }
 
+    /**
+     * 发送键盘输入事件
+     * @param keyMap 按键映射
+     * @param keyDirection 按键方向 (KEY_DOWN 或 KEY_UP)
+     * @param modifier 修饰键
+     * @param flags 标志位
+     */
+    public void sendKeyboardInput(short keyMap, byte keyDirection, byte modifier, byte flags) {
+        conn.sendKeyboardInput(keyMap, keyDirection, modifier, flags);
+    }
+
     public void sendKeys(short[] keys) {
         final byte[] modifier = {(byte) 0};
 
