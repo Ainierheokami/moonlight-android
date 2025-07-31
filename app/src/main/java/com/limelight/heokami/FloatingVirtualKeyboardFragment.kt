@@ -39,7 +39,7 @@ class FloatingVirtualKeyboardFragment : DialogFragment() {
     private var lastY = 0f
 
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
-        return Dialog(activity, R.style.FullScreenDialog).apply {
+        return Dialog(activity, R.style.FloatingDialog).apply {
             // 设置对话框为悬浮模式
             window?.setFlags(
                 WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
@@ -49,6 +49,13 @@ class FloatingVirtualKeyboardFragment : DialogFragment() {
                 WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
                 WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN
             )
+            
+            // 设置初始位置在屏幕右下角
+            window?.attributes?.apply {
+                gravity = android.view.Gravity.BOTTOM or android.view.Gravity.END
+                x = 50
+                y = 100
+            }
         }
     }
 
