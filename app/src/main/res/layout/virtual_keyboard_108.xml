@@ -1,0 +1,286 @@
+<?xml version="1.0" encoding="utf-8"?>
+<HorizontalScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/keyboard_scroll"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:fillViewport="true"
+    android:overScrollMode="never"
+    android:background="@android:color/transparent"
+    android:padding="0dp">
+
+    <!-- 三分区：左（主键区）、中（导航区+方向键）、右（小键盘） -->
+    <LinearLayout
+        android:id="@+id/keyboard_layout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:baselineAligned="false"
+        android:weightSum="10">
+
+        <!-- 左：主键区（字母/符号区） -->
+        <LinearLayout
+            android:id="@+id/left_block"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:layout_weight="6">
+
+            <!-- 功能键行：ESC F1~F12 -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:baselineAligned="false">
+                <Button style="@style/KeyboardButton" android:layout_width="0dp" android:layout_weight="1" android:tag="0x1B" android:text="ESC" />
+                <Button style="@style/KeyboardButton" android:layout_width="0dp" android:layout_weight="1" android:tag="0x70" android:text="F1" />
+                <Button style="@style/KeyboardButton" android:layout_width="0dp" android:layout_weight="1" android:tag="0x71" android:text="F2" />
+                <Button style="@style/KeyboardButton" android:layout_width="0dp" android:layout_weight="1" android:tag="0x72" android:text="F3" />
+                <Button style="@style/KeyboardButton" android:layout_width="0dp" android:layout_weight="1" android:tag="0x73" android:text="F4" />
+                <Button style="@style/KeyboardButton" android:layout_width="0dp" android:layout_weight="1" android:tag="0x74" android:text="F5" />
+                <Button style="@style/KeyboardButton" android:layout_width="0dp" android:layout_weight="1" android:tag="0x75" android:text="F6" />
+                <Button style="@style/KeyboardButton" android:layout_width="0dp" android:layout_weight="1" android:tag="0x76" android:text="F7" />
+                <Button style="@style/KeyboardButton" android:layout_width="0dp" android:layout_weight="1" android:tag="0x77" android:text="F8" />
+                <Button style="@style/KeyboardButton" android:layout_width="0dp" android:layout_weight="1" android:tag="0x78" android:text="F9" />
+                <Button style="@style/KeyboardButton" android:layout_width="0dp" android:layout_weight="1" android:tag="0x79" android:text="F10" />
+                <Button style="@style/KeyboardButton" android:layout_width="0dp" android:layout_weight="1" android:tag="0x7A" android:text="F11" />
+                <Button style="@style/KeyboardButton" android:layout_width="0dp" android:layout_weight="1" android:tag="0x7B" android:text="F12" />
+            </LinearLayout>
+
+            <!-- 数字行：~ 1..0 - = Backspace -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:baselineAligned="false">
+                <Button style="@style/KeyboardButton" android:layout_width="0dp" android:layout_weight="1" android:tag="0xC0" android:text="~`" />
+                <Button style="@style/KeyboardButton" android:layout_width="0dp" android:layout_weight="1" android:tag="0x31" android:text="1!" />
+                <Button style="@style/KeyboardButton" android:layout_width="0dp" android:layout_weight="1" android:tag="0x32" android:text="2@" />
+                <Button style="@style/KeyboardButton" android:layout_width="0dp" android:layout_weight="1" android:tag="0x33" android:text="3#" />
+                <Button style="@style/KeyboardButton" android:layout_width="0dp" android:layout_weight="1" android:tag="0x34" android:text="4$" />
+                <Button style="@style/KeyboardButton" android:layout_width="0dp" android:layout_weight="1" android:tag="0x35" android:text="5%" />
+                <Button style="@style/KeyboardButton" android:layout_width="0dp" android:layout_weight="1" android:tag="0x36" android:text="6^" />
+                <Button style="@style/KeyboardButton" android:layout_width="0dp" android:layout_weight="1" android:tag="0x37" android:text="7&amp;" />
+                <Button style="@style/KeyboardButton" android:layout_width="0dp" android:layout_weight="1" android:tag="0x38" android:text="8*" />
+                <Button style="@style/KeyboardButton" android:layout_width="0dp" android:layout_weight="1" android:tag="0x39" android:text="9(" />
+                <Button style="@style/KeyboardButton" android:layout_width="0dp" android:layout_weight="1" android:tag="0x30" android:text="0)" />
+                <Button style="@style/KeyboardButton" android:layout_width="0dp" android:layout_weight="1" android:tag="0xBD" android:text="-_" />
+                <Button style="@style/KeyboardButton" android:layout_width="0dp" android:layout_weight="1" android:tag="0xBB" android:text="+=" />
+                <Button style="@style/KeyboardButton" android:layout_width="0dp" android:layout_weight="2" android:tag="0x08" android:text="Backspace" />
+            </LinearLayout>
+
+            <!-- QWERTY 行（右侧三个键相比标准略窄，给反斜杠留位；Tab 1.5x） -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:baselineAligned="false"
+                >
+                <Button style="@style/KeyboardButton" android:layout_width="0dp" android:layout_weight="1.5" android:tag="0x09" android:text="Tab" />
+                <Button style="@style/KeyboardButton" android:layout_width="0dp" android:layout_weight="1" android:tag="0x51" android:text="Q" />
+                <Button style="@style/KeyboardButton" android:layout_width="0dp" android:layout_weight="1" android:tag="0x57" android:text="W" />
+                <Button style="@style/KeyboardButton" android:layout_width="0dp" android:layout_weight="1" android:tag="0x45" android:text="E" />
+                <Button style="@style/KeyboardButton" android:layout_width="0dp" android:layout_weight="1" android:tag="0x52" android:text="R" />
+                <Button style="@style/KeyboardButton" android:layout_width="0dp" android:layout_weight="1" android:tag="0x54" android:text="T" />
+                <Button style="@style/KeyboardButton" android:layout_width="0dp" android:layout_weight="1" android:tag="0x59" android:text="Y" />
+                <Button style="@style/KeyboardButton" android:layout_width="0dp" android:layout_weight="1" android:tag="0x55" android:text="U" />
+                <Button style="@style/KeyboardButton" android:layout_width="0dp" android:layout_weight="1" android:tag="0x49" android:text="I" />
+                <Button style="@style/KeyboardButton" android:layout_width="0dp" android:layout_weight="1" android:tag="0x4F" android:text="O" />
+                <Button style="@style/KeyboardButton" android:layout_width="0dp" android:layout_weight="1" android:tag="0x50" android:text="P" />
+                <Button style="@style/KeyboardButton" android:layout_width="0dp" android:layout_weight="1" android:tag="0xDB" android:text="[{" />
+                <Button style="@style/KeyboardButton" android:layout_width="0dp" android:layout_weight="1" android:tag="0xDD" android:text="]}" />
+                <Button style="@style/KeyboardButton" android:layout_width="0dp" android:layout_weight="1.2" android:tag="0xDC" android:text="\\|" />
+            </LinearLayout>
+
+            <!-- ASDF 行（左侧 Caps 1.7x，右侧 Enter 2x，分布均衡） -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:baselineAligned="false"
+                >
+                <Button style="@style/KeyboardButton" android:layout_width="0dp" android:layout_weight="1.7" android:tag="0x14" android:text="Caps" />
+                <Button style="@style/KeyboardButton" android:layout_width="0dp" android:layout_weight="1" android:tag="0x41" android:text="A" />
+                <Button style="@style/KeyboardButton" android:layout_width="0dp" android:layout_weight="1" android:tag="0x53" android:text="S" />
+                <Button style="@style/KeyboardButton" android:layout_width="0dp" android:layout_weight="1" android:tag="0x44" android:text="D" />
+                <Button style="@style/KeyboardButton" android:layout_width="0dp" android:layout_weight="1" android:tag="0x46" android:text="F" />
+                <Button style="@style/KeyboardButton" android:layout_width="0dp" android:layout_weight="1" android:tag="0x47" android:text="G" />
+                <Button style="@style/KeyboardButton" android:layout_width="0dp" android:layout_weight="1" android:tag="0x48" android:text="H" />
+                <Button style="@style/KeyboardButton" android:layout_width="0dp" android:layout_weight="1" android:tag="0x4A" android:text="J" />
+                <Button style="@style/KeyboardButton" android:layout_width="0dp" android:layout_weight="1" android:tag="0x4B" android:text="K" />
+                <Button style="@style/KeyboardButton" android:layout_width="0dp" android:layout_weight="1" android:tag="0x4C" android:text="L" />
+                <Button style="@style/KeyboardButton" android:layout_width="0dp" android:layout_weight="1" android:tag="0xBA" android:text=";:" />
+                <Button style="@style/KeyboardButton" android:layout_width="0dp" android:layout_weight="1" android:tag="0xDE" android:text="'" />
+                <Button style="@style/KeyboardButton" android:layout_width="0dp" android:layout_weight="2" android:tag="0x0D" android:text="Enter" />
+            </LinearLayout>
+
+            <!-- ZXCV 行（双侧 Shift 2.2x，中间 10 个字母 1x 均分） -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:baselineAligned="false"
+                >
+                <Button style="@style/KeyboardButton" android:layout_width="0dp" android:layout_weight="2.2" android:tag="0xA0" android:text="Shift" />
+                <Button style="@style/KeyboardButton" android:layout_width="0dp" android:layout_weight="1" android:tag="0x5A" android:text="Z" />
+                <Button style="@style/KeyboardButton" android:layout_width="0dp" android:layout_weight="1" android:tag="0x58" android:text="X" />
+                <Button style="@style/KeyboardButton" android:layout_width="0dp" android:layout_weight="1" android:tag="0x43" android:text="C" />
+                <Button style="@style/KeyboardButton" android:layout_width="0dp" android:layout_weight="1" android:tag="0x56" android:text="V" />
+                <Button style="@style/KeyboardButton" android:layout_width="0dp" android:layout_weight="1" android:tag="0x42" android:text="B" />
+                <Button style="@style/KeyboardButton" android:layout_width="0dp" android:layout_weight="1" android:tag="0x4E" android:text="N" />
+                <Button style="@style/KeyboardButton" android:layout_width="0dp" android:layout_weight="1" android:tag="0x4D" android:text="M" />
+                <Button style="@style/KeyboardButton" android:layout_width="0dp" android:layout_weight="1" android:tag="0xBC" android:text=",&lt;" />
+                <Button style="@style/KeyboardButton" android:layout_width="0dp" android:layout_weight="1" android:tag="0xBE" android:text=".&gt;" />
+                <Button style="@style/KeyboardButton" android:layout_width="0dp" android:layout_weight="1" android:tag="0xBF" android:text="/?" />
+                <Button style="@style/KeyboardButton" android:layout_width="0dp" android:layout_weight="2.2" android:tag="0xA1" android:text="Shift" />
+            </LinearLayout>
+
+            <!-- 空格行（严格两端对齐，等比伸缩） -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+                <Button style="@style/KeyboardButton" android:layout_width="0dp" android:layout_weight="1.2" android:tag="0xA2" android:text="Ctrl" />
+                <Button style="@style/KeyboardButton" android:layout_width="0dp" android:layout_weight="1.2" android:tag="0x5B" android:text="Win" />
+                <Button style="@style/KeyboardButton" android:layout_width="0dp" android:layout_weight="1.2" android:tag="0xA4" android:text="Alt" />
+                <Button style="@style/KeyboardButton" android:layout_width="0dp" android:layout_weight="6" android:tag="0x20" android:text="Space" />
+                <Button style="@style/KeyboardButton" android:layout_width="0dp" android:layout_weight="1.2" android:tag="0xA5" android:text="Alt" />
+                <Button style="@style/KeyboardButton" android:layout_width="0dp" android:layout_weight="1.2" android:tag="0x00" android:text="Fn" />
+                <Button style="@style/KeyboardButton" android:layout_width="0dp" android:layout_weight="1.2" android:tag="0xA3" android:text="Ctrl" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- 中：导航区（Ins/Home/PgUp, Del/End/PgDn）+ 方向键 -->
+        <LinearLayout
+            android:id="@+id/middle_block"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="8dp"
+            android:orientation="vertical"
+            android:baselineAligned="false"
+            android:layout_weight="2">
+
+            <!-- 导航六键：
+                 Insert Home PgUp
+                 Delete End PgDn -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:baselineAligned="false"
+                android:weightSum="3">
+                <Button style="@style/KeyboardButton" android:layout_width="0dp" android:layout_weight="1" android:tag="0x2D" android:text="INS" />
+                <Button style="@style/KeyboardButton" android:layout_width="0dp" android:layout_weight="1" android:tag="0x24" android:text="HOME" />
+                <Button style="@style/KeyboardButton" android:layout_width="0dp" android:layout_weight="1" android:tag="0x21" android:text="PGUP" />
+            </LinearLayout>
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:baselineAligned="false"
+                android:weightSum="3">
+                <Button style="@style/KeyboardButton" android:layout_width="0dp" android:layout_weight="1" android:tag="0x2E" android:text="DEL" />
+                <Button style="@style/KeyboardButton" android:layout_width="0dp" android:layout_weight="1" android:tag="0x23" android:text="END" />
+                <Button style="@style/KeyboardButton" android:layout_width="0dp" android:layout_weight="1" android:tag="0x22" android:text="PGDN" />
+            </LinearLayout>
+
+            <!-- 方向键（↑ 在上，← ↓ → 在下） -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:baselineAligned="false"
+                android:layout_marginTop="8dp"
+                android:weightSum="3">
+                <View android:layout_width="0dp" android:layout_height="40dp" android:layout_weight="1" />
+                <Button style="@style/KeyboardButton" android:layout_width="0dp" android:layout_weight="1" android:tag="0x26" android:text="↑" />
+                <View android:layout_width="0dp" android:layout_height="40dp" android:layout_weight="1" />
+            </LinearLayout>
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:baselineAligned="false"
+                android:weightSum="3">
+                <Button style="@style/KeyboardButton" android:layout_width="0dp" android:layout_weight="1" android:tag="0x25" android:text="←" />
+                <Button style="@style/KeyboardButton" android:layout_width="0dp" android:layout_weight="1" android:tag="0x28" android:text="↓" />
+                <Button style="@style/KeyboardButton" android:layout_width="0dp" android:layout_weight="1" android:tag="0x27" android:text="→" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- 右：小键盘区（数字键盘） -->
+        <LinearLayout
+            android:id="@+id/right_block"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:baselineAligned="false"
+            android:layout_weight="2">
+
+            <!-- 顶行：Num / * - -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:baselineAligned="false"
+                android:weightSum="4">
+                <Button style="@style/KeyboardButton" android:layout_width="0dp" android:layout_weight="1" android:tag="0x90" android:text="Num" />
+                <Button style="@style/KeyboardButton" android:layout_width="0dp" android:layout_weight="1" android:tag="0x6F" android:text="/" />
+                <Button style="@style/KeyboardButton" android:layout_width="0dp" android:layout_weight="1" android:tag="0x6A" android:text="*" />
+                <Button style="@style/KeyboardButton" android:layout_width="0dp" android:layout_weight="1" android:tag="0x6D" android:text="-" />
+            </LinearLayout>
+
+            <!-- 第二行：7 8 9 + -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:baselineAligned="false"
+                android:weightSum="4">
+                <Button style="@style/KeyboardButton" android:layout_width="0dp" android:layout_weight="1" android:tag="0x67" android:text="7" />
+                <Button style="@style/KeyboardButton" android:layout_width="0dp" android:layout_weight="1" android:tag="0x68" android:text="8" />
+                <Button style="@style/KeyboardButton" android:layout_width="0dp" android:layout_weight="1" android:tag="0x69" android:text="9" />
+                <Button style="@style/KeyboardButton" android:layout_width="0dp" android:layout_weight="1" android:tag="0x6B" android:text="+" />
+            </LinearLayout>
+
+            <!-- 第三行：4 5 6 + -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:baselineAligned="false"
+                android:weightSum="4">
+                <Button style="@style/KeyboardButton" android:layout_width="0dp" android:layout_weight="1" android:tag="0x64" android:text="4" />
+                <Button style="@style/KeyboardButton" android:layout_width="0dp" android:layout_weight="1" android:tag="0x65" android:text="5" />
+                <Button style="@style/KeyboardButton" android:layout_width="0dp" android:layout_weight="1" android:tag="0x66" android:text="6" />
+                <Button style="@style/KeyboardButton" android:layout_width="0dp" android:layout_weight="1" android:tag="0x6B" android:text="+" />
+            </LinearLayout>
+
+            <!-- 第四行：1 2 3 Enter -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:baselineAligned="false"
+                android:weightSum="4">
+                <Button style="@style/KeyboardButton" android:layout_width="0dp" android:layout_weight="1" android:tag="0x61" android:text="1" />
+                <Button style="@style/KeyboardButton" android:layout_width="0dp" android:layout_weight="1" android:tag="0x62" android:text="2" />
+                <Button style="@style/KeyboardButton" android:layout_width="0dp" android:layout_weight="1" android:tag="0x63" android:text="3" />
+                <Button style="@style/KeyboardButton" android:layout_width="0dp" android:layout_weight="1" android:tag="0x0D" android:text="Enter" />
+            </LinearLayout>
+
+            <!-- 第五行：0 . -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:baselineAligned="false"
+                android:weightSum="4">
+                <Button style="@style/KeyboardButton" android:layout_width="0dp" android:layout_weight="2" android:tag="0x60" android:text="0" />
+                <Button style="@style/KeyboardButton" android:layout_width="0dp" android:layout_weight="1" android:tag="0x6E" android:text="." />
+                <View android:layout_width="0dp" android:layout_height="40dp" android:layout_weight="1" />
+            </LinearLayout>
+        </LinearLayout>
+    </LinearLayout>
+
+</HorizontalScrollView>
+

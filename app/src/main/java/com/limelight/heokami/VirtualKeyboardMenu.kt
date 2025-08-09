@@ -729,9 +729,10 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
             val scrollView = ScrollView(context)
             val scrollParams = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
+                LinearLayout.LayoutParams.MATCH_PARENT
             )
             scrollView.layoutParams = scrollParams
+            scrollView.isFillViewport = true
 
             val builder = AlertDialog.Builder(context)
             val dialog = builder.setTitle("VK_CODE")
@@ -740,28 +741,33 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
                 .setCancelable(true)
                 .create()
 
-            // 弹窗宽度拉宽到屏幕宽度的 90%
+            // 弹窗全屏显示，宽高都接近满屏
             dialog.setOnShowListener {
                 val window = dialog.window
-                window?.setLayout((context.resources.displayMetrics.widthPixels * 0.9).toInt(),
-                    WindowManager.LayoutParams.WRAP_CONTENT)
+                val dm = context.resources.displayMetrics
+                window?.setLayout((dm.widthPixels * 0.98f).toInt(),
+                    (dm.heightPixels * 0.9f).toInt())
+                // 占满可见区域
+                window?.clearFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND)
             }
 
             // 外层加一层 HorizontalScrollView 让键盘可以左右滑动
             val horizontalScroll = HorizontalScrollView(context).apply {
                 layoutParams = LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.MATCH_PARENT,
-                    LinearLayout.LayoutParams.WRAP_CONTENT
+                    LinearLayout.LayoutParams.MATCH_PARENT
                 )
+                isFillViewport = true
             }
 
-            // 键盘整体竖直布局
+            // 键盘整体竖直布局（充满弹窗宽度，便于两端对齐与等比拉伸）
             val keyboardLayout = LinearLayout(context).apply {
                 orientation = LinearLayout.VERTICAL
                 layoutParams = LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.WRAP_CONTENT,
-                    LinearLayout.LayoutParams.WRAP_CONTENT
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.MATCH_PARENT
                 )
+                isBaselineAligned = false
             }
 
             // QWERTY键盘布局及权重
@@ -816,29 +822,33 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
 
             val vkMap = VirtualKeyboardVkCode.VKCode.entries.associateBy { it.name }
 
-            // 构建每一行，按钮宽度缩小为 64dp，内容能显示完全
+            // 构建每一行：行宽 match_parent，子项 0dp+weight，计算各行总权重确保左右对齐
             for (row in qwertyRows) {
-                val rowLayout = LinearLayout(context).apply {
+                val totalWeight = row.sumOf { it.second.toDouble() }.toFloat()
+            val rowLayout = LinearLayout(context).apply {
                     orientation = LinearLayout.HORIZONTAL
                     layoutParams = LinearLayout.LayoutParams(
-                        LinearLayout.LayoutParams.WRAP_CONTENT,
-                        LinearLayout.LayoutParams.WRAP_CONTENT
+                        LinearLayout.LayoutParams.MATCH_PARENT,
+                    0,
+                    1f
                     )
+                    isBaselineAligned = false
+                    weightSum = totalWeight
                 }
                 for ((vkName, weight, _) in row) {
                     val button = Button(context)
-                    val widthDp = 64f * weight // 基础宽度 64dp，权重大的更宽
                     button.layoutParams = LinearLayout.LayoutParams(
-                        TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, widthDp, context.resources.displayMetrics).toInt(),
-                        TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 40f, context.resources.displayMetrics).toInt()
+                        0,
+                        TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 45f, context.resources.displayMetrics).toInt(),
+                        weight
                     ).apply {
-                        setMargins(4, 4, 4, 4)
+                        setMargins(2, 2, 2, 2)
                     }
                     button.text = vkMap[vkName]?.getVKName() ?: vkName
-                    button.textSize = 12f
+                    button.textSize = 11f
                     button.setSingleLine(true)
                     button.ellipsize = TextUtils.TruncateAt.END
-                    button.setBackgroundResource(R.drawable.keyboard_key_bg)
+                    button.setBackgroundResource(R.drawable.keyboard_key_bg_selector)
                     button.setOnClickListener {
                         if (buttonTextEditText?.text.toString() == "") {
                             buttonTextEditText?.setText(vkMap[vkName]?.getVKName() ?: vkName)
@@ -851,13 +861,6 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
                 keyboardLayout.addView(rowLayout)
             }
             // 鼠标键一行
-            val mouseRow = LinearLayout(context).apply {
-                orientation = LinearLayout.HORIZONTAL
-                layoutParams = LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.WRAP_CONTENT,
-                    LinearLayout.LayoutParams.WRAP_CONTENT
-                )
-            }
             val mouseKeys = listOf(
                 Triple("VK_LBUTTON", 1.5f, null),
                 Triple("VK_RBUTTON", 1.5f, null),
@@ -865,20 +868,29 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
                 Triple("VK_XBUTTON1", 1.5f, null),
                 Triple("VK_XBUTTON2", 1.5f, null)
             )
+            val mouseRowTotalWeight = mouseKeys.sumOf { it.second.toDouble() }.toFloat()
+            val mouseRow = LinearLayout(context).apply {
+                orientation = LinearLayout.HORIZONTAL
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    0,
+                    1f
+                )
+                isBaselineAligned = false
+                weightSum = mouseRowTotalWeight
+            }
             for ((vkName, weight, _) in mouseKeys) {
                 val button = Button(context)
-                val widthDp = 64f * weight
                 button.layoutParams = LinearLayout.LayoutParams(
-                    TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, widthDp, context.resources.displayMetrics).toInt(),
-                    TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 40f, context.resources.displayMetrics).toInt()
-                ).apply {
-                    setMargins(4, 4, 4, 4)
-                }
+                    0,
+                    TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 45f, context.resources.displayMetrics).toInt(),
+                    weight
+                ).apply { setMargins(2, 2, 2, 2) }
                 button.text = vkMap[vkName]?.getVKName() ?: vkName
-                button.textSize = 12f
+                button.textSize = 11f
                 button.setSingleLine(true)
                 button.ellipsize = TextUtils.TruncateAt.END
-                button.setBackgroundResource(R.drawable.keyboard_key_bg)
+                button.setBackgroundResource(R.drawable.keyboard_key_bg_selector)
                 button.setOnClickListener {
                     if (buttonTextEditText?.text.toString() == "") {
                         buttonTextEditText?.setText(vkMap[vkName]?.getVKName() ?: vkName)

@@ -908,6 +908,54 @@
             </LinearLayout>
         </LinearLayout>
 
+        <!-- 方向键行（移动到字母区与空格行之间，位于主键区与小键盘之间） -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <View
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:layout_weight="7" />
+
+            <Button
+                style="@style/KeyboardButton"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:tag="0x25"
+                android:text="←" />
+
+            <Button
+                style="@style/KeyboardButton"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:tag="0x28"
+                android:text="↓" />
+
+            <Button
+                style="@style/KeyboardButton"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:tag="0x26"
+                android:text="↑" />
+
+            <Button
+                style="@style/KeyboardButton"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:tag="0x27"
+                android:text="→" />
+        </LinearLayout>
+
         <!-- 第六行：主键区空格行 + 小键盘区 -->
         <LinearLayout
             android:layout_width="match_parent"
@@ -1016,54 +1064,6 @@
                     android:layout_height="0dp"
                     android:layout_weight="2.5" />
             </LinearLayout>
-        </LinearLayout>
-
-        <!-- 第七行：方向键行（嵌在主键区和小键盘之间） -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal">
-
-            <View
-                android:layout_width="0dp"
-                android:layout_height="0dp"
-                android:layout_weight="7" />
-
-            <Button
-                style="@style/KeyboardButton"
-                android:layout_width="0dp"
-                android:layout_weight="1"
-                android:ellipsize="end"
-                android:maxLines="1"
-                android:tag="0x25"
-                android:text="←" />
-
-            <Button
-                style="@style/KeyboardButton"
-                android:layout_width="0dp"
-                android:layout_weight="1"
-                android:ellipsize="end"
-                android:maxLines="1"
-                android:tag="0x28"
-                android:text="↓" />
-
-            <Button
-                style="@style/KeyboardButton"
-                android:layout_width="0dp"
-                android:layout_weight="1"
-                android:ellipsize="end"
-                android:maxLines="1"
-                android:tag="0x26"
-                android:text="↑" />
-
-            <Button
-                style="@style/KeyboardButton"
-                android:layout_width="0dp"
-                android:layout_weight="1"
-                android:ellipsize="end"
-                android:maxLines="1"
-                android:tag="0x27"
-                android:text="→" />
         </LinearLayout>
     </LinearLayout>
 </HorizontalScrollView>

@@ -39,10 +39,14 @@
         <item name="android:windowNoTitle">true</item>
         <item name="android:windowFullscreen">true</item>
         <item name="android:windowIsFloating">false</item>
-        <item name="android:windowBackground">@drawable/dialog_background</item>
-        <item name="android:windowDrawsSystemBarBackgrounds">false</item>
+        <!-- 使用纯透明背景，避免状态栏区域产生视觉留白 -->
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:windowDrawsSystemBarBackgrounds">true</item>
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:navigationBarColor">@android:color/transparent</item>
+        <!-- 适配异形屏，内容扩展进刘海与状态栏区域 -->
+        <item name="android:windowLayoutInDisplayCutoutMode">shortEdges</item>
+        <item name="android:fitsSystemWindows">false</item>
     </style>
 
     <!-- 悬浮对话框样式 -->
@@ -61,16 +65,17 @@
 
     <!-- 虚拟键盘按钮样式 -->
     <style name="KeyboardButton">
-        <item name="android:layout_width">48dp</item>
-        <item name="android:layout_height">48dp</item>
-        <item name="android:background">@drawable/keyboard_key_bg</item>
+        <item name="android:layout_width">0dp</item>
+        <item name="android:layout_height">40dp</item>
+        <item name="android:layout_weight">1</item>
+        <item name="android:background">@drawable/keyboard_key_bg_selector</item>
         <item name="android:textColor">@android:color/white</item>
         <item name="android:textSize">12sp</item>
         <item name="android:gravity">center</item>
-        <item name="android:padding">2dp</item>
-        <item name="android:minWidth">48dp</item>
+        <item name="android:padding">0dp</item>
+        <item name="android:minWidth">0dp</item>
         <item name="android:minHeight">0dp</item>
-        <item name="android:layout_margin">2dp</item>
+        <item name="android:layout_margin">1dp</item>
         <item name="android:clickable">true</item>
         <item name="android:focusable">true</item>
         <item name="android:stateListAnimator">@null</item>

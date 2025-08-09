@@ -705,7 +705,12 @@ public class Game extends Activity implements SurfaceHolder.Callback,
 
         // 虚拟按键
         if (virtualKeyboard != null){
-            virtualKeyboard.refreshLayout();
+            if (prefConfig.onscreenKeyboard) {
+                virtualKeyboard.refreshLayout();
+            } else {
+                // 未开启开关时保持隐藏，避免在配置变化时意外显示
+                virtualKeyboard.hide();
+            }
         }
 
         // Hide on-screen overlays in PiP mode
@@ -736,11 +741,19 @@ public class Game extends Activity implements SurfaceHolder.Callback,
                 // Restore overlays to previous state when leaving PiP
 
                 if (virtualController != null) {
-                    virtualController.show();
+                    if (prefConfig.onscreenController) {
+                        virtualController.show();
+                    } else {
+                        virtualController.hide();
+                    }
                 }
 
                 if (virtualKeyboard != null){
-                    virtualKeyboard.show();
+                    if (prefConfig.onscreenKeyboard) {
+                        virtualKeyboard.show();
+                    } else {
+                        virtualKeyboard.hide();
+                    }
                 }
 
                 if (prefConfig.enablePerfOverlay || prefConfig.enableSimplifyPerfOverlay) {
@@ -2945,6 +2958,20 @@ public class Game extends Activity implements SurfaceHolder.Callback,
     }
 
     public VirtualKeyboard getVirtualKeyboard(){
+        // 懒加载：确保悬浮键盘/全屏键盘在未开启“虚拟键盘”开关时也能使用
+        if (virtualKeyboard == null) {
+            streamView = this.findViewById(R.id.surfaceView);
+            if (streamView != null) {
+                virtualKeyboard = new VirtualKeyboard(
+                        controllerHandler,
+                        conn,
+                        (FrameLayout) streamView.getParent(),
+                        this
+                );
+                // 保证未开启“虚拟键盘”时不显示覆盖层控件
+                virtualKeyboard.hide();
+            }
+        }
         return virtualKeyboard;
     }
 
