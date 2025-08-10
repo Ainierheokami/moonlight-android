@@ -3040,6 +3040,45 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         },duration);
     }
 
+    /**
+     * 切换性能叠加层显示/隐藏
+     * 优先使用精简版；两者都关闭时隐藏
+     */
+    public void togglePerfOverlay() {
+        // 切换精简版与关闭状态：如果都关闭 → 开启精简版；若任一开启 → 全部关闭
+        boolean anyEnabled = prefConfig.enablePerfOverlay || prefConfig.enableSimplifyPerfOverlay;
+        if (anyEnabled) {
+            prefConfig.enablePerfOverlay = false;
+            prefConfig.enableSimplifyPerfOverlay = false;
+            if (performanceOverlayView != null) {
+                performanceOverlayView.setVisibility(View.GONE);
+            }
+            if (decoderRenderer != null) {
+                decoderRenderer.setPerfOverlayFlags(false, false);
+            }
+        } else {
+            prefConfig.enablePerfOverlay = false;
+            prefConfig.enableSimplifyPerfOverlay = true;
+            if (performanceOverlayView != null) {
+                performanceOverlayView.setVisibility(View.VISIBLE);
+                if (prefConfig.enableSimplifyPerfOverlay) {
+                    FrameLayout.LayoutParams performanceOverlayViewParams = (FrameLayout.LayoutParams) performanceOverlayView.getLayoutParams();
+                    useSimplifyPerfOverlay(performanceOverlayViewParams);
+                }
+            }
+            if (decoderRenderer != null) {
+                decoderRenderer.setPerfOverlayFlags(false, true);
+            }
+        }
+
+        // 持久化首选项
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
+        prefs.edit()
+                .putBoolean("checkbox_enable_perf_overlay", prefConfig.enablePerfOverlay)
+                .putBoolean("checkbox_enable_simplify_perf_overlay", prefConfig.enableSimplifyPerfOverlay)
+                .apply();
+    }
+
     // 2024-11-27 23:48:26 添加触摸模式切换
     private int temporaryTouchMode = -1; // -1: no temp setting, 0: multi-touch, 1: trackpad, 2: mouse
 

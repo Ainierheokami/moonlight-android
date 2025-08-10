@@ -282,4 +282,7 @@
     <string name="game_menu_touch_mode_trackpad">觸控板模式</string>
     <string name="game_menu_touch_mode_mouse">滑鼠模式</string>
     <string name="back_button">返回</string>
+    <!-- 遊戲選單：新增項 -->
+    <string name="game_menu_change_touch">觸控模式</string>
+    <string name="game_menu_toggle_perf_overlay">切換效能疊加層</string>
 </resources>

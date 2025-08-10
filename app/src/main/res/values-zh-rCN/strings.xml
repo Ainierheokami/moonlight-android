@@ -302,7 +302,8 @@
     <string name="summary_edittext_simple_perf_overlay">点击编辑精简性能模板</string>
     <string name="default_template_simple_perf_overlay">\@data13 @data2 FPS:@data1 编码/解码:@data4 延迟:@data3 丢包:@data5 流量:@data11</string>
     <string name="game_menu_disconnect">断开连接</string>
-    <string name="game_menu_change_touch">切换触屏模式</string>
+    <string name="game_menu_change_touch">触摸模式</string>
+    <string name="game_menu_toggle_perf_overlay">切换性能叠加层</string>
     <string name="game_menu_enable_keyboard" >开启输入法</string>
     <string name="game_menu_toggle_virtual_controller" >切换虚拟手柄</string>
     <string name="game_menu_hotkey_screen_keyboard" >热键：虚拟键盘</string>

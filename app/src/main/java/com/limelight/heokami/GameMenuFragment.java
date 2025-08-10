@@ -147,6 +147,9 @@ public class GameMenuFragment extends Fragment {
         // 剪贴板按钮
         setupClipboardButtons();
         
+        // 性能叠加层按钮
+        setupPerformanceOverlayButtons();
+
         // 底部操作按钮
         setupBottomButtons();
 
@@ -294,6 +297,20 @@ public class GameMenuFragment extends Fragment {
             btnDisconnect.setOnClickListener(v -> {
                 hideMenuWithAnimation();
                 game.finish();
+            });
+        }
+    }
+
+    /**
+     * 设置性能叠加层按钮
+     * 点击后切换性能叠加层的显示/隐藏（默认开启精简版）
+     */
+    private void setupPerformanceOverlayButtons() {
+        Button btnTogglePerfOverlay = getView().findViewById(R.id.btn_toggle_perf_overlay);
+        if (btnTogglePerfOverlay != null) {
+            btnTogglePerfOverlay.setOnClickListener(v -> {
+                hideMenuWithAnimation();
+                game.togglePerfOverlay();
             });
         }
     }

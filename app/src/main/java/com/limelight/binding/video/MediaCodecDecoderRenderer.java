@@ -420,6 +420,17 @@ public class MediaCodecDecoderRenderer extends VideoDecoderRenderer implements C
         }
     }
 
+    /**
+     * 动态更新性能叠加层相关开关。
+     * 注意：此方法仅更新当前渲染器持有的首选项副本，调用方需自行确保 UI 可见性。
+     */
+    public void setPerfOverlayFlags(boolean enableFullOverlay, boolean enableSimplifyOverlay) {
+        if (this.prefs != null) {
+            this.prefs.enablePerfOverlay = enableFullOverlay;
+            this.prefs.enableSimplifyPerfOverlay = enableSimplifyOverlay;
+        }
+    }
+
     public boolean isHevcSupported() {
         return hevcDecoder != null;
     }

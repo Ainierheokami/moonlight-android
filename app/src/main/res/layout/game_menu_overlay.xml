@@ -307,6 +307,30 @@
                         android:paddingStart="16dp"
                         android:paddingEnd="16dp" />
 
+                    <!-- 性能显示组 -->
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="性能显示"
+                        android:textSize="16sp"
+                        android:textStyle="bold"
+                        android:textColor="#666666"
+                        android:paddingTop="8dp"
+                        android:paddingBottom="8dp" />
+
+                    <Button
+                        android:id="@+id/btn_toggle_perf_overlay"
+                        android:layout_width="match_parent"
+                        android:layout_height="48dp"
+                        android:layout_marginBottom="16dp"
+                        android:text="@string/game_menu_toggle_perf_overlay"
+                        android:textAllCaps="false"
+                        android:background="@drawable/button_background_dark"
+                        android:textColor="#FFFFFF"
+                        android:drawablePadding="8dp"
+                        android:paddingStart="16dp"
+                        android:paddingEnd="16dp" />
+
                 </LinearLayout>
             </ScrollView>
 

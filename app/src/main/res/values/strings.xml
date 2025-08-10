@@ -316,7 +316,8 @@
     <string name="summary_edittext_simple_perf_overlay">Click edit to simplify performance template</string>
     <string name="default_template_simple_perf_overlay">\@data13 @data2 FPS:@data1 Encoding/decoding:@data4 Delay:@data3 Loss:@data5 Traffic:@data11</string>
     <string name="game_menu_disconnect">Disconnect</string>
-    <string name="game_menu_change_touch">Switch to touch mode</string>
+    <string name="game_menu_change_touch">Touch mode</string>
+    <string name="game_menu_toggle_perf_overlay">Toggle performance overlay</string>
     <string name="game_menu_enable_keyboard" >Enable Input Method</string>
     <string name="game_menu_toggle_virtual_controller" >Cut Shout Virtual Handle</string>
     <string name="game_menu_hotkey_screen_keyboard" >Hotkeys: Virtual Keyboard</string>
