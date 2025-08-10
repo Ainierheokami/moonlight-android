@@ -392,4 +392,10 @@
     <string name="virtual_keyboard_menu_load_profile_add_summary">保留当前已有配置，并添加合并新的配置</string>
     <string name="title_checkbox_virtual_keyboard_safe_settings_button">防误触设置按钮</string>
     <string name="summary_checkbox_virtual_keyboard_safe_settings_button">启用后需长按设置按钮才能进入设置，防止误触</string>
+    <!-- 游戏菜单：触摸模式二级面板 -->
+    <string name="game_menu_touch_mode_title">触摸模式</string>
+    <string name="game_menu_touch_mode_multi_touch">多点触摸模式</string>
+    <string name="game_menu_touch_mode_trackpad">触摸板模式</string>
+    <string name="game_menu_touch_mode_mouse">鼠标模式</string>
+    <string name="back_button">返回</string>
 </resources>

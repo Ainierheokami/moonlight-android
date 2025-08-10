@@ -66,6 +66,7 @@
 
             <!-- 滚动菜单内容 -->
             <ScrollView
+                android:id="@+id/main_scroll"
                 android:layout_width="match_parent"
                 android:layout_height="0dp"
                 android:layout_weight="1"
@@ -309,8 +310,81 @@
                 </LinearLayout>
             </ScrollView>
 
+            <!-- 二级：触摸模式面板（默认隐藏，点击“切换触屏模式”显示） -->
+            <LinearLayout
+                android:id="@+id/touch_mode_panel"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:visibility="gone">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/game_menu_touch_mode_title"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:textColor="#666666"
+                    android:paddingTop="8dp"
+                    android:paddingBottom="8dp" />
+
+                <Button
+                    android:id="@+id/btn_touch_mode_multi"
+                    android:layout_width="match_parent"
+                    android:layout_height="48dp"
+                    android:layout_marginBottom="8dp"
+                    android:text="@string/game_menu_touch_mode_multi_touch"
+                    android:textAllCaps="false"
+                    android:background="@drawable/button_background_dark"
+                    android:textColor="#FFFFFF"
+                    android:drawablePadding="8dp"
+                    android:paddingStart="16dp"
+                    android:paddingEnd="16dp" />
+
+                <Button
+                    android:id="@+id/btn_touch_mode_trackpad"
+                    android:layout_width="match_parent"
+                    android:layout_height="48dp"
+                    android:layout_marginBottom="8dp"
+                    android:text="@string/game_menu_touch_mode_trackpad"
+                    android:textAllCaps="false"
+                    android:background="@drawable/button_background_dark"
+                    android:textColor="#FFFFFF"
+                    android:drawablePadding="8dp"
+                    android:paddingStart="16dp"
+                    android:paddingEnd="16dp" />
+
+                <Button
+                    android:id="@+id/btn_touch_mode_mouse"
+                    android:layout_width="match_parent"
+                    android:layout_height="48dp"
+                    android:layout_marginBottom="16dp"
+                    android:text="@string/game_menu_touch_mode_mouse"
+                    android:textAllCaps="false"
+                    android:background="@drawable/button_background_dark"
+                    android:textColor="#FFFFFF"
+                    android:drawablePadding="8dp"
+                    android:paddingStart="16dp"
+                    android:paddingEnd="16dp" />
+
+                <Button
+                    android:id="@+id/btn_touch_mode_back"
+                    android:layout_width="match_parent"
+                    android:layout_height="48dp"
+                    android:text="@string/back_button"
+                    android:textAllCaps="false"
+                    android:background="@drawable/button_background_dark"
+                    android:textColor="#FFFFFF"
+                    android:drawablePadding="8dp"
+                    android:paddingStart="16dp"
+                    android:paddingEnd="16dp" />
+
+            </LinearLayout>
+
                          <!-- 底部操作按钮 -->
              <LinearLayout
+                 android:id="@+id/bottom_action_row"
                  android:layout_width="match_parent"
                  android:layout_height="wrap_content"
                  android:orientation="horizontal"

@@ -35,6 +35,10 @@ public class GameMenuFragment extends Fragment {
     private NvConnection conn;
     private View menuPanel;
     private View backgroundView;
+    // 主列表与二级面板
+    private View mainScrollView;
+    private View bottomActionRow;
+    private View touchModePanel;
     private boolean isMenuVisible = false;
 
     // 动画持续时间
@@ -82,6 +86,10 @@ public class GameMenuFragment extends Fragment {
     private void initViews(View view) {
         menuPanel = view.findViewById(R.id.menu_panel);
         backgroundView = view.findViewById(R.id.menu_background);
+        // 绑定主内容与二级面板容器
+        mainScrollView = view.findViewById(R.id.main_scroll);
+        bottomActionRow = view.findViewById(R.id.bottom_action_row);
+        touchModePanel = view.findViewById(R.id.touch_mode_panel);
     }
 
     /**
@@ -141,6 +149,9 @@ public class GameMenuFragment extends Fragment {
         
         // 底部操作按钮
         setupBottomButtons();
+
+        // 触摸模式二级菜单
+        setupTouchModeButtons();
     }
 
     /**
@@ -272,8 +283,8 @@ public class GameMenuFragment extends Fragment {
         Button btnChangeTouch = getView().findViewById(R.id.btn_change_touch);
         if (btnChangeTouch != null) {
             btnChangeTouch.setOnClickListener(v -> {
-                hideMenuWithAnimation();
-                game.toggleTouchscreenMode();
+                // 显示二级面板，保持与菜单一致的侧边样式
+                showTouchModePanel();
             });
         }
 
@@ -285,6 +296,62 @@ public class GameMenuFragment extends Fragment {
                 game.finish();
             });
         }
+    }
+
+    /**
+     * 设置触摸模式子菜单按钮
+     * 包含：多点触控、触控板、鼠标 三种模式 + 返回
+     */
+    private void setupTouchModeButtons() {
+        if (touchModePanel == null) return;
+
+        View btnMulti = getView().findViewById(R.id.btn_touch_mode_multi);
+        if (btnMulti != null) {
+            btnMulti.setOnClickListener(v -> {
+                game.changeTouchMode(0); // 多点触控
+                showMainPanel();
+            });
+        }
+
+        View btnTrackpad = getView().findViewById(R.id.btn_touch_mode_trackpad);
+        if (btnTrackpad != null) {
+            btnTrackpad.setOnClickListener(v -> {
+                game.changeTouchMode(1); // 触控板
+                showMainPanel();
+            });
+        }
+
+        View btnMouse = getView().findViewById(R.id.btn_touch_mode_mouse);
+        if (btnMouse != null) {
+            btnMouse.setOnClickListener(v -> {
+                game.changeTouchMode(2); // 鼠标
+                showMainPanel();
+            });
+        }
+
+        View btnBack = getView().findViewById(R.id.btn_touch_mode_back);
+        if (btnBack != null) {
+            btnBack.setOnClickListener(v -> showMainPanel());
+        }
+    }
+
+    /**
+     * 显示触摸模式二级面板
+     * 隐藏主滚动内容与底部操作行
+     */
+    private void showTouchModePanel() {
+        if (mainScrollView != null) mainScrollView.setVisibility(View.GONE);
+        if (bottomActionRow != null) bottomActionRow.setVisibility(View.GONE);
+        if (touchModePanel != null) touchModePanel.setVisibility(View.VISIBLE);
+    }
+
+    /**
+     * 返回主一级菜单面板
+     */
+    private void showMainPanel() {
+        if (touchModePanel != null) touchModePanel.setVisibility(View.GONE);
+        if (mainScrollView != null) mainScrollView.setVisibility(View.VISIBLE);
+        if (bottomActionRow != null) bottomActionRow.setVisibility(View.VISIBLE);
     }
 
     /**

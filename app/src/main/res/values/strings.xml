@@ -382,6 +382,12 @@
     <string name="game_switch_to_multi_touch_mode">Switch to multi-touch mode</string>
     <string name="game_switch_to_touch_pad_mode">Switch to touchpad mode</string>
     <string name="game_switch_to_mouse_mode">Switch to mouse mode</string>
+    <!-- In-game menu: touch mode submenu -->
+    <string name="game_menu_touch_mode_title">Touch mode</string>
+    <string name="game_menu_touch_mode_multi_touch">Multi-touch mode</string>
+    <string name="game_menu_touch_mode_trackpad">Trackpad mode</string>
+    <string name="game_menu_touch_mode_mouse">Mouse mode</string>
+    <string name="back_button">Back</string>
     <string name="virtual_keyboard_menu_load_profile_add">Load the configuration via a file(add)</string>
     <string name="virtual_keyboard_menu_grouping">Group</string>
     <string name="virtual_keyboard_menu_group_hint_id">Group ID</string>
