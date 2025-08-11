@@ -32,6 +32,9 @@ public class RelativeTouchContext implements TouchContext {
     private final PreferenceConfiguration prefConfig;
     private final Handler handler;
 
+    // 触摸板灵敏度（百分比），用于放大/缩小移动增量，默认 100
+    private int sensitivityPercent = 100;
+
     private final Runnable dragTimerRunnable = new Runnable() {
         @Override
         public void run() {
@@ -103,6 +106,15 @@ public class RelativeTouchContext implements TouchContext {
         this.targetView = view;
         this.prefConfig = prefConfig;
         this.handler = new Handler(Looper.getMainLooper());
+    }
+
+    /**
+     * 设置触摸移动灵敏度（10-300%）
+     */
+    public void setSensitivityPercent(int sensitivityPercent) {
+        if (sensitivityPercent < 10) sensitivityPercent = 10;
+        if (sensitivityPercent > 300) sensitivityPercent = 300;
+        this.sensitivityPercent = sensitivityPercent;
     }
 
     @Override
@@ -254,20 +266,14 @@ public class RelativeTouchContext implements TouchContext {
 
             // We only send moves and drags for the primary touch point
             if (actionIndex == 0) {
-                int deltaX = eventX - lastTouchX;
-                int deltaY = eventY - lastTouchY;
-
-                // Scale the deltas based on the factors passed to our constructor
-                deltaX = (int) Math.round((double) Math.abs(deltaX) * xFactor);
-                deltaY = (int) Math.round((double) Math.abs(deltaY) * yFactor);
-
-                // Fix up the signs
-                if (eventX < lastTouchX) {
-                    deltaX = -deltaX;
-                }
-                if (eventY < lastTouchY) {
-                    deltaY = -deltaY;
-                }
+                // 使用 double 保留小数精度，先按视图缩放，再统一应用灵敏度，最后一次性取整
+                double dx = (eventX - lastTouchX) * xFactor;
+                double dy = (eventY - lastTouchY) * yFactor;
+                double scale = sensitivityPercent / 100.0;
+                dx *= scale;
+                dy *= scale;
+                int deltaX = (int) Math.round(dx);
+                int deltaY = (int) Math.round(dy);
 
                 if (pointerCount == 2) {
                     if (confirmedScroll) {

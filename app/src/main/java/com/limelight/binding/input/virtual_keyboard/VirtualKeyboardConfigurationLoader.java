@@ -11,6 +11,8 @@ import android.content.SharedPreferences;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.widget.Toast;
+import android.content.ClipboardManager;
+import android.content.ClipData;
 
 import com.limelight.heokami.MacroEditor;
 import com.limelight.heokami.VirtualKeyboardVkCode;
@@ -20,6 +22,8 @@ import com.limelight.preferences.PreferenceConfiguration;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import androidx.annotation.NonNull;
+
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
@@ -27,6 +31,205 @@ import java.util.TreeMap;
 
 public class VirtualKeyboardConfigurationLoader {
     public static final String OSK_PREFERENCE = "OSK";
+
+    // 样式剪贴板：仅存放外观相关的可序列化数据（颜色/透明度/圆角/部分按钮扩展样式）
+    // 说明：不包含位置、尺寸、文本、VK_CODE 等非外观属性
+    private static JSONObject sAppearanceStyleClipboard = null;
+    // 系统剪贴板标识（label）
+    private static final String CLIPBOARD_STYLE_LABEL = "VK_APPEARANCE_STYLE_JSON";
+
+    // 允许复制/粘贴的 buttonData 样式键集合（仅外观相关）
+    private static final String[] STYLE_BUTTON_DATA_KEYS = new String[]{
+            "BORDER_ENABLED",
+            "BORDER_WIDTH_PX",
+            "BORDER_COLOR",
+            "BORDER_ALPHA",
+            "TEXT_COLOR",
+            "TEXT_ALPHA",
+            "BG_COLOR",
+            "BG_ALPHA",
+            "BG_COLOR_PRESSED",
+            "BG_ALPHA_PRESSED",
+            "OVERALL_ENABLED",
+            "OVERALL_COLOR",
+            "OVERALL_COLOR_PRESSED",
+            "OVERALL_ALPHA"
+    };
+
+    /**
+     * 从元素中提取外观样式（不含位置/尺寸/文本等），用于复制到样式剪贴板
+     */
+    private static JSONObject extractAppearanceFromElement(@NonNull VirtualKeyboardElement element) throws JSONException {
+        JSONObject style = new JSONObject();
+        style.put("NORMAL_COLOR", element.normalColor);
+        style.put("PRESSED_COLOR", element.pressedColor);
+        style.put("OPACITY", element.opacity);
+        style.put("RADIUS", element.radius);
+
+        // 仅提取外观相关的 BUTTON_DATA 子集
+        JSONObject src = element.buttonData != null ? element.buttonData : new JSONObject();
+        JSONObject data = new JSONObject();
+        for (String key : STYLE_BUTTON_DATA_KEYS) {
+            if (src.has(key)) {
+                data.put(key, src.get(key));
+            }
+        }
+        style.put("BUTTON_DATA", data);
+        return style;
+    }
+
+    /**
+     * 写入样式到系统剪贴板（文本形式，内容为 JSON）
+     */
+    private static void writeStyleToSystemClipboard(@NonNull Context context, @NonNull JSONObject style) {
+        try {
+            ClipboardManager cm = (ClipboardManager) context.getSystemService(Context.CLIPBOARD_SERVICE);
+            if (cm != null) {
+                ClipData clip = ClipData.newPlainText(CLIPBOARD_STYLE_LABEL, style.toString());
+                cm.setPrimaryClip(clip);
+            }
+        } catch (Exception e) {
+            Log.e("heokami", "写入系统剪贴板失败", e);
+        }
+    }
+
+    /**
+     * 从系统剪贴板尝试读取样式 JSON
+     */
+    private static JSONObject tryReadStyleFromSystemClipboard(@NonNull Context context) {
+        try {
+            ClipboardManager cm = (ClipboardManager) context.getSystemService(Context.CLIPBOARD_SERVICE);
+            if (cm != null && cm.hasPrimaryClip()) {
+                ClipData data = cm.getPrimaryClip();
+                if (data != null && data.getItemCount() > 0) {
+                    ClipData.Item item = data.getItemAt(0);
+                    CharSequence text = item.getText();
+                    if (text != null) {
+                        String content = text.toString();
+                        // 尝试解析 JSON；校验关键字段，避免解析到非本应用内容
+                        JSONObject json = new JSONObject(content);
+                        if (json.has("BUTTON_DATA") || json.has("NORMAL_COLOR")) {
+                            return json;
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+            Log.e("heokami", "读取系统剪贴板失败", e);
+        }
+        return null;
+    }
+
+    /**
+     * 获取当前可用的外观样式（优先系统剪贴板，其次内存剪贴板）。
+     * 返回 null 表示无可用样式。
+     */
+    public static JSONObject getAppearanceStyleFromClipboard(@NonNull Context context) {
+        JSONObject style = tryReadStyleFromSystemClipboard(context);
+        if (style != null) return style;
+        return sAppearanceStyleClipboard;
+    }
+
+    /**
+     * 将样式 JSON 应用到指定元素（仅外观相关字段）
+     */
+    private static void applyAppearanceToElement(@NonNull VirtualKeyboardElement element, @NonNull JSONObject style) throws JSONException {
+        if (style.has("NORMAL_COLOR") && style.has("PRESSED_COLOR")) {
+            element.setColors(style.getInt("NORMAL_COLOR"), style.getInt("PRESSED_COLOR"));
+        }
+        if (style.has("RADIUS")) {
+            // RADIUS 可能是整数或浮点，使用 double 读取后转换
+            float radius = (float) style.getDouble("RADIUS");
+            element.setRadius(radius);
+        }
+        if (style.has("OPACITY")) {
+            element.setOpacity(style.getInt("OPACITY"));
+        }
+        // 合并外观相关的 BUTTON_DATA
+        JSONObject target = element.buttonData != null ? element.buttonData : new JSONObject();
+        JSONObject data = style.optJSONObject("BUTTON_DATA");
+        if (data != null) {
+            for (String key : STYLE_BUTTON_DATA_KEYS) {
+                if (data.has(key)) {
+                    target.put(key, data.get(key));
+                }
+            }
+            element.setButtonData(target);
+        }
+        element.invalidate();
+    }
+
+    /**
+     * 复制“外观样式”到样式剪贴板
+     * 仅包含颜色、透明度、圆角、以及 buttonData 中的外观扩展字段。
+     */
+    public static void copyAppearanceStyle(final VirtualKeyboard virtualKeyboard,
+                                           final VirtualKeyboardElement element,
+                                           final Context context) {
+        if (element == null) return;
+        try {
+            sAppearanceStyleClipboard = extractAppearanceFromElement(element);
+            // 写入系统剪贴板
+            writeStyleToSystemClipboard(context, sAppearanceStyleClipboard);
+            Toast.makeText(context, "已复制外观样式（已写入系统剪贴板）", Toast.LENGTH_SHORT).show();
+        } catch (Exception e) {
+            Log.e("heokami", "复制外观样式失败", e);
+            Toast.makeText(context, "复制外观样式失败：" + e.getMessage(), Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    /**
+     * 将样式剪贴板中的外观样式粘贴到当前元素
+     */
+    public static void pasteAppearanceStyle(final VirtualKeyboard virtualKeyboard,
+                                            final VirtualKeyboardElement element,
+                                            final Context context) {
+        if (element == null) return;
+        try {
+            // 优先从系统剪贴板读取；如果不可用则回退到内存剪贴板
+            JSONObject style = tryReadStyleFromSystemClipboard(context);
+            if (style == null) {
+                if (sAppearanceStyleClipboard == null) {
+                    Toast.makeText(context, "样式剪贴板为空，无法粘贴", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                style = sAppearanceStyleClipboard;
+            }
+            applyAppearanceToElement(element, style);
+            saveProfile(virtualKeyboard, context);
+            Toast.makeText(context, "已粘贴外观样式", Toast.LENGTH_SHORT).show();
+        } catch (Exception e) {
+            Log.e("heokami", "粘贴外观样式失败", e);
+            Toast.makeText(context, "粘贴外观样式失败：" + e.getMessage(), Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    /**
+     * 将“当前元素的外观样式”应用到相同组的所有元素（不含当前元素）
+     */
+    public static void applyAppearanceStyleToSameGroup(final VirtualKeyboard virtualKeyboard,
+                                                       final VirtualKeyboardElement element,
+                                                       final Context context) {
+        if (element == null) return;
+        if (element.group == -1) {
+            Toast.makeText(context, "该按钮未设置分组，无法应用样式到同组", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        try {
+            JSONObject style = extractAppearanceFromElement(element);
+            int groupId = element.group;
+            for (VirtualKeyboardElement e : virtualKeyboard.getElements()) {
+                if (e != element && e.group == groupId) {
+                    applyAppearanceToElement(e, style);
+                }
+            }
+            saveProfile(virtualKeyboard, context);
+            Toast.makeText(context, "已将外观样式应用到同组", Toast.LENGTH_SHORT).show();
+        } catch (Exception e) {
+            Log.e("heokami", "应用外观样式到同组失败", e);
+            Toast.makeText(context, "应用外观样式到同组失败：" + e.getMessage(), Toast.LENGTH_SHORT).show();
+        }
+    }
 
     /*
     private static int getPercent(

@@ -348,6 +348,10 @@
     <string name="grid_lines_x_axis_count">X轴数量</string>
     <string name="virtual_keyboard_menu_vk_code_button">VK表</string>
     <string name="virtual_keyboard_menu_copy_button">复制</string>
+    <string name="virtual_keyboard_menu_copy_appearance_style">复制外观样式</string>
+    <string name="virtual_keyboard_menu_paste_appearance_style">粘贴外观样式</string>
+    <string name="virtual_keyboard_menu_apply_style_to_same_group">应用该样式到相同组</string>
+    <string name="virtual_keyboard_menu_paste_appearance_style_to_form">粘贴外观样式到表单</string>
     <string name="grid_lines_enable">显示网格</string>
     <string name="virtual_keyboard_menu_radius_hint">圆角</string>
     <string name="virtual_keyboard_menu_opacity_hint">透明度</string>

@@ -6,6 +6,7 @@ import android.util.Log
 import android.view.MotionEvent
 import com.limelight.binding.input.touch.RelativeTouchContext
 import com.limelight.binding.input.touch.TouchContext
+import org.json.JSONObject
 
 @SuppressLint("ViewConstructor")
 class RelativeTouchPad(
@@ -39,13 +40,16 @@ class RelativeTouchPad(
             )
         }
 
-        // 读取灵敏度（若存在）并通过日志提示；实际生效可在 RelativeTouchContext 暴露接口后设置
+        // 读取灵敏度并应用到各触控上下文
+        var sensitivity = 100
         try {
-            val sensitivity = if (buttonData != null && buttonData.has("TOUCHPAD_SENSITIVITY")) {
+            sensitivity = if (buttonData != null && buttonData.has("TOUCHPAD_SENSITIVITY")) {
                 buttonData.getInt("TOUCHPAD_SENSITIVITY").coerceIn(10, 300)
             } else 100
-            Log.d("TouchPad", "Sensitivity: $sensitivity")
         } catch (_: Exception) {}
+        for (ctx in touchContextMap) {
+            (ctx as? RelativeTouchContext)?.setSensitivityPercent(sensitivity)
+        }
 
         addTouchpadListener(object: TouchpadListener {
             override fun onTouch(x: Float, y: Float, event: MotionEvent) {
@@ -122,5 +126,22 @@ class RelativeTouchPad(
             }
 
         })
+    }
+
+    /**
+     * 覆盖基类的 setButtonData，确保当外部在构造后设置/更新 buttonData 时，
+     * 能够即时读取并应用触摸板灵敏度到已有的 TouchContext 中。
+     */
+    override fun setButtonData(button_data: JSONObject) {
+        super.setButtonData(button_data)
+        var sensitivity = 100
+        try {
+            sensitivity = if (button_data.has("TOUCHPAD_SENSITIVITY")) {
+                button_data.getInt("TOUCHPAD_SENSITIVITY").coerceIn(10, 300)
+            } else 100
+        } catch (_: Exception) {}
+        for (ctx in touchContextMap) {
+            (ctx as? RelativeTouchContext)?.setSensitivityPercent(sensitivity)
+        }
     }
 }

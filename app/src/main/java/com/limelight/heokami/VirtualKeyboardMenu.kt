@@ -455,6 +455,18 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
             override fun onTabReselected(tab: TabLayout.Tab?) {}
         })
 
+        // 初始化 Tab 为当前元素类型，确保类型相关控件（如触摸板灵敏度）正确显示，且保存时不会误改类型
+        if (element != null) {
+            selectedButtonType = element!!.buttonType
+            val initialIndex = when (selectedButtonType) {
+                VirtualKeyboardElement.ButtonType.Button -> 0
+                VirtualKeyboardElement.ButtonType.HotKeys -> 1
+                VirtualKeyboardElement.ButtonType.JoyStick -> 2
+                VirtualKeyboardElement.ButtonType.TouchPad -> 3
+            }
+            typeTabLayout.getTabAt(initialIndex)?.select()
+        }
+
         // 放置类型切换和 VK 输入区
         layout.addView(typeTabLayout)
         layout.addView(linearLayout)
@@ -891,13 +903,21 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
             override fun onStopTrackingTouch(seekBar: SeekBar?) {}
         })
         textAlphaSeek.setOnSeekBarChangeListener(object: SeekBar.OnSeekBarChangeListener{
-            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) { updatePreview() }
+            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+                // 文本标签与预览同时更新，避免被后续监听覆盖导致文本不同步
+                textAlphaText.text = "字体透明度 $progress"
+                updatePreview()
+            }
             override fun onStartTrackingTouch(seekBar: SeekBar?) {}
             override fun onStopTrackingTouch(seekBar: SeekBar?) {}
         })
         overallEnableCheck.setOnCheckedChangeListener { _, _ -> updatePreview() }
         overallAlphaSeek.setOnSeekBarChangeListener(object: SeekBar.OnSeekBarChangeListener{
-            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) { updatePreview() }
+            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+                // 文本标签与预览同时更新，避免被后续监听覆盖导致文本不同步
+                overallAlphaText.text = "整体透明度 $progress"
+                updatePreview()
+            }
             override fun onStartTrackingTouch(seekBar: SeekBar?) {}
             override fun onStopTrackingTouch(seekBar: SeekBar?) {}
         })
@@ -961,6 +981,92 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
                     VirtualKeyboardConfigurationLoader.saveProfile(virtualKeyboard, context)
                 }
                 Log.d("vk", "复制按钮"+ element?.leftMargin+","+element?.topMargin+","+element?.width+","+element?.height)
+            })
+
+            // 复制外观样式
+            layout.addView(Button(context).apply {
+                text = context.getString(R.string.virtual_keyboard_menu_copy_appearance_style)
+                setOnClickListener {
+                    VirtualKeyboardConfigurationLoader.copyAppearanceStyle(virtualKeyboard, element, context)
+                }
+            })
+
+            // 粘贴外观样式
+            layout.addView(Button(context).apply {
+                text = context.getString(R.string.virtual_keyboard_menu_paste_appearance_style)
+                setOnClickListener {
+                    VirtualKeyboardConfigurationLoader.pasteAppearanceStyle(virtualKeyboard, element, context)
+                    // 粘贴后刷新以确保立即可视
+                    virtualKeyboard.refreshLayout()
+                }
+            })
+
+            // 应用该样式到相同组
+            layout.addView(Button(context).apply {
+                text = context.getString(R.string.virtual_keyboard_menu_apply_style_to_same_group)
+                setOnClickListener {
+                    VirtualKeyboardConfigurationLoader.applyAppearanceStyleToSameGroup(virtualKeyboard, element, context)
+                    virtualKeyboard.refreshLayout()
+                }
+            })
+
+            // 粘贴外观样式（填充对话框，不立即保存）
+            layout.addView(Button(context).apply {
+                text = context.getString(R.string.virtual_keyboard_menu_paste_appearance_style_to_form)
+                setOnClickListener {
+                    try {
+                        val style = VirtualKeyboardConfigurationLoader.getAppearanceStyleFromClipboard(context)
+                        if (style == null) {
+                            Toast.makeText(context, "样式剪贴板为空", Toast.LENGTH_SHORT).show()
+                            return@setOnClickListener
+                        }
+                        fun setEditIfHas(key: String, et: EditText, swatch: View? = null) {
+                            if (style.has(key)) {
+                                val c = style.getInt(key)
+                                et.setText(String.format("%08X", c))
+                                swatch?.setBackgroundColor(c)
+                            }
+                        }
+                        // 颜色：普通/按下
+                        setEditIfHas("NORMAL_COLOR", normaColorEditText, normalColorSwatch)
+                        setEditIfHas("PRESSED_COLOR", pressedColorEditText, pressedColorSwatch)
+                        // 圆角、透明度
+                        if (style.has("OPACITY")) {
+                            opacitySeekBar.progress = style.getInt("OPACITY").coerceIn(0, 100)
+                            opacityTextView.text = context.getString(R.string.virtual_keyboard_menu_opacity_hint) + " " + opacitySeekBar.progress
+                        }
+                        if (style.has("RADIUS")) {
+                            val r = style.optDouble("RADIUS", radiusSeekBar.progress.toDouble())
+                            radiusSeekBar.progress = r.toInt().coerceIn(0, radiusSeekBar.max)
+                            radiusTextView.text = context.getString(R.string.virtual_keyboard_menu_radius_hint) + " " + radiusSeekBar.progress
+                        }
+                        // buttonData 子集
+                        val data = style.optJSONObject("BUTTON_DATA")
+                        if (data != null) {
+                            if (data.has("BORDER_ENABLED")) borderEnableCheck.isChecked = data.getBoolean("BORDER_ENABLED")
+                            borderWidthSeek.progress = data.optInt("BORDER_WIDTH_PX", borderWidthSeek.progress).coerceIn(0, borderWidthSeek.max)
+                            setEditIfHas("BORDER_COLOR", borderColorEditText, borderColorSwatch)
+                            borderAlphaSeek.progress = data.optInt("BORDER_ALPHA", borderAlphaSeek.progress).coerceIn(0, 100)
+
+                            setEditIfHas("TEXT_COLOR", textColorEdit, textColorSwatch)
+                            textAlphaSeek.progress = data.optInt("TEXT_ALPHA", textAlphaSeek.progress).coerceIn(0, 100)
+
+                            setEditIfHas("BG_COLOR", bgColorEdit, bgColorSwatch)
+                            bgAlphaSeek.progress = data.optInt("BG_ALPHA", bgAlphaSeek.progress).coerceIn(0, 100)
+                            setEditIfHas("BG_COLOR_PRESSED", bgPressedColorEdit, bgPressedColorSwatch)
+                            bgPressedAlphaSeek.progress = data.optInt("BG_ALPHA_PRESSED", bgPressedAlphaSeek.progress).coerceIn(0, 100)
+
+                            overallEnableCheck.isChecked = data.optBoolean("OVERALL_ENABLED", overallEnableCheck.isChecked)
+                            setEditIfHas("OVERALL_COLOR", overallColorEdit, overallColorSwatch)
+                            setEditIfHas("OVERALL_COLOR_PRESSED", overallPressedColorEdit, overallPressedColorSwatch)
+                            overallAlphaSeek.progress = data.optInt("OVERALL_ALPHA", overallAlphaSeek.progress).coerceIn(0, 100)
+                        }
+                        Toast.makeText(context, "已粘贴到表单，确认后保存", Toast.LENGTH_SHORT).show()
+                    } catch (e: Exception) {
+                        Log.e("vk", "paste to form failed", e)
+                        Toast.makeText(context, "粘贴失败: ${e.message}", Toast.LENGTH_SHORT).show()
+                    }
+                }
             })
 
             layout.addView(Button(context).apply {
@@ -1106,7 +1212,8 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
                     parseColorOrNull(overallColorEdit.text.toString())?.let { data.put("OVERALL_COLOR", it) }
                     parseColorOrNull(overallPressedColorEdit.text.toString())?.let { data.put("OVERALL_COLOR_PRESSED", it) }
                     data.put("OVERALL_ALPHA", overallAlphaSeek.progress)
-                    el.buttonData = data
+                    // 使用 setter 以便触发特定元素的覆盖逻辑（如 RelativeTouchPad 应用灵敏度）
+                    el.setButtonData(data)
                     el.invalidate()
                     // 保存并刷新布局，确保切换即时生效；刷新后保持在编辑模式（由 VirtualKeyboard.refreshLayout 恢复遮罩）
                     VirtualKeyboardConfigurationLoader.saveProfile(virtualKeyboard, context)

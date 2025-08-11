@@ -380,6 +380,10 @@
     <string name="grid_lines_x_axis_count">x axis count</string>
     <string name="virtual_keyboard_menu_vk_code_button">VK_TABLE</string>
     <string name="virtual_keyboard_menu_copy_button">Copy the button</string>
+    <string name="virtual_keyboard_menu_copy_appearance_style">Copy appearance style</string>
+    <string name="virtual_keyboard_menu_paste_appearance_style">Paste appearance style</string>
+    <string name="virtual_keyboard_menu_apply_style_to_same_group">Apply style to same group</string>
+    <string name="virtual_keyboard_menu_paste_appearance_style_to_form">Paste style into form</string>
     <string name="grid_lines_enable">Show grid lines</string>
     <string name="virtual_keyboard_menu_radius_hint">Radius</string>
     <string name="virtual_keyboard_menu_opacity_hint">Opacity</string>
