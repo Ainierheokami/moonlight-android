@@ -144,7 +144,7 @@ public class VirtualKeyboardConfigurationLoader {
                 });
                 break;
             default:
-                Toast.makeText(context, "default", Toast.LENGTH_SHORT).show();
+                // 默认行为：不做特殊处理
                 break;
         }
 
@@ -482,31 +482,43 @@ public class VirtualKeyboardConfigurationLoader {
                 );
             } else {
                 int newCode = 0;
-                switch (vkCode) {
-                    case "A":
-                        newCode = ControllerPacket.A_FLAG;
-                        break;
-                    case "B":
-                        newCode = ControllerPacket.B_FLAG;
-                        break;
-                    case "X":
-                        newCode = ControllerPacket.X_FLAG;
-                        break;
-                    case "Y":
-                        newCode = ControllerPacket.Y_FLAG;
-                        break;
-                    case "LB":
-                        newCode = ControllerPacket.LB_FLAG;
-                        break;
-                    case "RB":
-                        newCode = ControllerPacket.RB_FLAG;
-                        break;
-                    case "BACK":
-                        newCode = ControllerPacket.BACK_FLAG;
-                        break;
-                    case "START":
-                        newCode = ControllerPacket.PLAY_FLAG;
-                        break;
+                // 支持两种表示方式：
+                // 1) 文本标识（A/B/X/Y/LB/RB/BACK/START）
+                // 2) 直接存储的整型位标志（历史版本保存的字符串数字，如 "4096"）
+                try {
+                    // 尝试将 vkCode 作为整型解析
+                    int parsed = Integer.parseInt(vkCode);
+                    if (parsed != 0) {
+                        newCode = parsed;
+                    }
+                } catch (NumberFormatException ignored) {
+                    // 非数字则按名称映射
+                    switch (vkCode) {
+                        case "A":
+                            newCode = ControllerPacket.A_FLAG;
+                            break;
+                        case "B":
+                            newCode = ControllerPacket.B_FLAG;
+                            break;
+                        case "X":
+                            newCode = ControllerPacket.X_FLAG;
+                            break;
+                        case "Y":
+                            newCode = ControllerPacket.Y_FLAG;
+                            break;
+                        case "LB":
+                            newCode = ControllerPacket.LB_FLAG;
+                            break;
+                        case "RB":
+                            newCode = ControllerPacket.RB_FLAG;
+                            break;
+                        case "BACK":
+                            newCode = ControllerPacket.BACK_FLAG;
+                            break;
+                        case "START":
+                            newCode = ControllerPacket.PLAY_FLAG;
+                            break;
+                    }
                 }
                 virtualKeyboard.addElement(
                         createDigitalButton(
@@ -625,6 +637,13 @@ public class VirtualKeyboardConfigurationLoader {
         }
 
         prefEditor.apply();
+    }
+
+    public static void deleteElement(final Context context, final int elementId) {
+        SharedPreferences pref = context.getSharedPreferences(OSK_PREFERENCE, Activity.MODE_PRIVATE);
+        if (pref.contains(String.valueOf(elementId))) {
+            pref.edit().remove(String.valueOf(elementId)).apply();
+        }
     }
 
     public static void loadFromPreferences(final VirtualKeyboard virtualKeyboard, final Context context) {

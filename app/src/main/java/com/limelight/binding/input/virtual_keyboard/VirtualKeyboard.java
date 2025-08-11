@@ -13,6 +13,8 @@ import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.FrameLayout;
+import android.widget.TextView;
+import android.view.Gravity;
 import android.widget.Toast;
 
 import com.limelight.Game;
@@ -51,6 +53,9 @@ public class VirtualKeyboard {
     private final Handler handler;
 
     private FrameLayout frame_layout = null;
+    private View editingOverlay = null;
+    private View editingContainer = null;
+    private TextView editingTip = null;
 
     ControllerMode currentMode = ControllerMode.Active;
     KeyboardInputContext keyboardInputContext = new KeyboardInputContext();
@@ -96,6 +101,7 @@ public class VirtualKeyboard {
                         if (pref.enableGridLayout){
                             gameGridLines.show();
                         }
+                        showEditingOverlay();
                         message = context.getString(R.string.controller_mode_new_setting_button);
                     }else {
                         currentMode = ControllerMode.Active;
@@ -103,6 +109,7 @@ public class VirtualKeyboard {
                         if (gameGridLines != null) {
                             gameGridLines.hide();
                         }
+                        hideEditingOverlay();
                         message = context.getString(R.string.controller_mode_active_buttons);
                     }
                     context.postNotification(message, 2000);
@@ -122,6 +129,7 @@ public class VirtualKeyboard {
                             if (pref.enableGridLayout){
                                 gameGridLines.show();
                             }
+                            showEditingOverlay();
                             message = context.getString(R.string.controller_mode_new_setting_button);
                         }else {
                             currentMode = ControllerMode.Active;
@@ -129,6 +137,7 @@ public class VirtualKeyboard {
                             if (gameGridLines != null) {
                                 gameGridLines.hide();
                             }
+                            hideEditingOverlay();
                             message = context.getString(R.string.controller_mode_active_buttons);
                         }
                     }else {
@@ -196,6 +205,7 @@ public class VirtualKeyboard {
         } else {
             buttonConfigure.setVisibility(View.GONE);
         }
+        // 不主动隐藏编辑遮罩，只有真正退出编辑模式时隐藏
     }
 
     public void hideElement(VirtualKeyboardElement element) {
@@ -223,6 +233,7 @@ public class VirtualKeyboard {
         elements.clear();
 
         frame_layout.removeView(buttonConfigure);
+        hideEditingOverlay();
     }
 
     public void removeElementByElementId(int elementId) {
@@ -271,7 +282,8 @@ public class VirtualKeyboard {
         layoutParams.setMargins(x, y, 0, 0);
         GameGridLines gameGridLines = context.getGameGridLines();
         element.setGridLines(gameGridLines);
-        frame_layout.addView(element, layoutParams);
+        // 保证新增按钮位于遮罩之上、菜单之下：将其添加在容器末尾（高于遮罩/提示），菜单是独立Fragment层级更高
+        frame_layout.addView(element, frame_layout.getChildCount(), layoutParams);
     }
 
     public List<VirtualKeyboardElement> getElements() {
@@ -316,6 +328,9 @@ public class VirtualKeyboard {
     }
 
     public void refreshLayout() {
+        // 记录是否处于编辑模式（新设置按钮模式），用于刷新后恢复遮罩
+        boolean shouldRestoreEditingOverlay = (currentMode == ControllerMode.NewSettingButtons);
+
         removeElements();
 
         DisplayMetrics screen = context.getResources().getDisplayMetrics();
@@ -325,12 +340,128 @@ public class VirtualKeyboard {
         params.leftMargin = 15;
         params.topMargin = 15;
         frame_layout.addView(buttonConfigure, params);
+        // 刷新布局过程中不要永久关闭编辑遮罩；若处于编辑模式，稍后恢复
+        hideEditingOverlay();
 
         // Start with the default layout
 //        VirtualKeyboardConfigurationLoader.createDefaultLayout(this, context);
 
         // Apply user preferences onto the default layout
         VirtualKeyboardConfigurationLoader.loadFromPreferences(this, context);
+
+        // 若仍处于编辑模式，则在重建元素后恢复编辑遮罩，避免用户保存后遮罩消失
+        if (shouldRestoreEditingOverlay) {
+            showEditingOverlay();
+        }
+    }
+
+    private void showEditingOverlay() {
+        if (editingOverlay != null && editingTip != null) return;
+        // 层级目标（自上而下）：
+        // 菜单 > 虚拟键盘（按钮+网格线） > 编辑模式提示（遮罩+文字） > 串流画面
+        // 关键点：编辑提示不应叠加到虚拟键盘里，而应插入到 StreamView 之上、键盘与网格线之下
+        View root = context.findViewById(android.R.id.content);
+        if (!(root instanceof FrameLayout)) return;
+        FrameLayout rootLayout = (FrameLayout) root;
+
+        // 计算应当插入的位置：紧跟在 StreamView 之后
+        View stream = context.findViewById(com.limelight.R.id.surfaceView);
+        int insertIndex = 1; // 默认放在 very early，避免被放到底部
+        if (stream != null) {
+            int idx = rootLayout.indexOfChild(stream);
+            if (idx >= 0) {
+                insertIndex = idx + 1;
+            }
+        }
+
+        // 遮罩（半透明全屏）
+        editingOverlay = new View(context);
+        editingOverlay.setBackgroundColor(0x4D000000);
+        FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(
+            FrameLayout.LayoutParams.MATCH_PARENT,
+            FrameLayout.LayoutParams.MATCH_PARENT
+        );
+        rootLayout.addView(editingOverlay, Math.min(insertIndex, rootLayout.getChildCount()), lp);
+
+        // 文字提示容器（与遮罩同层，位于遮罩之上一点点）
+        FrameLayout tipContainer = new FrameLayout(context);
+        FrameLayout.LayoutParams tlp = new FrameLayout.LayoutParams(
+            FrameLayout.LayoutParams.MATCH_PARENT,
+            FrameLayout.LayoutParams.MATCH_PARENT
+        );
+        rootLayout.addView(tipContainer, Math.min(insertIndex + 1, rootLayout.getChildCount()), tlp);
+        editingContainer = tipContainer;
+
+        // 提示文字
+        editingTip = new TextView(context);
+        editingTip.setText("编辑模式中\n点击移动 长按缩放 双击设置");
+        editingTip.setTextColor(0xFFFFFFFF);
+        editingTip.setTextSize(18);
+        editingTip.setGravity(Gravity.CENTER);
+        tipContainer.addView(editingTip, new FrameLayout.LayoutParams(
+            FrameLayout.LayoutParams.MATCH_PARENT,
+            FrameLayout.LayoutParams.WRAP_CONTENT,
+            Gravity.CENTER
+        ));
+
+        // 注意：不再 bringToFront，避免盖住虚拟键盘与菜单
+        // 返回按钮逻辑保持原有，由菜单处理
+    }
+
+    private void hideEditingOverlay() {
+        View root = context.findViewById(android.R.id.content);
+        if (root instanceof FrameLayout) {
+            FrameLayout rootLayout = (FrameLayout) root;
+            if (editingOverlay != null) {
+                rootLayout.removeView(editingOverlay);
+                editingOverlay = null;
+            }
+            if (editingContainer != null) {
+                rootLayout.removeView(editingContainer);
+                editingContainer = null;
+            }
+        }
+        editingTip = null;
+    }
+
+    /**
+     * 进入虚拟键盘编辑模式
+     * - 切换到 NewSettingButtons 模式
+     * - 根据设置显示网格对齐线
+     * - 显示编辑遮罩与提示
+     * - 发送中文提示通知
+     */
+    public void enterEditMode() {
+        PreferenceConfiguration pref = context.getPrefConfig();
+        if (currentMode != ControllerMode.NewSettingButtons) {
+            currentMode = ControllerMode.NewSettingButtons;
+            if (pref.enableGridLayout) {
+                GameGridLines gridLines = context.getGameGridLines();
+                if (gridLines != null) {
+                    gridLines.show();
+                }
+            }
+            showEditingOverlay();
+            context.postNotification(context.getString(R.string.controller_mode_new_setting_button), 2000);
+            for (VirtualKeyboardElement element : elements) {
+                element.invalidate();
+            }
+        }
+    }
+
+    // 提供统一退出编辑模式的方法，供菜单调用
+    public void exitEditMode() {
+        if (currentMode != ControllerMode.Active) {
+            currentMode = ControllerMode.Active;
+            VirtualKeyboardConfigurationLoader.saveProfile(VirtualKeyboard.this, context);
+            GameGridLines gameGridLines = context.getGameGridLines();
+            if (gameGridLines != null) gameGridLines.hide();
+            hideEditingOverlay();
+            context.postNotification(context.getString(R.string.controller_mode_active_buttons), 2000);
+            for (VirtualKeyboardElement element : elements) {
+                element.invalidate();
+            }
+        }
     }
 
     public ControllerMode getControllerMode() {

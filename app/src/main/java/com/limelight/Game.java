@@ -177,6 +177,9 @@ public class Game extends Activity implements SurfaceHolder.Callback,
     private TextView notificationOverlayView;
     private int requestedNotificationOverlayVisibility = View.GONE;
     private TextView performanceOverlayView;
+    // 新增：分层容器
+    private FrameLayout controlsOverlayContainer; // 虚拟输入（键盘/手柄）容器
+    private FrameLayout menuOverlayContainer;     // 菜单（编辑/游戏）容器
 
     private MediaCodecDecoderRenderer decoderRenderer;
     private boolean reportedCrash;
@@ -373,6 +376,13 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         notificationOverlayView = findViewById(R.id.notificationOverlay);
 
         performanceOverlayView = findViewById(R.id.performanceOverlay);
+
+        // 新增：获取专用容器引用
+        controlsOverlayContainer = findViewById(R.id.controlsOverlayContainer);
+        menuOverlayContainer = findViewById(R.id.menuOverlayContainer);
+        // 若为空（理论上不会），回退至内容根布局
+        if (controlsOverlayContainer == null) controlsOverlayContainer = (FrameLayout) findViewById(android.R.id.content);
+        if (menuOverlayContainer == null) menuOverlayContainer = (FrameLayout) findViewById(android.R.id.content);
 
         inputCaptureProvider = InputCaptureManager.getInputCaptureProvider(this, this);
 
@@ -614,7 +624,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         if (prefConfig.onscreenController) {
             // create virtual onscreen controller
             virtualController = new VirtualController(controllerHandler,
-                    (FrameLayout)streamView.getParent(),
+                    controlsOverlayContainer,
                     this);
             virtualController.refreshLayout();
             virtualController.show();
@@ -624,7 +634,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
             virtualKeyboard = new VirtualKeyboard(
                     controllerHandler,
                     conn,
-                    (FrameLayout)streamView.getParent(),
+                    controlsOverlayContainer,
                     this);
             virtualKeyboard.refreshLayout();
             virtualKeyboard.show();
@@ -2979,7 +2989,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         if (virtualController == null) {
             streamView = this.findViewById(R.id.surfaceView);
             virtualController = new VirtualController(controllerHandler,
-                    (FrameLayout) streamView.getParent(),
+                    controlsOverlayContainer,
                     this);
             virtualController.refreshLayout();
         }
@@ -3003,7 +3013,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
             virtualKeyboard = new VirtualKeyboard(
                     controllerHandler,
                     conn,
-                    (FrameLayout) streamView.getParent(),
+                    controlsOverlayContainer,
                     this
             );
             virtualKeyboard.refreshLayout();
@@ -3137,9 +3147,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         }
 
         if (virtualKeyboard != null && virtualKeyboard.getControllerMode() != VirtualKeyboard.ControllerMode.Active){
-            VirtualKeyboardMenu virtualKeyboardMenu = new VirtualKeyboardMenu(this, virtualKeyboard);
-            virtualKeyboardMenu.setGameView(this);
-            virtualKeyboardMenu.showMenu();
+            new com.limelight.heokami.EditMenu(this, virtualKeyboard);
         }else {
             new GameMenu(this,conn);
         }
@@ -3148,8 +3156,15 @@ public class Game extends Activity implements SurfaceHolder.Callback,
     @Override
     public void onBackPressed(){
         android.util.Log.d("GameMenu", "onBackPressed called, isMenuShowing: " + com.limelight.heokami.GameMenu.isMenuShowing());
-        
-        // 检查菜单是否已经显示
+        // 优先关闭编辑菜单
+        if (com.limelight.heokami.EditMenu.isMenuShowing()) {
+            android.app.Fragment menuFragment = getFragmentManager().findFragmentByTag("EditMenu");
+            if (menuFragment != null && menuFragment instanceof com.limelight.heokami.EditMenuFragment) {
+                ((com.limelight.heokami.EditMenuFragment) menuFragment).hideMenuWithAnimation();
+                return;
+            }
+        }
+        // 检查游戏菜单是否已经显示
         if (com.limelight.heokami.GameMenu.isMenuShowing()) {
             // 如果菜单已经显示，则关闭菜单
             // 查找并移除菜单Fragment
@@ -3300,7 +3315,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         // 重新初始化虚拟手柄/键盘
         if (prefConfig.onscreenController) {
             virtualController = new VirtualController(controllerHandler,
-                    (FrameLayout)streamView.getParent(),
+                    controlsOverlayContainer,
                     this);
             virtualController.refreshLayout();
             virtualController.show();
@@ -3309,7 +3324,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
             virtualKeyboard = new VirtualKeyboard(
                     controllerHandler,
                     conn,
-                    (FrameLayout)streamView.getParent(),
+                    controlsOverlayContainer,
                     this);
             virtualKeyboard.refreshLayout();
             virtualKeyboard.show();

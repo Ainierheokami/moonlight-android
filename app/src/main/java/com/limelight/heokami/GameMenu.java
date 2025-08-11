@@ -47,7 +47,8 @@ public class GameMenu {
         GameMenuFragment fragment = GameMenuFragment.newInstance(game, conn);
         game.getFragmentManager()
             .beginTransaction()
-            .add(android.R.id.content, fragment, "GameMenu")
+            // 将游戏菜单添加到专用的菜单容器，确保高于虚拟输入层
+            .add(com.limelight.R.id.menuOverlayContainer, fragment, "GameMenu")
             .commit();
         
         android.util.Log.d("GameMenu", "Menu fragment added to transaction");

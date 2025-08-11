@@ -22,6 +22,7 @@ import android.widget.Button;
 import com.limelight.Game;
 import com.limelight.R;
 import com.limelight.nvstream.NvConnection;
+import com.limelight.binding.input.virtual_keyboard.VirtualKeyboard;
 import com.limelight.nvstream.input.KeyboardPacket;
 import com.limelight.heokami.FloatingVirtualKeyboardFragment;
 
@@ -274,6 +275,26 @@ public class GameMenuFragment extends Fragment {
                 hideMenuWithAnimation();
                 VirtualKeyboardDialogFragment fragment = new VirtualKeyboardDialogFragment();
                 fragment.show(game.getFragmentManager(), "VirtualKeyboard");
+            });
+        }
+
+        // 编辑屏幕虚拟键盘（进入编辑模式并打开编辑菜单）
+        Button btnEditVirtualKeyboard = getView().findViewById(R.id.btn_edit_virtual_keyboard);
+        if (btnEditVirtualKeyboard != null) {
+            btnEditVirtualKeyboard.setOnClickListener(v -> {
+                hideMenuWithAnimation();
+                VirtualKeyboard vk = game.getVirtualKeyboard();
+                if (vk != null) {
+                    // 确保虚拟键盘可见，然后进入编辑模式
+                    vk.show();
+                    vk.enterEditMode();
+                    // 等待菜单关闭动画结束后再打开编辑菜单，避免界面重叠
+                    new Handler(Looper.getMainLooper()).postDelayed(() -> {
+                        new EditMenu(game, vk);
+                    }, ANIMATION_DURATION + 50);
+                } else {
+                    Toast.makeText(game, "无法进入编辑模式：虚拟键盘未就绪", Toast.LENGTH_SHORT).show();
+                }
             });
         }
     }

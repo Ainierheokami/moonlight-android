@@ -335,6 +335,23 @@
     <string name="controller_mode_settings_buttons">Enable the settings button mode</string>
     <string name="controller_mode_active_buttons">Exiting configuration mode</string>
     <string name="game_menu_title">Menu</string>
+    <!-- 游戏菜单新增：编辑屏幕虚拟键盘按钮文本 -->
+    <string name="game_menu_edit_virtual_keyboard">编辑屏幕虚拟键盘</string>
+    <!-- 虚拟键盘编辑菜单：标题文本 -->
+    <string name="virtual_keyboard_menu_title">虚拟键盘菜单</string>
+    <!-- 游戏菜单：可复用的无硬编码文本资源 -->
+    <string name="content_desc_close_menu">关闭菜单</string>
+    <string name="game_menu_section_input_controls">输入控制</string>
+    <string name="game_menu_section_hotkeys">常用热键</string>
+    <string name="game_menu_copy">复制</string>
+    <string name="game_menu_paste">粘贴</string>
+    <string name="game_menu_virtual_keyboard_short">虚拟键盘</string>
+    <string name="game_menu_switch_window_short">切换窗口</string>
+    <string name="game_menu_section_clipboard">剪贴板</string>
+    <string name="game_menu_section_virtual_keyboard">虚拟键盘</string>
+    <string name="game_menu_floating_keyboard">悬浮键盘</string>
+    <string name="game_menu_full_keyboard">全屏键盘</string>
+    <string name="game_menu_section_screen_overlay">屏幕叠加</string>
     <string name="virtual_keyboard_menu_set_button_title">Edit button</string>
     <string name="virtual_keyboard_menu_remove_button">Delete</string>
     <string name="virtual_keyboard_menu_save_button">Save</string>
@@ -351,6 +368,7 @@
     <string name="game_menu_toggle_virtual_keyboard_toast">Tips: In button configuration mode, you can add buttons from the back menu</string>
     <string name="virtual_keyboard_menu_quash_history">Undo</string>
     <string name="virtual_keyboard_menu_forward_history">Redo</string>
+    <string name="virtual_keyboard_menu_exit_edit">退出编辑</string>
     <string name="default_button">Default</string>
     <string name="confirm_button">Confirm</string>
     <string name="cancel_button">Cancel</string>

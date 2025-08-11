@@ -301,12 +301,15 @@ public abstract class VirtualKeyboardElement extends View {
     }
 
     protected int getDefaultColor() {
+        // 编辑模式不改变按钮本身颜色，由遮罩与提示承担视觉反馈
+        if (virtualKeyboard.getControllerMode() == VirtualKeyboard.ControllerMode.NewSettingButtons) {
+            return normalColor;
+        }
         if (virtualKeyboard.getControllerMode() == VirtualKeyboard.ControllerMode.MoveButtons)
             return configMoveColor;
         else if (virtualKeyboard.getControllerMode() == VirtualKeyboard.ControllerMode.ResizeButtons)
             return configResizeColor;
-        else if (virtualKeyboard.getControllerMode() == VirtualKeyboard.ControllerMode.SettingsButtons ||
-                virtualKeyboard.getControllerMode() == VirtualKeyboard.ControllerMode.NewSettingButtons)
+        else if (virtualKeyboard.getControllerMode() == VirtualKeyboard.ControllerMode.SettingsButtons)
             return configSettingsColor;
         else
             return normalColor;

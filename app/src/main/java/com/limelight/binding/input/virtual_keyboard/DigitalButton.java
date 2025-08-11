@@ -124,25 +124,115 @@ public class DigitalButton extends VirtualKeyboardElement {
 
         paint.setTextSize(getPercent(getWidth(), 25));
         paint.setTextAlign(Paint.Align.CENTER);
-        paint.setStrokeWidth(getDefaultStrokeWidth());
 
-        paint.setColor(isPressed() ? pressedColor : getDefaultColor());
-        paint.setStyle(Paint.Style.STROKE);
+        // 读取自定义描边配置（来自 buttonData）
+        int fillColor = isPressed() ? pressedColor : getDefaultColor();
+        int borderWidthPx = getDefaultStrokeWidth();
+        int borderColor = fillColor;
+        int textColor = Color.WHITE;
+        int textAlphaPct = 100;
+        boolean overallEnabled = false;
+        int overallColorNormal = fillColor;
+        int overallColorPressed = fillColor;
+        int overallAlphaPct = 100;
+        boolean borderEnabled = true;
+        try {
+            if (buttonData != null) {
+                if (buttonData.has("BORDER_ENABLED")) {
+                    borderEnabled = buttonData.getBoolean("BORDER_ENABLED");
+                }
+                if (buttonData.has("BORDER_WIDTH_PX")) {
+                    borderWidthPx = buttonData.getInt("BORDER_WIDTH_PX");
+                }
+                if (buttonData.has("BORDER_COLOR")) {
+                    borderColor = buttonData.getInt("BORDER_COLOR");
+                }
+                if (buttonData.has("BORDER_ALPHA")) {
+                    int alphaPct = Math.max(0, Math.min(100, buttonData.getInt("BORDER_ALPHA")));
+                    int baseA = (borderColor >>> 24) & 0xFF;
+                    int composedA = (int)(baseA * (alphaPct / 100f));
+                    borderColor = (composedA << 24) | (borderColor & 0x00FFFFFF);
+                }
+                if (buttonData.has("TEXT_COLOR")) {
+                    textColor = buttonData.getInt("TEXT_COLOR");
+                }
+                if (buttonData.has("TEXT_ALPHA")) {
+                    textAlphaPct = Math.max(0, Math.min(100, buttonData.getInt("TEXT_ALPHA")));
+                }
+                if (buttonData.has("BG_COLOR")) {
+                    fillColor = buttonData.getInt("BG_COLOR");
+                }
+                if (buttonData.has("BG_COLOR_PRESSED") && isPressed()) {
+                    fillColor = buttonData.getInt("BG_COLOR_PRESSED");
+                }
+                if (buttonData.has("BG_ALPHA")) {
+                    int a = Math.max(0, Math.min(100, buttonData.getInt("BG_ALPHA")));
+                    int baseA = (fillColor >>> 24) & 0xFF;
+                    int composedA = (int)(baseA * (a / 100f));
+                    fillColor = (composedA << 24) | (fillColor & 0x00FFFFFF);
+                }
+                if (buttonData.has("BG_ALPHA_PRESSED") && isPressed()) {
+                    int a = Math.max(0, Math.min(100, buttonData.getInt("BG_ALPHA_PRESSED")));
+                    int baseA = (fillColor >>> 24) & 0xFF;
+                    int composedA = (int)(baseA * (a / 100f));
+                    fillColor = (composedA << 24) | (fillColor & 0x00FFFFFF);
+                }
+                if (buttonData.has("OVERALL_ENABLED")) {
+                    overallEnabled = buttonData.getBoolean("OVERALL_ENABLED");
+                }
+                if (buttonData.has("OVERALL_COLOR")) {
+                    overallColorNormal = buttonData.getInt("OVERALL_COLOR");
+                }
+                if (buttonData.has("OVERALL_COLOR_PRESSED")) {
+                    overallColorPressed = buttonData.getInt("OVERALL_COLOR_PRESSED");
+                }
+                if (buttonData.has("OVERALL_ALPHA")) {
+                    overallAlphaPct = Math.max(0, Math.min(100, buttonData.getInt("OVERALL_ALPHA")));
+                }
+            }
+        } catch (Exception ignored) {}
 
-        rect.left = rect.top = paint.getStrokeWidth();
+        // 应用整体覆盖（在所有细项之后最后合成，以便强制覆盖）
+        if (overallEnabled) {
+            int ov = isPressed() ? overallColorPressed : overallColorNormal;
+            int baseA = (ov >>> 24) & 0xFF;
+            int composedA = (int)(baseA * (overallAlphaPct / 100f));
+            fillColor = (composedA << 24) | (ov & 0x00FFFFFF);
+        }
+
+        // 计算用于填充与描边的统一矩形（根据描边宽度内缩，确保边框与填充对齐）
+        float strokeW = borderEnabled ? borderWidthPx : 0;
+        rect.left = rect.top = strokeW;
         rect.right = getWidth() - rect.left;
         rect.bottom = getHeight() - rect.top;
-
         float cornerRadius = radius; // 圆角大小
-        canvas.drawRoundRect(rect, cornerRadius, cornerRadius ,paint);
+
+        // 先画背景填充
+        paint.setStyle(Paint.Style.FILL);
+        paint.setColor(fillColor);
+        canvas.drawRoundRect(rect, cornerRadius, cornerRadius, paint);
+
+        // 再画描边（完全关闭时不画）
+        if (borderEnabled && strokeW > 0.5f) {
+            paint.setStyle(Paint.Style.STROKE);
+            paint.setStrokeWidth(strokeW);
+            paint.setColor(borderColor);
+            canvas.drawRoundRect(rect, cornerRadius, cornerRadius, paint);
+        }
 
         if (icon != -1) {
             @SuppressLint("UseCompatLoadingForDrawables") Drawable d = getResources().getDrawable(icon);
             d.setBounds(5, 5, getWidth() - 5, getHeight() - 5);
             d.draw(canvas);
         } else {
+            // 文本使用文本颜色与透明度
             paint.setStyle(Paint.Style.FILL_AND_STROKE);
-            paint.setStrokeWidth((float) getDefaultStrokeWidth() /2);
+            paint.setStrokeWidth((float) getDefaultStrokeWidth() / 2);
+            int baseA = (textColor >>> 24) & 0xFF;
+            int composedA = (int)(baseA * (textAlphaPct / 100f));
+            int composedTextColor = (composedA << 24) | (textColor & 0x00FFFFFF);
+            paint.setColor(composedTextColor);
+            // 若整体覆盖启用，优先文本颜色；否则保持文本颜色
             String ellipsizedText = (String) TextUtils.ellipsize(text, new TextPaint(paint), getWidth(), TextUtils.TruncateAt.END);
             canvas.drawText(ellipsizedText, getPercent(getWidth(), 50), getPercent(getHeight(), 63), paint);
         }

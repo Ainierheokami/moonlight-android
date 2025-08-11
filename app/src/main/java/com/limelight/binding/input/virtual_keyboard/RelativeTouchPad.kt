@@ -39,6 +39,14 @@ class RelativeTouchPad(
             )
         }
 
+        // 读取灵敏度（若存在）并通过日志提示；实际生效可在 RelativeTouchContext 暴露接口后设置
+        try {
+            val sensitivity = if (buttonData != null && buttonData.has("TOUCHPAD_SENSITIVITY")) {
+                buttonData.getInt("TOUCHPAD_SENSITIVITY").coerceIn(10, 300)
+            } else 100
+            Log.d("TouchPad", "Sensitivity: $sensitivity")
+        } catch (_: Exception) {}
+
         addTouchpadListener(object: TouchpadListener {
             override fun onTouch(x: Float, y: Float, event: MotionEvent) {
                 val actionIndex = event.actionIndex

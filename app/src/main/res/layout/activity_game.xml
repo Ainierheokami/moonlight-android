@@ -57,4 +57,18 @@
         android:layout_height="match_parent"
         android:layout_gravity="center"
         android:visibility="visible" />
+
+    <!-- 虚拟输入（虚拟键盘/虚拟手柄）专用容器：位于菜单容器之下、网格线之上 -->
+    <FrameLayout
+        android:id="@+id/controlsOverlayContainer"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_gravity="center" />
+
+    <!-- 菜单（编辑菜单/游戏菜单）专用容器：最顶层 -->
+    <FrameLayout
+        android:id="@+id/menuOverlayContainer"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_gravity="center" />
 </merge>
