@@ -298,6 +298,44 @@
             android:title="@string/title_checkbox_small_icon_mode"
             android:summary="@string/summary_checkbox_small_icon_mode" />
     </PreferenceCategory>
+    <!-- 将默认触摸板速度移动到输入设置分组 -->
+    <PreferenceCategory android:title="@string/category_input_settings"
+        android:key="category_input_settings">
+        <!-- 复用原有输入设置项 -->
+        <CheckBoxPreference
+            android:key="checkbox_touchscreen_trackpad"
+            android:title="@string/title_checkbox_touchscreen_trackpad"
+            android:summary="@string/summary_checkbox_touchscreen_trackpad"
+            android:defaultValue="true" />
+        <CheckBoxPreference
+            android:key="checkbox_multitouch_screen"
+            android:title="@string/title_checkbox_multitouch_screen"
+            android:summary="@string/summary_checkbox_multitouch_screen"
+            android:defaultValue="false" />
+        <CheckBoxPreference
+            android:key="checkbox_mouse_nav_buttons"
+            android:title="@string/title_checkbox_mouse_nav_buttons"
+            android:summary="@string/summary_checkbox_mouse_nav_buttons"
+            android:defaultValue="false" />
+        <CheckBoxPreference
+            android:key="checkbox_absolute_mouse_mode"
+            android:title="@string/title_checkbox_absolute_mouse_mode"
+            android:summary="@string/summary_checkbox_absolute_mouse_mode"
+            android:defaultValue="false" />
+
+        <!-- 默认触摸板速度（相对模式） -->
+        <com.limelight.preferences.SeekBarPreference
+            android:key="seekbar_default_touchpad_sensitivity"
+            android:title="@string/title_seekbar_default_touchpad_sensitivity"
+            android:summary="@string/summary_seekbar_default_touchpad_sensitivity"
+            android:defaultValue="100"
+            android:max="300"
+            seekbar:min="10"
+            seekbar:step="5"
+            seekbar:keyStep="10"
+            android:text="%"
+            />
+    </PreferenceCategory>
     <PreferenceCategory android:title="@string/category_advanced_settings"
         android:key="category_advanced_settings">
         <CheckBoxPreference

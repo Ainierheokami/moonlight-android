@@ -295,9 +295,18 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
         // 统一内边距，改善可读性
         val density = context.resources.displayMetrics.density
         fun dp(value: Int) = (value * density).toInt()
-        layout.setPadding(dp(20), dp(12), dp(20), dp(8))
+        // 顶部/底部内边距略微收紧，减少首屏留白
+        layout.setPadding(dp(16), dp(8), dp(16), dp(6))
         fun addSpacer(heightDp: Int) {
             layout.addView(View(context).apply {
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    dp(heightDp)
+                )
+            })
+        }
+        fun addSpacerTo(parent: LinearLayout, heightDp: Int) {
+            parent.addView(View(context).apply {
                 layoutParams = LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.MATCH_PARENT,
                     dp(heightDp)
@@ -312,21 +321,147 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
             })
             addSpacer(6)
         }
+        fun addCollapsibleSectionTo(parent: LinearLayout, title: String, defaultExpanded: Boolean = true): LinearLayout {
+            val container = LinearLayout(context).apply { orientation = LinearLayout.VERTICAL }
+            val header = LinearLayout(context).apply {
+                orientation = LinearLayout.HORIZONTAL
+                setPadding(0, dp(6), 0, dp(6))
+            }
+            val titleView = TextView(context).apply {
+                text = title
+                setTextColor(Color.parseColor("#666666"))
+                setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
+                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+            }
+            val arrowView = TextView(context).apply {
+                text = if (defaultExpanded) "▼" else "▶"
+                setTextColor(Color.parseColor("#999999"))
+                setTextSize(TypedValue.COMPLEX_UNIT_SP, 18f)
+                setPadding(dp(8), 0, dp(8), 0)
+            }
+            header.addView(titleView)
+            header.addView(arrowView)
+
+            val content = LinearLayout(context).apply {
+                orientation = LinearLayout.VERTICAL
+                visibility = if (defaultExpanded) View.VISIBLE else View.GONE
+            }
+            header.setOnClickListener {
+                val expanded = content.visibility == View.VISIBLE
+                content.visibility = if (expanded) View.GONE else View.VISIBLE
+                arrowView.text = if (expanded) "▶" else "▼"
+            }
+            container.addView(header)
+            container.addView(content)
+            parent.addView(container)
+            return content
+        }
+        fun addCollapsibleSection(title: String, defaultExpanded: Boolean = true): LinearLayout {
+            val container = LinearLayout(context).apply { orientation = LinearLayout.VERTICAL }
+            val header = LinearLayout(context).apply {
+                orientation = LinearLayout.HORIZONTAL
+                setPadding(0, dp(6), 0, dp(6))
+            }
+            val titleView = TextView(context).apply {
+                text = title
+                setTextColor(Color.parseColor("#666666"))
+                setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
+                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+            }
+            val arrowView = TextView(context).apply {
+                text = if (defaultExpanded) "▼" else "▶"
+                setTextColor(Color.parseColor("#999999"))
+                setTextSize(TypedValue.COMPLEX_UNIT_SP, 18f)
+                setPadding(dp(8), 0, dp(8), 0)
+            }
+            header.addView(titleView)
+            header.addView(arrowView)
+
+            val content = LinearLayout(context).apply {
+                orientation = LinearLayout.VERTICAL
+                visibility = if (defaultExpanded) View.VISIBLE else View.GONE
+            }
+            header.setOnClickListener {
+                val expanded = content.visibility == View.VISIBLE
+                content.visibility = if (expanded) View.GONE else View.VISIBLE
+                arrowView.text = if (expanded) "▶" else "▼"
+            }
+            container.addView(header)
+            container.addView(content)
+            layout.addView(container)
+            return content
+        }
         scrollView.addView(layout)
 
-        // 基础设置
-        addSectionTitle("基础设置")
-        layout.addView(TextView(context).apply {
+        // 顶部页签：行为 / 外观 / 预览
+        val topTabLayout = TabLayout(ContextThemeWrapper(context, com.google.android.material.R.style.Theme_AppCompat)).apply {
+            // 压缩 Tab 的上下内边距与最小高度，进一步降低整体上下留白
+            setPadding(0, dp(2), 0, dp(2))
+            minimumHeight = 0
+            try {
+                @Suppress("DEPRECATION")
+                setSelectedTabIndicatorHeight(dp(1))
+            } catch (_: Throwable) {}
+        }
+        fun addTopTab(text: String) { topTabLayout.addTab(topTabLayout.newTab().setText(text)) }
+        addTopTab("行为")
+        addTopTab("外观")
+        addTopTab("预览")
+        layout.addView(topTabLayout)
+
+        val behaviorTabContent = LinearLayout(context).apply { orientation = LinearLayout.VERTICAL }
+        val appearanceTabContent = LinearLayout(context).apply { orientation = LinearLayout.VERTICAL; visibility = View.GONE }
+        val previewTabContent = LinearLayout(context).apply { orientation = LinearLayout.VERTICAL; visibility = View.GONE }
+        layout.addView(behaviorTabContent)
+        layout.addView(appearanceTabContent)
+        layout.addView(previewTabContent)
+
+        // 收紧 Tab 与内容区之间的间距
+        (behaviorTabContent.layoutParams as? LinearLayout.LayoutParams)?.let { it.topMargin = dp(4); behaviorTabContent.layoutParams = it }
+        (appearanceTabContent.layoutParams as? LinearLayout.LayoutParams)?.let { it.topMargin = dp(4); appearanceTabContent.layoutParams = it }
+        (previewTabContent.layoutParams as? LinearLayout.LayoutParams)?.let { it.topMargin = dp(4); previewTabContent.layoutParams = it }
+
+        topTabLayout.addOnTabSelectedListener(object: TabLayout.OnTabSelectedListener{
+            override fun onTabSelected(tab: TabLayout.Tab?) {
+                when (tab?.position) {
+                    0 -> { behaviorTabContent.visibility = View.VISIBLE; appearanceTabContent.visibility = View.GONE; previewTabContent.visibility = View.GONE }
+                    1 -> { behaviorTabContent.visibility = View.GONE; appearanceTabContent.visibility = View.VISIBLE; previewTabContent.visibility = View.GONE }
+                    2 -> { behaviorTabContent.visibility = View.GONE; appearanceTabContent.visibility = View.GONE; previewTabContent.visibility = View.VISIBLE }
+                }
+            }
+            override fun onTabUnselected(tab: TabLayout.Tab?) {}
+            override fun onTabReselected(tab: TabLayout.Tab?) {}
+        })
+
+        // 进一步压缩每个 Tab 的内部上下 padding（子视图），消除底部多余留白
+        topTabLayout.post {
+            val strip = topTabLayout.getChildAt(0) as? ViewGroup
+            val childCount = strip?.childCount ?: 0
+            for (i in 0 until childCount) {
+                val tabView = strip!!.getChildAt(i)
+                tabView.setPadding(tabView.paddingLeft, dp(2), tabView.paddingRight, dp(2))
+                (tabView.layoutParams as? ViewGroup.MarginLayoutParams)?.let { lp ->
+                    lp.bottomMargin = 0
+                    lp.topMargin = 0
+                    tabView.layoutParams = lp
+                }
+            }
+        }
+
+        // 基础设置（行为页签内的折叠）
+        val baseSection = addCollapsibleSectionTo(behaviorTabContent, "基础设置（通用）", true)
+        // 折叠标题与内容之间不再额外插 spacer，保证紧凑
+        baseSection.addView(TextView(context).apply {
             text = context.getString(R.string.virtual_keyboard_menu_button_id_hint)
         })
 
         val buttonIdEditText = EditText(context)
         buttonIdEditText.setInputType(InputType.TYPE_CLASS_NUMBER)
-        layout.addView(buttonIdEditText)
+        baseSection.addView(buttonIdEditText)
         buttonIdEditText.setText((virtualKeyboard.lastElementId + 1).toString())
 
-        addSpacer(6)
-        layout.addView(TextView(context).apply {
+        // 减少基础设置内部行间距
+        baseSection.addView(TextView(context).apply {
             text = context.getString(R.string.virtual_keyboard_menu_button_text_hint) // "按钮文本"
         })
 
@@ -338,7 +473,7 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
             )
         }
 //        layout.addView(buttonTextEditText)
-        layout.addView(LinearLayout(context).apply {
+        baseSection.addView(LinearLayout(context).apply {
             orientation = LinearLayout.HORIZONTAL
             layoutParams = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
@@ -353,9 +488,10 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
             })
         })
 
-        // 类型与编码
-        addSpacer(10)
-        addSectionTitle("类型与编码")
+        // 类型与编码（可折叠）
+        // 控件组之间的垂直间距收紧
+        addSpacer(6)
+        val behaviorSection = addCollapsibleSectionTo(behaviorTabContent, "类型与编码（行为）", true)
 
         val linearLayout = LinearLayout(context).apply {
             orientation = LinearLayout.HORIZONTAL
@@ -415,6 +551,7 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
                             showVKCodeDialog(context, buttonTextEditText, vkCodeEditText)
                         }
                         vkCodeButton.visibility = View.VISIBLE
+                        vkCodeEditText.visibility = View.VISIBLE
                         // 隐藏触摸板灵敏度
                         touchpadSectionTitle.visibility = View.GONE
                         touchpadSensitivity.visibility = View.GONE
@@ -424,6 +561,7 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
                         selectedButtonType = VirtualKeyboardElement.ButtonType.HotKeys
                         // 宏/热键不需要 VK 表，隐藏按钮，但仍保留数值输入框
                         vkCodeButton.visibility = View.GONE
+                        vkCodeEditText.visibility = View.GONE
                         // 隐藏触摸板灵敏度
                         touchpadSectionTitle.visibility = View.GONE
                         touchpadSensitivity.visibility = View.GONE
@@ -436,6 +574,7 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
                             showJoyStickVKCodeDialog(context, buttonTextEditText, vkCodeEditText)
                         }
                         vkCodeButton.visibility = View.VISIBLE
+                        vkCodeEditText.visibility = View.VISIBLE
                         // 隐藏触摸板灵敏度
                         touchpadSectionTitle.visibility = View.GONE
                         touchpadSensitivity.visibility = View.GONE
@@ -445,6 +584,7 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
                         selectedButtonType = VirtualKeyboardElement.ButtonType.TouchPad
                         // 触摸板无需 VK 表，隐藏按钮并显示灵敏度
                         vkCodeButton.visibility = View.GONE
+                        vkCodeEditText.visibility = View.GONE
                         touchpadSectionTitle.visibility = View.VISIBLE
                         touchpadSensitivity.visibility = View.VISIBLE
                         touchpadSensitivityText.visibility = View.VISIBLE
@@ -468,18 +608,18 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
         }
 
         // 放置类型切换和 VK 输入区
-        layout.addView(typeTabLayout)
-        layout.addView(linearLayout)
+        behaviorSection.addView(typeTabLayout)
+        behaviorSection.addView(linearLayout)
         // 触摸板灵敏度模块（初始隐藏，由 Tab 切换控制）
-        addSpacer(10)
-        layout.addView(touchpadSectionTitle)
-        layout.addView(touchpadSensitivity)
-        layout.addView(touchpadSensitivityText)
+        addSpacer(6)
+        behaviorSection.addView(touchpadSectionTitle)
+        behaviorSection.addView(touchpadSensitivity)
+        behaviorSection.addView(touchpadSensitivityText)
 
-        // 样式与外观
-        addSpacer(10)
-        addSectionTitle("样式与外观")
-        layout.addView(TextView(context).apply { text = context.getString(R.string.virtual_keyboard_menu_normal_color_hint) })
+        // 样式与外观（外观页签内折叠）
+        addSpacer(6)
+        val appearanceSection = addCollapsibleSectionTo(appearanceTabContent, "样式与外观（外观）", false)
+        appearanceSection.addView(TextView(context).apply { text = context.getString(R.string.virtual_keyboard_menu_normal_color_hint) })
 
         val normalColorRow = LinearLayout(context).apply {
             orientation = LinearLayout.HORIZONTAL
@@ -492,10 +632,10 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
         }
         normalColorRow.addView(normaColorEditText, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
         normalColorRow.addView(normalColorSwatch)
-        layout.addView(normalColorRow)
+        appearanceSection.addView(normalColorRow)
 
         addSpacer(6)
-        layout.addView(TextView(context).apply { text = context.getString(R.string.virtual_keyboard_menu_pressed_color_hint) })
+        appearanceSection.addView(TextView(context).apply { text = context.getString(R.string.virtual_keyboard_menu_pressed_color_hint) })
 
         val pressedColorRow = LinearLayout(context).apply {
             orientation = LinearLayout.HORIZONTAL
@@ -508,20 +648,20 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
         }
         pressedColorRow.addView(pressedColorEditText, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
         pressedColorRow.addView(pressedColorSwatch)
-        layout.addView(pressedColorRow)
+        appearanceSection.addView(pressedColorRow)
 
         // 边框设置
-        addSpacer(10)
+        addSpacer(6)
         val borderEnableCheck = CheckBox(context).apply { text = "启用描边"; isChecked = true }
-        layout.addView(borderEnableCheck)
+        appearanceSection.addView(borderEnableCheck)
 
         val borderWidthText = TextView(context).apply { text = "描边大小" }
-        layout.addView(borderWidthText)
+        appearanceSection.addView(borderWidthText)
         val borderWidthSeek = SeekBar(context).apply { max = 24; progress = (context.resources.displayMetrics.heightPixels*0.004f).toInt().coerceAtMost(24) }
-        layout.addView(borderWidthSeek)
+        appearanceSection.addView(borderWidthSeek)
 
         addSpacer(6)
-        layout.addView(TextView(context).apply { text = "描边颜色" })
+        appearanceSection.addView(TextView(context).apply { text = "描边颜色" })
         val borderColorRow = LinearLayout(context).apply {
             orientation = LinearLayout.HORIZONTAL
             layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT)
@@ -533,13 +673,13 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
         }
         borderColorRow.addView(borderColorEditText, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
         borderColorRow.addView(borderColorSwatch)
-        layout.addView(borderColorRow)
+        appearanceSection.addView(borderColorRow)
 
         addSpacer(6)
         val borderAlphaText = TextView(context).apply { text = "描边透明度 100" }
-        layout.addView(borderAlphaText)
+        appearanceSection.addView(borderAlphaText)
         val borderAlphaSeek = SeekBar(context).apply { max = 100; progress = 100 }
-        layout.addView(borderAlphaSeek)
+        appearanceSection.addView(borderAlphaSeek)
         borderAlphaSeek.setOnSeekBarChangeListener(object: SeekBar.OnSeekBarChangeListener{
             override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) { borderAlphaText.text = "描边透明度 $progress" }
             override fun onStartTrackingTouch(seekBar: SeekBar?) {}
@@ -595,10 +735,10 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
         borderColorSwatch.setOnClickListener { showColorPalette(borderColorEditText, borderColorSwatch) }
 
         // 文本颜色与透明度
-        addSpacer(10)
-        addSectionTitle("文字")
+        addSpacer(6)
+        // 文字（外观）小节
         val textSection = LinearLayout(context).apply { orientation = LinearLayout.VERTICAL }
-        layout.addView(textSection)
+        appearanceSection.addView(textSection)
         textSection.addView(TextView(context).apply { text = "字体颜色" })
         val textColorRow = LinearLayout(context).apply { orientation = LinearLayout.HORIZONTAL }
         val textColorEdit = EditText(context).apply { hint = "#AARRGGBB" }
@@ -621,10 +761,10 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
         })
 
         // 背景颜色（正常/按下）与透明度
-        addSpacer(10)
-        addSectionTitle("背景")
+        addSpacer(6)
+        // 背景（外观）小节
         val bgSection = LinearLayout(context).apply { orientation = LinearLayout.VERTICAL }
-        layout.addView(bgSection)
+        appearanceSection.addView(bgSection)
         bgSection.addView(TextView(context).apply { text = "背景颜色（正常）" })
         val bgColorRow = LinearLayout(context).apply { orientation = LinearLayout.HORIZONTAL }
         val bgColorEdit = EditText(context).apply { hint = "#AARRGGBB" }
@@ -637,9 +777,7 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
         bgSection.addView(bgColorRow)
         bgColorSwatch.setOnClickListener { showColorPalette(bgColorEdit, bgColorSwatch) }
         val bgAlphaText = TextView(context).apply { text = "背景透明度 100" }
-        bgSection.addView(bgAlphaText)
         val bgAlphaSeek = SeekBar(context).apply { max = 100; progress = 100 }
-        bgSection.addView(bgAlphaSeek)
         bgAlphaSeek.setOnSeekBarChangeListener(object: SeekBar.OnSeekBarChangeListener{
             override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) { bgAlphaText.text = "背景透明度 $progress" }
             override fun onStartTrackingTouch(seekBar: SeekBar?) {}
@@ -658,9 +796,37 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
         bgSection.addView(bgPressedColorRow)
         bgPressedColorSwatch.setOnClickListener { showColorPalette(bgPressedColorEdit, bgPressedColorSwatch) }
         val bgPressedAlphaText = TextView(context).apply { text = "按下背景透明度 100" }
-        bgSection.addView(bgPressedAlphaText)
         val bgPressedAlphaSeek = SeekBar(context).apply { max = 100; progress = 100 }
-        bgSection.addView(bgPressedAlphaSeek)
+        // 两列布局：背景/按下透明度并排
+        val bgAlphaGrid = GridLayout(context).apply {
+            columnCount = 2
+            useDefaultMargins = true
+        }
+        val leftCol = LinearLayout(context).apply {
+            orientation = LinearLayout.VERTICAL
+            layoutParams = GridLayout.LayoutParams().apply {
+                width = 0
+                height = GridLayout.LayoutParams.WRAP_CONTENT
+                columnSpec = GridLayout.spec(0, 1f)
+                setMargins(0, dp(4), dp(12), dp(4))
+            }
+        }
+        leftCol.addView(bgAlphaText)
+        leftCol.addView(bgAlphaSeek)
+        val rightCol = LinearLayout(context).apply {
+            orientation = LinearLayout.VERTICAL
+            layoutParams = GridLayout.LayoutParams().apply {
+                width = 0
+                height = GridLayout.LayoutParams.WRAP_CONTENT
+                columnSpec = GridLayout.spec(1, 1f)
+                setMargins(dp(12), dp(4), 0, dp(4))
+            }
+        }
+        rightCol.addView(bgPressedAlphaText)
+        rightCol.addView(bgPressedAlphaSeek)
+        bgAlphaGrid.addView(leftCol)
+        bgAlphaGrid.addView(rightCol)
+        bgSection.addView(bgAlphaGrid)
         bgPressedAlphaSeek.setOnSeekBarChangeListener(object: SeekBar.OnSeekBarChangeListener{
             override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) { bgPressedAlphaText.text = "按下背景透明度 $progress" }
             override fun onStartTrackingTouch(seekBar: SeekBar?) {}
@@ -669,12 +835,14 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
 
         // 整体颜色与透明度
         addSpacer(10)
-        addSectionTitle("整体")
+        // 整体（外观）小节
         val overallSection = LinearLayout(context).apply { orientation = LinearLayout.VERTICAL }
-        layout.addView(overallSection)
+        appearanceSection.addView(overallSection)
         val overallEnableCheck = CheckBox(context).apply { text = "启用整体颜色覆盖"; isChecked = false }
         overallSection.addView(overallEnableCheck)
-        overallSection.addView(TextView(context).apply { text = "整体颜色（正常）" })
+        val overallContent = LinearLayout(context).apply { orientation = LinearLayout.VERTICAL }
+        overallSection.addView(overallContent)
+        overallContent.addView(TextView(context).apply { text = "整体颜色（正常）" })
         val overallColorRow = LinearLayout(context).apply { orientation = LinearLayout.HORIZONTAL }
         val overallColorEdit = EditText(context).apply { hint = "#AARRGGBB" }
         val overallColorSwatch = View(context).apply {
@@ -683,9 +851,9 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
         }
         overallColorRow.addView(overallColorEdit, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
         overallColorRow.addView(overallColorSwatch)
-        overallSection.addView(overallColorRow)
+        overallContent.addView(overallColorRow)
         overallColorSwatch.setOnClickListener { showColorPalette(overallColorEdit, overallColorSwatch) }
-        overallSection.addView(TextView(context).apply { text = "整体颜色（按下）" })
+        overallContent.addView(TextView(context).apply { text = "整体颜色（按下）" })
         val overallPressedColorRow = LinearLayout(context).apply { orientation = LinearLayout.HORIZONTAL }
         val overallPressedColorEdit = EditText(context).apply { hint = "#AARRGGBB" }
         val overallPressedColorSwatch = View(context).apply {
@@ -694,12 +862,16 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
         }
         overallPressedColorRow.addView(overallPressedColorEdit, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
         overallPressedColorRow.addView(overallPressedColorSwatch)
-        overallSection.addView(overallPressedColorRow)
+        overallContent.addView(overallPressedColorRow)
         overallPressedColorSwatch.setOnClickListener { showColorPalette(overallPressedColorEdit, overallPressedColorSwatch) }
         val overallAlphaText = TextView(context).apply { text = "整体透明度 100" }
-        overallSection.addView(overallAlphaText)
+        overallContent.addView(overallAlphaText)
         val overallAlphaSeek = SeekBar(context).apply { max = 100; progress = 100 }
-        overallSection.addView(overallAlphaSeek)
+        overallContent.addView(overallAlphaSeek)
+        overallContent.visibility = if (overallEnableCheck.isChecked) View.VISIBLE else View.GONE
+        overallEnableCheck.setOnCheckedChangeListener { _, checked ->
+            overallContent.visibility = if (checked) View.VISIBLE else View.GONE
+        }
         overallAlphaSeek.setOnSeekBarChangeListener(object: SeekBar.OnSeekBarChangeListener{
             override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) { overallAlphaText.text = "整体透明度 $progress" }
             override fun onStartTrackingTouch(seekBar: SeekBar?) {}
@@ -710,12 +882,12 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
         val opacityTextView = TextView(context).apply {
             text = context.getString(R.string.virtual_keyboard_menu_opacity_hint)
         }
-        layout.addView(opacityTextView)
+        appearanceSection.addView(opacityTextView)
         val opacitySeekBar = SeekBar(context).apply {
             max = 100
             progress = 100
         }
-        layout.addView(opacitySeekBar)
+        appearanceSection.addView(opacitySeekBar)
         opacityTextView.text = context.getString(R.string.virtual_keyboard_menu_opacity_hint) + " " + opacitySeekBar.progress
         opacitySeekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
@@ -729,12 +901,12 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
         val radiusTextView = TextView(context).apply {
             text = context.getString(R.string.virtual_keyboard_menu_radius_hint)
         }
-        layout.addView(radiusTextView)
+        appearanceSection.addView(radiusTextView)
         val radiusSeekBar = SeekBar(context).apply {
             max = 255
             progress = 10
         }
-        layout.addView(radiusSeekBar)
+        appearanceSection.addView(radiusSeekBar)
         radiusTextView.text = context.getString(R.string.virtual_keyboard_menu_radius_hint) + " " + radiusSeekBar.progress
         radiusSeekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
@@ -744,17 +916,21 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
             override fun onStopTrackingTouch(seekBar: SeekBar?) {}
         })
 
-        // 编组输入
-        addSpacer(6)
-        layout.addView(TextView(context).apply { text = context.getString(R.string.virtual_keyboard_menu_grouping) })
-        val groupEditText = EditText(context).apply { hint = context.getString(R.string.virtual_keyboard_menu_group_hint_id) }
-        layout.addView(groupEditText)
+        // 编组输入（紧跟行为设置，减少与外观区块的间距）
+        // 将“编组”内容移入行为页签并调小前导间距
+        val groupingSection = addCollapsibleSectionTo(behaviorTabContent, "编组（行为）", false)
+        val groupingRow = LinearLayout(context).apply { orientation = LinearLayout.HORIZONTAL }
+        val groupingLabel = TextView(context).apply { text = context.getString(R.string.virtual_keyboard_menu_grouping) }
+        val groupEditText = EditText(context).apply { hint = context.getString(R.string.virtual_keyboard_menu_group_hint_id); layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f) }
+        groupingRow.addView(groupingLabel)
+        groupingRow.addView(groupEditText)
+        groupingSection.addView(groupingRow)
 
         // 触摸板灵敏度模块已在上文紧随 Tab 后加入，这里不再重复添加
 
-        // 预览面板：实时反映颜色、圆角、透明度与文字
+        // 预览面板：实时反映颜色、圆角、透明度与文字（预览页签）
         addSpacer(10)
-        addSectionTitle("预览")
+        // 预览（效果）小节
         // 使用容器 + 背景视图 + 文字视图，贴近 DigitalButton 的真实渲染
         val previewContainer = FrameLayout(context).apply {
             layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(56))
@@ -921,8 +1097,8 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
             override fun onStartTrackingTouch(seekBar: SeekBar?) {}
             override fun onStopTrackingTouch(seekBar: SeekBar?) {}
         })
-        layout.addView(previewContainer)
-        layout.addView(previewPressedCheckBox)
+        previewTabContent.addView(previewContainer)
+        previewTabContent.addView(previewPressedCheckBox)
 
 
 
@@ -1087,8 +1263,7 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
         }
 
         // 操作分组（编辑时展示）
-        addSpacer(14)
-        addSectionTitle("更多操作")
+        addSpacer(10)
 
         val builder = AlertDialog.Builder(context)
         val dialog: AlertDialog

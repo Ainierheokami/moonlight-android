@@ -231,6 +231,10 @@
     <string name="title_checkbox_small_icon_mode">Use small box art</string>
     <string name="summary_checkbox_small_icon_mode">Smaller box art in the app grid allows more apps to be visible on screen</string>
 
+    <!-- 默认触摸板速度设置 -->
+    <string name="title_seekbar_default_touchpad_sensitivity">默认触摸板速度</string>
+    <string name="summary_seekbar_default_touchpad_sensitivity">调节触摸板相对移动速度（10% - 300%）</string>
+
     <string name="category_host_settings">Host Settings</string>
     <string name="title_checkbox_enable_sops">Optimize game settings</string>
     <string name="summary_checkbox_enable_sops">Allow GFE to modify game settings for optimal streaming</string>

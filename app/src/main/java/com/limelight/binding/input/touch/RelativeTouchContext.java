@@ -94,6 +94,14 @@ public class RelativeTouchContext implements TouchContext {
     private static final int DRAG_TIME_THRESHOLD = 650;
 
     private static final int SCROLL_SPEED_FACTOR = 5;
+    // 为滚轮也应用灵敏度缩放（与移动一致），在全局设置下可同时调节
+    private short applyScrollSensitivity(short dy) {
+        double scale = sensitivityPercent / 100.0;
+        int scaled = (int)Math.round(dy * scale);
+        if (scaled > Short.MAX_VALUE) scaled = Short.MAX_VALUE;
+        if (scaled < Short.MIN_VALUE) scaled = Short.MIN_VALUE;
+        return (short)scaled;
+    }
 
     public RelativeTouchContext(NvConnection conn, int actionIndex,
                                 int referenceWidth, int referenceHeight,
@@ -106,6 +114,13 @@ public class RelativeTouchContext implements TouchContext {
         this.targetView = view;
         this.prefConfig = prefConfig;
         this.handler = new Handler(Looper.getMainLooper());
+
+        // 初始化默认触摸板灵敏度（全局设置），虚拟键盘元素会在各自构造/设置时覆盖该值
+        try {
+            if (this.prefConfig != null) {
+                setSensitivityPercent(this.prefConfig.defaultTouchpadSensitivity);
+            }
+        } catch (Throwable ignored) {}
     }
 
     /**
@@ -277,7 +292,8 @@ public class RelativeTouchContext implements TouchContext {
 
                 if (pointerCount == 2) {
                     if (confirmedScroll) {
-                        conn.sendMouseHighResScroll((short)(deltaY * SCROLL_SPEED_FACTOR));
+                        short scaled = applyScrollSensitivity((short)(deltaY * SCROLL_SPEED_FACTOR));
+                        conn.sendMouseHighResScroll(scaled);
                     }
                 } else {
                     if (prefConfig.absoluteMouseMode) {
