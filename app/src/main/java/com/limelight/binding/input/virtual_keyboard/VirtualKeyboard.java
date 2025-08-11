@@ -185,11 +185,20 @@ public class VirtualKeyboard {
     }
 
     public void hide() {
+        // 强制退回到非编辑态，确保遮罩与提示在任何“隐藏”路径都被移除
         currentMode = ControllerMode.Active;
         for (VirtualKeyboardElement element : elements) {
             element.setVisibility(View.INVISIBLE);
         }
         buttonConfigure.setVisibility(View.INVISIBLE);
+        // 同步隐藏编辑提示叠加层与网格线，防止异常切到后台后遮罩残留
+        try {
+            hideEditingOverlay();
+            GameGridLines gridLines = context.getGameGridLines();
+            if (gridLines != null) {
+                gridLines.hide();
+            }
+        } catch (Exception ignored) {}
     }
 
     public void show() {

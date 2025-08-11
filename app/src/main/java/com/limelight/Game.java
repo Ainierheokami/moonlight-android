@@ -1241,6 +1241,12 @@ public class Game extends Activity implements SurfaceHolder.Callback,
                 Log.i("MoonDebug", "[Game] onPause: background reconnect disabled, not saving connection params");
             }
 
+            // 进入后台时，若处于虚拟键盘编辑模式，强制清理编辑遮罩，避免残留
+            try {
+                if (virtualKeyboard != null) {
+                    virtualKeyboard.hide();
+                }
+            } catch (Exception ignored) {}
             try {
                 // 先暂停控制器
                 if (controllerHandler != null) {
@@ -1281,6 +1287,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
             virtualController.hide();
         }
         if (virtualKeyboard != null){
+            // 与 onPause 保持一致：进入后台时确保强制退出编辑模式并清理遮罩
             virtualKeyboard.hide();
         }
 
