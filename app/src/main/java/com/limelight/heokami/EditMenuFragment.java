@@ -11,6 +11,7 @@ import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
+import android.text.TextUtils;
 
 import com.limelight.Game;
 import com.limelight.R;
@@ -78,6 +79,10 @@ public class EditMenuFragment extends Fragment {
             // 将“返回”改为“退出编辑”，并设置为红色强调按钮
             Button exitButton = makeBottomButton(getString(R.string.virtual_keyboard_menu_exit_edit), ()-> { vk.exitEditMode(); hideMenuWithAnimation(); });
             exitButton.setBackgroundResource(R.drawable.button_background_red_dark);
+            // 取消最后一个按钮的右侧间距，给文本更多显示空间
+            LinearLayout.LayoutParams exitLp = (LinearLayout.LayoutParams) exitButton.getLayoutParams();
+            exitLp.setMarginEnd(0);
+            exitButton.setLayoutParams(exitLp);
             ((LinearLayout) bottomRow).addView(exitButton);
         }
         // 背景/标题栏X点击退出
@@ -119,6 +124,10 @@ public class EditMenuFragment extends Fragment {
         LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(0, (int)(getResources().getDisplayMetrics().density*48), 1f);
         p.setMarginEnd((int)(getResources().getDisplayMetrics().density*8));
         b.setLayoutParams(p);
+        // 保持单行显示，避免在有充足空间时仍然换行
+        b.setSingleLine(true);
+        b.setMaxLines(1);
+        b.setEllipsize(TextUtils.TruncateAt.END);
         b.setOnClickListener(v-> action.run());
         return b;
     }
