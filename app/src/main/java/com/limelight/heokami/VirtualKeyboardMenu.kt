@@ -1356,8 +1356,8 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
             })
 
             // 外观功能按钮分组（可收纳）
-        // 将“样式管理”分组提到与“样式与外观（外观）”同级
-        val styleActionsSection = addCollapsibleSectionTo(appearanceTabContent, "样式管理", true)
+            // 将“样式管理”分组提到与“样式与外观（外观）”同级
+            val styleActionsSection = addCollapsibleSectionTo(appearanceTabContent, "样式管理", true)
             styleActionsSection.addView(Button(context).apply {
                 text = context.getString(R.string.virtual_keyboard_menu_copy_appearance_style)
                 setOnClickListener {

@@ -353,6 +353,8 @@
     <string name="game_menu_switch_window_short">切换窗口</string>
     <string name="game_menu_section_clipboard">剪贴板</string>
     <string name="game_menu_section_virtual_keyboard">虚拟键盘</string>
+    <string name="game_menu_section_custom_hotkeys">自定义热键</string>
+    <string name="game_menu_edit_hotkeys">编辑热键</string>
     <string name="game_menu_floating_keyboard">悬浮键盘</string>
     <string name="game_menu_full_keyboard">全屏键盘</string>
     <string name="game_menu_section_screen_overlay">屏幕叠加</string>
@@ -439,5 +441,15 @@
     <string name="virtual_keyboard_menu_load_profile_add_summary">Keep the current existing configuration and add and merge the new configuration</string>
     <string name="title_checkbox_virtual_keyboard_safe_settings_button">防误触设置按钮</string>
     <string name="summary_checkbox_virtual_keyboard_safe_settings_button">启用后需长按设置按钮才能进入设置，防止误触</string>
+
+    <!-- 自定义热键管理 -->
+    <string name="custom_hotkeys_manage_title">自定义热键</string>
+    <string name="custom_hotkeys_add">新增热键</string>
+    <string name="custom_hotkeys_rename">重命名</string>
+    <string name="custom_hotkeys_delete">删除</string>
+    <string name="custom_hotkeys_name_hint">热键名称</string>
+    <string name="custom_hotkeys_empty">暂无自定义热键，点击“新增热键”创建</string>
+    <string name="custom_hotkeys_confirm_delete">确定删除该自定义热键吗？</string>
+    <string name="custom_hotkeys_save_success">已保存自定义热键</string>
 
 </resources>

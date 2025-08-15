@@ -144,6 +144,9 @@ public class GameMenuFragment extends Fragment {
         
         // 热键按钮
         setupHotkeyButtons();
+
+        // 自定义热键按钮与编辑入口
+        setupCustomHotkeysSection();
         
         // 剪贴板按钮
         setupClipboardButtons();
@@ -238,6 +241,67 @@ public class GameMenuFragment extends Fragment {
                 hideMenuWithAnimation();
                 sendKeys(new short[]{(short) VirtualKeyboardVkCode.VKCode.VK_LWIN.getCode(), (short) VirtualKeyboardVkCode.VKCode.VK_D.getCode()});
             });
+        }
+    }
+
+    /**
+     * 设置自定义热键区域：
+     * - 渲染已保存的自定义热键按钮列表
+     * - 绑定“编辑热键”按钮，进入增删改管理（复用虚拟键盘宏编辑器）
+     */
+    private void setupCustomHotkeysSection() {
+        View editButton = getView().findViewById(R.id.btn_edit_hotkeys);
+        if (editButton != null) {
+            editButton.setOnClickListener(v -> {
+                hideMenuWithAnimation();
+                // 延后打开管理对话框，避免与菜单关闭动画重叠
+                new Handler(Looper.getMainLooper()).postDelayed(() -> {
+                    VirtualKeyboard vk = game.getVirtualKeyboard();
+                    if (vk == null) {
+                        Toast.makeText(game, "无法编辑：虚拟键盘未就绪", Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+                    CustomHotkeysManager.showManageDialog(game, vk, this::renderCustomHotkeysButtons);
+                }, ANIMATION_DURATION + 50);
+            });
+        }
+
+        // 初次渲染
+        renderCustomHotkeysButtons();
+    }
+
+    /**
+     * 渲染自定义热键按钮列表
+     */
+    private void renderCustomHotkeysButtons() {
+        if (getView() == null) return;
+        ViewGroup container = getView().findViewById(R.id.custom_hotkeys_container);
+        if (container == null) return;
+        container.removeAllViews();
+
+        java.util.List<CustomHotkeysManager.CustomHotkey> items = CustomHotkeysManager.load(game);
+        final int heightPx = (int) (48 * getResources().getDisplayMetrics().density);
+        final int marginBottom = (int) (8 * getResources().getDisplayMetrics().density);
+
+        for (CustomHotkeysManager.CustomHotkey item : items) {
+            Button btn = new Button(game);
+            btn.setAllCaps(false);
+            btn.setText(item.name);
+            btn.setTextColor(0xFFFFFFFF);
+            btn.setBackgroundResource(R.drawable.button_background_dark);
+            ViewGroup.MarginLayoutParams lp = new ViewGroup.MarginLayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, heightPx);
+            lp.bottomMargin = marginBottom;
+            btn.setLayoutParams(lp);
+            btn.setOnClickListener(v -> {
+                hideMenuWithAnimation();
+                VirtualKeyboard vk = game.getVirtualKeyboard();
+                if (vk == null) {
+                    Toast.makeText(game, "无法执行：虚拟键盘未就绪", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                CustomHotkeysManager.runCustomHotkey(game, vk, item);
+            });
+            container.addView(btn);
         }
     }
 

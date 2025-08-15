@@ -241,6 +241,37 @@
                         android:paddingStart="16dp"
                         android:paddingEnd="16dp" />
 
+                    <!-- 自定义热键组（动态渲染） -->
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/game_menu_section_custom_hotkeys"
+                        android:textSize="16sp"
+                        android:textStyle="bold"
+                        android:textColor="#666666"
+                        android:paddingTop="8dp"
+                        android:paddingBottom="8dp" />
+
+                    <LinearLayout
+                        android:id="@+id/custom_hotkeys_container"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:layout_marginBottom="8dp" />
+
+                    <Button
+                        android:id="@+id/btn_edit_hotkeys"
+                        android:layout_width="match_parent"
+                        android:layout_height="48dp"
+                        android:layout_marginBottom="16dp"
+                        android:text="@string/game_menu_edit_hotkeys"
+                        android:textAllCaps="false"
+                        android:background="@drawable/button_background_dark"
+                        android:textColor="#FFFFFF"
+                        android:drawablePadding="8dp"
+                        android:paddingStart="16dp"
+                        android:paddingEnd="16dp" />
+
                     <!-- 剪贴板组 -->
                     <TextView
                         android:layout_width="match_parent"
