@@ -231,14 +231,6 @@ public class VirtualKeyboardConfigurationLoader {
         }
     }
 
-    /*
-    private static int getPercent(
-            int percent,
-            int total) {
-        return (int) (((float) total / (float) 100) * (float) percent);
-    }
-    */
-
     // The default controls are specified using a grid of 128*72 cells at 16:9
     private static int screenScale(int units, int height) {
         return (int) (((float) height / (float) 72) * (float) units);
@@ -254,7 +246,7 @@ public class VirtualKeyboardConfigurationLoader {
             final int icon, // 图标
             final VirtualKeyboardElement.ButtonType buttonType,
             final JSONObject buttonData
-            ) {
+    ) {
 
         DigitalButton button = new DigitalButton(virtualKeyboard, context, elementId, layer);
 
@@ -297,24 +289,29 @@ public class VirtualKeyboardConfigurationLoader {
                 });
                 break;
             case HotKeys:
-                MacroEditor macroEditor = new MacroEditor(context, buttonData,null);
-
+                // --- BUGFIX: 修复宏无法保存、无法执行最新宏的问题 ---
+                // 为 MacroEditor 提供一个回调，用于在宏数据变化时更新按钮的 buttonData
+                // 同时，将宏的执行逻辑移到 onClick/onLongClick 内部，确保每次都执行最新的宏
                 button.addDigitalButtonListener(new DigitalButton.DigitalButtonListener() {
                     @Override
                     public void onClick() {
-                        macroEditor.runMacroAction(virtualKeyboard);
-//                        Toast.makeText(context, "HotKeys" + buttonData, Toast.LENGTH_SHORT).show();
-                        Log.d("heokami", "HotKeys" + buttonData);
+                        // 在每次点击时都创建一个新的、临时的 MacroEditor 实例来执行宏。
+                        // 这可以确保总是使用最新的 buttonData。
+                        // 因为只用于执行，所以监听器传入 null。
+                        MacroEditor runner = new MacroEditor(context, button.buttonData, null);
+                        runner.runMacroAction(virtualKeyboard);
                     }
 
                     @Override
                     public void onLongClick() {
-                        macroEditor.runMacroAction(virtualKeyboard);
+                        // 同样，长按时也创建一个新实例来执行。
+                        MacroEditor runner = new MacroEditor(context, button.buttonData, null);
+                        runner.runMacroAction(virtualKeyboard);
                     }
 
                     @Override
                     public void onRelease() {
-//                        macroEditor.runMacroAction(virtualKeyboard);
+                        // 对于宏按钮，通常在释放时不需要执行任何操作。
                     }
                 });
                 break;
@@ -801,7 +798,7 @@ public class VirtualKeyboardConfigurationLoader {
         try {
             Log.d("copyButton", String.format("elementId: %s vk_code: %s text: %s buttonType: %s buttonData: %s", element.elementId, element.vk_code, element.text, element.buttonType, element.buttonData));
             Log.d("copyButton2", String.format("x: %s y: %s width: %s height: %s", element.getLeftMargin(), element.getTopMargin(), element.getWidth(), element.getHeight()));
-             createElement(
+            createElement(
                     virtualKeyboard,
                     context,
                     newElementId,
@@ -960,7 +957,7 @@ public class VirtualKeyboardConfigurationLoader {
                 }else {
                     editor.putString(elementId, jsonConfig);
                 }
-            editor.apply(); // 提交所有修改
+                editor.apply(); // 提交所有修改
             }
         }catch (JSONException e){
             Log.e("heokami", e.toString(), e);

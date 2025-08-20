@@ -21,13 +21,12 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.tabs.TabLayout
 import com.google.gson.Gson
-import com.google.gson.reflect.TypeToken
 import com.limelight.R
 import com.limelight.binding.input.virtual_keyboard.VirtualKeyboard
 import com.limelight.binding.input.virtual_keyboard.VirtualKeyboardElement
 import com.limelight.heokami.VirtualKeyboardVkCode.replaceSpecialKeys
 import org.json.JSONObject
-import java.lang.reflect.Type
+import java.util.Collections
 import kotlin.experimental.inv
 
 data class MacroAction(var type: String, var data: Int)
@@ -59,7 +58,7 @@ fun getDisplayNameByType(type: String, context: Context): String {
 class MacroEditor(private val context: Context, private var jsonData: JSONObject, private val listener: OnMacroDataChangedListener?) {
 
     private val gson = Gson()
-    private val macroActions = loadMacro()
+    private val macroActions: MutableList<MacroAction>
 
     // 约定：宏数据专属容器键。为避免与按键外观样式（同存于 buttonData）冲突，
     // 新版本将宏持久化到 buttonData.MACROS 下；若不存在则向后兼容读取顶层数值键（旧格式）。
@@ -67,19 +66,49 @@ class MacroEditor(private val context: Context, private var jsonData: JSONObject
 
     private val elements = mutableListOf<VirtualKeyboardElement>()
 
+    init {
+        Log.d("MacroEditor", "--- MacroEditor Initializing ---")
+        Log.d("MacroEditor", "Constructor received jsonData: ${jsonData.toString(2)}")
+        macroActions = loadMacro()
+        Log.d("MacroEditor", "Initial macroActions loaded: $macroActions")
+        Log.d("MacroEditor", "--- MacroEditor Initialization Complete ---")
+    }
+
     fun setElements(elements: List<VirtualKeyboardElement>) {
         this.elements.clear()
         this.elements.addAll(elements)
     }
 
     private fun loadMacro(): MutableList<MacroAction> {
+        Log.d("MacroEditor", "--- loadMacro started ---")
         val actions = mutableListOf<MacroAction>()
         try {
+            Log.d("MacroEditor", "loadMacro: incoming jsonData: ${jsonData.toString(2)}")
             // 1) 优先从嵌套容器 MACROS 读取（新格式）
             val container = jsonData.optJSONObject(MACRO_CONTAINER_KEY) ?: jsonData
-            val keys = container.keys()
-            while (keys.hasNext()) {
-                val key = keys.next()
+            Log.d("MacroEditor", "loadMacro: using container: ${container.toString(2)}")
+
+
+            // --- BUGFIX: 确保旧格式宏的加载顺序 ---
+            // 获取所有键并进行排序，以确保旧格式宏的加载顺序正确
+            val keysIterator = container.keys()
+            val keyList = mutableListOf<String>()
+            while (keysIterator.hasNext()) {
+                keyList.add(keysIterator.next())
+            }
+            Log.d("MacroEditor", "loadMacro: unsorted keys: $keyList")
+
+
+            // 尝试按数字大小排序；如果键不是纯数字（新格式或非宏数据），则按原序
+            try {
+                keyList.sortBy { it.toInt() }
+                Log.d("MacroEditor", "loadMacro: sorted keys numerically: $keyList")
+            } catch (e: NumberFormatException) {
+                // 包含非数字键，可能是新格式或包含其他数据，无需特殊排序
+                Log.d("MacroEditor", "loadMacro: keys contain non-numeric values, not sorting.")
+            }
+
+            for (key in keyList) {
                 val value = container.opt(key)
                 // 仅解析形如 {"type":"KEY_DOWN","data":13} 的对象；忽略外观样式等非宏字段
                 if (value is JSONObject) {
@@ -87,11 +116,15 @@ class MacroEditor(private val context: Context, private var jsonData: JSONObject
                     val hasData = value.has("data")
                     if (hasType && hasData) {
                         try {
-                            actions.add(gson.fromJson(value.toString(), MacroAction::class.java))
+                            val newAction = gson.fromJson(value.toString(), MacroAction::class.java)
+                            actions.add(newAction)
+                            Log.d("MacroEditor", "loadMacro: successfully parsed and added action for key '$key': $newAction")
                         } catch (e: Exception) {
                             // 单条宏不合法时跳过，避免整体失败
                             Log.w("MacroEditor", "跳过非法宏项 key=$key: ${e.message}")
                         }
+                    } else {
+                        Log.d("MacroEditor", "loadMacro: skipping key '$key' as it's not a valid macro action object.")
                     }
                 }
             }
@@ -99,36 +132,56 @@ class MacroEditor(private val context: Context, private var jsonData: JSONObject
             Toast.makeText(context, "加载宏失败: ${e.message}", Toast.LENGTH_SHORT).show()
             Log.e("MacroEditor", "加载宏失败: ${e.message}", e)
         }
+        Log.d("MacroEditor", "--- loadMacro finished, actions count: ${actions.size} ---")
         return actions
     }
 
     private fun saveMacro(macroActions: List<MacroAction>) {
         try {
-            // 仅将宏操作序列化为一个独立对象，并写入 buttonData.MACROS
-            val macroMap = macroActions.mapIndexed { index, macroAction ->
-                index.toString() to macroAction
-            }.toMap()
-            val macrosJson = JSONObject(gson.toJson(macroMap))
+            Log.d("MacroEditor", "--- saveMacro started ---")
+            Log.d("MacroEditor", "saveMacro: received actions to save: $macroActions")
+            // --- BUGFIX: 修复宏保存失败问题 (最终修复) ---
+            // 直接在传入的 jsonData 对象上进行修改，而不是创建一个新对象。
+            // 这可以避免因引用变更导致的数据更新失败。
+            val dataToModify = this.jsonData
+            Log.d("MacroEditor", "saveMacro: modifying jsonData object in-place: ${dataToModify.toString(2)}")
 
-            // 合并策略：
-            // - 保留原有 buttonData 中的所有非宏字段（外观、行为等）
-            // - 删除旧版顶层数值键形式的宏项（例如 "0": {type, data}）
-            // - 将新宏写入 MACROS 容器，避免与外观键冲突
-            val merged = JSONObject()
-            val it = jsonData.keys()
+
+            // 1. 从原始 jsonData 中移除所有旧格式的、以数字为键的宏条目以及旧的宏容器
+            val keysToRemove = mutableListOf<String>()
+            val it = dataToModify.keys()
             while (it.hasNext()) {
                 val k = it.next()
-                val v = jsonData.get(k)
-                val looksLikeLegacyMacro =
-                    (k.matches(Regex("\\d+")) && v is JSONObject && v.has("type") && v.has("data"))
-                if (!looksLikeLegacyMacro && k != MACRO_CONTAINER_KEY) {
-                    merged.put(k, v)
+                // 移除所有旧的数字键和 MACROS 键，为写入新数据做准备
+                if (k.matches(Regex("^\\d+$")) || k == MACRO_CONTAINER_KEY) {
+                    keysToRemove.add(k)
                 }
             }
-            merged.put(MACRO_CONTAINER_KEY, macrosJson)
+            Log.d("MacroEditor", "saveMacro: keys to remove (old macros): $keysToRemove")
+            for (key in keysToRemove) {
+                dataToModify.remove(key)
+            }
+            Log.d("MacroEditor", "saveMacro: jsonData after removing old macros: ${dataToModify.toString(2)}")
 
-            jsonData = merged
-            listener?.onMacroDataChanged(jsonData) // 回调完整的 buttonData（含外观与宏）
+
+            // 2. 如果有新的宏需要保存，创建 JSON 并添加到对象中
+            if (macroActions.isNotEmpty()) {
+                val macroMap = macroActions.mapIndexed { index, macroAction ->
+                    index.toString() to macroAction
+                }.toMap()
+                val macrosJson = JSONObject(gson.toJson(macroMap))
+                dataToModify.put(MACRO_CONTAINER_KEY, macrosJson)
+                Log.d("MacroEditor", "saveMacro: added new macros container: ${macrosJson.toString(2)}")
+            } else {
+                Log.d("MacroEditor", "saveMacro: no new macros to save, MACROS container will be absent.")
+            }
+
+            // 3. 调用监听器。我们传递回的是被“就地修改”过的同一个对象实例。
+            // 外部接收到后，只需触发保存即可，无需再进行赋值操作。
+            Log.d("MacroEditor", "Calling onMacroDataChanged with modified jsonData: ${dataToModify.toString(2)}")
+            listener?.onMacroDataChanged(dataToModify)
+            Log.d("MacroEditor", "--- saveMacro finished ---")
+
         } catch (e: Exception) {
             Toast.makeText(context, "保存宏失败: ${e.message}", Toast.LENGTH_SHORT).show()
             Log.e("MacroEditor", "保存宏失败: ${e.message}", e)
@@ -206,10 +259,6 @@ class MacroEditor(private val context: Context, private var jsonData: JSONObject
             override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
                 // 不需要滑动删除
             }
-
-//            override fun onChildDraw(c: Canvas, recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder, dX: Float, dY: Float, actionState: Int, isCurrentlyActive: Boolean) {
-//                super.onChildDraw(c, recyclerView, viewHolder, dX, dY, actionState, isCurrentlyActive)
-//            }
         }).apply {
             attachToRecyclerView(recyclerView)
         }
