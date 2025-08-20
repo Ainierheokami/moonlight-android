@@ -2,17 +2,16 @@ package com.limelight.heokami;
 
 import android.app.AlertDialog;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.content.SharedPreferences;
-import android.os.Handler;
-import android.os.Looper;
 import android.text.InputType;
+import android.util.Log;
 import android.view.ViewGroup;
 import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.Toast;
 
 import com.google.gson.Gson;
+import com.google.gson.JsonSyntaxException;
 import com.google.gson.reflect.TypeToken;
 import com.limelight.Game;
 import com.limelight.R;
@@ -23,24 +22,24 @@ import org.json.JSONObject;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * 自定义热键管理器
- * - 负责自定义热键的持久化存储（SharedPreferences）
- * - 负责管理对话框（新增/编辑名称/编辑宏/删除）
- * - 负责执行宏（复用虚拟键盘的 MacroEditor 逻辑）
+ * - 负责自定义热键的持久化存储 (SharedPreferences)
+ * - 负责管理对话框 (新增/编辑名称/编辑宏/删除)
+ * - 负责执行宏 (复用 MacroEditor 的逻辑)
  *
- * 存储结构（SharedPreferences -> JSON）：
- * [
- *   {
- *     "id": 1,
- *     "name": "我的热键",
- *     "actions": [ {"type":"KEY_DOWN","data":65}, {"type":"KEY_UP","data":65} ]
- *   }
- * ]
+ * 存储结构 (SharedPreferences -> 多个JSON条目):
+ * 键: "1" -> 值: "{ "id": 1, "name": "我的热键", "actions": [...] }"
+ * 键: "2" -> 值: "{ "id": 2, "name": "另一个热键", "actions": [...] }"
  */
 public class CustomHotkeysManager {
+
+    private static final String TAG = "CustomHotkeysManager";
 
     public static class CustomHotkey {
         public int id;
@@ -48,40 +47,135 @@ public class CustomHotkeysManager {
         public List<MacroAction> actions = new ArrayList<>();
     }
 
-    /** 首选项名称与键名 */
+    /** SharedPreferences 文件名 */
     private static final String PREFS_NAME = "game_menu_prefs";
-    private static final String KEY_CUSTOM_HOTKEYS = "custom_hotkeys_json";
 
     private static final Gson gson = new Gson();
-    private static final Type LIST_TYPE = new TypeToken<List<CustomHotkey>>(){}.getType();
 
     /**
-     * 读取全部自定义热键
+     * 从 SharedPreferences 读取全部自定义热键。
+     * 它会遍历所有条目，将以数字为键的条目解析为 CustomHotkey 对象。
      */
     public static List<CustomHotkey> load(Context context) {
+        Log.d(TAG, "正在加载自定义热键...");
         SharedPreferences sp = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
-        String json = sp.getString(KEY_CUSTOM_HOTKEYS, "");
-        if (json == null || json.trim().isEmpty()) {
-            return new ArrayList<>();
+        List<CustomHotkey> items = new ArrayList<>();
+
+        // --- 从旧格式迁移数据的逻辑 ---
+        if (sp.contains("custom_hotkeys_json")) {
+            Log.d(TAG, "发现旧格式的热键数据，开始迁移...");
+            String json = sp.getString("custom_hotkeys_json", "");
+            if (json != null && !json.trim().isEmpty()) {
+                try {
+                    Type listType = new TypeToken<ArrayList<CustomHotkey>>(){}.getType();
+                    List<CustomHotkey> oldItems = gson.fromJson(json, listType);
+                    if (oldItems != null) {
+                        SharedPreferences.Editor editor = sp.edit();
+                        // 将每个旧热键按新格式写入
+                        for (CustomHotkey item : oldItems) {
+                            String itemJson = gson.toJson(item);
+                            editor.putString(String.valueOf(item.id), itemJson);
+                        }
+                        // 移除旧的键并提交
+                        editor.remove("custom_hotkeys_json");
+                        editor.apply();
+                        Log.d(TAG, "旧数据迁移到新格式成功。");
+                    }
+                } catch (Exception e) {
+                    Log.e(TAG, "迁移旧格式热键失败", e);
+                    // 如果迁移失败，移除可能已损坏的旧数据，避免重复尝试
+                    sp.edit().remove("custom_hotkeys_json").apply();
+                }
+            } else {
+                // 如果旧键的值为空，直接移除
+                sp.edit().remove("custom_hotkeys_json").apply();
+            }
         }
-        try {
-            List<CustomHotkey> list = gson.fromJson(json, LIST_TYPE);
-            return list != null ? list : new ArrayList<>();
-        } catch (Exception e) {
-            return new ArrayList<>();
+
+        // --- 按新格式正常加载 ---
+        Map<String, ?> allEntries = sp.getAll();
+
+        for (Map.Entry<String, ?> entry : allEntries.entrySet()) {
+            try {
+                // 按照约定，热键的键是其ID的字符串形式（即数字）
+                Integer.parseInt(entry.getKey());
+                String json = (String) entry.getValue();
+                if (json != null && !json.trim().isEmpty()) {
+                    CustomHotkey hotkey = gson.fromJson(json, CustomHotkey.class);
+                    if (hotkey != null) {
+                        // [修复] 解决 ClassCastException 的关键步骤：
+                        // Gson 反序列化时，由于Java泛型擦除，actions 列表中的对象会变成 LinkedTreeMap。
+                        // 这里需要手动将其重新转换为正确的 MacroAction 对象列表。
+                        List<MacroAction> typedActions = new ArrayList<>();
+                        if (hotkey.actions != null) {
+                            for (Object actionObj : hotkey.actions) {
+                                String actionJson = gson.toJson(actionObj); // 将 Map 对象转回 JSON 字符串
+                                MacroAction macroAction = gson.fromJson(actionJson, MacroAction.class); // 从 JSON 字符串转为目标对象
+                                typedActions.add(macroAction);
+                            }
+                        }
+                        hotkey.actions = typedActions; // 替换为类型正确的列表
+
+                        items.add(hotkey);
+                        Log.d(TAG, "成功加载热键 id: " + hotkey.id + ", 名称: " + hotkey.name);
+                    }
+                }
+            } catch (NumberFormatException e) {
+                // 键不是数字，说明不是热键条目，忽略它。
+                Log.v(TAG, "在首选项中跳过非数字键: " + entry.getKey());
+            } catch (JsonSyntaxException e) {
+                Log.e(TAG, "解析热键JSON失败，键: " + entry.getKey(), e);
+            } catch (ClassCastException e) {
+                Log.e(TAG, "值的类型不是字符串，键: " + entry.getKey(), e);
+            }
         }
+
+        // 按 ID 排序以确保显示顺序一致
+        Collections.sort(items, (a, b) -> Integer.compare(a.id, b.id));
+        Log.d(TAG, "完成加载 " + items.size() + " 个热键。");
+        return items;
     }
 
     /**
-     * 保存全部自定义热键
+     * 保存全部自定义热键列表。
+     * 此方法会先清除所有已保存的热键，然后写入新的列表，
+     * 以确保不会留下孤立的旧数据。
      */
     public static void save(Context context, List<CustomHotkey> items) {
+        Log.d(TAG, "正在保存 " + items.size() + " 个自定义热键...");
         SharedPreferences sp = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
-        sp.edit().putString(KEY_CUSTOM_HOTKEYS, gson.toJson(items)).apply();
+        SharedPreferences.Editor editor = sp.edit();
+
+        // 获取当前所有数字键的集合，准备移除
+        Set<String> keysToRemove = new HashSet<>();
+        for (String key : sp.getAll().keySet()) {
+            try {
+                Integer.parseInt(key);
+                keysToRemove.add(key);
+            } catch (NumberFormatException e) {
+                // 不是数字键，我们不碰它
+            }
+        }
+
+        // 移除所有旧的热键条目
+        for (String key : keysToRemove) {
+            editor.remove(key);
+        }
+        Log.d(TAG, "移除了 " + keysToRemove.size() + " 个旧的热键条目。");
+
+        // 添加新的热键条目
+        for (CustomHotkey item : items) {
+            String json = gson.toJson(item);
+            editor.putString(String.valueOf(item.id), json);
+            Log.d(TAG, "正在保存热键 id: " + item.id + ", 名称: " + item.name);
+        }
+
+        editor.apply();
+        Log.d(TAG, "保存操作完成。");
     }
 
     /**
-     * 执行指定的自定义热键（复用 MacroEditor 的宏执行）
+     * 执行指定的自定义热键 (复用 MacroEditor 的宏执行逻辑)
      */
     public static void runCustomHotkey(Game game, VirtualKeyboard vk, CustomHotkey hotkey) {
         try {
@@ -90,14 +184,15 @@ public class CustomHotkeysManager {
             editor.runMacroAction(vk);
         } catch (Exception e) {
             Toast.makeText(game, "执行自定义热键失败", Toast.LENGTH_SHORT).show();
+            Log.e(TAG, "执行自定义热键失败: " + hotkey.name, e);
         }
     }
 
     /**
      * 打开“编辑热键”管理对话框
      * - 列表展示已有自定义热键
-     * - 支持新增（命名 + 宏编辑）、重命名、删除、编辑宏
-     * - onChanged：当数据保存时回调（用于刷新UI）
+     * - 支持新增 (命名 + 宏编辑)、重命名、删除、编辑宏
+     * - onChanged：当数据保存时回调 (用于刷新UI)
      */
     public static void showManageDialog(Game game, VirtualKeyboard vk, Runnable onChanged) {
         List<CustomHotkey> items = new ArrayList<>(load(game));
@@ -115,7 +210,7 @@ public class CustomHotkeysManager {
         builder.setTitle(game.getString(R.string.custom_hotkeys_manage_title));
 
         builder.setItems(names, (dialog, which) -> {
-            if (items.isEmpty()) return; // 空列表时不响应
+            if (items.isEmpty()) return; // 如果列表为空则不响应点击
             CustomHotkey target = items.get(which);
             showItemActionsDialog(game, vk, items, target, onChanged);
         });
@@ -127,7 +222,7 @@ public class CustomHotkeysManager {
                 newItem.name = name;
                 items.add(newItem);
                 save(game, items);
-                // 进入宏编辑器
+                // 为新条目进入宏编辑器
                 editHotkeyMacro(game, vk, newItem, () -> {
                     save(game, items);
                     if (onChanged != null) onChanged.run();
@@ -184,28 +279,26 @@ public class CustomHotkeysManager {
     private static void editHotkeyMacro(Game game, VirtualKeyboard vk, CustomHotkey hotkey, Runnable onSaved) {
         try {
             JSONObject json = buildMacroContainerFromActions(hotkey.actions);
-            MacroEditor editor = new MacroEditor(game, json, new OnMacroDataChangedListener() {
-                @Override
-                public void onMacroDataChanged(JSONObject newData) {
-                    // 从 MacroEditor 返回的数据中解析 MACROS
-                    List<MacroAction> updated = parseActionsFromMacroContainer(newData);
-                    hotkey.actions.clear();
-                    hotkey.actions.addAll(updated);
-                    if (onSaved != null) onSaved.run();
-                }
+            MacroEditor editor = new MacroEditor(game, json, newData -> {
+                // 从 MacroEditor 返回的数据中解析动作列表
+                List<MacroAction> updated = parseActionsFromMacroContainer(newData);
+                hotkey.actions.clear();
+                hotkey.actions.addAll(updated);
+                if (onSaved != null) onSaved.run();
             });
-            // 补充虚拟键盘元素（用于 KEY_TOGGLE / GROUP 等宏类型的选择）
+            // 补充虚拟键盘元素 (用于 KEY_TOGGLE / GROUP 等宏类型的选择)
             if (vk != null) {
                 editor.setElements(vk.getElements());
             }
             editor.showMacroEditor();
         } catch (Exception e) {
             Toast.makeText(game, "打开宏编辑器失败", Toast.LENGTH_SHORT).show();
+            Log.e(TAG, "为热键打开宏编辑器失败: " + hotkey.name, e);
         }
     }
 
     /**
-     * 构造 MacroEditor 期望的 JSON：{"MACROS": {"0": {type,data}, ...}}
+     * 构造 MacroEditor 期望的 JSON 结构：{"MACROS": {"0": {type,data}, ...}}
      */
     private static JSONObject buildMacroContainerFromActions(List<MacroAction> actions) {
         try {
@@ -221,6 +314,7 @@ public class CustomHotkeysManager {
             container.put("MACROS", macros);
             return container;
         } catch (Exception e) {
+            Log.e(TAG, "构建宏容器JSON时出错", e);
             return new JSONObject();
         }
     }
@@ -251,6 +345,7 @@ public class CustomHotkeysManager {
             }
             return result;
         } catch (Exception e) {
+            Log.e(TAG, "从宏容器JSON解析动作列表时出错", e);
             return new ArrayList<>();
         }
     }
@@ -268,7 +363,7 @@ public class CustomHotkeysManager {
         return max + 1;
     }
 
-    /** 简易输入对话框：输入/修改热键名称 */
+    /** 简易输入对话框：用于输入/修改热键名称 */
     private static void promptForName(Context context, String defaultName, NameCallback callback) {
         EditText input = new EditText(context);
         input.setHint(context.getString(R.string.custom_hotkeys_name_hint));
@@ -294,4 +389,3 @@ public class CustomHotkeysManager {
 
     interface NameCallback { void onName(String name); }
 }
-
