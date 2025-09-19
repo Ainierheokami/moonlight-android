@@ -68,7 +68,7 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
 
     private fun createListView(dialog: AlertDialog): ListView {
         val listView = ListView(context)
-        val actionMap = createActionMap() // 假设 createActionMap() 返回一个 Map<String, Runnable>
+        val actionMap = createActionMap(dialog) // 传入 dialog 引用
         val items = actionMap.keys.toList().toTypedArray()
         val adapter = ArrayAdapter(context, android.R.layout.simple_list_item_1, items)
         listView.adapter = adapter
@@ -1627,7 +1627,9 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
         // 移除原先的 setOnShowListener 绑定方式，避免 show() 之后无法触发
     }
 
-    fun createActionMap(): Map<String, () -> Unit> {
+    fun createActionMap(): Map<String, () -> Unit> = createActionMap(null)
+
+    fun createActionMap(dialog: AlertDialog?): Map<String, () -> Unit> {
         val actionMap = mutableMapOf<String, () -> Unit>()
         actionMap[context.getString(R.string.virtual_keyboard_menu_add_button_eg)] = {
 //            Toast.makeText(context, "启用虚拟键盘", Toast.LENGTH_SHORT).show()
@@ -1648,13 +1650,21 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
         actionMap[context.getString(R.string.menu_title_grid_lines)] = {
             showGridLinesDialog()
         }
-        // 编组移动开关：点击后刷新菜单项标题以反映新状态
-        fun buildGroupMoveTitle(): String = context.getString(R.string.title_enable_group_move) + "(" + virtualKeyboard.groupMove + ")"
-        actionMap[buildGroupMoveTitle()] = {
+        // 编组移动开关：点击后切换开关状态并立即关闭菜单，同时显示状态通知
+        actionMap[context.getString(R.string.title_enable_group_move) + "(" + virtualKeyboard.groupMove + ")"] = {
             virtualKeyboard.groupMove = !virtualKeyboard.groupMove
-            // 重新生成并显示菜单，确保标题更新
-            setButtonDialog()
+            // 显示状态通知后关闭当前菜单
             game?.postNotification(context.getString(R.string.title_enable_group_move) + ":"+ virtualKeyboard.groupMove, 2000)
+            // 根据菜单类型选择关闭方式
+            if (dialog != null) {
+                dialog.dismiss() // AlertDialog 关闭方式
+            } else {
+                // 在Fragment中，通过game对象关闭EditMenu（参考Game.java中的onBackPressed逻辑）
+                val menuFragment = game?.fragmentManager?.findFragmentByTag("EditMenu")
+                if (menuFragment is com.limelight.heokami.EditMenuFragment) {
+                    menuFragment.hideMenuWithAnimation()
+                }
+            }
         }
         actionMap[context.getString(R.string.virtual_keyboard_menu_save_profile)] = {
             VirtualKeyboardConfigurationLoader.saveProfile(virtualKeyboard, context)
