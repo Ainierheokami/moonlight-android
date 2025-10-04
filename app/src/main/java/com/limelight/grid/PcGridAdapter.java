@@ -39,7 +39,23 @@ public class PcGridAdapter extends GenericGridAdapter<PcView.ComputerObject> {
         Collections.sort(itemList, new Comparator<PcView.ComputerObject>() {
             @Override
             public int compare(PcView.ComputerObject lhs, PcView.ComputerObject rhs) {
-                return lhs.details.name.toLowerCase().compareTo(rhs.details.name.toLowerCase());
+                int nameCmp = lhs.details.name.toLowerCase().compareTo(rhs.details.name.toLowerCase());
+                if (nameCmp != 0) {
+                    return nameCmp;
+                }
+
+                if (lhs.address != null && rhs.address != null) {
+                    return lhs.address.toString().compareTo(rhs.address.toString());
+                }
+                else if (lhs.address != null) {
+                    return 1;
+                }
+                else if (rhs.address != null) {
+                    return -1;
+                }
+                else {
+                    return 0;
+                }
             }
         });
     }
@@ -51,11 +67,13 @@ public class PcGridAdapter extends GenericGridAdapter<PcView.ComputerObject> {
     @Override
     public void populateView(View parentView, ImageView imgView, ProgressBar prgView, TextView txtView, ImageView overlayView, PcView.ComputerObject obj) {
         imgView.setImageResource(R.drawable.ic_computer);
-        if (obj.details.state == ComputerDetails.State.ONLINE) {
-            imgView.setAlpha(1.0f);
+
+        // Dim the entire view if this specific address is not reachable
+        if (obj.address != null && !obj.details.reachableAddresses.contains(obj.address)) {
+            parentView.setAlpha(0.4f);
         }
         else {
-            imgView.setAlpha(0.4f);
+            parentView.setAlpha(1.0f);
         }
 
         if (obj.details.state == ComputerDetails.State.UNKNOWN) {
@@ -65,17 +83,15 @@ public class PcGridAdapter extends GenericGridAdapter<PcView.ComputerObject> {
             prgView.setVisibility(View.INVISIBLE);
         }
 
-        txtView.setText(obj.details.name);
-        if (obj.details.state == ComputerDetails.State.ONLINE) {
-            txtView.setAlpha(1.0f);
+        if (obj.address != null) {
+            txtView.setText(obj.details.name + "\n" + obj.address.address);
         }
         else {
-            txtView.setAlpha(0.4f);
+            txtView.setText(obj.details.name);
         }
 
         if (obj.details.state == ComputerDetails.State.OFFLINE) {
             overlayView.setImageResource(R.drawable.ic_pc_offline);
-            overlayView.setAlpha(0.4f);
             overlayView.setVisibility(View.VISIBLE);
         }
         // We must check if the status is exactly online and unpaired

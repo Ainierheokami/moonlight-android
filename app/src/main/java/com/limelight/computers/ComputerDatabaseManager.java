@@ -20,6 +20,7 @@ import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteException;
 
 import org.json.JSONException;
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 public class ComputerDatabaseManager {
@@ -116,7 +117,15 @@ public class ComputerDatabaseManager {
             JSONObject addresses = new JSONObject();
             addresses.put(AddressFields.LOCAL, tupleToJson(details.localAddress));
             addresses.put(AddressFields.REMOTE, tupleToJson(details.remoteAddress));
-            addresses.put(AddressFields.MANUAL, tupleToJson(details.manualAddress));
+            // Migrate the old single address field if it contains data
+            if (details.manualAddress != null) {
+                details.manualAddresses.add(details.manualAddress);
+            }
+            JSONArray manualAddressesJson = new JSONArray();
+            for (ComputerDetails.AddressTuple tuple : details.manualAddresses) {
+                manualAddressesJson.put(tupleToJson(tuple));
+            }
+            addresses.put(AddressFields.MANUAL, manualAddressesJson);
             addresses.put(AddressFields.IPv6, tupleToJson(details.ipv6Address));
             values.put(ADDRESSES_COLUMN_NAME, addresses.toString());
         } catch (JSONException e) {
@@ -147,7 +156,23 @@ public class ComputerDatabaseManager {
             JSONObject addresses = new JSONObject(c.getString(2));
             details.localAddress = tupleFromJson(addresses, AddressFields.LOCAL);
             details.remoteAddress = tupleFromJson(addresses, AddressFields.REMOTE);
-            details.manualAddress = tupleFromJson(addresses, AddressFields.MANUAL);
+            if (addresses.has(AddressFields.MANUAL)) {
+                Object manualAddressField = addresses.get(AddressFields.MANUAL);
+                if (manualAddressField instanceof JSONArray) {
+                    // New format: JSON array of addresses
+                    JSONArray manualAddressesJson = (JSONArray) manualAddressField;
+                    for (int i = 0; i < manualAddressesJson.length(); i++) {
+                        JSONObject addressJson = manualAddressesJson.getJSONObject(i);
+                        details.manualAddresses.add(new ComputerDetails.AddressTuple(
+                                addressJson.getString(AddressFields.ADDRESS),
+                                addressJson.getInt(AddressFields.PORT)));
+                    }
+                }
+                else if (manualAddressField instanceof JSONObject) {
+                    // Old format: single JSON object, migrate it
+                    details.manualAddresses.add(tupleFromJson(addresses, AddressFields.MANUAL));
+                }
+            }
             details.ipv6Address = tupleFromJson(addresses, AddressFields.IPv6);
         } catch (JSONException e) {
             throw new RuntimeException(e);

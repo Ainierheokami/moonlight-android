@@ -63,6 +63,7 @@ public class AppView extends Activity implements AdapterFragmentCallbacks {
     private boolean inForeground;
     private boolean showHiddenApps;
     private HashSet<Integer> hiddenAppIds = new HashSet<>();
+    private ComputerDetails.AddressTuple selectedAddress;
 
     private final static int START_OR_RESUME_ID = 1;
     private final static int QUIT_ID = 2;
@@ -303,6 +304,12 @@ public class AppView extends Activity implements AdapterFragmentCallbacks {
         showHiddenApps = getIntent().getBooleanExtra(SHOW_HIDDEN_APPS_EXTRA, false);
         uuidString = getIntent().getStringExtra(UUID_EXTRA);
 
+        String selectedIp = getIntent().getStringExtra("SELECTED_IP");
+        int selectedPort = getIntent().getIntExtra("SELECTED_PORT", 0);
+        if (selectedIp != null && selectedPort != 0) {
+            selectedAddress = new ComputerDetails.AddressTuple(selectedIp, selectedPort);
+        }
+
         SharedPreferences hiddenAppsPrefs = getSharedPreferences(HIDDEN_APPS_PREF_FILENAME, MODE_PRIVATE);
         for (String hiddenAppIdStr : hiddenAppsPrefs.getStringSet(uuidString, new HashSet<String>())) {
             hiddenAppIds.add(Integer.parseInt(hiddenAppIdStr));
@@ -445,14 +452,14 @@ public class AppView extends Activity implements AdapterFragmentCallbacks {
                 UiHelper.displayQuitConfirmationDialog(this, new Runnable() {
                     @Override
                     public void run() {
-                        ServerHelper.doStart(AppView.this, app.app, computer, managerBinder);
+                        ServerHelper.doStart(AppView.this, app.app, computer, managerBinder, selectedAddress);
                     }
                 }, null);
                 return true;
 
             case START_OR_RESUME_ID:
                 // Resume is the same as start for us
-                ServerHelper.doStart(AppView.this, app.app, computer, managerBinder);
+                ServerHelper.doStart(AppView.this, app.app, computer, managerBinder, selectedAddress);
                 return true;
 
             case QUIT_ID:
@@ -636,7 +643,7 @@ public class AppView extends Activity implements AdapterFragmentCallbacks {
                 if (lastRunningAppId != 0) {
                     openContextMenu(arg1);
                 } else {
-                    ServerHelper.doStart(AppView.this, app.app, computer, managerBinder);
+                    ServerHelper.doStart(AppView.this, app.app, computer, managerBinder, selectedAddress);
                 }
             }
         });

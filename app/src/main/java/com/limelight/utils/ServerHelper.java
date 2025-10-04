@@ -54,9 +54,15 @@ public class ServerHelper {
 
     public static Intent createStartIntent(Activity parent, NvApp app, ComputerDetails computer,
                                            ComputerManagerService.ComputerManagerBinder managerBinder) {
+        return createStartIntent(parent, app, computer, managerBinder, computer.activeAddress);
+    }
+
+    public static Intent createStartIntent(Activity parent, NvApp app, ComputerDetails computer,
+                                           ComputerManagerService.ComputerManagerBinder managerBinder,
+                                           ComputerDetails.AddressTuple startAddress) {
         Intent intent = new Intent(parent, Game.class);
-        intent.putExtra(Game.EXTRA_HOST, computer.activeAddress.address);
-        intent.putExtra(Game.EXTRA_PORT, computer.activeAddress.port);
+        intent.putExtra(Game.EXTRA_HOST, startAddress.address);
+        intent.putExtra(Game.EXTRA_PORT, startAddress.port);
         intent.putExtra(Game.EXTRA_HTTPS_PORT, computer.httpsPort);
         intent.putExtra(Game.EXTRA_APP_NAME, app.getAppName());
         intent.putExtra(Game.EXTRA_APP_ID, app.getAppId());
@@ -76,11 +82,18 @@ public class ServerHelper {
 
     public static void doStart(Activity parent, NvApp app, ComputerDetails computer,
                                ComputerManagerService.ComputerManagerBinder managerBinder) {
-        if (computer.state == ComputerDetails.State.OFFLINE || computer.activeAddress == null) {
+        // This overload will use the default active address
+        doStart(parent, app, computer, managerBinder, computer.activeAddress);
+    }
+
+    public static void doStart(Activity parent, NvApp app, ComputerDetails computer,
+                               ComputerManagerService.ComputerManagerBinder managerBinder,
+                               ComputerDetails.AddressTuple startAddress) {
+        if (computer.state == ComputerDetails.State.OFFLINE || startAddress == null) {
             Toast.makeText(parent, parent.getResources().getString(R.string.pair_pc_offline), Toast.LENGTH_SHORT).show();
             return;
         }
-        parent.startActivity(createStartIntent(parent, app, computer, managerBinder));
+        parent.startActivity(createStartIntent(parent, app, computer, managerBinder, startAddress));
     }
 
     public static void doNetworkTest(final Activity parent) {

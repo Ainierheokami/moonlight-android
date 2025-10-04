@@ -159,6 +159,8 @@
     <string name="summary_language_list"> 选择Moonlight显示的语言 </string>
     <string name="title_checkbox_small_icon_mode"> 使用小图标 </string>
     <string name="summary_checkbox_small_icon_mode"> 使用小图标以在屏幕上显示更多项目 </string>
+    <string name="title_checkbox_show_offline_pcs">显示离线电脑</string>
+    <string name="summary_checkbox_show_offline_pcs">显示当前无法连接的电脑</string>
     <string name="category_host_settings"> 主机设置 </string>
     <string name="title_checkbox_enable_sops"> 优化游戏设置 </string>
     <string name="summary_checkbox_enable_sops"> 允许GFE为最佳串流效果自动更改游戏设置 </string>
@@ -248,6 +250,7 @@
     <string name="resolution_720p">720p</string>
     <string name="pacing_balanced">平衡</string>
     <string name="pacing_smoothness">优先视频流畅度（可能会显著增大延迟）</string>
+    <string name="pc_view_delete_ip">删除 IP</string>
     <string name="summary_setup_guide">查看有关如何设置游戏电脑以进行流传输的说明</string>
     <string name="title_privacy_policy">隐私政策</string>
     <string name="summary_privacy_policy">查看 Moonlight 隐私政策</string>

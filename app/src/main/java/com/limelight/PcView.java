@@ -65,6 +65,7 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
     private ShortcutHelper shortcutHelper;
     private ComputerManagerService.ComputerManagerBinder managerBinder;
     private boolean freezeUpdates, runningPolling, inForeground, completeOnCreateCalled;
+    private PreferenceConfiguration prefs;
     private final ServiceConnection serviceConnection = new ServiceConnection() {
         public void onServiceConnected(ComponentName className, IBinder binder) {
             final ComputerManagerService.ComputerManagerBinder localBinder =
@@ -119,6 +120,7 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
     private final static int FULL_APP_LIST_ID = 9;
     private final static int TEST_NETWORK_ID = 10;
     private final static int GAMESTREAM_EOL_ID = 11;
+    private final static int DELETE_IP_ID = 12;
 
     private void initializeViews() {
         setContentView(R.layout.activity_pc_view);
@@ -134,7 +136,7 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
         PreferenceManager.setDefaultValues(this, R.xml.preferences, false);
 
         // Set the correct layout for the PC grid
-        pcGridAdapter.updateLayoutWithPreferences(this, PreferenceConfiguration.readPreferences(this));
+        pcGridAdapter.updateLayoutWithPreferences(this, prefs);
 
         // Setup the list view
         ImageButton settingsButton = findViewById(R.id.settingsButton);
@@ -240,7 +242,8 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
         bindService(new Intent(PcView.this, ComputerManagerService.class), serviceConnection,
                 Service.BIND_AUTO_CREATE);
 
-        pcGridAdapter = new PcGridAdapter(this, PreferenceConfiguration.readPreferences(this));
+        prefs = PreferenceConfiguration.readPreferences(this);
+        pcGridAdapter = new PcGridAdapter(this, prefs);
 
         initializeViews();
     }
@@ -305,6 +308,10 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
 
         // Display a decoder crash notification if we've returned after a crash
         UiHelper.showDecoderCrashDialog(this);
+
+        // Reload preferences in case they have changed
+        prefs = PreferenceConfiguration.readPreferences(this);
+        pcGridAdapter.updateLayoutWithPreferences(this, prefs);
 
         inForeground = true;
         startComputerUpdates();
@@ -380,8 +387,11 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
         }
 
         menu.add(Menu.NONE, TEST_NETWORK_ID, 5, getResources().getString(R.string.pcview_menu_test_network));
-        menu.add(Menu.NONE, DELETE_ID, 6, getResources().getString(R.string.pcview_menu_delete_pc));
-        menu.add(Menu.NONE, VIEW_DETAILS_ID, 7,  getResources().getString(R.string.pcview_menu_details));
+        if (computer.address != null && computer.details.manualAddresses.contains(computer.address)) {
+            menu.add(Menu.NONE, DELETE_IP_ID, 6, R.string.pc_view_delete_ip);
+        }
+        menu.add(Menu.NONE, DELETE_ID, 7, getResources().getString(R.string.pcview_menu_delete_pc));
+        menu.add(Menu.NONE, VIEW_DETAILS_ID, 8,  getResources().getString(R.string.pcview_menu_details));
     }
 
     @Override
@@ -392,8 +402,8 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
         startComputerUpdates();
     }
 
-    private void doPair(final ComputerDetails computer) {
-        if (computer.state == ComputerDetails.State.OFFLINE || computer.activeAddress == null) {
+    private void doPair(final ComputerObject computer) {
+        if (computer.details.state == ComputerDetails.State.OFFLINE || computer.address == null) {
             Toast.makeText(PcView.this, getResources().getString(R.string.pair_pc_offline), Toast.LENGTH_SHORT).show();
             return;
         }
@@ -413,8 +423,8 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
                     // Stop updates and wait while pairing
                     stopComputerUpdates(true);
 
-                    httpConn = new NvHTTP(ServerHelper.getCurrentAddressFromComputer(computer),
-                            computer.httpsPort, managerBinder.getUniqueId(), computer.serverCert,
+                    httpConn = new NvHTTP(computer.address,
+                            computer.details.httpsPort, managerBinder.getUniqueId(), computer.details.serverCert,
                             PlatformBinding.getCryptoProvider(PcView.this));
                     if (httpConn.getPairState() == PairState.PAIRED) {
                         // Don't display any toast, but open the app list
@@ -436,7 +446,7 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
                             message = getResources().getString(R.string.pair_incorrect_pin);
                         }
                         else if (pairState == PairState.FAILED) {
-                            if (computer.runningGameId != 0) {
+                            if (computer.details.runningGameId != 0) {
                                 message = getResources().getString(R.string.pair_pc_ingame);
                             }
                             else {
@@ -452,11 +462,11 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
                             success = true;
 
                             // Pin this certificate for later HTTPS use
-                            managerBinder.getComputer(computer.uuid).serverCert = pm.getPairedCert();
+                            managerBinder.getComputer(computer.details.uuid).serverCert = pm.getPairedCert();
 
                             // Invalidate reachability information after pairing to force
                             // a refresh before reading pair state again
-                            managerBinder.invalidateStateForComputer(computer.uuid);
+                            managerBinder.invalidateStateForComputer(computer.details.uuid);
                         }
                         else {
                             // Should be no other values
@@ -582,8 +592,8 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
         }).start();
     }
 
-    private void doAppList(ComputerDetails computer, boolean newlyPaired, boolean showHiddenGames) {
-        if (computer.state == ComputerDetails.State.OFFLINE) {
+    private void doAppList(ComputerObject computer, boolean newlyPaired, boolean showHiddenGames) {
+        if (computer.details.state == ComputerDetails.State.OFFLINE) {
             Toast.makeText(PcView.this, getResources().getString(R.string.error_pc_offline), Toast.LENGTH_SHORT).show();
             return;
         }
@@ -593,8 +603,10 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
         }
 
         Intent i = new Intent(this, AppView.class);
-        i.putExtra(AppView.NAME_EXTRA, computer.name);
-        i.putExtra(AppView.UUID_EXTRA, computer.uuid);
+        i.putExtra(AppView.NAME_EXTRA, computer.details.name);
+        i.putExtra(AppView.UUID_EXTRA, computer.details.uuid);
+        i.putExtra("SELECTED_IP", computer.address.address);
+        i.putExtra("SELECTED_PORT", computer.address.port);
         i.putExtra(AppView.NEW_PAIR_EXTRA, newlyPaired);
         i.putExtra(AppView.SHOW_HIDDEN_APPS_EXTRA, showHiddenGames);
         startActivity(i);
@@ -606,7 +618,7 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
         final ComputerObject computer = (ComputerObject) pcGridAdapter.getItem(info.position);
         switch (item.getItemId()) {
             case PAIR_ID:
-                doPair(computer.details);
+                doPair(computer);
                 return true;
 
             case UNPAIR_ID:
@@ -635,7 +647,7 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
                 return true;
 
             case FULL_APP_LIST_ID:
-                doAppList(computer.details, false, true);
+                doAppList(computer, false, true);
                 return true;
 
             case RESUME_ID:
@@ -675,10 +687,26 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
                 HelpLauncher.launchGameStreamEolFaq(PcView.this);
                 return true;
 
+            case DELETE_IP_ID:
+               doRemoveIp(computer);
+               return true;
+
             default:
                 return super.onContextItemSelected(item);
         }
     }
+
+   private void doRemoveIp(final ComputerObject computer) {
+       // Create a new set to avoid modifying the one we're iterating over
+       java.util.HashSet<ComputerDetails.AddressTuple> newManualAddresses = new java.util.HashSet<>(computer.details.manualAddresses);
+       newManualAddresses.remove(computer.address);
+       computer.details.manualAddresses = newManualAddresses;
+
+       // Save the updated computer details
+       managerBinder.updateComputer(computer.details);
+
+       // The UI will be refreshed by the callback
+   }
     
     private void removeComputer(ComputerDetails details) {
         managerBinder.removeComputer(details);
@@ -713,28 +741,47 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
     }
     
     private void updateComputer(ComputerDetails details) {
-        ComputerObject existingEntry = null;
-
-        for (int i = 0; i < pcGridAdapter.getCount(); i++) {
+        // First, remove all existing entries for this computer UUID
+        for (int i = pcGridAdapter.getCount() - 1; i >= 0; i--) {
             ComputerObject computer = (ComputerObject) pcGridAdapter.getItem(i);
-
-            // Check if this is the same computer
             if (details.uuid.equals(computer.details.uuid)) {
-                existingEntry = computer;
-                break;
+                pcGridAdapter.removeComputer(computer);
             }
         }
 
-        if (existingEntry != null) {
-            // Replace the information in the existing entry
-            existingEntry.details = details;
+        // Create a list of all available addresses
+        java.util.ArrayList<ComputerDetails.AddressTuple> addresses = new java.util.ArrayList<>();
+        if (details.localAddress != null) {
+            addresses.add(details.localAddress);
         }
-        else {
-            // Add a new entry
-            pcGridAdapter.addComputer(new ComputerObject(details));
+        if (details.remoteAddress != null) {
+            addresses.add(details.remoteAddress);
+        }
+        if (details.ipv6Address != null) {
+            addresses.add(details.ipv6Address);
+        }
+        // Handle migration of the old field
+        if (details.manualAddress != null) {
+            details.manualAddresses.add(details.manualAddress);
+        }
+        addresses.addAll(details.manualAddresses);
 
-            // Remove the "Discovery in progress" view
+        // Use a HashSet to ensure we only add unique addresses
+        java.util.HashSet<ComputerDetails.AddressTuple> uniqueAddresses = new java.util.HashSet<>(addresses);
+
+        // Now add a new entry for each unique address
+        for (ComputerDetails.AddressTuple addr : uniqueAddresses) {
+            // Only add if we're showing offline PCs or this specific address is reachable
+            if (prefs.showOfflinePcs || details.reachableAddresses.contains(addr)) {
+                pcGridAdapter.addComputer(new ComputerObject(details, addr));
+            }
+        }
+
+        if (pcGridAdapter.getCount() > 0) {
+            // Hide the "Discovery in progress" view
             noPcFoundLayout.setVisibility(View.INVISIBLE);
+        } else {
+            noPcFoundLayout.setVisibility(View.VISIBLE);
         }
 
         // Notify the view that the data has changed
@@ -760,9 +807,9 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
                     openContextMenu(arg1);
                 } else if (computer.details.pairState != PairState.PAIRED) {
                     // Pair an unpaired machine by default
-                    doPair(computer.details);
+                    doPair(computer);
                 } else {
-                    doAppList(computer.details, false, false);
+                    doAppList(computer, false, false);
                 }
             }
         });
@@ -772,12 +819,14 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
 
     public static class ComputerObject {
         public ComputerDetails details;
+        public ComputerDetails.AddressTuple address;
 
-        public ComputerObject(ComputerDetails details) {
+        public ComputerObject(ComputerDetails details, ComputerDetails.AddressTuple address) {
             if (details == null) {
                 throw new IllegalArgumentException("details must not be null");
             }
             this.details = details;
+            this.address = address;
         }
 
         @Override

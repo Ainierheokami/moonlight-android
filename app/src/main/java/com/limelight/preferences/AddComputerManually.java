@@ -143,7 +143,7 @@ public class AddComputerManually extends Activity {
                     port = NvHTTP.DEFAULT_HTTP_PORT;
                 }
 
-                details.manualAddress = new ComputerDetails.AddressTuple(host, port);
+                details.manualAddresses.add(new ComputerDetails.AddressTuple(host, port));
                 success = managerBinder.addComputerBlocking(details);
                 if (!success){
                     wrongSiteLocal = isWrongSubnetSiteLocalAddress(host);

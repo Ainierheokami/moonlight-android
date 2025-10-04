@@ -62,6 +62,8 @@ public class ComputerDetails {
     public String name;
     public AddressTuple localAddress;
     public AddressTuple remoteAddress;
+    public java.util.HashSet<AddressTuple> manualAddresses = new java.util.HashSet<>();
+    @Deprecated
     public AddressTuple manualAddress;
     public AddressTuple ipv6Address;
     public String macAddress;
@@ -76,6 +78,7 @@ public class ComputerDetails {
     public int runningGameId;
     public String rawAppList;
     public boolean nvidiaServer;
+    public transient java.util.HashSet<AddressTuple> reachableAddresses = new java.util.HashSet<>();
 
     public ComputerDetails() {
         // Use defaults
@@ -128,8 +131,14 @@ public class ComputerDetails {
             // port to the current remote address. We may have tried to guess it previously.
             this.remoteAddress.port = details.externalPort;
         }
+        // Merge manual addresses
         if (details.manualAddress != null) {
-            this.manualAddress = details.manualAddress;
+            this.manualAddresses.add(details.manualAddress);
+        }
+        // The check for details.manualAddresses == this.manualAddresses is to prevent
+        // ConcurrentModificationException if someone calls pc.update(pc).
+        if (details.manualAddresses != null && details.manualAddresses != this.manualAddresses) {
+            this.manualAddresses.addAll(details.manualAddresses);
         }
         if (details.ipv6Address != null) {
             this.ipv6Address = details.ipv6Address;
@@ -146,6 +155,8 @@ public class ComputerDetails {
         this.runningGameId = details.runningGameId;
         this.nvidiaServer = details.nvidiaServer;
         this.rawAppList = details.rawAppList;
+
+        // Don't copy reachable addresses because they are transient
     }
 
     @Override
@@ -158,7 +169,7 @@ public class ComputerDetails {
         str.append("Local Address: ").append(localAddress).append("\n");
         str.append("Remote Address: ").append(remoteAddress).append("\n");
         str.append("IPv6 Address: ").append(ipv6Address).append("\n");
-        str.append("Manual Address: ").append(manualAddress).append("\n");
+        str.append("Manual Addresses: ").append(manualAddresses).append("\n");
         str.append("MAC Address: ").append(macAddress).append("\n");
         str.append("Pair State: ").append(pairState).append("\n");
         str.append("Running Game ID: ").append(runningGameId).append("\n");

@@ -270,6 +270,10 @@ public class ComputerManagerService extends Service {
             ComputerManagerService.this.onUnbind(null);
         }
 
+        public void updateComputer(ComputerDetails computer) {
+            ComputerManagerService.this.updateComputer(computer);
+        }
+
         public ApplistPoller createAppListPoller(ComputerDetails computer) {
             return new ApplistPoller(computer);
         }
@@ -526,6 +530,27 @@ public class ComputerManagerService extends Service {
         releaseLocalDatabaseReference();
     }
 
+    public void updateComputer(ComputerDetails computer) {
+        if (!getLocalDatabaseReference()) {
+            return;
+        }
+
+        // Update it in the database
+        dbManager.updateComputer(computer);
+
+        // Update our in-memory copy too
+        synchronized (pollingTuples) {
+            for (PollingTuple tuple : pollingTuples) {
+                if (tuple.computer.uuid.equals(computer.uuid)) {
+                    tuple.computer.update(computer);
+                    break;
+                }
+            }
+        }
+
+        releaseLocalDatabaseReference();
+    }
+
     private boolean getLocalDatabaseReference() {
         if (dbRefCount.get() == 0) {
             return false;
@@ -624,93 +649,77 @@ public class ComputerManagerService extends Service {
         tuple.pollingThread.start();
     }
 
-    private ComputerDetails parallelPollPc(ComputerDetails details) throws InterruptedException {
-        ParallelPollTuple localInfo = new ParallelPollTuple(details.localAddress, details);
-        ParallelPollTuple manualInfo = new ParallelPollTuple(details.manualAddress, details);
-        ParallelPollTuple remoteInfo = new ParallelPollTuple(details.remoteAddress, details);
-        ParallelPollTuple ipv6Info = new ParallelPollTuple(details.ipv6Address, details);
-
-        // These must be started in order of precedence for the deduplication algorithm
-        // to result in the correct behavior.
+    private List<ComputerDetails> parallelPollPc(ComputerDetails details) throws InterruptedException {
+        List<ParallelPollTuple> pollTuples = new LinkedList<>();
         HashSet<ComputerDetails.AddressTuple> uniqueAddresses = new HashSet<>();
-        startParallelPollThread(localInfo, uniqueAddresses);
-        startParallelPollThread(manualInfo, uniqueAddresses);
-        startParallelPollThread(remoteInfo, uniqueAddresses);
-        startParallelPollThread(ipv6Info, uniqueAddresses);
+        List<ComputerDetails> successfulPolls = new LinkedList<>();
+
+        // Build our list of tuples in order of precedence
+        pollTuples.add(new ParallelPollTuple(details.localAddress, details));
+
+        // For migration from the old field
+        if (details.manualAddress != null) {
+            details.manualAddresses.add(details.manualAddress);
+        }
+
+        for (ComputerDetails.AddressTuple manualAddress : details.manualAddresses) {
+            pollTuples.add(new ParallelPollTuple(manualAddress, details));
+        }
+
+        pollTuples.add(new ParallelPollTuple(details.remoteAddress, details));
+        pollTuples.add(new ParallelPollTuple(details.ipv6Address, details));
+
+        // Start all polling threads
+        for (ParallelPollTuple tuple : pollTuples) {
+            startParallelPollThread(tuple, uniqueAddresses);
+        }
 
         try {
-            // Check local first
-            synchronized (localInfo) {
-                while (!localInfo.complete) {
-                    localInfo.wait();
-                }
+            // Wait for completion of all polls
+            for (ParallelPollTuple tuple : pollTuples) {
+                synchronized (tuple) {
+                    while (!tuple.complete) {
+                        tuple.wait();
+                    }
 
-                if (localInfo.returnedDetails != null) {
-                    localInfo.returnedDetails.activeAddress = localInfo.address;
-                    return localInfo.returnedDetails;
-                }
-            }
-
-            // Now manual
-            synchronized (manualInfo) {
-                while (!manualInfo.complete) {
-                    manualInfo.wait();
-                }
-
-                if (manualInfo.returnedDetails != null) {
-                    manualInfo.returnedDetails.activeAddress = manualInfo.address;
-                    return manualInfo.returnedDetails;
-                }
-            }
-
-            // Now remote IPv4
-            synchronized (remoteInfo) {
-                while (!remoteInfo.complete) {
-                    remoteInfo.wait();
-                }
-
-                if (remoteInfo.returnedDetails != null) {
-                    remoteInfo.returnedDetails.activeAddress = remoteInfo.address;
-                    return remoteInfo.returnedDetails;
-                }
-            }
-
-            // Now global IPv6
-            synchronized (ipv6Info) {
-                while (!ipv6Info.complete) {
-                    ipv6Info.wait();
-                }
-
-                if (ipv6Info.returnedDetails != null) {
-                    ipv6Info.returnedDetails.activeAddress = ipv6Info.address;
-                    return ipv6Info.returnedDetails;
+                    if (tuple.returnedDetails != null) {
+                        tuple.returnedDetails.activeAddress = tuple.address;
+                        successfulPolls.add(tuple.returnedDetails);
+                    }
                 }
             }
         } finally {
-            // Stop any further polling if we've found a working address or we've been
-            // interrupted by an attempt to stop polling.
-            localInfo.interrupt();
-            manualInfo.interrupt();
-            remoteInfo.interrupt();
-            ipv6Info.interrupt();
+            // Stop any further polling
+            for (ParallelPollTuple tuple : pollTuples) {
+                tuple.interrupt();
+            }
         }
 
-        return null;
+        return successfulPolls;
     }
 
     private boolean pollComputer(ComputerDetails details) throws InterruptedException {
         // Poll all addresses in parallel to speed up the process
-        LimeLog.info("Starting parallel poll for "+details.name+" ("+details.localAddress +", "+details.remoteAddress +", "+details.manualAddress+", "+details.ipv6Address+")");
-        ComputerDetails polledDetails = parallelPollPc(details);
-        LimeLog.info("Parallel poll for "+details.name+" returned address: "+details.activeAddress);
+        LimeLog.info("Starting parallel poll for "+details.name);
+        List<ComputerDetails> polledDetailsList = parallelPollPc(details);
+        LimeLog.info("Parallel poll for "+details.name+" returned "+polledDetailsList.size()+" successful results");
 
-        if (polledDetails != null) {
-            details.update(polledDetails);
-            return true;
+        // Clear the previous list of reachable addresses
+        details.reachableAddresses.clear();
+        details.activeAddress = null;
+
+        // Populate the new list of reachable addresses and update details from the first successful poll
+        for (ComputerDetails polledDetails : polledDetailsList) {
+            details.reachableAddresses.add(polledDetails.activeAddress);
+
+            // The first successful poll will become the active address and its details will be used
+            // to update the main computer object.
+            if (details.activeAddress == null) {
+                details.update(polledDetails);
+            }
         }
-        else {
-            return false;
-        }
+
+        return !details.reachableAddresses.isEmpty();
     }
 
     @Override

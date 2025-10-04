@@ -75,7 +75,8 @@ public class PreferenceConfiguration {
     private static final String GAMEPAD_TOUCHPAD_AS_MOUSE_PREF_STRING = "checkbox_gamepad_touchpad_as_mouse";
     private static final String GAMEPAD_MOTION_SENSORS_PREF_STRING = "checkbox_gamepad_motion_sensors";
     private static final String GAMEPAD_MOTION_FALLBACK_PREF_STRING = "checkbox_gamepad_motion_fallback";
-    
+    private static final String SHOW_OFFLINE_PCS_PREF_STRING = "checkbox_show_offline_pcs";
+
     // 后台切回自动重连相关设置
     private static final String BACKGROUND_RECONNECT_ENABLED_PREF_STRING = "checkbox_background_reconnect_enabled";
     private static final String BACKGROUND_RECONNECT_TIMEOUT_PREF_STRING = "seekbar_background_reconnect_timeout";
@@ -124,7 +125,8 @@ public class PreferenceConfiguration {
     // 默认触摸板灵敏度默认值（百分比）
     public static final int DEFAULT_TOUCHPAD_SENSITIVITY = 100;
     private static final boolean DEFAULT_GAMEPAD_MOTION_FALLBACK = false;
-    
+    private static final boolean DEFAULT_SHOW_OFFLINE_PCS = true;
+
     // 后台切回自动重连默认值
     private static final boolean DEFAULT_BACKGROUND_RECONNECT_ENABLED = true;
     private static final int DEFAULT_BACKGROUND_RECONNECT_TIMEOUT = 0; // 0表示永不超时，单位：分钟
@@ -177,6 +179,7 @@ public class PreferenceConfiguration {
     public boolean gamepadMotionSensors;
     public boolean gamepadTouchpadAsMouse;
     public boolean gamepadMotionSensorsFallbackToDevice;
+    public boolean showOfflinePcs;
     // 默认触摸板灵敏度（应用于全局相对触摸）
     public int defaultTouchpadSensitivity;
     
@@ -658,6 +661,7 @@ public class PreferenceConfiguration {
         config.gamepadTouchpadAsMouse = prefs.getBoolean(GAMEPAD_TOUCHPAD_AS_MOUSE_PREF_STRING, DEFAULT_GAMEPAD_TOUCHPAD_AS_MOUSE);
         config.gamepadMotionSensors = prefs.getBoolean(GAMEPAD_MOTION_SENSORS_PREF_STRING, DEFAULT_GAMEPAD_MOTION_SENSORS);
         config.gamepadMotionSensorsFallbackToDevice = prefs.getBoolean(GAMEPAD_MOTION_FALLBACK_PREF_STRING, DEFAULT_GAMEPAD_MOTION_FALLBACK);
+        config.showOfflinePcs = prefs.getBoolean(SHOW_OFFLINE_PCS_PREF_STRING, DEFAULT_SHOW_OFFLINE_PCS);
         config.simplifyPerfOverlayPrefTemplate = prefs.getString(EDITTEXT_SIMPLE_PERF_OVERLAY_PREF_STRING, context.getString(R.string.default_template_simple_perf_overlay));
         // 读取默认触摸板灵敏度（10-300），用于非虚拟键盘的默认相对触控
         config.defaultTouchpadSensitivity = Math.max(10, Math.min(300, prefs.getInt(DEFAULT_TOUCHPAD_SENSITIVITY_PREF_STRING, DEFAULT_TOUCHPAD_SENSITIVITY)));
