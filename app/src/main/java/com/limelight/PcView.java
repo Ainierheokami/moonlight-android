@@ -98,6 +98,7 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
     @Override
     public void onConfigurationChanged(Configuration newConfig) {
         super.onConfigurationChanged(newConfig);
+        LimeLog.info("PcView: onConfigurationChanged() called, completeOnCreateCalled: " + completeOnCreateCalled + ", pcGridAdapter: " + (pcGridAdapter != null));
 
         // Only reinitialize views if completeOnCreate() was called
         // before this callback. If it was not, completeOnCreate() will
@@ -123,6 +124,8 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
     private final static int DELETE_IP_ID = 12;
 
     private void initializeViews() {
+        LimeLog.info("PcView: initializeViews() called, pcGridAdapter: " + (pcGridAdapter != null));
+        
         setContentView(R.layout.activity_pc_view);
 
         UiHelper.notifyNewRootView(this);
@@ -136,7 +139,16 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
         PreferenceManager.setDefaultValues(this, R.xml.preferences, false);
 
         // Set the correct layout for the PC grid
-        pcGridAdapter.updateLayoutWithPreferences(this, prefs);
+        if (pcGridAdapter != null) {
+            pcGridAdapter.updateLayoutWithPreferences(this, prefs);
+        } else {
+            LimeLog.severe("PcView: pcGridAdapter is null in initializeViews()!");
+            // Try to reinitialize if null
+            if (prefs != null) {
+                pcGridAdapter = new PcGridAdapter(this, prefs);
+                LimeLog.info("PcView: Reinitialized pcGridAdapter in initializeViews()");
+            }
+        }
 
         // Setup the list view
         ImageButton settingsButton = findViewById(R.id.settingsButton);
@@ -175,18 +187,21 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
             .commitAllowingStateLoss();
 
         noPcFoundLayout = findViewById(R.id.no_pc_found_layout);
-        if (pcGridAdapter.getCount() == 0) {
+        if (pcGridAdapter != null && pcGridAdapter.getCount() == 0) {
             noPcFoundLayout.setVisibility(View.VISIBLE);
         }
         else {
             noPcFoundLayout.setVisibility(View.INVISIBLE);
         }
-        pcGridAdapter.notifyDataSetChanged();
+        if (pcGridAdapter != null) {
+            pcGridAdapter.notifyDataSetChanged();
+        }
     }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        LimeLog.info("PcView: onCreate() started");
 
         // Assume we're in the foreground when created to avoid a race
         // between binding to CMS and onResume()
@@ -196,6 +211,7 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
         // a cached result already.
         final GlPreferences glPrefs = GlPreferences.readPreferences(this);
         if (!glPrefs.savedFingerprint.equals(Build.FINGERPRINT) || glPrefs.glRenderer.isEmpty()) {
+            LimeLog.info("PcView: Creating GLSurfaceView for renderer detection");
             GLSurfaceView surfaceView = new GLSurfaceView(this);
             surfaceView.setRenderer(new GLSurfaceView.Renderer() {
                 @Override
@@ -205,7 +221,7 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
                     glPrefs.savedFingerprint = Build.FINGERPRINT;
                     glPrefs.writePreferences();
 
-                    LimeLog.info("Fetched GL Renderer: " + glPrefs.glRenderer);
+                    LimeLog.info("PcView: Fetched GL Renderer: " + glPrefs.glRenderer);
 
                     runOnUiThread(new Runnable() {
                         @Override
@@ -226,13 +242,15 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
             setContentView(surfaceView);
         }
         else {
-            LimeLog.info("Cached GL Renderer: " + glPrefs.glRenderer);
+            LimeLog.info("PcView: Using cached GL Renderer: " + glPrefs.glRenderer);
             completeOnCreate();
         }
     }
 
     private void completeOnCreate() {
         completeOnCreateCalled = true;
+
+        LimeLog.info("PcView: completeOnCreate() started");
 
         shortcutHelper = new ShortcutHelper(this);
 
@@ -244,6 +262,7 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
 
         prefs = PreferenceConfiguration.readPreferences(this);
         pcGridAdapter = new PcGridAdapter(this, prefs);
+        LimeLog.info("PcView: pcGridAdapter initialized: " + (pcGridAdapter != null));
 
         initializeViews();
     }
@@ -296,6 +315,7 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
     @Override
     public void onDestroy() {
         super.onDestroy();
+        LimeLog.info("PcView: onDestroy() called");
 
         if (managerBinder != null) {
             unbindService(serviceConnection);
@@ -306,12 +326,27 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
     protected void onResume() {
         super.onResume();
 
+        LimeLog.info("PcView: onResume() called, pcGridAdapter: " + (pcGridAdapter != null) + ", completeOnCreateCalled: " + completeOnCreateCalled);
+
         // Display a decoder crash notification if we've returned after a crash
         UiHelper.showDecoderCrashDialog(this);
 
         // Reload preferences in case they have changed
         prefs = PreferenceConfiguration.readPreferences(this);
-        pcGridAdapter.updateLayoutWithPreferences(this, prefs);
+        
+        // Ensure pcGridAdapter is initialized before calling methods on it
+        // This prevents the NullPointerException that was occurring
+        if (pcGridAdapter == null && prefs != null) {
+            LimeLog.warning("PcView: pcGridAdapter was null in onResume(), initializing now");
+            pcGridAdapter = new PcGridAdapter(this, prefs);
+        }
+        
+        // Only update layout if adapter is properly initialized
+        if (pcGridAdapter != null) {
+            pcGridAdapter.updateLayoutWithPreferences(this, prefs);
+        } else {
+            LimeLog.severe("PcView: Unable to initialize pcGridAdapter in onResume()");
+        }
 
         inForeground = true;
         startComputerUpdates();
@@ -320,6 +355,7 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
     @Override
     protected void onPause() {
         super.onPause();
+        LimeLog.info("PcView: onPause() called");
 
         inForeground = false;
         stopComputerUpdates(false);
@@ -328,6 +364,7 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
     @Override
     protected void onStop() {
         super.onStop();
+        LimeLog.info("PcView: onStop() called");
 
         Dialog.closeDialogs();
     }
