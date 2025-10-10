@@ -455,4 +455,10 @@
     <string name="custom_hotkeys_confirm_delete">确定删除该自定义热键吗？</string>
     <string name="custom_hotkeys_save_success">已保存自定义热键</string>
 
+    <!-- 配对状态字符串 -->
+    <string name="pairing_status_pairing">配对中: PIN码 %s</string>
+    <string name="pairing_status_success">配对成功</string>
+    <string name="pairing_status_failed">配对失败</string>
+    <string name="pairing_status_cancelled">配对已取消</string>
+    <string name="pairing_cancel_button">取消配对</string>
 </resources>

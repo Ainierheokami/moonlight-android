@@ -39,4 +39,37 @@
         android:gravity="center"
         android:textSize="18sp" >
     </TextView>
+    
+    <!-- 配对信息区域 - 默认隐藏 -->
+    <LinearLayout
+        android:id="@+id/pairing_info_layout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/grid_text"
+        android:layout_marginTop="8dp"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:visibility="gone">
+        
+        <!-- 第一行：配对状态和PIN码 -->
+        <TextView
+            android:id="@+id/pairing_status_text"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textSize="12sp"
+            android:textColor="#666666"
+            android:gravity="center"
+            android:padding="2dp"/>
+        
+        <!-- 第二行：取消配对按钮 -->
+        <Button
+            android:id="@+id/cancel_pairing_button"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="取消配对"
+            android:textSize="10sp"
+            android:layout_marginTop="4dp"
+            android:background="@drawable/button_background_red"
+            android:textColor="#F44336"/>
+    </LinearLayout>
 </RelativeLayout>

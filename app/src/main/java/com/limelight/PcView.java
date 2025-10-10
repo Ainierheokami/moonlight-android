@@ -3,6 +3,8 @@ package com.limelight;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.UnknownHostException;
+import java.util.HashMap;
+import java.util.Map;
 
 import com.limelight.binding.PlatformBinding;
 import com.limelight.binding.crypto.AndroidCryptoProvider;
@@ -66,6 +68,7 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
     private ComputerManagerService.ComputerManagerBinder managerBinder;
     private boolean freezeUpdates, runningPolling, inForeground, completeOnCreateCalled;
     private PreferenceConfiguration prefs;
+    private Map<String, PairingTask> activePairingTasks = new HashMap<>();
     private final ServiceConnection serviceConnection = new ServiceConnection() {
         public void onServiceConnected(ComponentName className, IBinder binder) {
             final ComputerManagerService.ComputerManagerBinder localBinder =
@@ -449,99 +452,178 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
             return;
         }
 
-        Toast.makeText(PcView.this, getResources().getString(R.string.pairing), Toast.LENGTH_SHORT).show();
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                NvHTTP httpConn;
-                String message;
-                boolean success = false;
-                try {
-                    // Stop updates and wait while pairing
-                    stopComputerUpdates(true);
+        // 检查是否已经在配对中
+        if (pcGridAdapter.isPairing(computer)) {
+            return;
+        }
 
-                    httpConn = new NvHTTP(computer.address,
-                            computer.details.httpsPort, managerBinder.getUniqueId(), computer.details.serverCert,
-                            PlatformBinding.getCryptoProvider(PcView.this));
-                    if (httpConn.getPairState() == PairState.PAIRED) {
-                        // Don't display any toast, but open the app list
-                        message = null;
-                        success = true;
-                    }
-                    else {
-                        final String pinStr = PairingManager.generatePinString();
+        // 开始配对 - 在UI中显示配对状态
+        final String pinStr = PairingManager.generatePinString();
+        pcGridAdapter.startPairing(computer, pinStr);
 
-                        // Spin the dialog off in a thread because it blocks
-                        Dialog.displayDialog(PcView.this, getResources().getString(R.string.pair_pairing_title),
-                                getResources().getString(R.string.pair_pairing_msg)+" "+pinStr+"\n\n"+
-                                getResources().getString(R.string.pair_pairing_help), false);
+        // 在后台线程中执行配对
+        PairingTask pairingTask = new PairingTask(computer, pinStr);
+        String taskKey = getComputerKey(computer);
+        activePairingTasks.put(taskKey, pairingTask);
+        pairingTask.execute();
+    }
 
-                        PairingManager pm = httpConn.getPairingManager();
+    private String getComputerKey(ComputerObject computer) {
+        return computer.details.uuid + "_" + (computer.address != null ? computer.address.toString() : "");
+    }
 
-                        PairState pairState = pm.pair(httpConn.getServerInfo(true), pinStr);
-                        if (pairState == PairState.PIN_WRONG) {
-                            message = getResources().getString(R.string.pair_incorrect_pin);
-                        }
-                        else if (pairState == PairState.FAILED) {
-                            if (computer.details.runningGameId != 0) {
-                                message = getResources().getString(R.string.pair_pc_ingame);
-                            }
-                            else {
-                                message = getResources().getString(R.string.pair_fail);
-                            }
-                        }
-                        else if (pairState == PairState.ALREADY_IN_PROGRESS) {
-                            message = getResources().getString(R.string.pair_already_in_progress);
-                        }
-                        else if (pairState == PairState.PAIRED) {
-                            // Just navigate to the app view without displaying a toast
-                            message = null;
-                            success = true;
+    // 取消配对
+    public void cancelPairing(final ComputerObject computer) {
+        if (pcGridAdapter.isPairing(computer)) {
+            String taskKey = getComputerKey(computer);
+            PairingTask pairingTask = activePairingTasks.get(taskKey);
+            if (pairingTask != null) {
+                pairingTask.cancelPairing();
+                activePairingTasks.remove(taskKey);
+            }
+            
+            pcGridAdapter.updatePairingStatus(computer, PcGridAdapter.PairingStatus.CANCELLED);
+            // 延迟清除配对状态，让用户看到取消状态
+            new android.os.Handler().postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    pcGridAdapter.clearPairingStatus(computer);
+                    // 重新开始轮询
+                    startComputerUpdates();
+                }
+            }, 1500);
+        }
+    }
 
-                            // Pin this certificate for later HTTPS use
-                            managerBinder.getComputer(computer.details.uuid).serverCert = pm.getPairedCert();
+    // 配对任务类 - 在后台执行配对
+    private class PairingTask extends android.os.AsyncTask<Void, Void, PairingResult> {
+        private final ComputerObject computer;
+        private final String pinStr;
+        private volatile boolean cancelled = false;
 
-                            // Invalidate reachability information after pairing to force
-                            // a refresh before reading pair state again
-                            managerBinder.invalidateStateForComputer(computer.details.uuid);
-                        }
-                        else {
-                            // Should be no other values
-                            message = null;
-                        }
-                    }
-                } catch (UnknownHostException e) {
-                    message = getResources().getString(R.string.error_unknown_host);
-                } catch (FileNotFoundException e) {
-                    message = getResources().getString(R.string.error_404);
-                } catch (XmlPullParserException | IOException e) {
-                    e.printStackTrace();
-                    message = e.getMessage();
+        public PairingTask(ComputerObject computer, String pinStr) {
+            this.computer = computer;
+            this.pinStr = pinStr;
+        }
+
+        @Override
+        protected void onPreExecute() {
+            super.onPreExecute();
+            // 停止更新以专注于配对
+            stopComputerUpdates(true);
+        }
+
+        @Override
+        protected PairingResult doInBackground(Void... voids) {
+            NvHTTP httpConn = null;
+            try {
+                httpConn = new NvHTTP(computer.address,
+                        computer.details.httpsPort, managerBinder.getUniqueId(), computer.details.serverCert,
+                        PlatformBinding.getCryptoProvider(PcView.this));
+                
+                if (httpConn.getPairState() == PairState.PAIRED) {
+                    return new PairingResult(true, null, httpConn);
                 }
 
-                Dialog.closeDialogs();
+                PairingManager pm = httpConn.getPairingManager();
+                PairState pairState = pm.pair(httpConn.getServerInfo(true), pinStr);
+                
+                if (cancelled) {
+                    return new PairingResult(false, getResources().getString(R.string.pairing_status_cancelled), httpConn);
+                }
 
-                final String toastMessage = message;
-                final boolean toastSuccess = success;
-                runOnUiThread(new Runnable() {
+                if (pairState == PairState.PIN_WRONG) {
+                    return new PairingResult(false, getResources().getString(R.string.pair_incorrect_pin), httpConn);
+                }
+                else if (pairState == PairState.FAILED) {
+                    if (computer.details.runningGameId != 0) {
+                        return new PairingResult(false, getResources().getString(R.string.pair_pc_ingame), httpConn);
+                    }
+                    else {
+                        return new PairingResult(false, getResources().getString(R.string.pair_fail), httpConn);
+                    }
+                }
+                else if (pairState == PairState.ALREADY_IN_PROGRESS) {
+                    return new PairingResult(false, getResources().getString(R.string.pair_already_in_progress), httpConn);
+                }
+                else if (pairState == PairState.PAIRED) {
+                    // 保存配对证书
+                    managerBinder.getComputer(computer.details.uuid).serverCert = pm.getPairedCert();
+                    // 强制刷新状态
+                    managerBinder.invalidateStateForComputer(computer.details.uuid);
+                    return new PairingResult(true, null, httpConn);
+                }
+                else {
+                    return new PairingResult(false, getResources().getString(R.string.pair_fail), httpConn);
+                }
+            } catch (UnknownHostException e) {
+                return new PairingResult(false, getResources().getString(R.string.error_unknown_host), httpConn);
+            } catch (FileNotFoundException e) {
+                return new PairingResult(false, getResources().getString(R.string.error_404), httpConn);
+            } catch (XmlPullParserException | IOException e) {
+                e.printStackTrace();
+                return new PairingResult(false, e.getMessage(), httpConn);
+            }
+        }
+
+        @Override
+        protected void onPostExecute(PairingResult result) {
+            super.onPostExecute(result);
+            
+            // 从活动任务中移除
+            String taskKey = getComputerKey(computer);
+            activePairingTasks.remove(taskKey);
+            
+            if (cancelled) {
+                return;
+            }
+
+            if (result.success) {
+                // 配对成功
+                pcGridAdapter.updatePairingStatus(computer, PcGridAdapter.PairingStatus.SUCCESS);
+                // 延迟打开应用列表，让用户看到成功状态
+                new android.os.Handler().postDelayed(new Runnable() {
                     @Override
                     public void run() {
-                        if (toastMessage != null) {
-                            Toast.makeText(PcView.this, toastMessage, Toast.LENGTH_LONG).show();
-                        }
-
-                        if (toastSuccess) {
-                            // Open the app list after a successful pairing attempt
-                            doAppList(computer, true, false);
-                        }
-                        else {
-                            // Start polling again if we're still in the foreground
-                            startComputerUpdates();
-                        }
+                        pcGridAdapter.clearPairingStatus(computer);
+                        doAppList(computer, true, false);
                     }
-                });
+                }, 1000);
+            } else {
+                // 配对失败
+                pcGridAdapter.updatePairingStatus(computer, PcGridAdapter.PairingStatus.FAILED);
+                // 延迟清除状态并显示错误消息
+                new android.os.Handler().postDelayed(new Runnable() {
+                    @Override
+                    public void run() {
+                        pcGridAdapter.clearPairingStatus(computer);
+                        if (result.message != null) {
+                            Toast.makeText(PcView.this, result.message, Toast.LENGTH_LONG).show();
+                        }
+                        // 重新开始轮询
+                        startComputerUpdates();
+                    }
+                }, 1500);
             }
-        }).start();
+        }
+
+        public void cancelPairing() {
+            cancelled = true;
+            cancel(true);
+        }
+    }
+
+    // 配对结果类
+    private static class PairingResult {
+        boolean success;
+        String message;
+        NvHTTP httpConn;
+
+        PairingResult(boolean success, String message, NvHTTP httpConn) {
+            this.success = success;
+            this.message = message;
+            this.httpConn = httpConn;
+        }
     }
 
     private void doWakeOnLan(final ComputerDetails computer) {
