@@ -1,13 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
-<GridView xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.recyclerview.widget.RecyclerView xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/fragmentView"
-    android:layout_width="fill_parent"
-    android:layout_height="fill_parent"
-    android:numColumns="auto_fit"
-    android:columnWidth="160dp"
-    android:stretchMode="spacingWidthUniform"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
     android:focusable="true"
     android:focusableInTouchMode="true"
     android:nextFocusLeft="@id/settingsButton"
     android:clipToPadding="false"
-    android:gravity="center"/>
+    android:scrollbars="vertical"
+    android:padding="10dp"
+    android:clipChildren="false"/>

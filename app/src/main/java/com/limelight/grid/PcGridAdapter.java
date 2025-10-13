@@ -1,6 +1,7 @@
 package com.limelight.grid;
 
 import android.content.Context;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
@@ -24,6 +25,7 @@ public class PcGridAdapter extends GenericGridAdapter<PcView.ComputerObject> {
     // 跟踪配对状态
     private Map<String, PairingState> pairingStates = new HashMap<>();
     private PcView pcView;
+    private static final String PAIRING_TAG = "Pairing";
 
     public PcGridAdapter(Context context, PreferenceConfiguration prefs) {
         super(context, getLayoutIdForPreferences(prefs));
@@ -78,6 +80,7 @@ public class PcGridAdapter extends GenericGridAdapter<PcView.ComputerObject> {
     // 配对状态管理方法
     public void startPairing(PcView.ComputerObject computer, String pin) {
         String key = getComputerKey(computer);
+        Log.i(PAIRING_TAG, "开始UI配对状态: " + computer.details.name + " PIN: " + pin);
         pairingStates.put(key, new PairingState(PairingStatus.PAIRING, pin));
         notifyDataSetChanged();
     }
@@ -86,6 +89,7 @@ public class PcGridAdapter extends GenericGridAdapter<PcView.ComputerObject> {
         String key = getComputerKey(computer);
         PairingState currentState = pairingStates.get(key);
         if (currentState != null) {
+            Log.i(PAIRING_TAG, "更新UI配对状态: " + computer.details.name + " -> " + status);
             pairingStates.put(key, new PairingState(status, currentState.pin));
             notifyDataSetChanged();
         }
@@ -93,6 +97,7 @@ public class PcGridAdapter extends GenericGridAdapter<PcView.ComputerObject> {
 
     public void clearPairingStatus(PcView.ComputerObject computer) {
         String key = getComputerKey(computer);
+        Log.i(PAIRING_TAG, "清除UI配对状态: " + computer.details.name);
         pairingStates.remove(key);
         notifyDataSetChanged();
     }
@@ -143,8 +148,16 @@ public class PcGridAdapter extends GenericGridAdapter<PcView.ComputerObject> {
         PairingState pairingState = pairingStates.get(key);
         
         if (pairingState != null && pairingState.status == PairingStatus.PAIRING) {
-            // 显示配对信息
-            pairingInfoLayout.setVisibility(View.VISIBLE);
+            // 显示配对信息，带动画
+            if (pairingInfoLayout.getVisibility() != View.VISIBLE) {
+                pairingInfoLayout.setAlpha(0f);
+                pairingInfoLayout.setVisibility(View.VISIBLE);
+                pairingInfoLayout.animate()
+                    .alpha(1f)
+                    .setDuration(150)
+                    .start();
+            }
+            
             pairingStatusText.setText(String.format(parentView.getContext().getString(R.string.pairing_status_pairing), pairingState.pin));
             cancelPairingButton.setText(R.string.pairing_cancel_button);
             
@@ -153,6 +166,7 @@ public class PcGridAdapter extends GenericGridAdapter<PcView.ComputerObject> {
             cancelPairingButton.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
+                    Log.i(PAIRING_TAG, "用户点击取消配对按钮: " + finalObj.details.name);
                     if (pcView != null) {
                         pcView.cancelPairing(finalObj);
                     }
@@ -162,8 +176,21 @@ public class PcGridAdapter extends GenericGridAdapter<PcView.ComputerObject> {
             // 配对中时隐藏锁图标
             overlayView.setVisibility(View.GONE);
         } else {
-            // 隐藏配对信息
-            pairingInfoLayout.setVisibility(View.GONE);
+            // 隐藏配对信息，带动画
+            if (pairingInfoLayout.getVisibility() == View.VISIBLE) {
+                pairingInfoLayout.animate()
+                    .alpha(0f)
+                    .setDuration(100)
+                    .withEndAction(new Runnable() {
+                        @Override
+                        public void run() {
+                            pairingInfoLayout.setVisibility(View.GONE);
+                        }
+                    })
+                    .start();
+            } else {
+                pairingInfoLayout.setVisibility(View.GONE);
+            }
             
             // 恢复正常的覆盖图标显示
             if (obj.details.state == ComputerDetails.State.OFFLINE) {

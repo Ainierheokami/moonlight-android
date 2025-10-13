@@ -652,6 +652,12 @@ public class AppView extends Activity implements AdapterFragmentCallbacks {
         listView.requestFocus();
     }
 
+    @Override
+    public void receiveRecyclerView(androidx.recyclerview.widget.RecyclerView recyclerView) {
+        // AppView使用GridView，不需要RecyclerView实现
+        // 可以留空或抛出异常，取决于具体需求
+    }
+
     public static class AppObject {
         public final NvApp app;
         public boolean isRunning;

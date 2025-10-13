@@ -9,6 +9,8 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AbsListView;
 
+import androidx.recyclerview.widget.RecyclerView;
+
 import com.limelight.R;
 
 public class AdapterFragment extends Fragment {
@@ -30,6 +32,11 @@ public class AdapterFragment extends Fragment {
     @Override
     public void onActivityCreated(Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
-        callbacks.receiveAbsListView(getView().findViewById(R.id.fragmentView));
+        View fragmentView = getView().findViewById(R.id.fragmentView);
+        if (fragmentView instanceof RecyclerView) {
+            callbacks.receiveRecyclerView((RecyclerView) fragmentView);
+        } else if (fragmentView instanceof AbsListView) {
+            callbacks.receiveAbsListView((AbsListView) fragmentView);
+        }
     }
 }

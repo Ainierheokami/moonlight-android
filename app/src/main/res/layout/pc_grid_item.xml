@@ -1,8 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
-<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="wrap_content"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="160dp"
     android:layout_height="wrap_content"
-    android:padding="20dp">
+    android:minHeight="220dp"
+    android:padding="20dp"
+    android:orientation="vertical"
+    android:gravity="center_horizontal"
+    android:layout_margin="5dp">
+    
+    <!-- 设备图标区域 -->
     <RelativeLayout
         android:id="@+id/grid_image_layout"
         android:layout_width="wrap_content"
@@ -29,23 +35,24 @@
             android:indeterminate="true">
         </ProgressBar>
     </RelativeLayout>
+    
+    <!-- 设备名称区域 -->
     <TextView
         android:id="@+id/grid_text"
-        android:layout_width="125dp"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_below="@id/grid_image_layout"
         android:layout_marginTop="10dp"
-        android:layout_centerHorizontal="true"
         android:gravity="center"
-        android:textSize="18sp" >
+        android:textSize="18sp"
+        android:maxLines="2"
+        android:ellipsize="end">
     </TextView>
     
-    <!-- 配对信息区域 - 默认隐藏 -->
+    <!-- 配对信息区域 - 默认隐藏，动态扩展 -->
     <LinearLayout
         android:id="@+id/pairing_info_layout"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_below="@id/grid_text"
         android:layout_marginTop="8dp"
         android:orientation="vertical"
         android:gravity="center"
@@ -59,7 +66,8 @@
             android:textSize="12sp"
             android:textColor="#666666"
             android:gravity="center"
-            android:padding="2dp"/>
+            android:padding="2dp"
+            android:maxLines="2"/>
         
         <!-- 第二行：取消配对按钮 -->
         <Button
@@ -70,6 +78,7 @@
             android:textSize="10sp"
             android:layout_marginTop="4dp"
             android:background="@drawable/button_background_red"
-            android:textColor="#F44336"/>
+            android:textColor="#F44336"
+            android:minWidth="80dp"/>
     </LinearLayout>
-</RelativeLayout>
+</LinearLayout>

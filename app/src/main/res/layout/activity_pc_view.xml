@@ -8,7 +8,7 @@
     <RelativeLayout
         android:id="@+id/pcFragmentContainer"
         android:layout_width="fill_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="match_parent"
         android:gravity="center"
         android:layout_below="@+id/settingsButton"
         android:layout_alignParentLeft="true"

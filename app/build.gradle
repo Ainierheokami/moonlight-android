@@ -25,6 +25,12 @@ android {
 
         // Generate native debug symbols to allow Google Play to symbolicate our native crashes
         ndk.debugSymbolLevel = 'FULL'
+
+        // 在这里添加 NDK 配置
+        ndk {
+            // 方法1: 直接过滤ABI
+            abiFilters 'arm64-v8a', 'armeabi-v7a'
+        }
     }
 
     applicationVariants.all { variant ->
