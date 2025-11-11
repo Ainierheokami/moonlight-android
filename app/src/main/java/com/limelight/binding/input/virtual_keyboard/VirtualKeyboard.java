@@ -16,6 +16,7 @@ import android.widget.FrameLayout;
 import android.widget.TextView;
 import android.view.Gravity;
 import android.widget.Toast;
+import android.view.ViewParent;
 
 import com.limelight.Game;
 import com.limelight.R;
@@ -236,12 +237,22 @@ public class VirtualKeyboard {
     }
 
     public void removeElements() {
-        for (VirtualKeyboardElement element : elements) {
-            frame_layout.removeView(element);
+        if (frame_layout != null) {
+            for (VirtualKeyboardElement element : elements) {
+                ViewParent parent = element.getParent();
+                if (parent instanceof FrameLayout) {
+                    ((FrameLayout) parent).removeView(element);
+                }
+            }
         }
         elements.clear();
 
-        frame_layout.removeView(buttonConfigure);
+        if (frame_layout != null && buttonConfigure != null) {
+            ViewParent buttonParent = buttonConfigure.getParent();
+            if (buttonParent instanceof FrameLayout) {
+                ((FrameLayout) buttonParent).removeView(buttonConfigure);
+            }
+        }
         hideEditingOverlay();
     }
 
@@ -258,6 +269,20 @@ public class VirtualKeyboard {
     public void removeElementByElement(VirtualKeyboardElement element) {
         frame_layout.removeView(element);
         elements.remove(element);
+    }
+
+    public void destroy() {
+        removeElements();
+        historyElements.clear();
+        historyIndex = 0;
+        if (handler != null) {
+            handler.removeCallbacksAndMessages(null);
+        }
+        buttonConfigure = null;
+        editingOverlay = null;
+        editingContainer = null;
+        editingTip = null;
+        frame_layout = null;
     }
 
     public void setOpacity(int opacity) {

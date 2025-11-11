@@ -174,22 +174,27 @@ public class GameMenuFragment extends Fragment {
             });
         }
 
-        // 切换虚拟手柄
-        Button btnToggleVirtualController = getView().findViewById(R.id.btn_toggle_virtual_controller);
-        if (btnToggleVirtualController != null) {
-            btnToggleVirtualController.setOnClickListener(v -> {
+        // 悬浮键盘
+        Button btnFloatingKeyboard = getView().findViewById(R.id.btn_floating_keyboard);
+        if (btnFloatingKeyboard != null) {
+            btnFloatingKeyboard.setOnClickListener(v -> {
                 hideMenuWithAnimation();
-                game.toggleVirtualController();
+                try {
+                    Log.d("GameMenuFragment", "Attempting to show floating keyboard");
+                    FloatingVirtualKeyboardFragment.Companion.show(game);
+                } catch (Exception e) {
+                    Log.e("GameMenuFragment", "Error showing floating keyboard", e);
+                }
             });
         }
 
-        // 切换虚拟键盘
-        Button btnToggleVirtualKeyboard = getView().findViewById(R.id.btn_toggle_virtual_keyboard);
-        if (btnToggleVirtualKeyboard != null) {
-            btnToggleVirtualKeyboard.setOnClickListener(v -> {
+        // 虚拟全键盘
+        Button btnVirtualFullKeyboard = getView().findViewById(R.id.btn_virtual_full_keyboard);
+        if (btnVirtualFullKeyboard != null) {
+            btnVirtualFullKeyboard.setOnClickListener(v -> {
                 hideMenuWithAnimation();
-                game.toggleVirtualKeyboard();
-                Toast.makeText(game, game.getString(R.string.game_menu_toggle_virtual_keyboard_toast), Toast.LENGTH_SHORT).show();
+                VirtualKeyboardDialogFragment fragment = new VirtualKeyboardDialogFragment();
+                fragment.show(game.getFragmentManager(), "VirtualKeyboard");
             });
         }
     }
@@ -317,50 +322,6 @@ public class GameMenuFragment extends Fragment {
                 conn.sendUtf8Text(getClipboardContentAsString(game, new int[]{3}, new long[]{30}));
             });
         }
-
-        // 悬浮键盘
-        Button btnFloatingKeyboard = getView().findViewById(R.id.btn_floating_keyboard);
-        if (btnFloatingKeyboard != null) {
-            btnFloatingKeyboard.setOnClickListener(v -> {
-                hideMenuWithAnimation();
-                try {
-                    Log.d("GameMenuFragment", "Attempting to show floating keyboard");
-                    FloatingVirtualKeyboardFragment.Companion.show(game);
-                } catch (Exception e) {
-                    Log.e("GameMenuFragment", "Error showing floating keyboard", e);
-                }
-            });
-        }
-
-        // 虚拟全键盘
-        Button btnVirtualFullKeyboard = getView().findViewById(R.id.btn_virtual_full_keyboard);
-        if (btnVirtualFullKeyboard != null) {
-            btnVirtualFullKeyboard.setOnClickListener(v -> {
-                hideMenuWithAnimation();
-                VirtualKeyboardDialogFragment fragment = new VirtualKeyboardDialogFragment();
-                fragment.show(game.getFragmentManager(), "VirtualKeyboard");
-            });
-        }
-
-        // 编辑屏幕虚拟键盘（进入编辑模式并打开编辑菜单）
-        Button btnEditVirtualKeyboard = getView().findViewById(R.id.btn_edit_virtual_keyboard);
-        if (btnEditVirtualKeyboard != null) {
-            btnEditVirtualKeyboard.setOnClickListener(v -> {
-                hideMenuWithAnimation();
-                VirtualKeyboard vk = game.getVirtualKeyboard();
-                if (vk != null) {
-                    // 确保虚拟键盘可见，然后进入编辑模式
-                    vk.show();
-                    vk.enterEditMode();
-                    // 等待菜单关闭动画结束后再打开编辑菜单，避免界面重叠
-                    new Handler(Looper.getMainLooper()).postDelayed(() -> {
-                        new EditMenu(game, vk);
-                    }, ANIMATION_DURATION + 50);
-                } else {
-                    Toast.makeText(game, "无法进入编辑模式：虚拟键盘未就绪", Toast.LENGTH_SHORT).show();
-                }
-            });
-        }
     }
 
     /**
@@ -391,6 +352,42 @@ public class GameMenuFragment extends Fragment {
      * 点击后切换性能叠加层的显示/隐藏（默认开启精简版）
      */
     private void setupPerformanceOverlayButtons() {
+        // 切换虚拟手柄
+        Button btnToggleVirtualController = getView().findViewById(R.id.btn_toggle_virtual_controller);
+        if (btnToggleVirtualController != null) {
+            btnToggleVirtualController.setOnClickListener(v -> {
+                hideMenuWithAnimation();
+                game.toggleVirtualController();
+            });
+        }
+
+        // 切换屏幕虚拟键盘
+        Button btnToggleVirtualKeyboard = getView().findViewById(R.id.btn_toggle_virtual_keyboard);
+        if (btnToggleVirtualKeyboard != null) {
+            btnToggleVirtualKeyboard.setOnClickListener(v -> {
+                hideMenuWithAnimation();
+                game.toggleVirtualKeyboard();
+                Toast.makeText(game, game.getString(R.string.game_menu_toggle_virtual_keyboard_toast), Toast.LENGTH_SHORT).show();
+            });
+        }
+
+        // 编辑屏幕虚拟键盘
+        Button btnEditVirtualKeyboard = getView().findViewById(R.id.btn_edit_virtual_keyboard);
+        if (btnEditVirtualKeyboard != null) {
+            btnEditVirtualKeyboard.setOnClickListener(v -> {
+                hideMenuWithAnimation();
+                VirtualKeyboard vk = game.getVirtualKeyboard();
+                if (vk != null) {
+                    vk.show();
+                    vk.enterEditMode();
+                    new Handler(Looper.getMainLooper()).postDelayed(() -> new EditMenu(game, vk),
+                            ANIMATION_DURATION + 50);
+                } else {
+                    Toast.makeText(game, "无法进入编辑模式：虚拟键盘未就绪", Toast.LENGTH_SHORT).show();
+                }
+            });
+        }
+
         Button btnTogglePerfOverlay = getView().findViewById(R.id.btn_toggle_perf_overlay);
         if (btnTogglePerfOverlay != null) {
             btnTogglePerfOverlay.setOnClickListener(v -> {

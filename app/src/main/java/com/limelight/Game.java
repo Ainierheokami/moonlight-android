@@ -452,33 +452,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         MediaCodecHelper.initialize(this, glPrefs.glRenderer);
 
         // Check if the user has enabled HDR
-        boolean willStreamHdr = false;
-        if (prefConfig.enableHdr) {
-            // Start our HDR checklist
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                Display display = getWindowManager().getDefaultDisplay();
-                Display.HdrCapabilities hdrCaps = display.getHdrCapabilities();
-
-                // We must now ensure our display is compatible with HDR10
-                if (hdrCaps != null) {
-                    // getHdrCapabilities() returns null on Lenovo Lenovo Mirage Solo (vega), Android 8.0
-                    for (int hdrType : hdrCaps.getSupportedHdrTypes()) {
-                        if (hdrType == Display.HdrCapabilities.HDR_TYPE_HDR10) {
-                            willStreamHdr = true;
-                            break;
-                        }
-                    }
-                }
-
-                if (!willStreamHdr) {
-                    // Nope, no HDR for us :(
-                    Toast.makeText(this, "Display does not support HDR10", Toast.LENGTH_LONG).show();
-                }
-            }
-            else {
-                Toast.makeText(this, "HDR requires Android 7.0 or later", Toast.LENGTH_LONG).show();
-            }
-        }
+        boolean willStreamHdr = shouldStreamHdr(true);
 
         // Check if the user has enabled performance stats overlay
         if (prefConfig.enablePerfOverlay || prefConfig.enableSimplifyPerfOverlay) {
@@ -1212,6 +1186,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
 
         if (virtualKeyboard != null){
             VirtualKeyboardConfigurationLoader.saveProfile(virtualKeyboard, this);
+            destroyVirtualKeyboardInstance();
         }
     }
 
@@ -2992,6 +2967,41 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         return virtualKeyboard;
     }
 
+    private void destroyVirtualKeyboardInstance() {
+        if (virtualKeyboard != null) {
+            virtualKeyboard.destroy();
+            virtualKeyboard = null;
+        }
+    }
+
+    private boolean shouldStreamHdr(boolean showWarnings) {
+        if (!prefConfig.enableHdr || !lastAppWasHdr) {
+            return false;
+        }
+
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) {
+            if (showWarnings) {
+                Toast.makeText(this, "HDR requires Android 7.0 or later", Toast.LENGTH_LONG).show();
+            }
+            return false;
+        }
+
+        Display display = getWindowManager().getDefaultDisplay();
+        Display.HdrCapabilities hdrCaps = display.getHdrCapabilities();
+        if (hdrCaps != null) {
+            for (int hdrType : hdrCaps.getSupportedHdrTypes()) {
+                if (hdrType == Display.HdrCapabilities.HDR_TYPE_HDR10) {
+                    return true;
+                }
+            }
+        }
+
+        if (showWarnings) {
+            Toast.makeText(this, "Display does not support HDR10", Toast.LENGTH_LONG).show();
+        }
+        return false;
+    }
+
     public void toggleVirtualController() {
         if (virtualController == null) {
             streamView = this.findViewById(R.id.surfaceView);
@@ -3208,6 +3218,8 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         // 重新读取 prefConfig，防止配置变动
         prefConfig = PreferenceConfiguration.readPreferences(this);
 
+        boolean willStreamHdr = shouldStreamHdr(false);
+
         // 重新初始化 decoderRenderer
         decoderRenderer = new MediaCodecDecoderRenderer(
             this,
@@ -3221,7 +3233,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
             },
             tombstonePrefs.getInt("CrashCount", 0),
             false, // meteredData，重连时一般为 false
-            lastAppWasHdr,
+            willStreamHdr,
             GlPreferences.readPreferences(this).glRenderer,
             this
         );
@@ -3230,13 +3242,13 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         int supportedVideoFormats = MoonBridge.VIDEO_FORMAT_H264;
         if (decoderRenderer.isHevcSupported()) {
             supportedVideoFormats |= MoonBridge.VIDEO_FORMAT_H265;
-            if (lastAppWasHdr && decoderRenderer.isHevcMain10Hdr10Supported()) {
+            if (willStreamHdr && decoderRenderer.isHevcMain10Hdr10Supported()) {
                 supportedVideoFormats |= MoonBridge.VIDEO_FORMAT_H265_MAIN10;
             }
         }
         if (decoderRenderer.isAv1Supported()) {
             supportedVideoFormats |= MoonBridge.VIDEO_FORMAT_AV1_MAIN8;
-            if (lastAppWasHdr && decoderRenderer.isAv1Main10Supported()) {
+            if (willStreamHdr && decoderRenderer.isAv1Main10Supported()) {
                 supportedVideoFormats |= MoonBridge.VIDEO_FORMAT_AV1_MAIN10;
             }
         }
@@ -3320,6 +3332,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         }
 
         // 重新初始化虚拟手柄/键盘
+        destroyVirtualKeyboardInstance();
         if (prefConfig.onscreenController) {
             virtualController = new VirtualController(controllerHandler,
                     controlsOverlayContainer,

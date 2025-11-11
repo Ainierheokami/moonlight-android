@@ -5,7 +5,79 @@
     android:orientation="vertical"
     android:baselineAligned="false">
 
-    <!-- 第一行：数字键 -->
+    <!-- 数字区域：对齐传统小键盘布局 -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:baselineAligned="false">
+
+        <Button
+            style="@style/FloatingKeyboardButtonEnhanced"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:tag="0x37"
+            android:text="7" />
+
+        <Button
+            style="@style/FloatingKeyboardButtonEnhanced"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:tag="0x38"
+            android:text="8" />
+
+        <Button
+            style="@style/FloatingKeyboardButtonEnhanced"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:tag="0x39"
+            android:text="9" />
+
+        <Button
+            style="@style/FloatingKeyboardButtonEnhanced"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:tag="0x08"
+            android:text="Bksp" />
+
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:baselineAligned="false">
+
+        <Button
+            style="@style/FloatingKeyboardButtonEnhanced"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:tag="0x34"
+            android:text="4" />
+
+        <Button
+            style="@style/FloatingKeyboardButtonEnhanced"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:tag="0x35"
+            android:text="5" />
+
+        <Button
+            style="@style/FloatingKeyboardButtonEnhanced"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:tag="0x36"
+            android:text="6" />
+
+        <Button
+            style="@style/FloatingKeyboardButtonEnhanced"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:tag="0x6A"
+            android:text="*" />
+
+    </LinearLayout>
+
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -37,54 +109,11 @@
             style="@style/FloatingKeyboardButtonEnhanced"
             android:layout_width="0dp"
             android:layout_weight="1"
-            android:tag="0x34"
-            android:text="4" />
-
-        <Button
-            style="@style/FloatingKeyboardButtonEnhanced"
-            android:layout_width="0dp"
-            android:layout_weight="1"
-            android:tag="0x35"
-            android:text="5" />
-
-        <Button
-            style="@style/FloatingKeyboardButtonEnhanced"
-            android:layout_width="0dp"
-            android:layout_weight="1"
-            android:tag="0x36"
-            android:text="6" />
-
-        <Button
-            style="@style/FloatingKeyboardButtonEnhanced"
-            android:layout_width="0dp"
-            android:layout_weight="1"
-            android:tag="0x37"
-            android:text="7" />
-
-        <Button
-            style="@style/FloatingKeyboardButtonEnhanced"
-            android:layout_width="0dp"
-            android:layout_weight="1"
-            android:tag="0x38"
-            android:text="8" />
-
-        <Button
-            style="@style/FloatingKeyboardButtonEnhanced"
-            android:layout_width="0dp"
-            android:layout_weight="1"
-            android:tag="0x39"
-            android:text="9" />
-
-        <Button
-            style="@style/FloatingKeyboardButtonEnhanced"
-            android:layout_width="0dp"
-            android:layout_weight="1"
-            android:tag="0x30"
-            android:text="0" />
+            android:tag="0x6D"
+            android:text="-" />
 
     </LinearLayout>
 
-    <!-- 第二行：符号键 -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -95,71 +124,29 @@
             style="@style/FloatingKeyboardButtonEnhanced"
             android:layout_width="0dp"
             android:layout_weight="1"
-            android:tag="0xBD"
-            android:text="-" />
-
-        <Button
-            style="@style/FloatingKeyboardButtonEnhanced"
-            android:layout_width="0dp"
-            android:layout_weight="1"
-            android:tag="0xBB"
-            android:text="=" />
-
-        <Button
-            style="@style/FloatingKeyboardButtonEnhanced"
-            android:layout_width="0dp"
-            android:layout_weight="1"
-            android:tag="0xDB"
-            android:text="[" />
-
-        <Button
-            style="@style/FloatingKeyboardButtonEnhanced"
-            android:layout_width="0dp"
-            android:layout_weight="1"
-            android:tag="0xDD"
-            android:text="]" />
-
-        <Button
-            style="@style/FloatingKeyboardButtonEnhanced"
-            android:layout_width="0dp"
-            android:layout_weight="1"
-            android:tag="0xDC"
-            android:text="\" />
-
-        <Button
-            style="@style/FloatingKeyboardButtonEnhanced"
-            android:layout_width="0dp"
-            android:layout_weight="1"
-            android:tag="0xBA"
-            android:text=";" />
-
-        <Button
-            style="@style/FloatingKeyboardButtonEnhanced"
-            android:layout_width="0dp"
-            android:layout_weight="1"
-            android:tag="0xDE"
-            android:text="'" />
-
-        <Button
-            style="@style/FloatingKeyboardButtonEnhanced"
-            android:layout_width="0dp"
-            android:layout_weight="1"
-            android:tag="0xBC"
-            android:text="," />
-
-        <Button
-            style="@style/FloatingKeyboardButtonEnhanced"
-            android:layout_width="0dp"
-            android:layout_weight="1"
-            android:tag="0xBE"
+            android:tag="0x6E"
             android:text="." />
 
         <Button
             style="@style/FloatingKeyboardButtonEnhanced"
             android:layout_width="0dp"
             android:layout_weight="1"
-            android:tag="0xBF"
+            android:tag="0x30"
+            android:text="0" />
+
+        <Button
+            style="@style/FloatingKeyboardButtonEnhanced"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:tag="0x6F"
             android:text="/" />
+
+        <Button
+            style="@style/FloatingKeyboardButtonEnhanced"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:tag="0x6B"
+            android:text="+" />
 
     </LinearLayout>
 

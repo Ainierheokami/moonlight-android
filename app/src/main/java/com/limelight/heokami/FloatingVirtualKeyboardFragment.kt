@@ -16,6 +16,7 @@ import android.widget.LinearLayout
 import android.content.Context
 import android.util.DisplayMetrics
 import kotlin.math.abs
+import kotlin.math.min
 import kotlin.math.sqrt
 import com.limelight.Game
 import com.limelight.R
@@ -59,6 +60,7 @@ class FloatingVirtualKeyboardFragment : DialogFragment() {
     // 边缘检测相关常量 (dp)
     private val edgeDetectionWidth = 20
     private val cornerDetectionSize = 30
+    private val resizeTouchExtension = 12
     private val snapThreshold = 20  // 降低吸附阈值，避免吸附后难以拖动
     
     // 尺寸限制 (dp)
@@ -295,18 +297,43 @@ class FloatingVirtualKeyboardFragment : DialogFragment() {
      */
     private fun setupButton(button: Button) {
         button.setOnTouchListener { _, event ->
-            when (event.action) {
+            when (event.actionMasked) {
                 MotionEvent.ACTION_DOWN -> {
                     handleKeyPress(button, true)
+                    button.isSelected = true
+                    true
+                }
+                MotionEvent.ACTION_MOVE -> {
+                    if (!isPointInsideView(event.x, event.y, button) && button.isSelected) {
+                        handleKeyPress(button, false)
+                        button.isSelected = false
+                    }
                     true
                 }
                 MotionEvent.ACTION_UP -> {
-                    handleKeyPress(button, false)
+                    if (button.isSelected) {
+                        handleKeyPress(button, false)
+                        button.isSelected = false
+                    }
+                    true
+                }
+                MotionEvent.ACTION_CANCEL, MotionEvent.ACTION_OUTSIDE -> {
+                    if (button.isSelected) {
+                        handleKeyPress(button, false)
+                        button.isSelected = false
+                    }
                     true
                 }
                 else -> false
             }
         }
+    }
+
+    /**
+     * 判断坐标是否仍在控件内部
+     */
+    private fun isPointInsideView(x: Float, y: Float, view: View): Boolean {
+        return x >= 0 && x <= view.width && y >= 0 && y <= view.height
     }
 
     /**
@@ -891,8 +918,13 @@ class FloatingVirtualKeyboardFragment : DialogFragment() {
         val width = view.width.toFloat()
         val height = view.height.toFloat()
         
-        val edgeWidthPx = dpToPx(edgeDetectionWidth).toFloat()
-        val cornerSizePx = dpToPx(cornerDetectionSize).toFloat()
+        val extensionPx = dpToPx(resizeTouchExtension).toFloat()
+        val edgeWidthRaw = dpToPx(edgeDetectionWidth).toFloat()
+        val cornerSizeRaw = dpToPx(cornerDetectionSize).toFloat()
+        
+        val cornerSizePx = min(cornerSizeRaw + extensionPx, min(width, height) / 2f)
+        val horizontalEdgePx = min(edgeWidthRaw + extensionPx, width / 2f)
+        val verticalEdgePx = min(edgeWidthRaw + extensionPx, height / 2f)
         
         // 检测角落区域（优先级高）
         if (x <= cornerSizePx && y <= cornerSizePx) return ResizeMode.TOP_LEFT
@@ -901,10 +933,10 @@ class FloatingVirtualKeyboardFragment : DialogFragment() {
         if (x >= width - cornerSizePx && y >= height - cornerSizePx) return ResizeMode.BOTTOM_RIGHT
         
         // 检测边缘区域
-        if (x <= edgeWidthPx) return ResizeMode.LEFT
-        if (x >= width - edgeWidthPx) return ResizeMode.RIGHT
-        if (y <= edgeWidthPx) return ResizeMode.TOP
-        if (y >= height - edgeWidthPx) return ResizeMode.BOTTOM
+        if (x <= horizontalEdgePx) return ResizeMode.LEFT
+        if (x >= width - horizontalEdgePx) return ResizeMode.RIGHT
+        if (y <= verticalEdgePx) return ResizeMode.TOP
+        if (y >= height - verticalEdgePx) return ResizeMode.BOTTOM
         
         return ResizeMode.NONE
     }
@@ -1050,46 +1082,70 @@ class FloatingVirtualKeyboardFragment : DialogFragment() {
      * 应用按键高度自适应
      */
     private fun applyKeyHeightAdaptation() {
-        // 获取当前的根视图
-        val view = this.view ?: return
-        
-        // 计算每行应该有的高度
+        val rootView = this.view ?: return
+        val keyboardContainer = rootView.findViewById<LinearLayout>(R.id.keyboard_container) ?: run {
+            Log.w("FloatingKeyboard", "Keyboard container not found")
+            return
+        }
+
+        val rowCount = countButtonRowsRecursive(keyboardContainer)
+        if (rowCount == 0) {
+            Log.w("FloatingKeyboard", "No button rows detected, skip height adaptation")
+            return
+        }
+
         val totalKeyboardHeight = currentHeight - 50 // 减去功能条和边距
-        val numberOfRows = 7 // 键盘有7行
-        val keyHeight = (totalKeyboardHeight / numberOfRows).coerceAtLeast(32) // 最小32dp
-        
-        updateButtonHeights(view, keyHeight)
-        
-        Log.d("FloatingKeyboard", "Key height adapted: ${keyHeight}dp for keyboard height ${currentHeight}dp")
+        val keyHeight = (totalKeyboardHeight / rowCount).coerceAtLeast(32) // 最小32dp
+
+        updateButtonHeights(keyboardContainer, keyHeight)
+
+        Log.d("FloatingKeyboard", "Key height adapted: ${keyHeight}dp for ${rowCount} rows at keyboard height ${currentHeight}dp")
+    }
+
+    /**
+     * 统计含按钮的行数
+     */
+    private fun countButtonRowsRecursive(container: ViewGroup): Int {
+        var rows = 0
+        for (i in 0 until container.childCount) {
+            val child = container.getChildAt(i)
+            if (child is LinearLayout) {
+                if (containsButtonChild(child)) {
+                    rows++
+                } else {
+                    rows += countButtonRowsRecursive(child)
+                }
+            }
+        }
+        return rows
+    }
+
+    private fun containsButtonChild(layout: LinearLayout): Boolean {
+        for (i in 0 until layout.childCount) {
+            if (layout.getChildAt(i) is Button) {
+                return true
+            }
+        }
+        return false
     }
 
     /**
      * 更新所有按钮的高度
      */
-    private fun updateButtonHeights(rootView: View, keyHeight: Int) {
-        val keyboardContainer = rootView.findViewById<LinearLayout>(R.id.keyboard_container)
-        if (keyboardContainer == null) {
-            Log.w("FloatingKeyboard", "Keyboard container not found")
-            return
-        }
-        
+    private fun updateButtonHeights(viewGroup: ViewGroup, keyHeight: Int) {
         val keyHeightPx = dpToPx(keyHeight)
         
-        // 遍历所有行
-        for (i in 0 until keyboardContainer.childCount) {
-            val row = keyboardContainer.getChildAt(i)
-            if (row is LinearLayout) {
-                // 遍历行中的所有按钮
-                for (j in 0 until row.childCount) {
-                    val child = row.getChildAt(j)
-                    if (child is Button) {
-                        val layoutParams = child.layoutParams
-                        layoutParams.height = keyHeightPx
-                        child.layoutParams = layoutParams
-                    }
+        for (i in 0 until viewGroup.childCount) {
+            val child = viewGroup.getChildAt(i)
+            when (child) {
+                is Button -> {
+                    val params = child.layoutParams
+                    params.height = keyHeightPx
+                    child.layoutParams = params
                 }
+                is ViewGroup -> updateButtonHeights(child, keyHeight)
             }
         }
     }
 
-} 
+}
