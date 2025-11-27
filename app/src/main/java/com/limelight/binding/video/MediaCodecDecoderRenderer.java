@@ -320,8 +320,17 @@ public class MediaCodecDecoderRenderer extends VideoDecoderRenderer implements C
             try {
                 // 如果解码器已经被释放，这里不会尝试重新配置
                 Log.i("MoonDebug", "[Decoder] setRenderTarget: reconfiguring decoder with new Surface");
-                videoDecoder.setOutputSurface(renderTarget.getSurface());
-                Log.i("MoonDebug", "[Decoder] setRenderTarget: decoder output surface updated");
+
+                // [FIX START] 添加 API 版本检查
+                // setOutputSurface 仅在 Android M (API 23) 及以上版本可用
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                    videoDecoder.setOutputSurface(renderTarget.getSurface());
+                    Log.i("MoonDebug", "[Decoder] setRenderTarget: decoder output surface updated");
+                } else {
+                    Log.w("MoonDebug", "[Decoder] setRenderTarget: dynamic surface update requires API 23+, current is " + Build.VERSION.SDK_INT);
+                }
+                // [FIX END]
+
             } catch (Exception e) {
                 Log.w("MoonDebug", "[Decoder] setRenderTarget: failed to reconfigure decoder: " + e.getMessage());
             }
@@ -1975,7 +1984,7 @@ public class MediaCodecDecoderRenderer extends VideoDecoderRenderer implements C
             }
         }
 
-        long timestampUs = enqueueTimeMs * 1000;
+        long timestampUs = SystemClock.uptimeMillis() * 1000;
         if (timestampUs <= lastTimestampUs) {
             // We can't submit multiple buffers with the same timestamp
             // so bump it up by one before queuing
