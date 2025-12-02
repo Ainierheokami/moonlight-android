@@ -22,6 +22,7 @@ import com.limelight.binding.video.PerfOverlayListener;
 import com.limelight.heokami.GameGridLines;
 import com.limelight.heokami.VirtualKeyboardMenu;
 import com.limelight.heokami.FloatingVirtualKeyboardFragment;
+import com.limelight.portal.PortalManagerView;
 import android.app.FragmentManager;
 import android.app.Fragment;
 import com.limelight.nvstream.NvConnection;
@@ -184,6 +185,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
     // 新增：分层容器
     private FrameLayout controlsOverlayContainer; // 虚拟输入（键盘/手柄）容器
     private FrameLayout menuOverlayContainer;     // 菜单（编辑/游戏）容器
+    private PortalManagerView portalManagerView; // 传送门管理器
 
     private MediaCodecDecoderRenderer decoderRenderer;
     private boolean reportedCrash;
@@ -387,6 +389,10 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         // 若为空（理论上不会），回退至内容根布局
         if (controlsOverlayContainer == null) controlsOverlayContainer = (FrameLayout) findViewById(android.R.id.content);
         if (menuOverlayContainer == null) menuOverlayContainer = (FrameLayout) findViewById(android.R.id.content);
+
+        // 初始化传送门管理器
+        portalManagerView = new PortalManagerView(this, this);
+        controlsOverlayContainer.addView(portalManagerView);
 
         inputCaptureProvider = InputCaptureManager.getInputCaptureProvider(this, this);
 
@@ -3421,5 +3427,36 @@ public class Game extends Activity implements SurfaceHolder.Callback,
     // 获取当前Game实例的VirtualKeyboard
     public static VirtualKeyboard getCurrentVirtualKeyboard() {
         return currentGameInstance != null ? currentGameInstance.virtualKeyboard : null;
+    }
+
+    // 获取当前Game实例的PortalManagerView
+    public PortalManagerView getPortalManagerView() {
+        return portalManagerView;
+    }
+    // 获取当前Game实例的NvConnection（非静态）
+    public NvConnection getConnection() {
+        return conn;
+    }
+
+    // 获取StreamView
+    public StreamView getStreamView() {
+        return streamView;
+    }
+
+    // 将屏幕坐标（相对于StreamView）转换为归一化坐标
+    public float[] getStreamViewRelativeNormalizedXY(float screenX, float screenY) {
+        float normalizedX = screenX;
+        float normalizedY = screenY;
+
+        // 确保坐标在StreamView边界内
+        normalizedX = Math.max(normalizedX, 0.0f);
+        normalizedY = Math.max(normalizedY, 0.0f);
+        normalizedX = Math.min(normalizedX, streamView.getWidth());
+        normalizedY = Math.min(normalizedY, streamView.getHeight());
+
+        normalizedX /= streamView.getWidth();
+        normalizedY /= streamView.getHeight();
+
+        return new float[] { normalizedX, normalizedY };
     }
 }

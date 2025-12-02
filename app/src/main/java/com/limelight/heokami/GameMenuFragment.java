@@ -25,6 +25,9 @@ import com.limelight.nvstream.NvConnection;
 import com.limelight.binding.input.virtual_keyboard.VirtualKeyboard;
 import com.limelight.nvstream.input.KeyboardPacket;
 import com.limelight.heokami.FloatingVirtualKeyboardFragment;
+import com.limelight.portal.PortalConfig;
+import com.limelight.portal.PortalManagerView;
+import android.graphics.RectF;
 
 /**
  * 游戏菜单Fragment
@@ -153,6 +156,9 @@ public class GameMenuFragment extends Fragment {
         
         // 性能叠加层按钮
         setupPerformanceOverlayButtons();
+
+        // 传送门管理按钮
+        setupPortalButtons();
 
         // 底部操作按钮
         setupBottomButtons();
@@ -393,6 +399,64 @@ public class GameMenuFragment extends Fragment {
             btnTogglePerfOverlay.setOnClickListener(v -> {
                 hideMenuWithAnimation();
                 game.togglePerfOverlay();
+            });
+        }
+    }
+
+    /**
+     * 设置传送门管理按钮
+     */
+    private void setupPortalButtons() {
+        // 添加传送门
+        Button btnPortalAdd = getView().findViewById(R.id.btn_portal_add);
+        if (btnPortalAdd != null) {
+            btnPortalAdd.setOnClickListener(v -> {
+                hideMenuWithAnimation();
+                // 创建默认传送门并添加到管理器
+                PortalConfig config = new PortalConfig();
+                config.id = game.getPortalManagerView().generateNewId();
+                config.srcRect = new RectF(0.2f, 0.2f, 0.4f, 0.4f); // 归一化坐标
+                config.dstRect = new RectF(100, 100, 300, 300); // 像素坐标
+                config.enabled = true;
+                config.name = "传送门" + config.id;
+                game.getPortalManagerView().addPortal(config);
+                Toast.makeText(game, "已添加传送门", Toast.LENGTH_SHORT).show();
+            });
+        }
+
+        // 管理传送门（打开管理对话框）
+        Button btnPortalManage = getView().findViewById(R.id.btn_portal_manage);
+        if (btnPortalManage != null) {
+            btnPortalManage.setOnClickListener(v -> {
+                hideMenuWithAnimation();
+                // 暂时显示一个Toast，未来可扩展为对话框
+                Toast.makeText(game, "传送门管理功能待实现", Toast.LENGTH_SHORT).show();
+            });
+        }
+
+        // 切换编辑模式
+        Button btnPortalToggleEdit = getView().findViewById(R.id.btn_portal_toggle_edit);
+        if (btnPortalToggleEdit != null) {
+            // 根据当前编辑模式设置按钮文本
+            PortalManagerView portalManager = game.getPortalManagerView();
+            if (portalManager != null) {
+                int editMode = portalManager.getCurrentEditMode();
+                if (editMode == 1) {
+                    btnPortalToggleEdit.setText("编辑源区域");
+                } else if (editMode == 2) {
+                    btnPortalToggleEdit.setText("编辑目标区域");
+                } else {
+                    btnPortalToggleEdit.setText("切换编辑模式");
+                }
+            }
+            btnPortalToggleEdit.setOnClickListener(v -> {
+                hideMenuWithAnimation();
+                // 切换所有传送门的编辑模式
+                if (portalManager != null) {
+                    portalManager.toggleEditingMode();
+                    // 更新按钮文本（下次打开菜单时会刷新）
+                    Toast.makeText(game, "切换编辑模式", Toast.LENGTH_SHORT).show();
+                }
             });
         }
     }

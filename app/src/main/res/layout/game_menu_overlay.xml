@@ -356,6 +356,53 @@
                         android:paddingStart="16dp"
                         android:paddingEnd="16dp" />
 
+                    <!-- 传送门管理组 -->
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="传送门管理"
+                        android:textSize="16sp"
+                        android:textStyle="bold"
+                        android:textColor="#666666"
+                        android:paddingTop="8dp"
+                        android:paddingBottom="8dp" />
+
+                    <Button
+                        android:id="@+id/btn_portal_add"
+                        android:layout_width="match_parent"
+                        android:layout_height="48dp"
+                        android:layout_marginBottom="8dp"
+                        android:text="添加传送门"
+                        android:textAllCaps="false"
+                        android:background="@drawable/button_background_dark"
+                        android:textColor="#FFFFFF"
+                        android:paddingStart="16dp"
+                        android:paddingEnd="16dp" />
+
+                    <Button
+                        android:id="@+id/btn_portal_manage"
+                        android:layout_width="match_parent"
+                        android:layout_height="48dp"
+                        android:layout_marginBottom="8dp"
+                        android:text="管理传送门"
+                        android:textAllCaps="false"
+                        android:background="@drawable/button_background_dark"
+                        android:textColor="#FFFFFF"
+                        android:paddingStart="16dp"
+                        android:paddingEnd="16dp" />
+
+                    <Button
+                        android:id="@+id/btn_portal_toggle_edit"
+                        android:layout_width="match_parent"
+                        android:layout_height="48dp"
+                        android:layout_marginBottom="16dp"
+                        android:text="切换编辑模式"
+                        android:textAllCaps="false"
+                        android:background="@drawable/button_background_dark"
+                        android:textColor="#FFFFFF"
+                        android:paddingStart="16dp"
+                        android:paddingEnd="16dp" />
+
                 </LinearLayout>
             </ScrollView>
 
