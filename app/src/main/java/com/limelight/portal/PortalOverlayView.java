@@ -4,9 +4,11 @@ import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.DashPathEffect;
 import android.graphics.Paint;
 import android.graphics.RectF;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 import com.limelight.Game;
@@ -34,6 +36,12 @@ public class PortalOverlayView extends View {
     private boolean isResizing = false;
     private int dragHandle = -1; // 0: 左上, 1: 右上, 2: 左下, 3: 右下, -1: 移动整个选框
     private float lastTouchX, lastTouchY;
+
+    // 双击检测
+    private long lastTouchTime = 0;
+    private static final int DOUBLE_TAP_THRESHOLD = 300; // 毫秒
+    private float lastTapX, lastTapY;
+    private static final float TOUCH_SLOP = 20f; // 像素容差
 
     // 输入映射状态
     private boolean isPortalTouchActive = false;
@@ -94,22 +102,43 @@ public class PortalOverlayView extends View {
             return;
         }
 
-        // 绘制目标区域背景（半透明黑色）
-        canvas.drawRect(config.dstRect, new Paint(Color.argb(128, 0, 0, 0)));
+        // 将目标矩形从屏幕坐标转换为视图坐标
+        RectF dstRectView = screenToViewRect(config.dstRect);
 
-        // 如果有关联的位图，绘制到目标区域
+        // 绘制目标区域背景（半透明黑色）
+        canvas.drawRect(dstRectView, new Paint(Color.argb(128, 0, 0, 0)));
+
+        // 如果有关联的位图，绘制到目标区域（1:1拉伸填充）
         if (portalBitmap != null && !portalBitmap.isRecycled()) {
-            canvas.drawBitmap(portalBitmap, null, config.dstRect, bitmapPaint);
+            float bitmapWidth = portalBitmap.getWidth();
+            float bitmapHeight = portalBitmap.getHeight();
+            float dstWidth = dstRectView.width();
+            float dstHeight = dstRectView.height();
+            Log.d(TAG, String.format("onDraw: bitmap=%dx%d dstView=%dx%d stretch to dstRectView",
+                    (int)bitmapWidth, (int)bitmapHeight, (int)dstWidth, (int)dstHeight));
+            // 直接使用目标矩形进行绘制（拉伸填充）
+            canvas.drawBitmap(portalBitmap, null, dstRectView, bitmapPaint);
         }
 
-        // 绘制目标区域边框
-        borderPaint.setColor(config.borderColor);
-        borderPaint.setStrokeWidth(config.borderWidth);
-        canvas.drawRect(config.dstRect, borderPaint);
+        // 绘制目标区域边框（如果边框宽度>0）
+        if (config.borderWidth > 0) {
+            borderPaint.setColor(config.borderColor);
+            borderPaint.setStrokeWidth(config.borderWidth);
+            canvas.drawRect(dstRectView, borderPaint);
+        }
 
-        // 如果当前是编辑模式，绘制拖拽手柄
+        // 如果当前是编辑模式，绘制编辑矩形边框和拖拽手柄
         if (isEditing()) {
-            drawHandles(canvas, getEditRectScreen());
+            RectF editRectView = screenToViewRect(getEditRectScreen());
+            // 绘制编辑矩形边框（蓝色虚线）
+            Paint editRectPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+            editRectPaint.setColor(Color.BLUE);
+            editRectPaint.setStyle(Paint.Style.STROKE);
+            editRectPaint.setStrokeWidth(3f);
+            editRectPaint.setPathEffect(new DashPathEffect(new float[]{10, 5}, 0));
+            canvas.drawRect(editRectView, editRectPaint);
+            // 绘制手柄
+            drawHandles(canvas, editRectView);
         }
     }
 
@@ -135,11 +164,33 @@ public class PortalOverlayView extends View {
             float top = config.srcRect.top * streamHeight + location[1];
             float right = config.srcRect.right * streamWidth + location[0];
             float bottom = config.srcRect.bottom * streamHeight + location[1];
+            Log.d(TAG, String.format("getEditRectScreen src: stream=%dx%d loc=(%d,%d) srcRect=(%.3f,%.3f,%.3f,%.3f) screenRect=(%.1f,%.1f,%.1f,%.1f)",
+                    streamWidth, streamHeight, location[0], location[1],
+                    config.srcRect.left, config.srcRect.top, config.srcRect.right, config.srcRect.bottom,
+                    left, top, right, bottom));
             return new RectF(left, top, right, bottom);
         } else {
             // editMode == 2 或默认：目标区域（已经是屏幕坐标）
+            Log.d(TAG, String.format("getEditRectScreen dst: dstRect=(%.1f,%.1f,%.1f,%.1f)",
+                    config.dstRect.left, config.dstRect.top, config.dstRect.right, config.dstRect.bottom));
             return config.dstRect;
         }
+    }
+
+    /**
+     * 将屏幕坐标矩形转换为当前视图的坐标矩形
+     */
+    private RectF screenToViewRect(RectF screenRect) {
+        int[] location = new int[2];
+        getLocationOnScreen(location);
+        float viewLeft = screenRect.left - location[0];
+        float viewTop = screenRect.top - location[1];
+        float viewRight = screenRect.right - location[0];
+        float viewBottom = screenRect.bottom - location[1];
+        Log.d(TAG, String.format("screenToViewRect: screen=(%.1f,%.1f,%.1f,%.1f) viewLoc=(%d,%d) viewRect=(%.1f,%.1f,%.1f,%.1f)",
+                screenRect.left, screenRect.top, screenRect.right, screenRect.bottom,
+                location[0], location[1], viewLeft, viewTop, viewRight, viewBottom));
+        return new RectF(viewLeft, viewTop, viewRight, viewBottom);
     }
 
     private void drawHandles(Canvas canvas, RectF rect) {
@@ -148,6 +199,9 @@ public class PortalOverlayView extends View {
         float right = rect.right;
         float bottom = rect.bottom;
         float halfHandle = HANDLE_SIZE / 2;
+
+        Log.d(TAG, String.format("drawHandles: rect=(%.1f,%.1f,%.1f,%.1f) view size=%dx%d",
+                left, top, right, bottom, getWidth(), getHeight()));
 
         // 四个角的手柄
         canvas.drawCircle(left, top, halfHandle, handlePaint);
@@ -166,16 +220,34 @@ public class PortalOverlayView extends View {
         float y = event.getY();
         int action = event.getActionMasked();
 
+        // 双击检测
+        if (action == MotionEvent.ACTION_DOWN) {
+            long currentTime = System.currentTimeMillis();
+            if (currentTime - lastTouchTime < DOUBLE_TAP_THRESHOLD
+                    && Math.abs(x - lastTapX) < TOUCH_SLOP
+                    && Math.abs(y - lastTapY) < TOUCH_SLOP) {
+                // 双击事件
+                handleDoubleTap(x, y);
+                lastTouchTime = 0; // 重置以避免重复检测
+                return true;
+            } else {
+                lastTouchTime = currentTime;
+                lastTapX = x;
+                lastTapY = y;
+            }
+        }
+
         // 编辑模式：处理拖拽和调整大小
         if (isEditing()) {
             RectF editRectScreen = getEditRectScreen();
+            RectF editRectView = screenToViewRect(editRectScreen);
             switch (action) {
                 case MotionEvent.ACTION_DOWN:
-                    // 检查是否点击在手柄上
-                    dragHandle = getTouchedHandle(x, y, editRectScreen);
+                    // 检查是否点击在手柄上（使用视图坐标）
+                    dragHandle = getTouchedHandle(x, y, editRectView);
                     if (dragHandle >= 0) {
                         isResizing = true;
-                    } else if (editRectScreen.contains(x, y)) {
+                    } else if (editRectView.contains(x, y)) {
                         isDragging = true;
                     } else {
                         return false; // 点击外部，不处理
@@ -361,6 +433,113 @@ public class PortalOverlayView extends View {
         if (getParent() instanceof PortalManagerView) {
             ((PortalManagerView) getParent()).saveConfigs();
         }
+    }
+
+    /**
+     * 获取源区域在屏幕上的矩形（像素坐标）
+     */
+    private RectF getSrcRectScreen() {
+        View streamView = game.getStreamView();
+        if (streamView == null) return new RectF();
+        int streamWidth = streamView.getWidth();
+        int streamHeight = streamView.getHeight();
+        int[] location = new int[2];
+        streamView.getLocationOnScreen(location);
+        float left = config.srcRect.left * streamWidth + location[0];
+        float top = config.srcRect.top * streamHeight + location[1];
+        float right = config.srcRect.right * streamWidth + location[0];
+        float bottom = config.srcRect.bottom * streamHeight + location[1];
+        return new RectF(left, top, right, bottom);
+    }
+
+    /**
+     * 处理双击事件
+     * 仅在编辑模式下弹出设置对话框；非编辑模式下无操作。
+     */
+    private void handleDoubleTap(float x, float y) {
+        // 将视图坐标转换为屏幕坐标
+        int[] viewLocation = new int[2];
+        getLocationOnScreen(viewLocation);
+        float screenX = x + viewLocation[0];
+        float screenY = y + viewLocation[1];
+
+        RectF srcRectScreen = getSrcRectScreen();
+        RectF dstRectScreen = config.dstRect;
+
+        // 判断双击位置
+        boolean inSrc = srcRectScreen.contains(screenX, screenY);
+        boolean inDst = dstRectScreen.contains(screenX, screenY);
+
+        // 记录双击位置
+        Log.d(TAG, String.format("handleDoubleTap: (%.1f,%.1f) inSrc=%b inDst=%b editing=%b",
+                screenX, screenY, inSrc, inDst, config.editing));
+
+        if (config.editing) {
+            // 编辑模式下弹出设置对话框
+            showPortalSettingsDialog();
+        } else {
+            // 非编辑模式下，双击无操作（不进入编辑模式，不弹出对话框）
+            Log.d(TAG, "非编辑模式下双击，无操作");
+        }
+    }
+
+    /**
+     * 显示传送门设置对话框
+     */
+    private void showPortalSettingsDialog() {
+        android.app.AlertDialog.Builder builder = new android.app.AlertDialog.Builder(getContext());
+        builder.setTitle("传送门设置 - " + config.name);
+        String[] items = {
+                "删除传送门",
+                "设置帧率限制",
+                "设置缩放比例",
+                "设置宽高比",
+                "切换编辑模式",
+                "取消"
+        };
+        builder.setItems(items, (dialog, which) -> {
+            switch (which) {
+                case 0: // 删除传送门
+                    if (getParent() instanceof PortalManagerView) {
+                        ((PortalManagerView) getParent()).removePortal(config.id);
+                    }
+                    break;
+                case 1: // 设置帧率限制
+                    // 暂未实现
+                    showNotImplementedToast();
+                    break;
+                case 2: // 设置缩放比例
+                    showNotImplementedToast();
+                    break;
+                case 3: // 设置宽高比
+                    showNotImplementedToast();
+                    break;
+                case 4: // 切换编辑模式
+                    toggleEditingMode();
+                    break;
+                case 5: // 取消
+                    // 什么都不做
+                    break;
+            }
+        });
+        builder.setNegativeButton("关闭", null);
+        builder.show();
+    }
+
+    private void showNotImplementedToast() {
+        android.widget.Toast.makeText(getContext(), "功能尚未实现", android.widget.Toast.LENGTH_SHORT).show();
+    }
+
+    private void toggleEditingMode() {
+        if (config.editing) {
+            config.editMode = (config.editMode == 1) ? 2 : 1;
+        } else {
+            config.editing = true;
+            config.editMode = 1;
+        }
+        saveConfig();
+        invalidate();
+        Log.d(TAG, "切换编辑模式: editing=" + config.editing + ", editMode=" + config.editMode);
     }
 
     /**

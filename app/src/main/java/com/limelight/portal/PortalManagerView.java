@@ -20,6 +20,7 @@ import com.google.gson.reflect.TypeToken;
 import com.limelight.Game;
 import com.limelight.R;
 import com.limelight.ui.StreamView;
+import com.limelight.preferences.PreferenceConfiguration;
 
 import java.lang.reflect.Type;
 import java.util.ArrayList;
@@ -138,6 +139,49 @@ public class PortalManagerView extends FrameLayout {
         }
     }
 
+    private RectF getVideoContentRect() {
+        int viewWidth = streamView.getWidth();
+        int viewHeight = streamView.getHeight();
+        if (viewWidth == 0 || viewHeight == 0) {
+            Log.d(TAG, "getVideoContentRect: view size zero");
+            return new RectF(0, 0, viewWidth, viewHeight);
+        }
+        PreferenceConfiguration prefConfig = game.getPrefConfig();
+        if (prefConfig == null) {
+            Log.d(TAG, "getVideoContentRect: prefConfig null");
+            return new RectF(0, 0, viewWidth, viewHeight);
+        }
+        int videoWidth = prefConfig.width;
+        int videoHeight = prefConfig.height;
+        if (prefConfig.stretchVideo) {
+            // 拉伸视频，填充整个视图
+            Log.d(TAG, String.format("getVideoContentRect: stretchVideo true, view=%dx%d", viewWidth, viewHeight));
+            return new RectF(0, 0, viewWidth, viewHeight);
+        }
+        // 计算保持宽高比的视频区域（居中）
+        float viewAspect = (float) viewWidth / viewHeight;
+        float videoAspect = (float) videoWidth / videoHeight;
+        int contentWidth, contentHeight, contentLeft, contentTop;
+        if (viewAspect > videoAspect) {
+            // 视图更宽，视频在水平方向有黑边
+            contentHeight = viewHeight;
+            contentWidth = (int) (contentHeight * videoAspect);
+            contentLeft = (viewWidth - contentWidth) / 2;
+            contentTop = 0;
+        } else {
+            // 视图更高，视频在垂直方向有黑边
+            contentWidth = viewWidth;
+            contentHeight = (int) (contentWidth / videoAspect);
+            contentLeft = 0;
+            contentTop = (viewHeight - contentHeight) / 2;
+        }
+        RectF rect = new RectF(contentLeft, contentTop, contentLeft + contentWidth, contentTop + contentHeight);
+        Log.d(TAG, String.format("getVideoContentRect: view=%dx%d video=%dx%d aspect=%.3f content=(%d,%d,%d,%d)",
+                viewWidth, viewHeight, videoWidth, videoHeight, videoAspect,
+                contentLeft, contentTop, contentLeft + contentWidth, contentTop + contentHeight));
+        return rect;
+    }
+
     private void startCaptureThread() {
         // 启动一个线程定期截取源区域画面
         captureThread = new BitmapCaptureThread();
@@ -175,76 +219,152 @@ public class PortalManagerView extends FrameLayout {
 
         private Bitmap captureSourceRegion(RectF srcRect) {
             if (streamView == null || streamView.getWidth() == 0 || streamView.getHeight() == 0) {
+                Log.d(TAG, "captureSourceRegion: streamView null or zero size");
                 return null;
             }
-            // 将归一化坐标转换为像素坐标
-            int viewWidth = streamView.getWidth();
-            int viewHeight = streamView.getHeight();
-            int left = (int) (srcRect.left * viewWidth);
-            int top = (int) (srcRect.top * viewHeight);
-            int right = (int) (srcRect.right * viewWidth);
-            int bottom = (int) (srcRect.bottom * viewHeight);
+            // 获取视频内容区域（考虑黑边和拉伸）
+            RectF videoRect = getVideoContentRect();
+            // 获取视频原始分辨率
+            PreferenceConfiguration prefConfig = game.getPrefConfig();
+            int videoWidth = 0, videoHeight = 0;
+            boolean stretchVideo = false;
+            if (prefConfig != null) {
+                videoWidth = prefConfig.width;
+                videoHeight = prefConfig.height;
+                stretchVideo = prefConfig.stretchVideo;
+            }
+            Log.d(TAG, String.format("captureSourceRegion: streamView=%dx%d videoRect=(%.1f,%.1f,%.1f,%.1f) videoRect size=%.1fx%.1f",
+                    streamView.getWidth(), streamView.getHeight(),
+                    videoRect.left, videoRect.top, videoRect.right, videoRect.bottom,
+                    videoRect.width(), videoRect.height()));
+            Log.d(TAG, String.format("captureSourceRegion: video original=%dx%d stretchVideo=%b",
+                    videoWidth, videoHeight, stretchVideo));
+            // 将归一化坐标映射到视频内容区域（当前方法）
+            float left = videoRect.left + srcRect.left * videoRect.width();
+            float top = videoRect.top + srcRect.top * videoRect.height();
+            float right = videoRect.left + srcRect.right * videoRect.width();
+            float bottom = videoRect.top + srcRect.bottom * videoRect.height();
+            // 转换为整数像素坐标
+            int leftPx = (int) left;
+            int topPx = (int) top;
+            int rightPx = (int) right;
+            int bottomPx = (int) bottom;
             // 确保矩形在视图范围内
-            if (left < 0) left = 0;
-            if (top < 0) top = 0;
-            if (right > viewWidth) right = viewWidth;
-            if (bottom > viewHeight) bottom = viewHeight;
-            if (left >= right || top >= bottom) {
+            if (leftPx < 0) leftPx = 0;
+            if (topPx < 0) topPx = 0;
+            if (rightPx > streamView.getWidth()) rightPx = streamView.getWidth();
+            if (bottomPx > streamView.getHeight()) bottomPx = streamView.getHeight();
+            if (leftPx >= rightPx || topPx >= bottomPx) {
+                Log.d(TAG, "captureSourceRegion: invalid capture rectangle");
                 return null;
             }
-            final int finalLeft = left;
-            final int finalTop = top;
-            final int finalRight = right;
-            final int finalBottom = bottom;
+            final int finalLeft = leftPx;
+            final int finalTop = topPx;
+            final int finalRight = rightPx;
+            final int finalBottom = bottomPx;
             final int width = finalRight - finalLeft;
             final int height = finalBottom - finalTop;
             if (width <= 0 || height <= 0) {
+                Log.d(TAG, "captureSourceRegion: zero width or height");
                 return null;
             }
 
-            // 使用PixelCopy API（Android 7.0+）截取SurfaceView区域
+            // 调试日志
+            Log.d(TAG, String.format("captureSourceRegion: srcRect=(%.3f,%.3f,%.3f,%.3f) captureRect=(%d,%d,%d,%d) size=%dx%d",
+                    srcRect.left, srcRect.top, srcRect.right, srcRect.bottom,
+                    finalLeft, finalTop, finalRight, finalBottom, width, height));
+            // 计算基于原始视频分辨率的捕获矩形（用于诊断）
+            boolean outOfBounds = false;
+            if (videoWidth > 0 && videoHeight > 0) {
+                int srcLeftPx = (int) (srcRect.left * videoWidth);
+                int srcTopPx = (int) (srcRect.top * videoHeight);
+                int srcRightPx = (int) (srcRect.right * videoWidth);
+                int srcBottomPx = (int) (srcRect.bottom * videoHeight);
+                Log.d(TAG, String.format("captureSourceRegion: original video capture rect=(%d,%d,%d,%d) size=%dx%d",
+                        srcLeftPx, srcTopPx, srcRightPx, srcBottomPx,
+                        srcRightPx - srcLeftPx, srcBottomPx - srcTopPx));
+                // 检查是否部分超出原始视频缓冲区
+                if (srcLeftPx < 0 || srcTopPx < 0 || srcRightPx > videoWidth || srcBottomPx > videoHeight) {
+                    outOfBounds = true;
+                    Log.d(TAG, "captureSourceRegion: source rectangle partially out of original video bounds, using fallback");
+                }
+            }
+
+            // 始终使用回退方法，确保捕获的画面与用户看到的拉伸画面一致
+            Log.d(TAG, "captureSourceRegion: using fallback method for all regions");
+            return captureFallback(srcRect, videoRect, videoWidth, videoHeight, finalLeft, finalTop, width, height);
+        }
+
+        private Bitmap captureFallback(RectF srcRect, RectF videoRect, int videoWidth, int videoHeight,
+                                       int viewLeft, int viewTop, int viewWidth, int viewHeight) {
+            Log.d(TAG, "captureFallback: using fallback method");
+            // 截取整个视频区域
+            int fullWidth = (int) videoRect.width();
+            int fullHeight = (int) videoRect.height();
+            if (fullWidth <= 0 || fullHeight <= 0) {
+                Log.w(TAG, "captureFallback: invalid videoRect size");
+                return null;
+            }
+            final Bitmap[] fullBitmapHolder = new Bitmap[1];
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                try {
-                    Bitmap bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
-                    final CountDownLatch latch = new CountDownLatch(1);
-                    final int[] copyResult = new int[]{PixelCopy.SUCCESS};
-                    // PixelCopy.request必须在UI线程调用
-                    mainHandler.post(() -> {
-                        if (streamView.getHolder().getSurface().isValid()) {
-                            Rect srcRectPx = new Rect(finalLeft, finalTop, finalRight, finalBottom);
-                            PixelCopy.request(streamView, srcRectPx, bitmap, (copyResultValue) -> {
-                                copyResult[0] = copyResultValue;
-                                latch.countDown();
-                            }, new Handler(Looper.getMainLooper()));
-                        } else {
-                            copyResult[0] = PixelCopy.ERROR_SOURCE_NO_DATA;
+                fullBitmapHolder[0] = Bitmap.createBitmap(fullWidth, fullHeight, Bitmap.Config.ARGB_8888);
+                final CountDownLatch latch = new CountDownLatch(1);
+                final int[] copyResult = new int[]{PixelCopy.SUCCESS};
+                mainHandler.post(() -> {
+                    if (streamView.getHolder().getSurface().isValid()) {
+                        Rect srcRectPx = new Rect((int) videoRect.left, (int) videoRect.top,
+                                (int) videoRect.right, (int) videoRect.bottom);
+                        PixelCopy.request(streamView, srcRectPx, fullBitmapHolder[0], (copyResultValue) -> {
+                            copyResult[0] = copyResultValue;
                             latch.countDown();
-                        }
-                    });
-                    // 等待复制完成，最多500ms
-                    if (!latch.await(500, TimeUnit.MILLISECONDS)) {
-                        Log.w(TAG, "PixelCopy timeout");
-                        return null;
-                    }
-                    if (copyResult[0] == PixelCopy.SUCCESS) {
-                        return bitmap;
+                        }, new Handler(Looper.getMainLooper()));
                     } else {
-                        Log.w(TAG, "PixelCopy failed with error: " + copyResult[0]);
-                        bitmap.recycle();
+                        copyResult[0] = PixelCopy.ERROR_SOURCE_NO_DATA;
+                        latch.countDown();
+                    }
+                });
+                try {
+                    if (!latch.await(500, TimeUnit.MILLISECONDS)) {
+                        Log.w(TAG, "captureFallback: PixelCopy timeout");
+                        fullBitmapHolder[0].recycle();
                         return null;
                     }
-                } catch (Exception e) {
-                    Log.e(TAG, "PixelCopy exception", e);
+                    if (copyResult[0] != PixelCopy.SUCCESS) {
+                        Log.w(TAG, "captureFallback: PixelCopy failed with error " + copyResult[0]);
+                        fullBitmapHolder[0].recycle();
+                        return null;
+                    }
+                } catch (InterruptedException e) {
+                    Log.e(TAG, "captureFallback interrupted", e);
+                    if (fullBitmapHolder[0] != null) {
+                        fullBitmapHolder[0].recycle();
+                    }
                     return null;
                 }
             } else {
-                // 低版本Android：使用View.getDrawingCache（已弃用）或创建一个空位图作为占位
-                // 这里返回一个纯色位图用于测试
-                Bitmap bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
-                Canvas canvas = new Canvas(bitmap);
-                canvas.drawColor(Color.argb(255, 100, 100, 255)); // 蓝色半透明
-                return bitmap;
+                // 低版本Android：返回一个纯色位图
+                fullBitmapHolder[0] = Bitmap.createBitmap(fullWidth, fullHeight, Bitmap.Config.ARGB_8888);
+                Canvas canvas = new Canvas(fullBitmapHolder[0]);
+                canvas.drawColor(Color.argb(255, 100, 100, 255));
             }
+            // 从完整位图中裁剪出目标区域
+            // 计算目标区域在完整位图中的相对位置
+            int cropLeft = viewLeft - (int) videoRect.left;
+            int cropTop = viewTop - (int) videoRect.top;
+            // 确保裁剪区域在边界内
+            if (cropLeft < 0) cropLeft = 0;
+            if (cropTop < 0) cropTop = 0;
+            if (cropLeft + viewWidth > fullWidth) viewWidth = fullWidth - cropLeft;
+            if (cropTop + viewHeight > fullHeight) viewHeight = fullHeight - cropTop;
+            if (viewWidth <= 0 || viewHeight <= 0) {
+                Log.w(TAG, "captureFallback: crop area out of bounds");
+                fullBitmapHolder[0].recycle();
+                return null;
+            }
+            Bitmap cropped = Bitmap.createBitmap(fullBitmapHolder[0], cropLeft, cropTop, viewWidth, viewHeight);
+            fullBitmapHolder[0].recycle();
+            Log.d(TAG, String.format("captureFallback: cropped bitmap size=%dx%d", cropped.getWidth(), cropped.getHeight()));
+            return cropped;
         }
 
         public void stopCapture() {
