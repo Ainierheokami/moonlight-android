@@ -80,6 +80,12 @@ public class PortalManagerView extends FrameLayout {
                 Log.e(TAG, "Failed to parse portal configs from JSON");
             }
         }
+        // 游戏开始时重置所有传送门的编辑状态为非编辑模式
+        for (PortalConfig config : portalConfigs) {
+            config.editing = false;
+            config.editMode = 0;
+        }
+        Log.d(TAG, "重置传送门编辑状态为非编辑模式");
     }
 
     public void saveConfigs() {
@@ -380,6 +386,7 @@ public class PortalManagerView extends FrameLayout {
      */
     public void toggleEditingMode() {
         if (portalConfigs.isEmpty()) {
+            Log.d(TAG, "toggleEditingMode: portalConfigs empty, skipping");
             return;
         }
         // 确定当前全局编辑状态
@@ -392,6 +399,7 @@ public class PortalManagerView extends FrameLayout {
                 break;
             }
         }
+        Log.d(TAG, "toggleEditingMode: anyEditing=" + anyEditing + ", currentEditMode=" + currentEditMode);
         int newEditMode;
         boolean newEditingState;
         if (!anyEditing) {

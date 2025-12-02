@@ -437,25 +437,54 @@ public class GameMenuFragment extends Fragment {
         // 切换编辑模式
         Button btnPortalToggleEdit = getView().findViewById(R.id.btn_portal_toggle_edit);
         if (btnPortalToggleEdit != null) {
-            // 根据当前编辑模式设置按钮文本
+            // 根据当前编辑模式计算下一步状态并设置按钮文本
             PortalManagerView portalManager = game.getPortalManagerView();
             if (portalManager != null) {
-                int editMode = portalManager.getCurrentEditMode();
-                if (editMode == 1) {
-                    btnPortalToggleEdit.setText("编辑源区域");
-                } else if (editMode == 2) {
-                    btnPortalToggleEdit.setText("编辑目标区域");
-                } else {
-                    btnPortalToggleEdit.setText("切换编辑模式");
+                int currentMode = portalManager.getCurrentEditMode();
+                Log.d("GameMenuFragment", "传送门编辑模式 currentMode=" + currentMode);
+                int nextMode;
+                String buttonText;
+                if (currentMode == 0) {
+                    nextMode = 1;
+                    buttonText = "编辑源区域";
+                } else if (currentMode == 1) {
+                    nextMode = 2;
+                    buttonText = "编辑目标区域";
+                } else { // currentMode == 2
+                    nextMode = 0;
+                    buttonText = "退出编辑模式";
                 }
+                Log.d("GameMenuFragment", "下一步模式 nextMode=" + nextMode + ", 按钮文本=" + buttonText);
+                btnPortalToggleEdit.setText(buttonText);
+                // 存储下一步状态以便在点击时使用
+                btnPortalToggleEdit.setTag(nextMode);
+            } else {
+                Log.d("GameMenuFragment", "portalManager 为空");
+                btnPortalToggleEdit.setText("切换编辑模式");
             }
             btnPortalToggleEdit.setOnClickListener(v -> {
                 hideMenuWithAnimation();
                 // 切换所有传送门的编辑模式
                 if (portalManager != null) {
+                    Log.d("GameMenuFragment", "点击传送门编辑按钮，当前标签 nextMode=" + btnPortalToggleEdit.getTag());
                     portalManager.toggleEditingMode();
-                    // 更新按钮文本（下次打开菜单时会刷新）
-                    Toast.makeText(game, "切换编辑模式", Toast.LENGTH_SHORT).show();
+                    // 获取切换后的新状态（即原来的下一步状态）
+                    Integer nextMode = (Integer) btnPortalToggleEdit.getTag();
+                    String notificationText;
+                    if (nextMode == null) {
+                        notificationText = "切换编辑模式";
+                    } else if (nextMode == 1) {
+                        notificationText = "进入编辑源区域模式";
+                    } else if (nextMode == 2) {
+                        notificationText = "进入编辑目标区域模式";
+                    } else { // nextMode == 0
+                        notificationText = "已退出编辑模式";
+                    }
+                    Log.d("GameMenuFragment", "发送通知: " + notificationText);
+                    // 使用游戏内通知替代Toast
+                    game.postNotification(notificationText, 2000);
+                } else {
+                    Log.d("GameMenuFragment", "portalManager 为空，无法切换编辑模式");
                 }
             });
         }
