@@ -21,6 +21,9 @@ import com.limelight.binding.video.MediaCodecHelper;
 import com.limelight.binding.video.PerfOverlayListener;
 import com.limelight.heokami.GameGridLines;
 import com.limelight.heokami.VirtualKeyboardMenu;
+import com.limelight.heokami.FloatingVirtualKeyboardFragment;
+import android.app.FragmentManager;
+import android.app.Fragment;
 import com.limelight.nvstream.NvConnection;
 import com.limelight.nvstream.NvConnectionListener;
 import com.limelight.nvstream.StreamConfiguration;
@@ -174,6 +177,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
     private float lastAbsTouchDownX, lastAbsTouchDownY;
 
     private boolean isHidingOverlays;
+    private boolean disableNonKeyboardTouch = false; // 屏蔽非虚拟键盘的触摸输入
     private TextView notificationOverlayView;
     private int requestedNotificationOverlayVisibility = View.GONE;
     private TextView performanceOverlayView;
@@ -2202,6 +2206,10 @@ public class Game extends Activity implements SurfaceHolder.Callback,
             // This case is for fingers
             else
             {
+                // 屏蔽非虚拟键盘的触摸输入
+                if (disableNonKeyboardTouch) {
+                    return true;
+                }
                 if (virtualController != null &&
                         (virtualController.getControllerMode() == VirtualController.ControllerMode.MoveButtons ||
                          virtualController.getControllerMode() == VirtualController.ControllerMode.ResizeButtons)) {
@@ -3050,6 +3058,49 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         // Save the preference
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
         prefs.edit().putBoolean("checkbox_show_onscreen_keyboard", prefConfig.onscreenKeyboard).apply();
+    }
+
+    /**
+     * 切换悬浮键盘显示/隐藏
+     */
+    public void toggleFloatingKeyboard() {
+        FragmentManager fm = getFragmentManager();
+        Fragment fragment = fm.findFragmentByTag("floating_keyboard");
+        if (fragment != null && fragment instanceof FloatingVirtualKeyboardFragment) {
+            ((FloatingVirtualKeyboardFragment) fragment).dismiss();
+            postNotification(getResources().getString(R.string.floating_keyboard_hidden), 2000);
+        } else {
+            FloatingVirtualKeyboardFragment.Companion.show(this);
+            postNotification(getResources().getString(R.string.floating_keyboard_shown), 2000);
+        }
+    }
+
+    /**
+     * 切换触摸板开关（屏蔽非虚拟键盘的触摸输入）
+     */
+    public void toggleTouchpad() {
+        disableNonKeyboardTouch = !disableNonKeyboardTouch;
+        if (disableNonKeyboardTouch) {
+            postNotification(getResources().getString(R.string.touchpad_disabled), 2000);
+        } else {
+            postNotification(getResources().getString(R.string.touchpad_enabled), 2000);
+        }
+    }
+
+    /**
+     * 根据data值设置触摸板开关
+     * @param mode 1=开启屏蔽,2=关闭屏蔽,其他值=切换
+     */
+    public void setTouchpadBlock(int mode) {
+        if (mode == 1) {
+            disableNonKeyboardTouch = true;
+            postNotification(getResources().getString(R.string.touchpad_disabled), 2000);
+        } else if (mode == 2) {
+            disableNonKeyboardTouch = false;
+            postNotification(getResources().getString(R.string.touchpad_enabled), 2000);
+        } else {
+            toggleTouchpad(); // 默认切换
+        }
     }
 
     // 通知显示

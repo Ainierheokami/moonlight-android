@@ -406,4 +406,12 @@
     <string name="game_menu_touch_mode_trackpad">触摸板模式</string>
     <string name="game_menu_touch_mode_mouse">鼠标模式</string>
     <string name="back_button">返回</string>
+    <string name="macro_type_floating_keyboard_toggle">悬浮键盘切换</string>
+    <string name="macro_type_touchpad_toggle">触摸板开关</string>
+    <string name="macro_type_touch_toggle_hint">Data: 0=多点,1=触控板,2=鼠标 (默认循环)</string>
+    <string name="macro_type_touchpad_toggle_hint">Data: 1=开启,2=关闭 (默认循环开关)</string>
+    <string name="floating_keyboard_hidden">悬浮键盘已隐藏</string>
+    <string name="floating_keyboard_shown">悬浮键盘已显示</string>
+    <string name="touchpad_disabled">触摸板已禁用（仅虚拟键盘触摸）</string>
+    <string name="touchpad_enabled">触摸板已启用</string>
 </resources>

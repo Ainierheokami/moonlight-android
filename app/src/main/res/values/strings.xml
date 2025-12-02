@@ -434,6 +434,10 @@
     <string name="macro_type_key_toggle">Key Toggle</string>
     <string name="macro_type_key_toggle_group">Key Toggle Group</string>
     <string name="macro_type_touch_toggle">Touch Toggle</string>
+    <string name="macro_type_floating_keyboard_toggle">Floating Keyboard Toggle</string>
+    <string name="macro_type_touchpad_toggle">Touchpad Switch</string>
+    <string name="macro_type_touch_toggle_hint">Data: 0=multi‑touch,1=trackpad,2=mouse (default cycle)</string>
+    <string name="macro_type_touchpad_toggle_hint">Data: 1=on,2=off (default toggle)</string>
     <string name="button_type_button">Button</string>
     <string name="button_type_hot_keys">Macros/hotkeys</string>
     <string name="button_type_joystick">Joystick</string>
@@ -469,4 +473,8 @@
     <string name="pairing_interrupted">配对被中断</string>
     <string name="pairing_unknown_error">配对过程中发生未知错误</string>
     <string name="pairing_max_retries">配对失败，已达到最大重试次数</string>
+    <string name="floating_keyboard_hidden">悬浮键盘已隐藏</string>
+    <string name="floating_keyboard_shown">悬浮键盘已显示</string>
+    <string name="touchpad_disabled">触摸板已禁用（仅虚拟键盘触摸）</string>
+    <string name="touchpad_enabled">触摸板已启用</string>
 </resources>

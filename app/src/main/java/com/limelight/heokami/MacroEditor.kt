@@ -14,6 +14,8 @@ import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.Toast
+import android.widget.TextView
+import androidx.core.content.ContextCompat
 import androidx.annotation.StringRes
 import androidx.appcompat.view.ContextThemeWrapper
 import androidx.recyclerview.widget.ItemTouchHelper
@@ -25,6 +27,7 @@ import com.limelight.R
 import com.limelight.binding.input.virtual_keyboard.VirtualKeyboard
 import com.limelight.binding.input.virtual_keyboard.VirtualKeyboardElement
 import com.limelight.heokami.VirtualKeyboardVkCode.replaceSpecialKeys
+import com.limelight.heokami.FloatingVirtualKeyboardFragment
 import org.json.JSONObject
 import java.util.Collections
 import kotlin.experimental.inv
@@ -36,7 +39,9 @@ enum class MacroType(@StringRes val displayNameRes: Int) {
     SLEEP(R.string.macro_type_sleep),
     KEY_TOGGLE(R.string.macro_type_key_toggle),
     KEY_TOGGLE_GROUP(R.string.macro_type_key_toggle_group),
-    TOUCH_TOGGLE(R.string.macro_type_touch_toggle);
+    TOUCH_TOGGLE(R.string.macro_type_touch_toggle),
+    FLOATING_KEYBOARD_TOGGLE(R.string.macro_type_floating_keyboard_toggle),
+    TOUCHPAD_TOGGLE(R.string.macro_type_touchpad_toggle);
 
     fun getDisplayName(context: Context): String {
         return context.getString(displayNameRes)
@@ -298,10 +303,15 @@ class MacroEditor(private val context: Context, private var jsonData: JSONObject
 
     @SuppressLint("SetTextI18n")
     private fun showAddMacroDialog(index: Int = -1) {
+        // dp 转 px 辅助函数
+        fun dpToPx(dp: Int): Int {
+            val density = context.resources.displayMetrics.density
+            return (dp * density).toInt()
+        }
         val builder = AlertDialog.Builder(context)
         builder.setTitle(context.getString(R.string.macro_editor_add_title))
-
         var macroType = MacroType.KEY_UP
+        lateinit var hintTextView: TextView
 
         val fastKeyDownUpCheckBox = CheckBox(context).apply {
             text = context.getString(R.string.macro_editor_fast_key_down_up)
@@ -390,12 +400,14 @@ class MacroEditor(private val context: Context, private var jsonData: JSONObject
                             fastHotKeyCheckBox.visibility = View.VISIBLE
                             vkButton.visibility = View.VISIBLE
                             idButton.visibility = View.GONE
+                            hintTextView.text = ""
                         }
                         MacroType.KEY_DOWN -> {
                             fastKeyDownUpCheckBox.visibility = View.VISIBLE
                             fastHotKeyCheckBox.visibility = View.VISIBLE
                             vkButton.visibility = View.VISIBLE
                             idButton.visibility = View.GONE
+                            hintTextView.text = ""
                         }
                         MacroType.KEY_TOGGLE -> {
                             fastKeyDownUpCheckBox.visibility = View.GONE
@@ -405,6 +417,7 @@ class MacroEditor(private val context: Context, private var jsonData: JSONObject
                             idButton.setOnClickListener {
                                 VirtualKeyboardMenu.showHasButtonDialog(context, elements, macroData, null)
                             }
+                            hintTextView.text = ""
                         }
                         MacroType.KEY_TOGGLE_GROUP -> {
                             fastKeyDownUpCheckBox.visibility = View.GONE
@@ -414,12 +427,35 @@ class MacroEditor(private val context: Context, private var jsonData: JSONObject
                             idButton.setOnClickListener {
                                 VirtualKeyboardMenu.showHasButtonDialog(context, elements, null, macroData)
                             }
+                            hintTextView.text = ""
+                        }
+                        MacroType.TOUCH_TOGGLE -> {
+                            fastKeyDownUpCheckBox.visibility = View.GONE
+                            fastHotKeyCheckBox.visibility = View.GONE
+                            vkButton.visibility = View.GONE
+                            idButton.visibility = View.GONE
+                            hintTextView.text = context.getString(R.string.macro_type_touch_toggle_hint)
+                        }
+                        MacroType.FLOATING_KEYBOARD_TOGGLE -> {
+                            fastKeyDownUpCheckBox.visibility = View.GONE
+                            fastHotKeyCheckBox.visibility = View.GONE
+                            vkButton.visibility = View.GONE
+                            idButton.visibility = View.GONE
+                            hintTextView.text = ""
+                        }
+                        MacroType.TOUCHPAD_TOGGLE -> {
+                            fastKeyDownUpCheckBox.visibility = View.GONE
+                            fastHotKeyCheckBox.visibility = View.GONE
+                            vkButton.visibility = View.GONE
+                            idButton.visibility = View.GONE
+                            hintTextView.text = context.getString(R.string.macro_type_touchpad_toggle_hint)
                         }
                         else -> {
                             fastKeyDownUpCheckBox.visibility = View.GONE
                             fastHotKeyCheckBox.visibility = View.GONE
                             vkButton.visibility = View.GONE
                             idButton.visibility = View.GONE
+                            hintTextView.text = ""
                         }
                     }
                     fastKeyDownUpCheckBox.invalidate()
@@ -438,10 +474,21 @@ class MacroEditor(private val context: Context, private var jsonData: JSONObject
 
 
 
+        hintTextView = TextView(context).apply {
+            textSize = 12f
+            setTextColor(ContextCompat.getColor(context, android.R.color.darker_gray))
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply {
+                topMargin = dpToPx(8)
+            }
+        }
         val layout = LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
             addView(tabLayout)
             addView(linearLayout)
+            addView(hintTextView)
         }
         builder.setView(layout)
 
@@ -555,6 +602,16 @@ class MacroEditor(private val context: Context, private var jsonData: JSONObject
                 val mode = action.data
                 game.changeTouchMode(mode)
                 executeNextActionWithDelay(virtualKeyboard, index, 0) // KEY_TOGGLE 后立即执行下一个
+            }
+            MacroType.FLOATING_KEYBOARD_TOGGLE.toString() -> {
+                val game = virtualKeyboard.gameContext
+                game.toggleFloatingKeyboard()
+                executeNextActionWithDelay(virtualKeyboard, index, 0)
+            }
+            MacroType.TOUCHPAD_TOGGLE.toString() -> {
+                val game = virtualKeyboard.gameContext
+                game.setTouchpadBlock(action.data)
+                executeNextActionWithDelay(virtualKeyboard, index, 0)
             }
         }
     }
