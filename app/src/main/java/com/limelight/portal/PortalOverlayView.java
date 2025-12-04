@@ -220,10 +220,10 @@ public class PortalOverlayView extends View {
         float y = event.getY();
         int action = event.getActionMasked();
 
-        // 双击检测
+        // 双击检测（仅在编辑模式下有效）
         if (action == MotionEvent.ACTION_DOWN) {
             long currentTime = System.currentTimeMillis();
-            if (currentTime - lastTouchTime < DOUBLE_TAP_THRESHOLD
+            if (isEditing() && currentTime - lastTouchTime < DOUBLE_TAP_THRESHOLD
                     && Math.abs(x - lastTapX) < TOUCH_SLOP
                     && Math.abs(y - lastTapY) < TOUCH_SLOP) {
                 // 双击事件

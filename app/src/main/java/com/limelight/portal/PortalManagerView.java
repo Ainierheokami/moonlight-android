@@ -134,7 +134,9 @@ public class PortalManagerView extends FrameLayout {
         if (view != null) {
             removeView(view);
         }
-        portalConfigs.removeIf(config -> config.id == id);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            portalConfigs.removeIf(config -> config.id == id);
+        }
         saveConfigs();
     }
 
@@ -320,10 +322,12 @@ public class PortalManagerView extends FrameLayout {
                     if (streamView.getHolder().getSurface().isValid()) {
                         Rect srcRectPx = new Rect((int) videoRect.left, (int) videoRect.top,
                                 (int) videoRect.right, (int) videoRect.bottom);
-                        PixelCopy.request(streamView, srcRectPx, fullBitmapHolder[0], (copyResultValue) -> {
-                            copyResult[0] = copyResultValue;
-                            latch.countDown();
-                        }, new Handler(Looper.getMainLooper()));
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                            PixelCopy.request(streamView, srcRectPx, fullBitmapHolder[0], (copyResultValue) -> {
+                                copyResult[0] = copyResultValue;
+                                latch.countDown();
+                            }, new Handler(Looper.getMainLooper()));
+                        }
                     } else {
                         copyResult[0] = PixelCopy.ERROR_SOURCE_NO_DATA;
                         latch.countDown();
