@@ -881,6 +881,19 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         // lifted while focus was not on us. Clear the modifier state.
         this.modifierFlags = 0;
 
+        if (hasFocus) {
+            // Re-apply input grab state when regaining focus to ensure
+            // capture is active if it should be.
+            if (grabbedInput) {
+                setInputGrabState(true);
+            }
+
+            // Allow controller to resume if it was paused or interrupted
+            if (controllerHandler != null) {
+                controllerHandler.resume();
+            }
+        }
+
         // With Android native pointer capture, capture is lost when focus is lost,
         // so it must be requested again when focus is regained.
         inputCaptureProvider.onWindowFocusChanged(hasFocus);
@@ -1203,27 +1216,27 @@ public class Game extends Activity implements SurfaceHolder.Callback,
     @Override
     protected void onPause() {
         currentGameInstance = null;
-        Log.i("MoonDebug", "[Game] onPause: isFinishing=" + isFinishing() + ", connected=" + connected + ", connecting=" + connecting);
+        Log.i("MoonReconnect", "[Game] onPause: isFinishing=" + isFinishing() + ", connected=" + connected + ", connecting=" + connecting);
         
         if (isFinishing()) {
-            Log.i("MoonDebug", "[Game] onPause: stopping controller and input");
+            Log.i("MoonReconnect", "[Game] onPause: stopping controller and input");
             if (controllerHandler != null) {
                 controllerHandler.stop();
             }
             setInputGrabState(false);
         } else {
-            Log.i("MoonDebug", "[Game] onPause: full background suspension");
+            Log.i("MoonReconnect", "[Game] onPause: full background suspension");
             isBackgroundSuspended = true;
             backgroundStartTime = System.currentTimeMillis();
             
             // 只有在启用后台重连功能时才设置重连标志
             if (prefConfig.backgroundReconnectEnabled) {
                 shouldReconnectOnForeground = true;
-                Log.i("MoonDebug", "[Game] onPause: background reconnect enabled, will attempt reconnect");
+                Log.i("MoonReconnect", "[Game] onPause: background reconnect enabled, will attempt reconnect");
                 saveConnectionParams();
             } else {
                 shouldReconnectOnForeground = false;
-                Log.i("MoonDebug", "[Game] onPause: background reconnect disabled, not saving connection params");
+                Log.i("MoonReconnect", "[Game] onPause: background reconnect disabled, not saving connection params");
             }
 
             // 进入后台时，若处于虚拟键盘编辑模式，强制清理编辑遮罩，避免残留
@@ -1235,26 +1248,26 @@ public class Game extends Activity implements SurfaceHolder.Callback,
             try {
                 // 先暂停控制器
                 if (controllerHandler != null) {
-                    Log.i("MoonDebug", "[Game] onPause: controllerHandler.pause()");
+                    Log.i("MoonReconnect", "[Game] onPause: controllerHandler.pause()");
                     controllerHandler.pause();
                 }
 
                 // 完全停止连接
                 if (conn != null) {
-                    Log.i("MoonDebug", "[Game] onPause: conn.stop()");
+                    Log.i("MoonReconnect", "[Game] onPause: conn.stop()");
                     conn.stop();
                 }
                 
                 // 清理解码器
                 if (decoderRenderer != null) {
-                    Log.i("MoonDebug", "[Game] onPause: decoderRenderer.cleanup()");
+                    Log.i("MoonReconnect", "[Game] onPause: decoderRenderer.cleanup()");
                     decoderRenderer.cleanup();
                 }
                 
-                Log.i("MoonDebug", "[Game] onPause: UiHelper.notifyStreamEnteringPiP");
+                Log.i("MoonReconnect", "[Game] onPause: UiHelper.notifyStreamEnteringPiP");
                 UiHelper.notifyStreamEnteringPiP(this);
             } catch (Exception e) {
-                Log.e("MoonDebug", "[Game] onPause: exception during background suspension: " + e.getMessage());
+                Log.e("MoonReconnect", "[Game] onPause: exception during background suspension: " + e.getMessage());
                 e.printStackTrace();
             }
         }
@@ -1342,11 +1355,11 @@ public class Game extends Activity implements SurfaceHolder.Callback,
     protected void onResume() {
         super.onResume();
         currentGameInstance = this;
-        Log.i("MoonDebug", "[Game] onResume: isBackgroundSuspended=" + isBackgroundSuspended + ", shouldReconnectOnForeground=" + shouldReconnectOnForeground);
+        Log.i("MoonReconnect", "[Game] onResume: isBackgroundSuspended=" + isBackgroundSuspended + ", shouldReconnectOnForeground=" + shouldReconnectOnForeground);
         
         // 检查后台重连功能是否启用
         if (!prefConfig.backgroundReconnectEnabled) {
-            Log.i("MoonDebug", "[Game] onResume: background reconnect disabled, not attempting reconnect");
+            Log.i("MoonReconnect", "[Game] onResume: background reconnect disabled, not attempting reconnect");
             return;
         }
         
@@ -1354,11 +1367,11 @@ public class Game extends Activity implements SurfaceHolder.Callback,
             long backgroundDuration = System.currentTimeMillis() - backgroundStartTime;
             // 将分钟转换为毫秒
             long timeoutMs = prefConfig.backgroundReconnectTimeout * 60 * 1000L;
-            Log.i("MoonDebug", "[Game] onResume: backgroundDuration=" + backgroundDuration + "ms, timeout=" + timeoutMs + "ms (" + prefConfig.backgroundReconnectTimeout + " minutes)");
+            Log.i("MoonReconnect", "[Game] onResume: backgroundDuration=" + backgroundDuration + "ms, timeout=" + timeoutMs + "ms (" + prefConfig.backgroundReconnectTimeout + " minutes)");
             
             // 如果超时时间为0，表示永不超时
             if (prefConfig.backgroundReconnectTimeout > 0 && backgroundDuration > timeoutMs) {
-                Log.i("MoonDebug", "[Game] onResume: duration exceeded, disconnecting");
+                Log.i("MoonReconnect", "[Game] onResume: duration exceeded, disconnecting");
                 stopConnection();
                 finish();
                 return;
@@ -1366,7 +1379,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         }
         
         if (isBackgroundSuspended && shouldReconnectOnForeground) {
-            Log.i("MoonDebug", "[Game] onResume: need to reconnect");
+            Log.i("MoonReconnect", "[Game] onResume: need to reconnect");
             // 不要在这里清零变量，等 surfaceCreated/surfaceChanged 真正重连时再清零
             UiHelper.notifyStreamExitingPiP(this);
             // displayTransientMessage(getResources().getString(R.string.conn_resumed));
@@ -2530,6 +2543,8 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         final int portFlags = MoonBridge.getPortFlagsFromTerminationErrorCode(errorCode);
         final int portTestResult = MoonBridge.testClientConnectivity(ServerHelper.CONNECTION_TEST_SERVER,443, portFlags);
 
+        Log.i("MoonReconnect", "[Game] connectionTerminated: errorCode=" + errorCode + ", isBackgroundSuspended=" + isBackgroundSuspended + ", backgroundReconnectEnabled=" + prefConfig.backgroundReconnectEnabled);
+
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
@@ -2601,7 +2616,13 @@ public class Game extends Activity implements SurfaceHolder.Callback,
                                 message, true);
                     }
                     else {
-                        finish();
+                        // 如果是后台挂起且启用了后台重连，则不结束Activity，等待重连
+                        if (isBackgroundSuspended && prefConfig.backgroundReconnectEnabled) {
+                            Log.i("MoonReconnect", "[Game] connectionTerminated: graceful termination during background suspension, waiting for reconnect");
+                            // 不调用finish()，保持Activity活动
+                        } else {
+                            finish();
+                        }
                     }
                 }
             }
@@ -2742,15 +2763,15 @@ public class Game extends Activity implements SurfaceHolder.Callback,
 
     @Override
     public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
-        Log.i("MoonDebug", "[Game] surfaceChanged: holder=" + holder + ", format=" + format + ", width=" + width + ", height=" + height + ", surface valid=" + (holder != null && holder.getSurface() != null && holder.getSurface().isValid()));
-        Log.i("MoonDebug", "[Game] surfaceChanged: isBackgroundSuspended=" + isBackgroundSuspended + ", shouldReconnectOnForeground=" + shouldReconnectOnForeground + ", lastHost=" + lastHost);
+        Log.i("MoonReconnect", "[Game] surfaceChanged: holder=" + holder + ", format=" + format + ", width=" + width + ", height=" + height + ", surface valid=" + (holder != null && holder.getSurface() != null && holder.getSurface().isValid()));
+        Log.i("MoonReconnect", "[Game] surfaceChanged: isBackgroundSuspended=" + isBackgroundSuspended + ", shouldReconnectOnForeground=" + shouldReconnectOnForeground + ", lastHost=" + lastHost);
         if (!surfaceCreated) {
             throw new IllegalStateException("Surface changed before creation!");
         }
         
         // 如果我们需要重新连接，在这里开始（防止某些设备只触发surfaceChanged）
         if (isBackgroundSuspended && shouldReconnectOnForeground && lastHost != null) {
-            Log.i("MoonDebug", "[Game] surfaceChanged: starting connection after background");
+            Log.i("MoonReconnect", "[Game] surfaceChanged: starting connection after background");
             startConnection(holder);
             isBackgroundSuspended = false;
             shouldReconnectOnForeground = false;
@@ -2772,8 +2793,8 @@ public class Game extends Activity implements SurfaceHolder.Callback,
 
     @Override
     public void surfaceCreated(SurfaceHolder holder) {
-        Log.i("MoonDebug", "[Game] surfaceCreated: holder=" + holder + ", surface valid=" + (holder != null && holder.getSurface() != null && holder.getSurface().isValid()));
-        Log.i("MoonDebug", "[Game] surfaceCreated: isBackgroundSuspended=" + isBackgroundSuspended + ", shouldReconnectOnForeground=" + shouldReconnectOnForeground + ", lastHost=" + lastHost);
+        Log.i("MoonReconnect", "[Game] surfaceCreated: holder=" + holder + ", surface valid=" + (holder != null && holder.getSurface() != null && holder.getSurface().isValid()));
+        Log.i("MoonReconnect", "[Game] surfaceCreated: isBackgroundSuspended=" + isBackgroundSuspended + ", shouldReconnectOnForeground=" + shouldReconnectOnForeground + ", lastHost=" + lastHost);
         float desiredFrameRate;
         surfaceCreated = true;
 
@@ -2808,7 +2829,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         
         // 如果我们需要重新连接，在这里开始
         if (isBackgroundSuspended && shouldReconnectOnForeground && lastHost != null) {
-            Log.i("MoonDebug", "[Game] surfaceCreated: starting connection after background");
+            Log.i("MoonReconnect", "[Game] surfaceCreated: starting connection after background");
             startConnection(holder);
             isBackgroundSuspended = false;
             shouldReconnectOnForeground = false;
@@ -2818,7 +2839,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
 
     @Override
     public void surfaceDestroyed(SurfaceHolder holder) {
-        Log.i("MoonDebug", "[Game] surfaceDestroyed");
+        Log.i("MoonReconnect", "[Game] surfaceDestroyed");
         if (!surfaceCreated) {
             throw new IllegalStateException("Surface destroyed before creation!");
         }
@@ -3255,17 +3276,24 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         showMenu();
     }
 
+    private void destroyVirtualControllerInstance() {
+        if (virtualController != null) {
+            virtualController.removeElements();
+            virtualController = null;
+        }
+    }
+
     // 新方法：启动连接
     private void startConnection(SurfaceHolder holder) {
-        Log.i("MoonDebug", "[Game] startConnection: holder=" + holder + ", surface valid=" + (holder != null && holder.getSurface() != null && holder.getSurface().isValid()));
+        Log.i("MoonReconnect", "[Game] startConnection: holder=" + holder + ", surface valid=" + (holder != null && holder.getSurface() != null && holder.getSurface().isValid()));
 
         // 彻底释放旧的连接和解码器
         if (conn != null) {
-            Log.i("MoonDebug", "[Game] startConnection: conn already exists, stopping old connection");
+            Log.i("MoonReconnect", "[Game] startConnection: conn already exists, stopping old connection");
             stopConnection();
         }
         if (decoderRenderer != null) {
-            Log.i("MoonDebug", "[Game] startConnection: cleaning up decoderRenderer");
+            Log.i("MoonReconnect", "[Game] startConnection: cleaning up decoderRenderer");
             decoderRenderer.cleanup();
         }
 
@@ -3390,6 +3418,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
 
         // 重新初始化虚拟手柄/键盘
         destroyVirtualKeyboardInstance();
+        destroyVirtualControllerInstance();
         if (prefConfig.onscreenController) {
             virtualController = new VirtualController(controllerHandler,
                     controlsOverlayContainer,
@@ -3408,11 +3437,11 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         }
 
         // 设置 surface
-        Log.i("MoonDebug", "[Game] startConnection: setRenderTarget(holder)");
+        Log.i("MoonReconnect", "[Game] startConnection: setRenderTarget(holder)");
         decoderRenderer.setRenderTarget(holder);
 
         // 启动连接
-        Log.i("MoonDebug", "[Game] startConnection: conn.start");
+        Log.i("MoonReconnect", "[Game] startConnection: conn.start");
         conn.start(new AndroidAudioRenderer(Game.this, prefConfig.enableAudioFx), decoderRenderer, Game.this);
     }
 

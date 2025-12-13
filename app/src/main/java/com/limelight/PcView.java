@@ -126,6 +126,7 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
 
         public void onServiceDisconnected(ComponentName className) {
             managerBinder = null;
+            runningPolling = false;
         }
     };
 
