@@ -109,6 +109,7 @@ import android.graphics.Color;
 
 // 2024-11-27 17:36:10 返回菜单
 import com.limelight.heokami.GameMenu;
+import com.limelight.heokami.EditMenu;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -720,6 +721,10 @@ public class Game extends Activity implements SurfaceHolder.Callback,
                     virtualKeyboard.hide();
                 }
 
+                if (portalManagerView != null) {
+                    portalManagerView.setPortalsSuppressed(true);
+                }
+
                 performanceOverlayView.setVisibility(View.GONE);
                 notificationOverlayView.setVisibility(View.GONE);
 
@@ -748,6 +753,10 @@ public class Game extends Activity implements SurfaceHolder.Callback,
                     } else {
                         virtualKeyboard.hide();
                     }
+                }
+
+                if (portalManagerView != null) {
+                    portalManagerView.setPortalsSuppressed(false);
                 }
 
                 if (prefConfig.enablePerfOverlay || prefConfig.enableSimplifyPerfOverlay) {
@@ -3077,6 +3086,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
             virtualKeyboard.show();
             prefConfig.onscreenKeyboard = true;
         }else{
+            closeEditMenuIfShowing();
             virtualKeyboard.hide();
             virtualKeyboard.clearHistory();
             prefConfig.onscreenKeyboard = false;
@@ -3292,6 +3302,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
             Log.i("MoonReconnect", "[Game] startConnection: conn already exists, stopping old connection");
             stopConnection();
         }
+        closeEditMenuIfShowing();
         if (decoderRenderer != null) {
             Log.i("MoonReconnect", "[Game] startConnection: cleaning up decoderRenderer");
             decoderRenderer.cleanup();
@@ -3461,6 +3472,33 @@ public class Game extends Activity implements SurfaceHolder.Callback,
     // 获取当前Game实例的PortalManagerView
     public PortalManagerView getPortalManagerView() {
         return portalManagerView;
+    }
+
+    public boolean arePortalsEnabled() {
+        return portalManagerView != null && portalManagerView.arePortalsEnabled();
+    }
+
+    public void setPortalsEnabled(boolean enabled) {
+        if (portalManagerView != null) {
+            portalManagerView.setPortalsEnabled(enabled);
+        }
+    }
+
+    public void togglePortalsEnabled() {
+        if (portalManagerView != null) {
+            portalManagerView.togglePortalsEnabled();
+        }
+    }
+
+    private void closeEditMenuIfShowing() {
+        if (!EditMenu.isMenuShowing()) {
+            return;
+        }
+        Fragment fragment = getFragmentManager().findFragmentByTag("EditMenu");
+        if (fragment != null) {
+            getFragmentManager().beginTransaction().remove(fragment).commitAllowingStateLoss();
+        }
+        EditMenu.setMenuShowing(false);
     }
     // 获取当前Game实例的NvConnection（非静态）
     public NvConnection getConnection() {

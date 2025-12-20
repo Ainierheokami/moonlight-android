@@ -49,6 +49,15 @@ public class EditMenuFragment extends Fragment {
                 }
             }
         }
+        VirtualKeyboard activeVk = game != null ? game.getVirtualKeyboard() : null;
+        if (activeVk == null) {
+            if (game != null) {
+                game.postNotification("虚拟键盘未就绪", 2000);
+            }
+            EditMenu.setMenuShowing(false);
+            return root;
+        }
+        vk = activeVk;
         // 清空默认内容，填入编辑菜单项
         if (mainScroll instanceof ScrollView){
             LinearLayout content = new LinearLayout(getActivity());
@@ -63,7 +72,7 @@ public class EditMenuFragment extends Fragment {
             title.setPadding(p, p, p, p/2);
             content.addView(title);
             // 菜单项
-            VirtualKeyboardMenu vkm = new VirtualKeyboardMenu(getActivity(), vk);
+            VirtualKeyboardMenu vkm = new VirtualKeyboardMenu(getActivity(), activeVk);
             vkm.setGameView(game);
             for (java.util.Map.Entry<String, Function0<Unit>> e : vkm.createActionMap().entrySet()){
                 content.addView(makeMenuButton(e.getKey(), () -> { e.getValue().invoke(); }));
@@ -74,10 +83,10 @@ public class EditMenuFragment extends Fragment {
         if (bottomRow instanceof LinearLayout){
             ((LinearLayout) bottomRow).removeAllViews();
             ((LinearLayout) bottomRow).setOrientation(LinearLayout.HORIZONTAL);
-            ((LinearLayout) bottomRow).addView(makeBottomButton(getString(R.string.virtual_keyboard_menu_quash_history), ()-> vk.quashHistory()));
-            ((LinearLayout) bottomRow).addView(makeBottomButton(getString(R.string.virtual_keyboard_menu_forward_history), ()-> vk.forwardHistory()));
+            ((LinearLayout) bottomRow).addView(makeBottomButton(getString(R.string.virtual_keyboard_menu_quash_history), activeVk::quashHistory));
+            ((LinearLayout) bottomRow).addView(makeBottomButton(getString(R.string.virtual_keyboard_menu_forward_history), activeVk::forwardHistory));
             // 将“返回”改为“退出编辑”，并设置为红色强调按钮
-            Button exitButton = makeBottomButton(getString(R.string.virtual_keyboard_menu_exit_edit), ()-> { vk.exitEditMode(); hideMenuWithAnimation(); });
+            Button exitButton = makeBottomButton(getString(R.string.virtual_keyboard_menu_exit_edit), ()-> { activeVk.exitEditMode(); hideMenuWithAnimation(); });
             exitButton.setBackgroundResource(R.drawable.button_background_red_dark);
             // 取消最后一个按钮的右侧间距，给文本更多显示空间
             LinearLayout.LayoutParams exitLp = (LinearLayout.LayoutParams) exitButton.getLayoutParams();

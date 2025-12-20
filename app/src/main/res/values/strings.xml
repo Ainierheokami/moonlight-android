@@ -436,8 +436,13 @@
     <string name="macro_type_touch_toggle">Touch Toggle</string>
     <string name="macro_type_floating_keyboard_toggle">Floating Keyboard Toggle</string>
     <string name="macro_type_touchpad_toggle">Touchpad Switch</string>
+    <string name="macro_type_portal_toggle">Portal Toggle</string>
     <string name="macro_type_touch_toggle_hint">Data: 0=multi‑touch,1=trackpad,2=mouse (default cycle)</string>
     <string name="macro_type_touchpad_toggle_hint">Data: 1=on,2=off (default toggle)</string>
+    <string name="macro_type_portal_toggle_hint">Data: 0=toggle,1=on,2=off</string>
+    <string name="macro_portal_toggle_on">Enable portals</string>
+    <string name="macro_portal_toggle_off">Disable portals</string>
+    <string name="macro_portal_toggle_toggle">Toggle portals</string>
     <string name="button_type_button">Button</string>
     <string name="button_type_hot_keys">Macros/hotkeys</string>
     <string name="button_type_joystick">Joystick</string>

@@ -407,6 +407,22 @@ public class GameMenuFragment extends Fragment {
      * 设置传送门管理按钮
      */
     private void setupPortalButtons() {
+        Button btnPortalToggle = getView().findViewById(R.id.btn_portal_toggle);
+        if (btnPortalToggle != null) {
+            PortalManagerView portalManager = game.getPortalManagerView();
+            updatePortalToggleButton(btnPortalToggle, portalManager);
+            btnPortalToggle.setOnClickListener(v -> {
+                hideMenuWithAnimation();
+                if (portalManager != null) {
+                    boolean enabled = portalManager.togglePortalsEnabled();
+                    updatePortalToggleButton(btnPortalToggle, portalManager);
+                    game.postNotification(enabled ? "传送门已开启" : "传送门已关闭", 2000);
+                } else {
+                    Toast.makeText(game, "portalManager 为空", Toast.LENGTH_SHORT).show();
+                }
+            });
+        }
+
         // 添加传送门
         Button btnPortalAdd = getView().findViewById(R.id.btn_portal_add);
         if (btnPortalAdd != null) {
@@ -488,6 +504,11 @@ public class GameMenuFragment extends Fragment {
                 }
             });
         }
+    }
+
+    private void updatePortalToggleButton(Button button, PortalManagerView portalManager) {
+        boolean enabled = portalManager != null && portalManager.arePortalsEnabled();
+        button.setText(enabled ? "关闭传送门" : "开启传送门");
     }
 
     /**

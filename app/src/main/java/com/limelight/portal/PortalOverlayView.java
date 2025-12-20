@@ -95,6 +95,14 @@ public class PortalOverlayView extends View {
         invalidate();
     }
 
+    public void clearPortalBitmap() {
+        if (portalBitmap != null && !portalBitmap.isRecycled()) {
+            portalBitmap.recycle();
+        }
+        portalBitmap = null;
+        invalidate();
+    }
+
     @Override
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);

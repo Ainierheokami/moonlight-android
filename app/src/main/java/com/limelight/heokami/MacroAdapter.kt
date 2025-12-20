@@ -48,6 +48,12 @@ class MacroAdapter(private val actions: MutableList<MacroAction>, private val di
                     1 -> dataText = context.getString(R.string.game_switch_to_touch_pad_mode)
                     2 -> dataText = context.getString(R.string.game_switch_to_mouse_mode)
                 }
+            MacroType.PORTAL_TOGGLE.toString() ->
+                when(action.data){
+                    1 -> dataText = context.getString(R.string.macro_portal_toggle_on)
+                    2 -> dataText = context.getString(R.string.macro_portal_toggle_off)
+                    else -> dataText = context.getString(R.string.macro_portal_toggle_toggle)
+                }
         }
 
         holder.editText.setText("Index: $position, Type: ${typeText}, Data: $dataText")

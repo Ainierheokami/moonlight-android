@@ -41,7 +41,8 @@ enum class MacroType(@StringRes val displayNameRes: Int) {
     KEY_TOGGLE_GROUP(R.string.macro_type_key_toggle_group),
     TOUCH_TOGGLE(R.string.macro_type_touch_toggle),
     FLOATING_KEYBOARD_TOGGLE(R.string.macro_type_floating_keyboard_toggle),
-    TOUCHPAD_TOGGLE(R.string.macro_type_touchpad_toggle);
+    TOUCHPAD_TOGGLE(R.string.macro_type_touchpad_toggle),
+    PORTAL_TOGGLE(R.string.macro_type_portal_toggle);
 
     fun getDisplayName(context: Context): String {
         return context.getString(displayNameRes)
@@ -450,6 +451,13 @@ class MacroEditor(private val context: Context, private var jsonData: JSONObject
                             idButton.visibility = View.GONE
                             hintTextView.text = context.getString(R.string.macro_type_touchpad_toggle_hint)
                         }
+                        MacroType.PORTAL_TOGGLE -> {
+                            fastKeyDownUpCheckBox.visibility = View.GONE
+                            fastHotKeyCheckBox.visibility = View.GONE
+                            vkButton.visibility = View.GONE
+                            idButton.visibility = View.GONE
+                            hintTextView.text = context.getString(R.string.macro_type_portal_toggle_hint)
+                        }
                         else -> {
                             fastKeyDownUpCheckBox.visibility = View.GONE
                             fastHotKeyCheckBox.visibility = View.GONE
@@ -583,8 +591,10 @@ class MacroEditor(private val context: Context, private var jsonData: JSONObject
             }
             MacroType.KEY_TOGGLE.toString() -> {
                 val element = virtualKeyboard.getElementByElementId(action.data)
-                element.setHide(!element.isHide)
-                element?.invalidate()
+                if (element != null) {
+                    element.setHide(!element.isHide)
+                    element.invalidate()
+                }
                 executeNextActionWithDelay(virtualKeyboard, index, 0) // KEY_TOGGLE 后立即执行下一个
             }
             MacroType.KEY_TOGGLE_GROUP.toString() -> {
@@ -611,6 +621,15 @@ class MacroEditor(private val context: Context, private var jsonData: JSONObject
             MacroType.TOUCHPAD_TOGGLE.toString() -> {
                 val game = virtualKeyboard.gameContext
                 game.setTouchpadBlock(action.data)
+                executeNextActionWithDelay(virtualKeyboard, index, 0)
+            }
+            MacroType.PORTAL_TOGGLE.toString() -> {
+                val game = virtualKeyboard.gameContext
+                when (action.data) {
+                    1 -> game.setPortalsEnabled(true)
+                    2 -> game.setPortalsEnabled(false)
+                    else -> game.togglePortalsEnabled()
+                }
                 executeNextActionWithDelay(virtualKeyboard, index, 0)
             }
         }

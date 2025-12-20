@@ -588,7 +588,14 @@ public class VirtualKeyboard {
     }
 
     public void historyElements() {
+        if (historyElements.isEmpty()) {
+            Log.d("vk", "history empty, skip");
+            return;
+        }
         Log.d("vk", "撤回："+historyIndex+" size: "+historyElements.size());
+        if (historyIndex < 0 || historyIndex >= historyElements.size()) {
+            historyIndex = Math.max(0, Math.min(historyIndex, historyElements.size() - 1));
+        }
         String nowElements = historyElements.get(historyIndex);
         VirtualKeyboardConfigurationLoader.loadForFile(context, nowElements);
         refreshLayout();
@@ -596,6 +603,10 @@ public class VirtualKeyboard {
 
     // 撤回
     public void quashHistory() {
+        if (historyElements.isEmpty()) {
+            Log.d("vk", "history empty, skip quash");
+            return;
+        }
         Log.d("vk", "撤回："+historyIndex+" size: "+historyElements.size());
         if (historyIndex > 0 && !historyElements.isEmpty()){
             historyIndex--;
@@ -606,6 +617,10 @@ public class VirtualKeyboard {
 
     // 前进
     public void forwardHistory() {
+        if (historyElements.isEmpty()) {
+            Log.d("vk", "history empty, skip forward");
+            return;
+        }
         Log.d("vk", "前进："+historyIndex+" size: "+historyElements.size());
         if (historyIndex < historyElements.size() - 1){
             historyIndex++;
