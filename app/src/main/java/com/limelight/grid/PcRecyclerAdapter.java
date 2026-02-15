@@ -119,6 +119,13 @@ public class PcRecyclerAdapter extends RecyclerView.Adapter<PcRecyclerAdapter.Pc
         return computer.details.uuid + "_" + (computer.address != null ? computer.address.toString() : "");
     }
     
+    private boolean isPolling = true;
+
+    public void setPolling(boolean polling) {
+        this.isPolling = polling;
+        notifyDataSetChanged();
+    }
+
     @Override
     public PcViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
         View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.pc_grid_item, parent, false);
@@ -183,7 +190,7 @@ public class PcRecyclerAdapter extends RecyclerView.Adapter<PcRecyclerAdapter.Pc
                 itemView.setAlpha(1.0f);
             }
             
-            if (computer.details.state == ComputerDetails.State.UNKNOWN) {
+            if (computer.details.state == ComputerDetails.State.UNKNOWN && isPolling) {
                 gridSpinner.setVisibility(View.VISIBLE);
             } else {
                 gridSpinner.setVisibility(View.INVISIBLE);

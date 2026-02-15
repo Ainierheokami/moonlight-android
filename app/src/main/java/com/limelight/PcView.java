@@ -210,6 +210,28 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
             }
         });
 
+        ImageButton stopRefreshButton = findViewById(R.id.stopRefreshButton);
+        ImageButton refreshButton = findViewById(R.id.refreshButton);
+
+        stopRefreshButton.setOnClickListener(new OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                // 停止刷新
+                stopComputerUpdates(true);
+                Toast.makeText(PcView.this, R.string.scut_stop_refresh, Toast.LENGTH_SHORT).show();
+            }
+        });
+
+        refreshButton.setOnClickListener(new OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                //通过停止并重新开始来触发手动刷新
+                stopComputerUpdates(true);
+                startComputerUpdates();
+                Toast.makeText(PcView.this, R.string.scut_refresh_list, Toast.LENGTH_SHORT).show();
+            }
+        });
+
         // Amazon review didn't like the help button because the wiki was not entirely
         // navigable via the Fire TV remote (though the relevant parts were). Let's hide
         // it on Fire TV.
@@ -312,6 +334,19 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
         // and our activity is in the foreground.
         if (managerBinder != null && !runningPolling && inForeground) {
             freezeUpdates = false;
+            
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    if (pcGridAdapter != null) {
+                        pcGridAdapter.setPolling(true);
+                    }
+                    if (pcRecyclerAdapter != null) {
+                        pcRecyclerAdapter.setPolling(true);
+                    }
+                }
+            });
+
             managerBinder.startPolling(new ComputerManagerListener() {
                 @Override
                 public void notifyComputerUpdated(final ComputerDetails details) {
@@ -341,6 +376,18 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
             }
 
             freezeUpdates = true;
+            
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    if (pcGridAdapter != null) {
+                        pcGridAdapter.setPolling(false);
+                    }
+                    if (pcRecyclerAdapter != null) {
+                        pcRecyclerAdapter.setPolling(false);
+                    }
+                }
+            });
 
             managerBinder.stopPolling();
 

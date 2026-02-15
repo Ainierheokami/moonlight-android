@@ -74,6 +74,32 @@
         style="?android:attr/borderlessButtonStyle"/>
     
     <ImageButton
+        android:id="@+id/stopRefreshButton"
+        android:layout_width="70dp"
+        android:layout_height="65dp"
+        android:cropToPadding="false"
+        android:scaleType="fitXY"
+        android:layout_alignParentTop="true"
+        android:layout_toLeftOf="@+id/manuallyAddPc"
+        android:layout_toStartOf="@+id/manuallyAddPc"
+        android:src="@android:drawable/ic_menu_close_clear_cancel"
+        android:preferKeepClear="true"
+        style="?android:attr/borderlessButtonStyle"/>
+
+    <ImageButton
+        android:id="@+id/refreshButton"
+        android:layout_width="70dp"
+        android:layout_height="65dp"
+        android:cropToPadding="false"
+        android:scaleType="fitXY"
+        android:layout_alignParentTop="true"
+        android:layout_toLeftOf="@+id/stopRefreshButton"
+        android:layout_toStartOf="@+id/stopRefreshButton"
+        android:src="@android:drawable/ic_menu_rotate"
+        android:preferKeepClear="true"
+        style="?android:attr/borderlessButtonStyle"/>
+
+    <ImageButton
         android:id="@+id/manuallyAddPc"
         android:layout_width="70dp"
         android:layout_height="65dp"

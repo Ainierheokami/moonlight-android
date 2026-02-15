@@ -112,6 +112,13 @@ public class PcGridAdapter extends GenericGridAdapter<PcView.ComputerObject> {
         return computer.details.uuid + "_" + (computer.address != null ? computer.address.toString() : "");
     }
 
+    private boolean isPolling = true;
+
+    public void setPolling(boolean polling) {
+        this.isPolling = polling;
+        notifyDataSetChanged();
+    }
+
     @Override
     public void populateView(View parentView, ImageView imgView, ProgressBar prgView, TextView txtView, ImageView overlayView, PcView.ComputerObject obj) {
         imgView.setImageResource(R.drawable.ic_computer);
@@ -129,7 +136,7 @@ public class PcGridAdapter extends GenericGridAdapter<PcView.ComputerObject> {
             parentView.setAlpha(1.0f);
         }
 
-        if (obj.details.state == ComputerDetails.State.UNKNOWN) {
+        if (obj.details.state == ComputerDetails.State.UNKNOWN && isPolling) {
             prgView.setVisibility(View.VISIBLE);
         }
         else {

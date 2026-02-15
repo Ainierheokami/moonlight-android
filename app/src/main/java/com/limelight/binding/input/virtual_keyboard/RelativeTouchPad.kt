@@ -4,6 +4,7 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.util.Log
 import android.view.MotionEvent
+// import com.limelight.Game
 import com.limelight.binding.input.touch.RelativeTouchContext
 import com.limelight.binding.input.touch.TouchContext
 import org.json.JSONObject
@@ -36,7 +37,7 @@ class RelativeTouchPad(
                 1280,
                 720,
                 this,
-                virtualKeyboard.gameContext.prefConfig
+                virtualKeyboard.prefConfig
             )
         }
 

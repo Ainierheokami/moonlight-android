@@ -41,6 +41,7 @@ public class PortalManagerView extends FrameLayout {
     private static final long IDLE_CAPTURE_INTERVAL_MS = 250;
     private static final String PREFS_NAME = "portal_configs";
     private static final String KEY_CONFIGS = "portal_configs_json";
+    private static final String KEY_PORTALS_ENABLED = "portals_enabled";
 
     private List<PortalConfig> portalConfigs = new ArrayList<>();
     private Map<Integer, PortalOverlayView> portalViews = new HashMap<>();
@@ -52,6 +53,7 @@ public class PortalManagerView extends FrameLayout {
     private Gson gson = new Gson();
     private boolean portalsEnabled = true;
     private boolean portalsSuppressed = false;
+    private boolean isPaused = false;
 
     public PortalManagerView(Context context, Game game) {
         super(context);
@@ -62,10 +64,12 @@ public class PortalManagerView extends FrameLayout {
         startCaptureThread();
     }
 
+
     private void loadConfigs() {
-        SharedPreferences prefs = getContext().getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+        SharedPreferences prefs = game.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+        portalsEnabled = prefs.getBoolean(KEY_PORTALS_ENABLED, true); // Load portalsEnabled state
         String json = prefs.getString(KEY_CONFIGS, null);
-        if (json == null || json.isEmpty()) {
+        if (json == null || json.isEmpty() || json.equals("[]")) { // Check for empty array string too
             // 没有保存的配置，创建一个默认传送门用于测试
             PortalConfig config = new PortalConfig();
             config.id = generateNewId();
@@ -95,12 +99,15 @@ public class PortalManagerView extends FrameLayout {
     }
 
     public void saveConfigs() {
-        SharedPreferences prefs = getContext().getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+        SharedPreferences prefs = game.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
         String json;
         synchronized (portalLock) {
             json = gson.toJson(portalConfigs);
         }
-        prefs.edit().putString(KEY_CONFIGS, json).apply();
+        prefs.edit()
+                .putString(KEY_CONFIGS, json)
+                .putBoolean(KEY_PORTALS_ENABLED, portalsEnabled) // Save portalsEnabled state
+                .apply();
         Log.d(TAG, "保存传送门配置，数量: " + portalConfigs.size());
     }
 
@@ -156,6 +163,14 @@ public class PortalManagerView extends FrameLayout {
             }
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
                 portalConfigs.removeIf(config -> config.id == id);
+            } else {
+                // For older Android versions, manually iterate and remove
+                for (int i = 0; i < portalConfigs.size(); i++) {
+                    if (portalConfigs.get(i).id == id) {
+                        portalConfigs.remove(i);
+                        break;
+                    }
+                }
             }
         }
         saveConfigs();
@@ -234,6 +249,8 @@ public class PortalManagerView extends FrameLayout {
     }
 
     private void startCaptureThread() {
+        if (isPaused) return;
+
         if (captureThread != null && captureThread.isAlive()) {
             return;
         }
@@ -244,7 +261,25 @@ public class PortalManagerView extends FrameLayout {
     private void stopCaptureThread() {
         if (captureThread != null) {
             captureThread.stopCapture();
+            try {
+                captureThread.join(500); // Wait for the thread to finish, with a timeout
+            } catch (InterruptedException e) {
+                Log.e(TAG, "Interrupted while waiting for capture thread to join", e);
+                Thread.currentThread().interrupt(); // Restore the interrupted status
+            }
             captureThread = null;
+        }
+    }
+
+    public void onPause() {
+        isPaused = true;
+        stopCaptureThread();
+    }
+
+    public void onResume() {
+        isPaused = false;
+        if (shouldCapture()) {
+            startCaptureThread();
         }
     }
 
@@ -295,6 +330,7 @@ public class PortalManagerView extends FrameLayout {
             return;
         }
         portalsEnabled = enabled;
+        saveConfigs(); // Save current state
         updatePortalVisibility();
         if (shouldCapture()) {
             startCaptureThread();
@@ -327,6 +363,7 @@ public class PortalManagerView extends FrameLayout {
 
         @Override
         public void run() {
+            int consecutiveFailures = 0;
             while (running && !isInterrupted()) {
                 try {
                     if (!shouldCapture()) {
@@ -335,12 +372,14 @@ public class PortalManagerView extends FrameLayout {
                         } catch (InterruptedException e) {
                             break;
                         }
+                        consecutiveFailures = 0;
                         continue;
                     }
                     long startTime = System.currentTimeMillis();
                     RectF videoRect = getVideoContentRect();
                     Bitmap fullBitmap = captureFullFrame(videoRect);
                     if (fullBitmap != null) {
+                        consecutiveFailures = 0;
                         List<PortalConfig> configsSnapshot;
                         synchronized (portalLock) {
                             configsSnapshot = new ArrayList<>(portalConfigs);
@@ -358,9 +397,18 @@ public class PortalManagerView extends FrameLayout {
                         if (!fullBitmap.isRecycled()) {
                             fullBitmap.recycle();
                         }
+                    } else {
+                        consecutiveFailures++;
                     }
+
                     long elapsed = System.currentTimeMillis() - startTime;
                     long sleepMs = ACTIVE_CAPTURE_INTERVAL_MS - elapsed;
+                    
+                    // If we failed, back off a bit to avoid spinning tight loops on errors
+                    if (consecutiveFailures > 0) {
+                        sleepMs = Math.min(250, 33 * (1 << Math.min(consecutiveFailures, 3))); // Exponential backoff up to 250ms
+                    }
+
                     try {
                         if (sleepMs > 0) {
                             Thread.sleep(sleepMs);
@@ -381,13 +429,13 @@ public class PortalManagerView extends FrameLayout {
 
         private Bitmap captureFullFrame(RectF videoRect) {
             if (streamView == null || streamView.getWidth() == 0 || streamView.getHeight() == 0) {
-                logCapture("captureFullFrame: streamView null or zero size");
+                // logCapture("captureFullFrame: streamView null or zero size");
                 return null;
             }
             int fullWidth = (int) videoRect.width();
             int fullHeight = (int) videoRect.height();
             if (fullWidth <= 0 || fullHeight <= 0) {
-                Log.w(TAG, "captureFullFrame: invalid videoRect size");
+                // Log.w(TAG, "captureFullFrame: invalid videoRect size");
                 return null;
             }
             final Bitmap[] fullBitmapHolder = new Bitmap[1];
@@ -395,29 +443,48 @@ public class PortalManagerView extends FrameLayout {
                 fullBitmapHolder[0] = Bitmap.createBitmap(fullWidth, fullHeight, Bitmap.Config.ARGB_8888);
                 final CountDownLatch latch = new CountDownLatch(1);
                 final int[] copyResult = new int[]{PixelCopy.SUCCESS};
+                final Object copyLock = new Object();
+                final java.util.concurrent.atomic.AtomicBoolean isCancelled = new java.util.concurrent.atomic.AtomicBoolean(false);
+
                 mainHandler.post(() -> {
-                    if (streamView.getHolder().getSurface().isValid()) {
-                        Rect srcRectPx = new Rect((int) videoRect.left, (int) videoRect.top,
-                                (int) videoRect.right, (int) videoRect.bottom);
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                            PixelCopy.request(streamView, srcRectPx, fullBitmapHolder[0], (copyResultValue) -> {
-                                copyResult[0] = copyResultValue;
-                                latch.countDown();
-                            }, new Handler(Looper.getMainLooper()));
+                    synchronized (copyLock) {
+                        if (isCancelled.get()) {
+                            return;
                         }
-                    } else {
-                        copyResult[0] = PixelCopy.ERROR_SOURCE_NO_DATA;
-                        latch.countDown();
+                        if (streamView.getHolder().getSurface().isValid()) {
+                            Rect srcRectPx = new Rect((int) videoRect.left, (int) videoRect.top,
+                                    (int) videoRect.right, (int) videoRect.bottom);
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                                try {
+                                    PixelCopy.request(streamView, srcRectPx, fullBitmapHolder[0], (copyResultValue) -> {
+                                        copyResult[0] = copyResultValue;
+                                        latch.countDown();
+                                    }, new Handler(Looper.getMainLooper()));
+                                } catch (IllegalArgumentException e) {
+                                    Log.w(TAG, "captureFullFrame: PixelCopy failed to request", e);
+                                    copyResult[0] = PixelCopy.ERROR_UNKNOWN;
+                                    latch.countDown();
+                                }
+                            }
+                        } else {
+                            copyResult[0] = PixelCopy.ERROR_SOURCE_NO_DATA;
+                            latch.countDown();
+                        }
                     }
                 });
                 try {
                     if (!latch.await(500, TimeUnit.MILLISECONDS)) {
                         Log.w(TAG, "captureFullFrame: PixelCopy timeout");
-                        fullBitmapHolder[0].recycle();
+                        synchronized (copyLock) {
+                            isCancelled.set(true);
+                            fullBitmapHolder[0].recycle();
+                        }
                         return null;
                     }
                     if (copyResult[0] != PixelCopy.SUCCESS) {
-                        Log.w(TAG, "captureFullFrame: PixelCopy failed with error " + copyResult[0]);
+                        if (copyResult[0] != PixelCopy.ERROR_SOURCE_NO_DATA) {
+                            Log.w(TAG, "captureFullFrame: PixelCopy failed with error " + copyResult[0]);
+                        }
                         fullBitmapHolder[0].recycle();
                         return null;
                     }
@@ -426,11 +493,15 @@ public class PortalManagerView extends FrameLayout {
                         Log.w(TAG, "captureFullFrame interrupted");
                     }
                     Thread.currentThread().interrupt();
-                    if (fullBitmapHolder[0] != null) {
-                        fullBitmapHolder[0].recycle();
+                    synchronized (copyLock) {
+                        isCancelled.set(true);
+                        if (fullBitmapHolder[0] != null) {
+                            fullBitmapHolder[0].recycle();
+                        }
                     }
                     return null;
                 }
+
             } else {
                 // 低版本Android：返回一个纯色位图
                 fullBitmapHolder[0] = Bitmap.createBitmap(fullWidth, fullHeight, Bitmap.Config.ARGB_8888);
@@ -457,9 +528,11 @@ public class PortalManagerView extends FrameLayout {
             int width = right - left;
             int height = bottom - top;
             Bitmap cropped = Bitmap.createBitmap(fullBitmap, left, top, width, height);
-            Bitmap detached = cropped.copy(Bitmap.Config.ARGB_8888, false);
-            cropped.recycle();
-            return detached;
+            // Must copy to a non-hardware config if we want to manipulate it safely on CPU if needed,
+            // though createBitmap from a software bitmap usually returns a software bitmap.
+            // But if fullBitmap is hardware (from PixelCopy on P+), we might need copy.
+            // Note: PixelCopy request ensures ARGB_8888.
+            return cropped;
         }
 
         public void stopCapture() {
@@ -532,6 +605,30 @@ public class PortalManagerView extends FrameLayout {
             }
         }
         return false;
+    }
+
+    /**
+     * 直接设置所有传送门的编辑模式。
+     * @param mode 0: 无编辑, 1: 编辑源区域, 2: 编辑目标区域
+     */
+    public void setEditingMode(int mode) {
+        synchronized (portalLock) {
+            if (portalConfigs.isEmpty()) {
+                return;
+            }
+            boolean editing = (mode != 0);
+            for (PortalConfig config : portalConfigs) {
+                config.editing = editing;
+                config.editMode = mode;
+            }
+        }
+        // 通知视图更新
+        synchronized (portalLock) {
+            for (PortalOverlayView view : portalViews.values()) {
+                view.invalidate();
+            }
+        }
+        Log.d(TAG, "setEditingMode: mode=" + mode);
     }
 
     /**

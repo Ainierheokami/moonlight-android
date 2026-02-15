@@ -20,8 +20,8 @@ import com.limelight.binding.video.MediaCodecDecoderRenderer;
 import com.limelight.binding.video.MediaCodecHelper;
 import com.limelight.binding.video.PerfOverlayListener;
 import com.limelight.heokami.GameGridLines;
-import com.limelight.heokami.VirtualKeyboardMenu;
-import com.limelight.heokami.FloatingVirtualKeyboardFragment;
+// import com.limelight.heokami.VirtualKeyboardMenu;
+// import com.limelight.heokami.FloatingVirtualKeyboardFragment;
 import com.limelight.portal.PortalManagerView;
 import android.app.FragmentManager;
 import android.app.Fragment;
@@ -1193,14 +1193,6 @@ public class Game extends Activity implements SurfaceHolder.Callback,
     protected void onDestroy() {
         super.onDestroy();
 
-        if (controllerHandler != null) {
-            controllerHandler.destroy();
-        }
-        if (keyboardTranslator != null) {
-            InputManager inputManager = (InputManager) getSystemService(Context.INPUT_SERVICE);
-            inputManager.unregisterInputDeviceListener(keyboardTranslator);
-        }
-
         if (lowLatencyWifiLock != null) {
             lowLatencyWifiLock.release();
         }
@@ -1219,6 +1211,8 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         if (virtualKeyboard != null){
             VirtualKeyboardConfigurationLoader.saveProfile(virtualKeyboard, this);
             destroyVirtualKeyboardInstance();
+            // 2024-11-20 00:01:22 退出时必须清理，否则导致下次进入时 NullPointerException
+            virtualKeyboard = null;
         }
     }
 
@@ -1363,6 +1357,9 @@ public class Game extends Activity implements SurfaceHolder.Callback,
     @Override
     protected void onResume() {
         super.onResume();
+        if (portalManagerView != null) {
+            portalManagerView.onResume();
+        }
         currentGameInstance = this;
         Log.i("MoonReconnect", "[Game] onResume: isBackgroundSuspended=" + isBackgroundSuspended + ", shouldReconnectOnForeground=" + shouldReconnectOnForeground);
         
@@ -3101,6 +3098,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
      * 切换悬浮键盘显示/隐藏
      */
     public void toggleFloatingKeyboard() {
+        /*
         FragmentManager fm = getFragmentManager();
         Fragment fragment = fm.findFragmentByTag("floating_keyboard");
         if (fragment != null && fragment instanceof FloatingVirtualKeyboardFragment) {
@@ -3110,6 +3108,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
             FloatingVirtualKeyboardFragment.Companion.show(this);
             postNotification(getResources().getString(R.string.floating_keyboard_shown), 2000);
         }
+        */
     }
 
     /**
@@ -3473,11 +3472,9 @@ public class Game extends Activity implements SurfaceHolder.Callback,
     public PortalManagerView getPortalManagerView() {
         return portalManagerView;
     }
-
     public boolean arePortalsEnabled() {
         return portalManagerView != null && portalManagerView.arePortalsEnabled();
     }
-
     public void setPortalsEnabled(boolean enabled) {
         if (portalManagerView != null) {
             portalManagerView.setPortalsEnabled(enabled);
@@ -3489,6 +3486,8 @@ public class Game extends Activity implements SurfaceHolder.Callback,
             portalManagerView.togglePortalsEnabled();
         }
     }
+
+
 
     private void closeEditMenuIfShowing() {
         if (!EditMenu.isMenuShowing()) {

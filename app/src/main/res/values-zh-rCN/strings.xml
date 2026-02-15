@@ -1,9 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- Shortcut strings -->
-    <string name="scut_deleted_pc"> 电脑已删除 </string>
+    <string name="scut_deleted_pc">已删除PC</string>
     <string name="scut_not_paired"> 电脑未配对 </string>
     <string name="scut_pc_not_found"> 电脑未找到 </string>
+    <string name="scut_refresh_list">正在刷新列表...</string>
+    <string name="scut_stop_refresh">已停止刷新</string>
     <string name="scut_invalid_uuid"> 提供的电脑无效 </string>
     <string name="scut_invalid_app_id"> 提供的App无效 </string>
     <!-- Help strings -->

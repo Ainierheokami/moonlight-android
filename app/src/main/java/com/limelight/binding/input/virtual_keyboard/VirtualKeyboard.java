@@ -185,6 +185,10 @@ public class VirtualKeyboard {
         return context;
     }
 
+    public PreferenceConfiguration getPrefConfig() {
+        return context.getPrefConfig();
+    }
+
     public void hide() {
         // 强制退回到非编辑态，确保遮罩与提示在任何“隐藏”路径都被移除
         currentMode = ControllerMode.Active;
