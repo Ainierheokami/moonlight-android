@@ -21,7 +21,7 @@ import com.limelight.binding.video.MediaCodecHelper;
 import com.limelight.binding.video.PerfOverlayListener;
 import com.limelight.heokami.GameGridLines;
 // import com.limelight.heokami.VirtualKeyboardMenu;
-// import com.limelight.heokami.FloatingVirtualKeyboardFragment;
+import com.limelight.heokami.FloatingVirtualKeyboardFragment;
 import com.limelight.portal.PortalManagerView;
 import android.app.FragmentManager;
 import android.app.Fragment;
@@ -90,6 +90,7 @@ import android.view.inputmethod.InputMethodManager;
 
 import android.widget.GridLayout;
 import android.widget.TextView;
+import android.widget.ProgressBar;
 import android.widget.Toast;
 
 import java.io.ByteArrayInputStream;
@@ -166,6 +167,13 @@ public class Game extends Activity implements SurfaceHolder.Callback,
     private long backgroundStartTime = 0;
 
     private InputCaptureProvider inputCaptureProvider;
+    
+    // Robust Reconnection
+    private ViewGroup reconnectionOverlay;
+    private Handler disconnectHandler = new Handler();
+    private Runnable delayedSuspendRunnable;
+    private boolean shouldReconnectOnForeground = false;
+
     private int modifierFlags = 0;
     private boolean grabbedInput = true;
     private boolean cursorVisible = false;
@@ -226,7 +234,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
     // 删除不再需要的变量
 
     // 添加一个标志来跟踪是否需要在返回前台时重新连接
-    private boolean shouldReconnectOnForeground = false;
+
     
     // 保存连接参数，以便在重新连接时使用
     private String lastHost;
@@ -564,6 +572,15 @@ public class Game extends Activity implements SurfaceHolder.Callback,
             }
         }
 
+        // Check for device-specific bitrate override
+        String uuid = getIntent().getStringExtra(EXTRA_PC_UUID);
+        String address = getIntent().getStringExtra(EXTRA_HOST);
+        int deviceBitrate = PreferenceConfiguration.getDeviceBitrate(this, uuid, address);
+        if (deviceBitrate > 0) {
+            prefConfig.bitrate = deviceBitrate;
+            LimeLog.info("Using device-specific bitrate: " + deviceBitrate);
+        }
+
         StreamConfiguration config = new StreamConfiguration.Builder()
                 .setResolution(prefConfig.width, prefConfig.height)
                 .setLaunchRefreshRate(prefConfig.fps)
@@ -593,6 +610,44 @@ public class Game extends Activity implements SurfaceHolder.Callback,
 
         InputManager inputManager = (InputManager) getSystemService(Context.INPUT_SERVICE);
         inputManager.registerInputDeviceListener(keyboardTranslator, null);
+        
+        // Initialize reconnection overlay container
+        reconnectionOverlay = new FrameLayout(this);
+        reconnectionOverlay.setBackgroundColor(0xFF000000);
+        reconnectionOverlay.setAlpha(0.0f);
+        reconnectionOverlay.setVisibility(View.GONE);
+        
+        // Add progress bar
+        android.widget.ProgressBar pb = new android.widget.ProgressBar(this);
+        pb.setIndeterminate(true);
+        FrameLayout.LayoutParams pbParams = new FrameLayout.LayoutParams(
+            FrameLayout.LayoutParams.WRAP_CONTENT, FrameLayout.LayoutParams.WRAP_CONTENT);
+        pbParams.gravity = Gravity.CENTER;
+        reconnectionOverlay.addView(pb, pbParams);
+        
+        // Add status text
+        TextView tv = new TextView(this);
+        tv.setText(R.string.conn_establishing_msg);
+        tv.setTextColor(0xFFFFFFFF);
+        tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, 18);
+        FrameLayout.LayoutParams tvParams = new FrameLayout.LayoutParams(
+            FrameLayout.LayoutParams.WRAP_CONTENT, FrameLayout.LayoutParams.WRAP_CONTENT);
+        tvParams.gravity = Gravity.CENTER_HORIZONTAL | Gravity.BOTTOM;
+        // Bottom margin 80dp
+        tvParams.bottomMargin = (int) TypedValue.applyDimension(
+            TypedValue.COMPLEX_UNIT_DIP, 80, getResources().getDisplayMetrics());
+        reconnectionOverlay.addView(tv, tvParams);
+
+        ((ViewGroup)findViewById(android.R.id.content)).addView(reconnectionOverlay, 
+            new FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT));
+            
+        // Initialize delayed suspend runnable
+        delayedSuspendRunnable = new Runnable() {
+            @Override
+            public void run() {
+                suspendConnection();
+            }
+        };
 
         // Initialize touch contexts
         for (int i = 0; i < touchContextMap.length; i++) {
@@ -1216,63 +1271,91 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         }
     }
 
+
+    private void suspendConnection() {
+        Log.i("MoonReconnect", "[Game] suspendConnection: full background suspension");
+        
+        isBackgroundSuspended = true;
+        backgroundStartTime = System.currentTimeMillis();
+
+        // 只有在启用后台重连功能时才设置重连标志
+        if (prefConfig.backgroundReconnectEnabled) {
+            shouldReconnectOnForeground = true;
+            Log.i("MoonReconnect", "[Game] suspendConnection: background reconnect enabled, will attempt reconnect");
+            saveConnectionParams();
+        } else {
+            shouldReconnectOnForeground = false;
+            Log.i("MoonReconnect", "[Game] suspendConnection: background reconnect disabled, not saving connection params");
+        }
+
+        // 进入后台时，若处于虚拟键盘编辑模式，强制清理编辑遮罩，避免残留
+        try {
+            if (virtualKeyboard != null) {
+                virtualKeyboard.hide();
+            }
+        } catch (Exception ignored) {}
+        try {
+            // 先暂停控制器
+            if (controllerHandler != null) {
+                Log.i("MoonReconnect", "[Game] suspendConnection: controllerHandler.pause()");
+                controllerHandler.pause();
+            }
+
+            // 完全停止连接
+            if (conn != null) {
+                Log.i("MoonReconnect", "[Game] suspendConnection: conn.stop()");
+                conn.stop();
+            }
+
+            // 清理解码器
+            if (decoderRenderer != null) {
+                Log.i("MoonReconnect", "[Game] suspendConnection: decoderRenderer.cleanup()");
+                decoderRenderer.cleanup();
+            }
+
+            Log.i("MoonReconnect", "[Game] suspendConnection: UiHelper.notifyStreamEnteringPiP");
+            UiHelper.notifyStreamEnteringPiP(this);
+        } catch (Exception e) {
+            Log.e("MoonReconnect", "[Game] suspendConnection: exception during background suspension: " + e.getMessage());
+            e.printStackTrace();
+        }
+        
+        // 确保遮罩层保持显示（因为已经断开），直到Resume时淡出
+        if (reconnectionOverlay != null) {
+            reconnectionOverlay.setAlpha(1f);
+            reconnectionOverlay.setVisibility(View.VISIBLE);
+        }
+    }
+
     @Override
     protected void onPause() {
         currentGameInstance = null;
         Log.i("MoonReconnect", "[Game] onPause: isFinishing=" + isFinishing() + ", connected=" + connected + ", connecting=" + connecting);
-        
+
         if (isFinishing()) {
             Log.i("MoonReconnect", "[Game] onPause: stopping controller and input");
             if (controllerHandler != null) {
                 controllerHandler.stop();
             }
             setInputGrabState(false);
-        } else {
-            Log.i("MoonReconnect", "[Game] onPause: full background suspension");
-            isBackgroundSuspended = true;
-            backgroundStartTime = System.currentTimeMillis();
             
-            // 只有在启用后台重连功能时才设置重连标志
-            if (prefConfig.backgroundReconnectEnabled) {
-                shouldReconnectOnForeground = true;
-                Log.i("MoonReconnect", "[Game] onPause: background reconnect enabled, will attempt reconnect");
-                saveConnectionParams();
-            } else {
-                shouldReconnectOnForeground = false;
-                Log.i("MoonReconnect", "[Game] onPause: background reconnect disabled, not saving connection params");
+            // 如果正在结束，立即执行挂起逻辑（虽然 onStop 也会处理，但为了安全）
+            // 注意：isFinishing的时候通常不需要suspend，而是直接销毁，但这里我们保留部分原有逻辑结构
+            // 原逻辑在 isFinishing 为 false 时才进入 suspend。
+            // 此时我们不调用 suspendConnection，因为 Activity 要销毁了，onStop 会调用 stopConnection。
+        } else {
+            // Robust Reconnection: 延迟挂起
+            Log.i("MoonReconnect", "[Game] onPause: scheduling delayed suspension");
+            
+            // 显示遮罩并淡入
+            if (reconnectionOverlay != null) {
+                reconnectionOverlay.setVisibility(View.VISIBLE);
+                reconnectionOverlay.setAlpha(0f);
+                reconnectionOverlay.animate().alpha(1f).setDuration(500).start();
             }
-
-            // 进入后台时，若处于虚拟键盘编辑模式，强制清理编辑遮罩，避免残留
-            try {
-                if (virtualKeyboard != null) {
-                    virtualKeyboard.hide();
-                }
-            } catch (Exception ignored) {}
-            try {
-                // 先暂停控制器
-                if (controllerHandler != null) {
-                    Log.i("MoonReconnect", "[Game] onPause: controllerHandler.pause()");
-                    controllerHandler.pause();
-                }
-
-                // 完全停止连接
-                if (conn != null) {
-                    Log.i("MoonReconnect", "[Game] onPause: conn.stop()");
-                    conn.stop();
-                }
-                
-                // 清理解码器
-                if (decoderRenderer != null) {
-                    Log.i("MoonReconnect", "[Game] onPause: decoderRenderer.cleanup()");
-                    decoderRenderer.cleanup();
-                }
-                
-                Log.i("MoonReconnect", "[Game] onPause: UiHelper.notifyStreamEnteringPiP");
-                UiHelper.notifyStreamEnteringPiP(this);
-            } catch (Exception e) {
-                Log.e("MoonReconnect", "[Game] onPause: exception during background suspension: " + e.getMessage());
-                e.printStackTrace();
-            }
+            
+            // 500ms 后执行挂起
+            disconnectHandler.postDelayed(delayedSuspendRunnable, 500);
         }
         super.onPause();
     }
@@ -1357,6 +1440,21 @@ public class Game extends Activity implements SurfaceHolder.Callback,
     @Override
     protected void onResume() {
         super.onResume();
+        
+        // 停止之前的挂起计划
+        disconnectHandler.removeCallbacks(delayedSuspendRunnable);
+        
+        // 恢复界面：如果是快速恢复（未真正挂起连接且未处于连接中），则立即淡出遮罩层
+        // 如果是后台挂起（需要重连）或正在连接中，则保持遮罩层，直到连接建立后（connectionStarted）再淡出
+        if (!isBackgroundSuspended && !connecting && reconnectionOverlay != null && reconnectionOverlay.getVisibility() == View.VISIBLE) {
+            reconnectionOverlay.animate().alpha(0f).setDuration(500).withEndAction(new Runnable() {
+                @Override
+                public void run() {
+                    reconnectionOverlay.setVisibility(View.GONE);
+                }
+            }).start();
+        }
+        
         if (portalManagerView != null) {
             portalManagerView.onResume();
         }
@@ -1386,7 +1484,28 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         
         if (isBackgroundSuspended && shouldReconnectOnForeground) {
             Log.i("MoonReconnect", "[Game] onResume: need to reconnect");
-            // 不要在这里清零变量，等 surfaceCreated/surfaceChanged 真正重连时再清零
+            
+            // 如果Surface仍然有效（Activity没有销毁View），则surfaceCreated/Changed可能不会被调用
+            // 所以我们这里手动检查并触发连接
+            if (streamView != null && streamView.getHolder() != null && streamView.getHolder().getSurface().isValid()) {
+                Log.i("MoonReconnect", "[Game] onResume: surface valid, starting connection immediately");
+                if (lastHost != null) {
+                    startConnection(streamView.getHolder());
+                    isBackgroundSuspended = false;
+                    shouldReconnectOnForeground = false;
+                    backgroundStartTime = 0;
+                } else {
+                     Log.e("MoonReconnect", "[Game] onResume: lastHost is null, cannot reconnect");
+                     isBackgroundSuspended = false;
+                     shouldReconnectOnForeground = false;
+                     // Consider finishing or showing error?
+                     finish();
+                     return;
+                }
+            } else {
+                Log.i("MoonReconnect", "[Game] onResume: surface invalid, waiting for surfaceCreated/Changed");
+            }
+            
             UiHelper.notifyStreamExitingPiP(this);
             // displayTransientMessage(getResources().getString(R.string.conn_resumed));
         }
@@ -2477,6 +2596,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
     }
 
     private void stopConnection() {
+        disconnectHandler.removeCallbacks(delayedSuspendRunnable);
         if (connecting || connected) {
             connecting = connected = false;
             updatePipAutoEnter();
@@ -2515,14 +2635,32 @@ public class Game extends Activity implements SurfaceHolder.Callback,
                     spinner.dismiss();
                     spinner = null;
                 }
+                
+                // Let the display go to sleep now
+                getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
+                // Stop processing controller input
+                controllerHandler.stop();
+
+                // Ungrab input
+                setInputGrabState(false);
+                
+                // Reset connecting flag
+                connecting = false;
+                
                 if (!displayedFailureDialog) {
                     displayedFailureDialog = true;
-                    LimeLog.severe(stage + " failed: " + errorCode);
+                    LimeLog.severe("Stage failed: " + stage + " " + errorCode);
+                    stopConnection();
 
-                    // If video initialization failed and the surface is still valid, display extra information for the user
-                    if (stage.contains("video") && streamView.getHolder().getSurface().isValid()) {
-                        Toast.makeText(Game.this, getResources().getText(R.string.video_decoder_init_failed), Toast.LENGTH_LONG).show();
+                    // 连接失败，隐藏遮罩层以便显示错误对话框
+                    if (reconnectionOverlay != null) {
+                        reconnectionOverlay.setVisibility(View.GONE);
+                    }
+                    
+                    if (errorCode == -1 || (stage != null && stage.contains("video"))) {
+                         // Decoder init failed
+                         Toast.makeText(Game.this, getResources().getText(R.string.video_decoder_init_failed), Toast.LENGTH_LONG).show();
                     }
 
                     String dialogText = getResources().getString(R.string.conn_error_msg) + " " + stage +" (error "+errorCode+")";
@@ -2565,6 +2703,9 @@ public class Game extends Activity implements SurfaceHolder.Callback,
                 // Ungrab input
                 setInputGrabState(false);
 
+                // Reset connecting flag
+                connecting = false;
+
                 if (!displayedFailureDialog) {
                     displayedFailureDialog = true;
                     LimeLog.severe("Connection terminated: " + errorCode);
@@ -2573,6 +2714,11 @@ public class Game extends Activity implements SurfaceHolder.Callback,
                     // Display the error dialog if it was an unexpected termination.
                     // Otherwise, just finish the activity immediately.
                     if (errorCode != MoonBridge.ML_ERROR_GRACEFUL_TERMINATION) {
+                        // 连接非正常终止，隐藏遮罩层以便显示错误对话框
+                        if (reconnectionOverlay != null) {
+                            reconnectionOverlay.setVisibility(View.GONE);
+                        }
+
                         String message;
 
                         if (portTestResult != MoonBridge.ML_TEST_RESULT_INCONCLUSIVE && portTestResult != 0) {
@@ -2674,6 +2820,17 @@ public class Game extends Activity implements SurfaceHolder.Callback,
                 if (spinner != null) {
                     spinner.dismiss();
                     spinner = null;
+                }
+
+                // 连接建立，淡出黑色遮罩层
+                // 延迟一小段时间以确保首帧已渲染，避免闪红或黑屏
+                if (reconnectionOverlay != null && reconnectionOverlay.getVisibility() == View.VISIBLE) {
+                    reconnectionOverlay.animate().alpha(0f).setDuration(500).setStartDelay(100).withEndAction(new Runnable() {
+                        @Override
+                        public void run() {
+                            reconnectionOverlay.setVisibility(View.GONE);
+                        }
+                    }).start();
                 }
 
                 connected = true;
@@ -2854,9 +3011,23 @@ public class Game extends Activity implements SurfaceHolder.Callback,
             // Let the decoder know immediately that the surface is gone
             decoderRenderer.prepareForStop();
 
-            // 只有在不是后台挂起状态时才停止连接
-            if (connected && !isBackgroundSuspended) {
-                stopConnection();
+            // 如果 Activity 正在关闭，或者我们没有处于后台挂起状态（且没有计划挂起），则停止连接
+            // 但是，如果 surface 销毁是因为切换到后台（非 finish），我们需要确保连接进入挂起状态而不是直接终止
+            // 这样 onResume 才能通过重连机制恢复画面
+            if (isFinishing()) {
+                if (connected) {
+                    stopConnection();
+                }
+            } else if (connected && !isBackgroundSuspended) {
+                // Surface 被销毁但 Activity 仍在运行（例如快速切换后台），这通常意味着我们必须重建解码器
+                // 此时应该强制进入挂起状态，以便 onResume 触发完整的重连流程
+                Log.i("MoonReconnect", "[Game] surfaceDestroyed: forcing suspendConnection");
+                
+                // 如果有 pending 的延迟任务，取消它，直接执行
+                if (disconnectHandler.hasCallbacks(delayedSuspendRunnable)) {
+                    disconnectHandler.removeCallbacks(delayedSuspendRunnable);
+                }
+                suspendConnection();
             }
         }
     }
@@ -3098,17 +3269,15 @@ public class Game extends Activity implements SurfaceHolder.Callback,
      * 切换悬浮键盘显示/隐藏
      */
     public void toggleFloatingKeyboard() {
-        /*
         FragmentManager fm = getFragmentManager();
         Fragment fragment = fm.findFragmentByTag("floating_keyboard");
         if (fragment != null && fragment instanceof FloatingVirtualKeyboardFragment) {
             ((FloatingVirtualKeyboardFragment) fragment).dismiss();
             postNotification(getResources().getString(R.string.floating_keyboard_hidden), 2000);
         } else {
-            FloatingVirtualKeyboardFragment.Companion.show(this);
+            FloatingVirtualKeyboardFragment.show(this);
             postNotification(getResources().getString(R.string.floating_keyboard_shown), 2000);
         }
-        */
     }
 
     /**
@@ -3295,6 +3464,14 @@ public class Game extends Activity implements SurfaceHolder.Callback,
     // 新方法：启动连接
     private void startConnection(SurfaceHolder holder) {
         Log.i("MoonReconnect", "[Game] startConnection: holder=" + holder + ", surface valid=" + (holder != null && holder.getSurface() != null && holder.getSurface().isValid()));
+        
+        connecting = true;
+        
+        // 确保遮罩层可见且不透明，防止重连过程中出现黑屏或闪烁
+        if (reconnectionOverlay != null) {
+            reconnectionOverlay.setAlpha(1.0f);
+            reconnectionOverlay.setVisibility(View.VISIBLE);
+        }
 
         // 彻底释放旧的连接和解码器
         if (conn != null) {

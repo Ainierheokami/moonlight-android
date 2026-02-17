@@ -10,6 +10,8 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.TextView;
+import android.widget.Toast;
+import android.widget.EditText;
 
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -25,6 +27,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import android.app.AlertDialog;
+import android.content.DialogInterface;
+import android.text.InputType;
+import android.widget.EditText;
+
+import com.limelight.preferences.PreferenceConfiguration;
+
 public class PcRecyclerAdapter extends RecyclerView.Adapter<PcRecyclerAdapter.PcViewHolder> {
     
     private Context context;
@@ -32,6 +41,7 @@ public class PcRecyclerAdapter extends RecyclerView.Adapter<PcRecyclerAdapter.Pc
     private Map<String, PairingState> pairingStates = new HashMap<>();
     private PcView pcView;
     private static final String PAIRING_TAG = "Pairing";
+    private static final int SET_BITRATE_ID = 1001;
     
     public PcRecyclerAdapter(Context context) {
         this.context = context;
@@ -268,9 +278,9 @@ public class PcRecyclerAdapter extends RecyclerView.Adapter<PcRecyclerAdapter.Pc
             itemView.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    if (computer.details.state == ComputerDetails.State.UNKNOWN ||
-                        computer.details.state == ComputerDetails.State.OFFLINE) {
-                        // Open the context menu if a PC is offline or refreshing
+                    if (computer.details.state == ComputerDetails.State.OFFLINE ||
+                        (computer.details.state == ComputerDetails.State.UNKNOWN && computer.address == null)) {
+                        // Open the context menu if a PC is offline or refreshing (and we have no address to try)
                         itemView.showContextMenu();
                     } else if (computer.details.pairState != PairingManager.PairState.PAIRED) {
                         // Pair an unpaired machine by default
@@ -373,11 +383,19 @@ public class PcRecyclerAdapter extends RecyclerView.Adapter<PcRecyclerAdapter.Pc
         menu.add(android.view.Menu.NONE, PcView.VIEW_DETAILS_ID, 8,
                 context.getResources().getString(R.string.pcview_menu_details));
         
+        // Add Set Bitrate item
+        menu.add(android.view.Menu.NONE, SET_BITRATE_ID, 9,
+                context.getResources().getString(R.string.pcview_menu_set_bitrate));
+        
         // 设置菜单项点击监听器
         popupMenu.setOnMenuItemClickListener(new android.widget.PopupMenu.OnMenuItemClickListener() {
             @Override
             public boolean onMenuItemClick(android.view.MenuItem item) {
                 Log.d("PcRecyclerAdapter", "菜单项点击: " + item.getItemId());
+                if (item.getItemId() == SET_BITRATE_ID) {
+                    showBitrateDialog(computer);
+                    return true;
+                }
                 return pcView.onContextItemSelected(item, computer);
             }
         });
@@ -385,5 +403,59 @@ public class PcRecyclerAdapter extends RecyclerView.Adapter<PcRecyclerAdapter.Pc
         // 显示菜单
         popupMenu.show();
         Log.d("PcRecyclerAdapter", "自定义上下文菜单已显示");
+    }
+
+    private void showBitrateDialog(final PcView.ComputerObject computer) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(context);
+        builder.setTitle(String.format(context.getString(R.string.dialog_title_set_bitrate), computer.details.name));
+        builder.setMessage(R.string.dialog_message_set_bitrate);
+
+        final EditText input = new EditText(context);
+        input.setInputType(InputType.TYPE_CLASS_NUMBER);
+        
+        // Get current bitrate
+        int currentBitrateKbps = PreferenceConfiguration.getDeviceBitrate(context, computer.details.uuid, computer.address.address);
+        if (currentBitrateKbps > 0) {
+            input.setText(String.valueOf(currentBitrateKbps / 1000));
+        } else {
+            input.setHint("Default (Mbps)");
+        }
+        
+        builder.setView(input);
+
+        builder.setPositiveButton("OK", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                String valueStr = input.getText().toString().trim();
+                int bitrateMbps = 0;
+                try {
+                    if (!valueStr.isEmpty()) {
+                        bitrateMbps = Integer.parseInt(valueStr);
+                    }
+                } catch (NumberFormatException e) {
+                    // Ignore, treat as 0
+                }
+                
+                // Sanity check: limit max bitrate to 500 Mbps to prevent decoder issues/overflow
+                if (bitrateMbps > 500) {
+                    bitrateMbps = 500;
+                    Toast.makeText(context, "Bitrate limited to 500 Mbps", Toast.LENGTH_SHORT).show();
+                }
+
+                if (bitrateMbps > 0) {
+                    PreferenceConfiguration.setDeviceBitrate(context, computer.details.uuid, computer.address.address, bitrateMbps * 1000);
+                } else {
+                    PreferenceConfiguration.setDeviceBitrate(context, computer.details.uuid, computer.address.address, 0); // 0 means remove/use default
+                }
+            }
+        });
+        builder.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                dialog.cancel();
+            }
+        });
+
+        builder.show();
     }
 }

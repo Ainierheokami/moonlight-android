@@ -17,6 +17,7 @@
     <string name="pcview_menu_unpair_pc"> 取消配对 </string>
     <string name="pcview_menu_send_wol"> 发送 Wake-On-LAN 请求 </string>
     <string name="pcview_menu_delete_pc"> 删除电脑 </string>
+    <string name="pcview_menu_set_bitrate"> 设置独立码率 </string>
     <string name="pcview_menu_details"> 查看详情 </string>
     <!-- Pair messages -->
     <string name="pairing"> 配对中…… </string>
@@ -105,6 +106,9 @@
     <string name="addpc_unknown_host">无法解析电脑的IP地址，请确保IP地址输入无误。</string>
     <string name="addpc_enter_ip">请输入一个IP地址</string>
     <string name="addpc_wrong_sitelocal"> 该地址似乎不正确。 您必须使用路由器的公共IP地址通过Internet进行串流。 </string>
+    <string name="dialog_title_set_bitrate">目标码率 (%s)</string>
+    <string name="dialog_message_set_bitrate">输入码率(Mbps)，0为使用全局默认：</string>
+    <string name="bitrate_suffix">Kbps</string>
     <!-- Preferences -->
     <string name="category_basic_settings"> 基本设置 </string>
     <string name="title_resolution_list"> 视频分辨率 </string>

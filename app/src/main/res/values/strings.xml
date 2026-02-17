@@ -21,6 +21,7 @@
     <string name="pcview_menu_send_wol">Send Wake-On-LAN request</string>
     <string name="pcview_menu_delete_pc">Delete PC</string>
     <string name="pcview_menu_test_network">Test Network Connection</string>
+    <string name="pcview_menu_set_bitrate">Set specific bitrate</string>
     <string name="pcview_menu_details">View Details</string>
     <string name="pcview_menu_eol">NVIDIA GameStream End-of-Service</string>
 
@@ -143,6 +144,10 @@
     <string name="addpc_unknown_host">Unable to resolve PC address. Make sure you didn\'t make a typo in the address.</string>
     <string name="addpc_enter_ip">You must enter an IP address</string>
     <string name="addpc_wrong_sitelocal">That address doesn\'t look right. You must use your router\'s public IP address for streaming over the Internet.</string>
+
+    <string name="dialog_title_set_bitrate">Target Bitrate (%s)</string>
+    <string name="dialog_message_set_bitrate">Enter bitrate in Mbps (0 = use global default):</string>
+    <string name="bitrate_suffix">Kbps</string>
 
     <!-- Preferences -->
     <string name="category_basic_settings">Basic Settings</string>

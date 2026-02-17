@@ -1384,9 +1384,9 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
             public void onItemClick(AdapterView<?> arg0, View arg1, int pos,
                                     long id) {
                 ComputerObject computer = (ComputerObject) pcGridAdapter.getItem(pos);
-                if (computer.details.state == ComputerDetails.State.UNKNOWN ||
-                    computer.details.state == ComputerDetails.State.OFFLINE) {
-                    // Open the context menu if a PC is offline or refreshing
+                if (computer.details.state == ComputerDetails.State.OFFLINE ||
+                    (computer.details.state == ComputerDetails.State.UNKNOWN && computer.address == null)) {
+                    // Open the context menu if a PC is offline or refreshing (and we have no address to try)
                     openContextMenu(arg1);
                 } else if (computer.details.pairState != PairState.PAIRED) {
                     // Pair an unpaired machine by default

@@ -500,6 +500,33 @@ public class PreferenceConfiguration {
                 Build.FINGERPRINT.contains("PPR1.180610.011/4079208_2235.1395");
     }
 
+    public static int getDeviceBitrate(Context context, String uuid, String address) {
+        if (uuid == null) return 0;
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
+        // Try specific address first (if available)
+        if (address != null) {
+            int specificBitrate = prefs.getInt("bitrate_" + uuid + "_" + address, 0);
+            if (specificBitrate > 0) return specificBitrate;
+        }
+        // Fallback to UUID only (backward compatibility/general setting)
+        return prefs.getInt("bitrate_" + uuid, 0);
+    }
+
+    public static void setDeviceBitrate(Context context, String uuid, String address, int bitrate) {
+        if (uuid == null) return;
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
+        String key = "bitrate_" + uuid;
+        if (address != null) {
+            key += "_" + address;
+        }
+        
+        if (bitrate <= 0) {
+            prefs.edit().remove(key).apply();
+        } else {
+            prefs.edit().putInt(key, bitrate).apply();
+        }
+    }
+
     public static PreferenceConfiguration readPreferences(Context context) {
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
         PreferenceConfiguration config = new PreferenceConfiguration();

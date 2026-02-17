@@ -553,23 +553,75 @@ public class PortalOverlayView extends View {
     /**
      * 将目标区域的触摸坐标映射回源区域，并发送输入事件
      */
+    /**
+     * 将目标区域的触摸坐标映射回源区域，并发送输入事件
+     */
     public boolean handlePortalTouch(MotionEvent event) {
         if (game == null || game.getConnection() == null) {
             return false;
         }
-        // 坐标映射
+
+        // 1. Calculate srcX/srcY relative to the StreamView (0.0 - 1.0)
+        // config.srcRect is defined relative to the full StreamView (including black bars)
         float srcX = mapCoordinate(event.getX(), config.dstRect, config.srcRect, true);
         float srcY = mapCoordinate(event.getY(), config.dstRect, config.srcRect, false);
 
-        // 转换为流画面相对坐标（归一化）
-        float[] normalized = game.getStreamViewRelativeNormalizedXY(srcX, srcY);
+        // 2. Adjust for aspect ratio (black bars)
+        // host expects coordinates relative to the active video content, not the full stream view
+        // We need to map from "StreamView Normalized" -> "Video Content Normalized"
+        
+        View streamView = game.getStreamView();
+        if (streamView == null || streamView.getWidth() == 0 || streamView.getHeight() == 0) {
+             return false;
+        }
+
+        // Get video content rect (in pixels relative to streamView)
+        // We replicate the logic from PortalManagerView.getVideoContentRect here or access it if possible.
+        // Since we can't easily access private method, we assume standard "fit to center" logic used in Game.
+        
+        float viewWidth = streamView.getWidth();
+        float viewHeight = streamView.getHeight();
+        com.limelight.preferences.PreferenceConfiguration prefConfig = game.getPrefConfig();
+        
+        float contentLeft = 0, contentTop = 0, contentWidth = viewWidth, contentHeight = viewHeight;
+
+        if (prefConfig != null && !prefConfig.stretchVideo) {
+            float viewAspect = viewWidth / viewHeight;
+            float videoAspect = (float) prefConfig.width / prefConfig.height;
+
+            if (viewAspect > videoAspect) {
+                // View is wider than video (pillarbox)
+                contentHeight = viewHeight;
+                contentWidth = contentHeight * videoAspect;
+                contentLeft = (viewWidth - contentWidth) / 2;
+            } else {
+                // View is taller than video (letterbox)
+                contentWidth = viewWidth;
+                contentHeight = contentWidth / videoAspect;
+                contentTop = (viewHeight - contentHeight) / 2;
+            }
+        }
+        
+        // Convert normalized srcX/srcY back to pixels in StreamView
+        float pixelX = srcX * viewWidth;
+        float pixelY = srcY * viewHeight;
+
+        // Map pixel coordinates to normalized Video Content coordinates
+        // normalizedVideoX = (pixelX - contentLeft) / contentWidth
+        float normalizedVideoX = (pixelX - contentLeft) / contentWidth;
+        float normalizedVideoY = (pixelY - contentTop) / contentHeight;
+
+        // 3. Clamp to valid 0.0 - 1.0 range
+        // If the portal shows a black bar area, this will clamp it to the edge of the video
+        normalizedVideoX = Math.max(0f, Math.min(1f, normalizedVideoX));
+        normalizedVideoY = Math.max(0f, Math.min(1f, normalizedVideoY));
 
         // 发送输入事件（简化版，仅处理鼠标左键）
         switch (event.getActionMasked()) {
             case MotionEvent.ACTION_DOWN:
                 game.getConnection().sendMousePosition(
-                    (short)(normalized[0] * 65535),
-                    (short)(normalized[1] * 65535),
+                    (short)(normalizedVideoX * 65535),
+                    (short)(normalizedVideoY * 65535),
                     (short)game.getStreamView().getWidth(),
                     (short)game.getStreamView().getHeight());
                 game.getConnection().sendMouseButtonDown(MouseButtonPacket.BUTTON_LEFT);
@@ -579,8 +631,8 @@ public class PortalOverlayView extends View {
                 break;
             case MotionEvent.ACTION_MOVE:
                 game.getConnection().sendMousePosition(
-                    (short)(normalized[0] * 65535),
-                    (short)(normalized[1] * 65535),
+                    (short)(normalizedVideoX * 65535),
+                    (short)(normalizedVideoY * 65535),
                     (short)game.getStreamView().getWidth(),
                     (short)game.getStreamView().getHeight());
                 break;
