@@ -425,4 +425,7 @@
     <string name="floating_keyboard_shown">悬浮键盘已显示</string>
     <string name="touchpad_disabled">触摸板已禁用（仅虚拟键盘触摸）</string>
     <string name="touchpad_enabled">触摸板已启用</string>
+    <string name="default_val">默认</string>
+    <string name="intro_ok">确定</string>
+    <string name="intro_cancel">取消</string>
 </resources>

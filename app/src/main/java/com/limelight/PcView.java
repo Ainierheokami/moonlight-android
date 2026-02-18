@@ -438,6 +438,12 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
             Log.w("PcView", "pcGridAdapter was null in onResume(), initializing now");
             pcGridAdapter = new PcGridAdapter(this, prefs);
         }
+
+        if (pcRecyclerAdapter == null) {
+            Log.w("PcView", "pcRecyclerAdapter was null in onResume(), initializing now");
+            pcRecyclerAdapter = new PcRecyclerAdapter(this);
+        }
+
         
         // Only update layout if adapter is properly initialized
         if (pcGridAdapter != null) {

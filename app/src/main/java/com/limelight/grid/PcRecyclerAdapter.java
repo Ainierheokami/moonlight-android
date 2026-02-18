@@ -12,6 +12,7 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.EditText;
+import android.widget.SeekBar;
 
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -408,48 +409,87 @@ public class PcRecyclerAdapter extends RecyclerView.Adapter<PcRecyclerAdapter.Pc
     private void showBitrateDialog(final PcView.ComputerObject computer) {
         AlertDialog.Builder builder = new AlertDialog.Builder(context);
         builder.setTitle(String.format(context.getString(R.string.dialog_title_set_bitrate), computer.details.name));
-        builder.setMessage(R.string.dialog_message_set_bitrate);
+        // Remove message as it's self-explanatory with the slider/text
+        // builder.setMessage(R.string.dialog_message_set_bitrate);
 
-        final EditText input = new EditText(context);
-        input.setInputType(InputType.TYPE_CLASS_NUMBER);
-        
-        // Get current bitrate
+        // Inflate custom layout
+        LayoutInflater inflater = LayoutInflater.from(context);
+        View dialogView = inflater.inflate(R.layout.dialog_seekbar, null);
+        builder.setView(dialogView);
+
+        final TextView valueText = dialogView.findViewById(R.id.bitrate_value);
+        final SeekBar seekBar = dialogView.findViewById(R.id.bitrate_seekbar);
+
+        // Bitrate constants (in Mbps for the slider)
+        final int MIN_BITRATE_MBPS = 1; // 1 Mbps (slider min is 0 which we use for "Default")
+        final int MAX_BITRATE_MBPS = 150; // 150 Mbps max
+        final int STEP_SIZE_MBPS = 1;
+
+        // Get current bitrate (stored in Kbps)
         int currentBitrateKbps = PreferenceConfiguration.getDeviceBitrate(context, computer.details.uuid, computer.address.address);
-        if (currentBitrateKbps > 0) {
-            input.setText(String.valueOf(currentBitrateKbps / 1000));
-        } else {
-            input.setHint("Default (Mbps)");
-        }
-        
-        builder.setView(input);
+        int currentBitrateMbps = 0;
 
-        builder.setPositiveButton("OK", new DialogInterface.OnClickListener() {
+        if (currentBitrateKbps > 0) {
+            currentBitrateMbps = currentBitrateKbps / 1000;
+        }
+
+        // Configure SeekBar
+        // Range: 0 (Default) to 150 Mbps
+        seekBar.setMax(MAX_BITRATE_MBPS);
+        
+        // Update display text logic
+        final Runnable updateText = new Runnable() {
+            @Override
+            public void run() {
+                int progress = seekBar.getProgress();
+                if (progress == 0) {
+                    // Get global default for hint, if possible (optional, keeping it simple for now)
+                    valueText.setText("Default"); 
+                    // Or fetch global: PreferenceConfiguration.readPreferences(context).bitrate / 1000 + " Mbps (Default)" 
+                    // But that requires reading prefs which might be heavy here. 
+                    // Let's stick to "Default" or "Use Global Setting"
+                    valueText.setText(context.getString(R.string.default_val)); 
+                } else {
+                    valueText.setText(progress + " Mbps");
+                }
+            }
+        };
+
+        seekBar.setProgress(currentBitrateMbps);
+        updateText.run();
+
+        seekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                updateText.run();
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {}
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {}
+        });
+
+        builder.setPositiveButton(R.string.intro_ok, new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {
-                String valueStr = input.getText().toString().trim();
-                int bitrateMbps = 0;
-                try {
-                    if (!valueStr.isEmpty()) {
-                        bitrateMbps = Integer.parseInt(valueStr);
-                    }
-                } catch (NumberFormatException e) {
-                    // Ignore, treat as 0
-                }
-                
-                // Sanity check: limit max bitrate to 500 Mbps to prevent decoder issues/overflow
-                if (bitrateMbps > 500) {
-                    bitrateMbps = 500;
-                    Toast.makeText(context, "Bitrate limited to 500 Mbps", Toast.LENGTH_SHORT).show();
-                }
+                int bitrateMbps = seekBar.getProgress();
 
+                // First, always clear the address-specific bitrate to ensure we don't have stale overrides
+                // 0 means remove in setDeviceBitrate
+                PreferenceConfiguration.setDeviceBitrate(context, computer.details.uuid, computer.address.address, 0);
+
+                // Then set the UUID-based bitrate (or remove it if 0)
+                // We pass null for address to target the UUID-only key
                 if (bitrateMbps > 0) {
-                    PreferenceConfiguration.setDeviceBitrate(context, computer.details.uuid, computer.address.address, bitrateMbps * 1000);
+                    PreferenceConfiguration.setDeviceBitrate(context, computer.details.uuid, null, bitrateMbps * 1000);
                 } else {
-                    PreferenceConfiguration.setDeviceBitrate(context, computer.details.uuid, computer.address.address, 0); // 0 means remove/use default
+                    PreferenceConfiguration.setDeviceBitrate(context, computer.details.uuid, null, 0);
                 }
             }
         });
-        builder.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+        builder.setNegativeButton(R.string.intro_cancel, new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {
                 dialog.cancel();

@@ -1328,6 +1328,13 @@ public class Game extends Activity implements SurfaceHolder.Callback,
     }
 
     @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        Log.i("MoonReconnect", "[Game] onNewIntent: updating intent");
+        setIntent(intent);
+    }
+
+    @Override
     protected void onPause() {
         currentGameInstance = null;
         Log.i("MoonReconnect", "[Game] onPause: isFinishing=" + isFinishing() + ", connected=" + connected + ", connecting=" + connecting);
@@ -1701,6 +1708,24 @@ public class Game extends Activity implements SurfaceHolder.Callback,
             // Always return true, otherwise the back press will be propagated
             // up to the parent and finish the activity.
             return true;
+        }
+
+        // Handle the back button to show the menu
+        if (event.getKeyCode() == KeyEvent.KEYCODE_BACK) {
+            // We'll let the system handle this if we're not grabbing input,
+            // which will likely finish the activity or show the menu depending on state.
+            // If we are grabbing input, we want to show the menu instead of sending
+            // the back button to the host (unless the user has remapped it).
+            if (grabbedInput) {
+                // If we have a virtual controller/keyboard processing this, let it handle it
+                if (controllerHandler.handleButtonDown(event)) {
+                    return true;
+                }
+                
+                // Otherwise, invoke the menu
+                onBackPressed();
+                return true;
+            }
         }
 
         boolean handled = false;
@@ -3464,6 +3489,8 @@ public class Game extends Activity implements SurfaceHolder.Callback,
     // 新方法：启动连接
     private void startConnection(SurfaceHolder holder) {
         Log.i("MoonReconnect", "[Game] startConnection: holder=" + holder + ", surface valid=" + (holder != null && holder.getSurface() != null && holder.getSurface().isValid()));
+        Log.i("MoonReconnect", "[Game] startConnection: Host=" + getIntent().getStringExtra(EXTRA_HOST) + ", AppId=" + getIntent().getIntExtra(EXTRA_APP_ID, 0));
+        
         
         connecting = true;
         
@@ -3489,6 +3516,15 @@ public class Game extends Activity implements SurfaceHolder.Callback,
 
         // 重新读取 prefConfig，防止配置变动
         prefConfig = PreferenceConfiguration.readPreferences(this);
+
+        // [新增] 检查设备特定的码率覆盖（修复后台恢复问题）
+        String uuid = getIntent().getStringExtra(EXTRA_PC_UUID);
+        String address = getIntent().getStringExtra(EXTRA_HOST);
+        int deviceBitrate = PreferenceConfiguration.getDeviceBitrate(this, uuid, address);
+        if (deviceBitrate > 0) {
+            prefConfig.bitrate = deviceBitrate;
+            Log.i("MoonReconnect", "Using device-specific bitrate for reconnection: " + deviceBitrate);
+        }
 
         boolean willStreamHdr = shouldStreamHdr(false);
 
@@ -3551,6 +3587,8 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         }
 
         // new StreamConfiguration
+        LimeLog.info("Starting connection with bitrate: " + prefConfig.bitrate + " Kbps (" + (prefConfig.bitrate/1000) + " Mbps)");
+
         StreamConfiguration config = new StreamConfiguration.Builder()
             .setResolution(prefConfig.width, prefConfig.height)
             .setLaunchRefreshRate(prefConfig.fps)

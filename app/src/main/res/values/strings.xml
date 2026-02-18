@@ -490,4 +490,7 @@
     <string name="touchpad_enabled">触摸板已启用</string>
     <string name="scut_stop_refresh">已停止刷新</string>
     <string name="scut_refresh_list">正在刷新列表...</string>
+    <string name="default_val">Default</string>
+    <string name="intro_ok">OK</string>
+    <string name="intro_cancel">Cancel</string>
 </resources>
