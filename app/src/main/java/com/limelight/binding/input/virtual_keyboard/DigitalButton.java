@@ -268,6 +268,10 @@ public class DigitalButton extends VirtualKeyboardElement {
 
     @Override
     public boolean onElementTouchEvent(MotionEvent event) {
+        if (buttonType == ButtonType.RightClickModifier) {
+            forwardSecondaryPointersToStream(event);
+        }
+
         // get masked (not specific to a pointer) action
         float x = getX() + event.getX();
         float y = getY() + event.getY();
@@ -303,5 +307,45 @@ public class DigitalButton extends VirtualKeyboardElement {
             }
         }
         return true;
+    }
+
+    private void forwardSecondaryPointersToStream(MotionEvent event) {
+        if (virtualKeyboard == null || event.getPointerCount() <= 1) {
+            return;
+        }
+
+        int action = event.getActionMasked();
+        int actionIndex = event.getActionIndex();
+
+        if ((action == MotionEvent.ACTION_POINTER_DOWN || action == MotionEvent.ACTION_POINTER_UP) && actionIndex == 0) {
+            return;
+        }
+
+        if (action == MotionEvent.ACTION_POINTER_DOWN) {
+            virtualKeyboard.handlePassthroughTouch(
+                    MotionEvent.ACTION_DOWN,
+                    (int)(getX() + event.getX(actionIndex)),
+                    (int)(getY() + event.getY(actionIndex)),
+                    event.getEventTime());
+        }
+        else if (action == MotionEvent.ACTION_MOVE) {
+            for (int i = 1; i < event.getPointerCount(); i++) {
+                virtualKeyboard.handlePassthroughTouch(
+                        MotionEvent.ACTION_MOVE,
+                        (int)(getX() + event.getX(i)),
+                        (int)(getY() + event.getY(i)),
+                        event.getEventTime());
+            }
+        }
+        else if (action == MotionEvent.ACTION_POINTER_UP) {
+            virtualKeyboard.handlePassthroughTouch(
+                    MotionEvent.ACTION_UP,
+                    (int)(getX() + event.getX(actionIndex)),
+                    (int)(getY() + event.getY(actionIndex)),
+                    event.getEventTime());
+        }
+        else if (action == MotionEvent.ACTION_CANCEL) {
+            virtualKeyboard.handlePassthroughTouch(MotionEvent.ACTION_CANCEL, 0, 0, event.getEventTime());
+        }
     }
 }

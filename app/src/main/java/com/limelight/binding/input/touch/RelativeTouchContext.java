@@ -169,7 +169,7 @@ public class RelativeTouchContext implements TouchContext {
             return MouseButtonPacket.BUTTON_RIGHT;
         }
         else {
-            return MouseButtonPacket.BUTTON_LEFT;
+            return TouchMouseButtonOverride.getPrimaryButton();
         }
     }
 
@@ -224,6 +224,10 @@ public class RelativeTouchContext implements TouchContext {
             Runnable buttonUpRunnable = buttonUpRunnables[buttonIndex - 1];
             handler.removeCallbacks(buttonUpRunnable);
             handler.postDelayed(buttonUpRunnable, 100);
+        }
+
+        if (actionIndex == 0) {
+            TouchMouseButtonOverride.clearRightClick();
         }
     }
 
@@ -337,6 +341,10 @@ public class RelativeTouchContext implements TouchContext {
         // If it was a confirmed drag, we'll need to raise the button now
         if (confirmedDrag) {
             conn.sendMouseButtonUp(getMouseButtonIndex());
+        }
+
+        if (actionIndex == 0) {
+            TouchMouseButtonOverride.clearRightClick();
         }
     }
 

@@ -19,6 +19,7 @@ public class AbsoluteTouchContext implements TouchContext {
     private boolean cancelled;
     private boolean confirmedLongPress;
     private boolean confirmedTap;
+    private byte currentMouseButton = MouseButtonPacket.BUTTON_LEFT;
 
     private final Runnable longPressRunnable = new Runnable() {
         @Override
@@ -29,8 +30,9 @@ public class AbsoluteTouchContext implements TouchContext {
             // Switch from a left click to a right click after a long press
             confirmedLongPress = true;
             if (confirmedTap) {
-                conn.sendMouseButtonUp(MouseButtonPacket.BUTTON_LEFT);
+                conn.sendMouseButtonUp(currentMouseButton);
             }
+            currentMouseButton = MouseButtonPacket.BUTTON_RIGHT;
             conn.sendMouseButtonDown(MouseButtonPacket.BUTTON_RIGHT);
         }
     };
@@ -48,11 +50,37 @@ public class AbsoluteTouchContext implements TouchContext {
     private final View targetView;
     private final Handler handler;
 
-    private final Runnable leftButtonUpRunnable = new Runnable() {
-        @Override
-        public void run() {
-            conn.sendMouseButtonUp(MouseButtonPacket.BUTTON_LEFT);
-        }
+    private final Runnable[] buttonUpRunnables = new Runnable[] {
+            new Runnable() {
+                @Override
+                public void run() {
+                    conn.sendMouseButtonUp(MouseButtonPacket.BUTTON_LEFT);
+                }
+            },
+            new Runnable() {
+                @Override
+                public void run() {
+                    conn.sendMouseButtonUp(MouseButtonPacket.BUTTON_MIDDLE);
+                }
+            },
+            new Runnable() {
+                @Override
+                public void run() {
+                    conn.sendMouseButtonUp(MouseButtonPacket.BUTTON_RIGHT);
+                }
+            },
+            new Runnable() {
+                @Override
+                public void run() {
+                    conn.sendMouseButtonUp(MouseButtonPacket.BUTTON_X1);
+                }
+            },
+            new Runnable() {
+                @Override
+                public void run() {
+                    conn.sendMouseButtonUp(MouseButtonPacket.BUTTON_X2);
+                }
+            }
     };
 
     private static final int SCROLL_SPEED_FACTOR = 3;
@@ -134,7 +162,7 @@ public class AbsoluteTouchContext implements TouchContext {
                 conn.sendMouseButtonUp(MouseButtonPacket.BUTTON_RIGHT);
             }
             else if (confirmedTap) {
-                conn.sendMouseButtonUp(MouseButtonPacket.BUTTON_LEFT);
+                conn.sendMouseButtonUp(currentMouseButton);
             }
             else {
                 // If we get here, this means that the tap completed within the touch down
@@ -144,14 +172,19 @@ public class AbsoluteTouchContext implements TouchContext {
 
                 // Release the left mouse button in 100ms to allow for apps that use polling
                 // to detect mouse button presses.
-                handler.removeCallbacks(leftButtonUpRunnable);
-                handler.postDelayed(leftButtonUpRunnable, 100);
+                Runnable buttonUpRunnable = buttonUpRunnables[currentMouseButton - 1];
+                handler.removeCallbacks(buttonUpRunnable);
+                handler.postDelayed(buttonUpRunnable, 100);
             }
         }
 
         lastTouchLocationX = lastTouchUpX = eventX;
         lastTouchLocationY = lastTouchUpY = eventY;
         lastTouchUpTime = eventTime;
+
+        if (actionIndex == 0) {
+            TouchMouseButtonOverride.clearRightClick();
+        }
     }
 
     private void startLongPressTimer() {
@@ -179,14 +212,15 @@ public class AbsoluteTouchContext implements TouchContext {
 
         confirmedTap = true;
         cancelTapDownTimer();
+        currentMouseButton = TouchMouseButtonOverride.getPrimaryButton();
 
-        // Left button down at original position
+        // Primary button down at original position
         if (lastTouchDownTime - lastTouchUpTime > DOUBLE_TAP_TIME_THRESHOLD ||
                 distanceExceeds(lastTouchDownX - lastTouchUpX, lastTouchDownY - lastTouchUpY, DOUBLE_TAP_DISTANCE_THRESHOLD)) {
             // Don't reposition for finger down events within the deadzone. This makes double-clicking easier.
             updatePosition(lastTouchDownX, lastTouchDownY);
         }
-        conn.sendMouseButtonDown(MouseButtonPacket.BUTTON_LEFT);
+        conn.sendMouseButtonDown(currentMouseButton);
     }
 
     @Override
@@ -231,7 +265,11 @@ public class AbsoluteTouchContext implements TouchContext {
             conn.sendMouseButtonUp(MouseButtonPacket.BUTTON_RIGHT);
         }
         else if (confirmedTap) {
-            conn.sendMouseButtonUp(MouseButtonPacket.BUTTON_LEFT);
+            conn.sendMouseButtonUp(currentMouseButton);
+        }
+
+        if (actionIndex == 0) {
+            TouchMouseButtonOverride.clearRightClick();
         }
     }
 

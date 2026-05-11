@@ -72,7 +72,9 @@ public abstract class VirtualKeyboardElement extends View {
         Button(R.string.button_type_button),
         HotKeys(R.string.button_type_hot_keys),
         JoyStick(R.string.button_type_joystick),
-        TouchPad(R.string.button_type_touch_pad);
+        TouchPad(R.string.button_type_touch_pad),
+        MouseWheel(R.string.button_type_mouse_wheel),
+        RightClickModifier(R.string.button_type_right_click_modifier);
 
         @StringRes
         private final int displayNameRes;
@@ -341,7 +343,9 @@ public abstract class VirtualKeyboardElement extends View {
         // NB: We can get an additional pointer down if the user touches a non-StreamView area
         // while also touching an OSC control, even if that pointer down doesn't correspond to
         // an area of the OSC control.
-        if (event.getActionIndex() != 0 && buttonType != ButtonType.TouchPad) {
+        if (event.getActionIndex() != 0 &&
+                buttonType != ButtonType.TouchPad &&
+                buttonType != ButtonType.RightClickModifier) {
             return true;
         }
 

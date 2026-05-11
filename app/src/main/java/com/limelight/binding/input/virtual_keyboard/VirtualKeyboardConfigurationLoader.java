@@ -16,6 +16,7 @@ import android.content.ClipData;
 
 import com.limelight.heokami.MacroEditor;
 import com.limelight.heokami.VirtualKeyboardVkCode;
+import com.limelight.binding.input.touch.TouchMouseButtonOverride;
 import com.limelight.nvstream.input.ControllerPacket;
 import com.limelight.preferences.PreferenceConfiguration;
 
@@ -343,6 +344,35 @@ public class VirtualKeyboardConfigurationLoader {
                     }
                 });
                 break;
+            case RightClickModifier:
+                button.setText(text == null || text.isEmpty() ? context.getString(com.limelight.R.string.virtual_keyboard_right_click_modifier_label) : text);
+                button.addDigitalButtonListener(new DigitalButton.DigitalButtonListener() {
+                    private boolean nextTouchMode() {
+                        return button.buttonData != null && button.buttonData.optBoolean("RIGHT_CLICK_NEXT_TOUCH", false);
+                    }
+
+                    @Override
+                    public void onClick() {
+                        if (nextTouchMode()) {
+                            TouchMouseButtonOverride.requestRightClick();
+                        }
+                        else {
+                            TouchMouseButtonOverride.holdRightClick();
+                        }
+                    }
+
+                    @Override
+                    public void onLongClick() {
+                    }
+
+                    @Override
+                    public void onRelease() {
+                        if (!nextTouchMode()) {
+                            TouchMouseButtonOverride.releaseRightClick();
+                        }
+                    }
+                });
+                break;
             default:
                 // 默认行为：不做特殊处理
                 break;
@@ -360,6 +390,20 @@ public class VirtualKeyboardConfigurationLoader {
             final JSONObject buttonData
     ){
         TouchPad touchPad = new RelativeTouchPad(virtualKeyboard, context, elementId, layer);
+        touchPad.setType(buttonType);
+        touchPad.setButtonData(buttonData);
+        return touchPad;
+    }
+
+    private static TouchPad createMouseWheelPad(
+            final VirtualKeyboard virtualKeyboard,
+            final Context context,
+            final int elementId,
+            final int layer,
+            final VirtualKeyboardElement.ButtonType buttonType,
+            final JSONObject buttonData
+    ){
+        TouchPad touchPad = new MouseWheelPad(virtualKeyboard, context, elementId, layer);
         touchPad.setType(buttonType);
         touchPad.setButtonData(buttonData);
         return touchPad;
@@ -586,6 +630,22 @@ public class VirtualKeyboardConfigurationLoader {
         if (Objects.requireNonNull(elementType) == VirtualKeyboardElement.ButtonType.TouchPad) {
             virtualKeyboard.addElement(
                     createTouchPad(
+                            virtualKeyboard,
+                            context,
+                            elementId,
+                            1,
+                            elementType,
+                            elementData
+                    ),
+                    elementX,
+                    elementY,
+                    elementWidth,
+                    elementHeight
+            );
+        }
+        else if (Objects.requireNonNull(elementType) == VirtualKeyboardElement.ButtonType.MouseWheel) {
+            virtualKeyboard.addElement(
+                    createMouseWheelPad(
                             virtualKeyboard,
                             context,
                             elementId,

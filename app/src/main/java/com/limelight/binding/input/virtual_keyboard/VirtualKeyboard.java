@@ -189,6 +189,10 @@ public class VirtualKeyboard {
         return context.getPrefConfig();
     }
 
+    public boolean handlePassthroughTouch(int action, int x, int y, long eventTime) {
+        return context.handleVirtualKeyboardPassthroughTouch(action, x, y, eventTime);
+    }
+
     public void hide() {
         // 强制退回到非编辑态，确保遮罩与提示在任何“隐藏”路径都被移除
         currentMode = ControllerMode.Active;

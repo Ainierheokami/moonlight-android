@@ -610,23 +610,34 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
         val touchpadSectionTitle = TextView(context).apply { text = "触摸板灵敏度"; visibility = View.GONE }
         val touchpadSensitivityText = TextView(context).apply { text = "100"; visibility = View.GONE }
         val touchpadSensitivity = SeekBar(context).apply { max = 300; progress = 100; visibility = View.GONE }
+        val rightClickNextTouchCheck = CheckBox(context).apply { text = context.getString(R.string.virtual_keyboard_right_click_next_touch); visibility = View.GONE }
         touchpadSensitivity.setOnSeekBarChangeListener(object: SeekBar.OnSeekBarChangeListener{ override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) { touchpadSensitivityText.text = progress.toString() }; override fun onStartTrackingTouch(seekBar: SeekBar?) {}; override fun onStopTrackingTouch(seekBar: SeekBar?) {} })
 
         fun addTypeTab(text: String) { typeTabLayout.addTab(typeTabLayout.newTab().setText(text)) }
-        addTypeTab(context.getString(R.string.button_type_button)); addTypeTab(context.getString(R.string.button_type_hot_keys)); addTypeTab(context.getString(R.string.button_type_joystick)); addTypeTab(context.getString(R.string.button_type_touch_pad))
+        addTypeTab(context.getString(R.string.button_type_button)); addTypeTab(context.getString(R.string.button_type_hot_keys)); addTypeTab(context.getString(R.string.button_type_joystick)); addTypeTab(context.getString(R.string.button_type_touch_pad)); addTypeTab(context.getString(R.string.button_type_mouse_wheel)); addTypeTab(context.getString(R.string.button_type_right_click_modifier))
+        fun setTouchpadSensitivityVisible(visible: Boolean) {
+            touchpadSectionTitle.visibility = if (visible) View.VISIBLE else View.GONE
+            touchpadSensitivity.visibility = if (visible) View.VISIBLE else View.GONE
+            touchpadSensitivityText.visibility = if (visible) View.VISIBLE else View.GONE
+        }
+        fun setRightClickOptionsVisible(visible: Boolean) {
+            rightClickNextTouchCheck.visibility = if (visible) View.VISIBLE else View.GONE
+        }
         typeTabLayout.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
             override fun onTabSelected(tab: TabLayout.Tab?) {
                 when (tab?.position) {
-                    0 -> { selectedButtonType = VirtualKeyboardElement.ButtonType.Button; vkCodeButton.text = context.getString(R.string.virtual_keyboard_menu_vk_code_button); vkCodeButton.setOnClickListener { showVKCodeDialog(context, buttonTextEditText, vkCodeEditText) }; vkCodeButton.visibility = View.VISIBLE; vkCodeEditText.visibility = View.VISIBLE; touchpadSectionTitle.visibility = View.GONE; touchpadSensitivity.visibility = View.GONE; touchpadSensitivityText.visibility = View.GONE }
-                    1 -> { selectedButtonType = VirtualKeyboardElement.ButtonType.HotKeys; vkCodeButton.visibility = View.GONE; vkCodeEditText.visibility = View.GONE; touchpadSectionTitle.visibility = View.GONE; touchpadSensitivity.visibility = View.GONE; touchpadSensitivityText.visibility = View.GONE }
-                    2 -> { selectedButtonType = VirtualKeyboardElement.ButtonType.JoyStick; vkCodeButton.text = "JOY_CODE"; vkCodeButton.setOnClickListener { showJoyStickVKCodeDialog(context, buttonTextEditText, vkCodeEditText) }; vkCodeButton.visibility = View.VISIBLE; vkCodeEditText.visibility = View.VISIBLE; touchpadSectionTitle.visibility = View.GONE; touchpadSensitivity.visibility = View.GONE; touchpadSensitivityText.visibility = View.GONE }
-                    3 -> { selectedButtonType = VirtualKeyboardElement.ButtonType.TouchPad; vkCodeButton.visibility = View.GONE; vkCodeEditText.visibility = View.GONE; touchpadSectionTitle.visibility = View.VISIBLE; touchpadSensitivity.visibility = View.VISIBLE; touchpadSensitivityText.visibility = View.VISIBLE }
+                    0 -> { selectedButtonType = VirtualKeyboardElement.ButtonType.Button; vkCodeButton.text = context.getString(R.string.virtual_keyboard_menu_vk_code_button); vkCodeButton.setOnClickListener { showVKCodeDialog(context, buttonTextEditText, vkCodeEditText) }; vkCodeButton.visibility = View.VISIBLE; vkCodeEditText.visibility = View.VISIBLE; setTouchpadSensitivityVisible(false); setRightClickOptionsVisible(false) }
+                    1 -> { selectedButtonType = VirtualKeyboardElement.ButtonType.HotKeys; vkCodeButton.visibility = View.GONE; vkCodeEditText.visibility = View.GONE; setTouchpadSensitivityVisible(false); setRightClickOptionsVisible(false) }
+                    2 -> { selectedButtonType = VirtualKeyboardElement.ButtonType.JoyStick; vkCodeButton.text = "JOY_CODE"; vkCodeButton.setOnClickListener { showJoyStickVKCodeDialog(context, buttonTextEditText, vkCodeEditText) }; vkCodeButton.visibility = View.VISIBLE; vkCodeEditText.visibility = View.VISIBLE; setTouchpadSensitivityVisible(false); setRightClickOptionsVisible(false) }
+                    3 -> { selectedButtonType = VirtualKeyboardElement.ButtonType.TouchPad; vkCodeButton.visibility = View.GONE; vkCodeEditText.visibility = View.GONE; setTouchpadSensitivityVisible(true); setRightClickOptionsVisible(false) }
+                    4 -> { selectedButtonType = VirtualKeyboardElement.ButtonType.MouseWheel; vkCodeButton.visibility = View.GONE; vkCodeEditText.visibility = View.GONE; setTouchpadSensitivityVisible(false); setRightClickOptionsVisible(false); if (buttonTextEditText.text.isNullOrBlank()) buttonTextEditText.setText(context.getString(R.string.virtual_keyboard_mouse_wheel_label)) }
+                    5 -> { selectedButtonType = VirtualKeyboardElement.ButtonType.RightClickModifier; vkCodeButton.visibility = View.GONE; vkCodeEditText.visibility = View.GONE; setTouchpadSensitivityVisible(false); setRightClickOptionsVisible(true); if (buttonTextEditText.text.isNullOrBlank()) buttonTextEditText.setText(context.getString(R.string.virtual_keyboard_right_click_modifier_label)) }
                 }
             }
             override fun onTabUnselected(tab: TabLayout.Tab?) {}; override fun onTabReselected(tab: TabLayout.Tab?) {}
         })
         if (element != null) { selectedButtonType = element!!.buttonType; typeTabLayout.getTabAt(selectedButtonType.ordinal)?.select() }
-        behaviorSection.addView(typeTabLayout); behaviorSection.addView(vkLayout); addSpacerTo(behaviorSection, 6); behaviorSection.addView(touchpadSectionTitle); behaviorSection.addView(touchpadSensitivity); behaviorSection.addView(touchpadSensitivityText)
+        behaviorSection.addView(typeTabLayout); behaviorSection.addView(vkLayout); addSpacerTo(behaviorSection, 6); behaviorSection.addView(touchpadSectionTitle); behaviorSection.addView(touchpadSensitivity); behaviorSection.addView(touchpadSensitivityText); behaviorSection.addView(rightClickNextTouchCheck)
 
         val groupingSection = addCollapsibleSectionTo(behaviorSection, "编组（行为）", false)
         val groupingRow = LinearLayout(context).apply { orientation = LinearLayout.HORIZONTAL }
@@ -837,6 +848,7 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
                     if (data.has("BORDER_COLOR")) { val c = data.getInt("BORDER_COLOR"); borderColorEditText.setText(String.format("%08X", c)) }
                     if (data.has("BORDER_ALPHA")) borderAlphaSeek.progress = data.getInt("BORDER_ALPHA").coerceIn(0, 100)
                     if (data.has("TOUCHPAD_SENSITIVITY")) { val v = data.getInt("TOUCHPAD_SENSITIVITY"); touchpadSensitivity.progress = v; touchpadSensitivityText.text = v.toString() }
+                    if (data.has("RIGHT_CLICK_NEXT_TOUCH")) rightClickNextTouchCheck.isChecked = data.getBoolean("RIGHT_CLICK_NEXT_TOUCH")
                     if (data.has("TEXT_COLOR")) { val c = data.getInt("TEXT_COLOR"); textColorEdit.setText(String.format("%08X", c)) }
                     if (data.has("TEXT_ALPHA")) textAlphaSeek.progress = data.getInt("TEXT_ALPHA").coerceIn(0, 100)
                     if (data.has("BG_COLOR")) { val c = data.getInt("BG_COLOR"); bgColorEdit.setText(String.format("%08X", c)) }
@@ -897,6 +909,7 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
                     put("BG_COLOR_PRESSED", parseColorSafely(bgPressedColorEdit.text.toString(), 0xF00000FF.toInt()))
                     put("BG_ALPHA_PRESSED", bgPressedAlphaSeek.progress)
                     if (selectedButtonType == VirtualKeyboardElement.ButtonType.TouchPad) put("TOUCHPAD_SENSITIVITY", touchpadSensitivity.progress)
+                    if (selectedButtonType == VirtualKeyboardElement.ButtonType.RightClickModifier) put("RIGHT_CLICK_NEXT_TOUCH", rightClickNextTouchCheck.isChecked)
                 }
 
                 if (element != null) {

@@ -3204,6 +3204,36 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         return virtualKeyboard;
     }
 
+    public boolean handleVirtualKeyboardPassthroughTouch(int action, int eventX, int eventY, long eventTime) {
+        if (streamView == null || touchContextMap[0] == null) {
+            return false;
+        }
+
+        eventX = (int)(eventX - streamView.getX());
+        eventY = (int)(eventY - streamView.getY());
+        eventX = Math.min(Math.max(eventX, 0), streamView.getWidth());
+        eventY = Math.min(Math.max(eventY, 0), streamView.getHeight());
+
+        TouchContext touchContext = touchContextMap[0];
+        switch (action) {
+            case MotionEvent.ACTION_DOWN:
+                touchContext.setPointerCount(1);
+                return touchContext.touchDownEvent(eventX, eventY, eventTime, true);
+            case MotionEvent.ACTION_MOVE:
+                return touchContext.touchMoveEvent(eventX, eventY, eventTime);
+            case MotionEvent.ACTION_UP:
+                touchContext.touchUpEvent(eventX, eventY, eventTime);
+                touchContext.setPointerCount(0);
+                return true;
+            case MotionEvent.ACTION_CANCEL:
+                touchContext.cancelTouch();
+                touchContext.setPointerCount(0);
+                return true;
+            default:
+                return false;
+        }
+    }
+
     private void destroyVirtualKeyboardInstance() {
         if (virtualKeyboard != null) {
             virtualKeyboard.destroy();
