@@ -1,0 +1,69 @@
+name: Build Android APK
+
+on:
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build nonRoot APKs
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android packages
+        run: |
+          sdkmanager --install \
+            "platform-tools" \
+            "platforms;android-35" \
+            "build-tools;35.0.0" \
+            "ndk;27.0.12077973"
+          yes | sdkmanager --licenses >/dev/null
+
+      - name: Normalize CI Gradle properties
+        run: |
+          sed -i '/^systemProp\.http\.proxy/d' gradle.properties
+          sed -i '/^systemProp\.https\.proxy/d' gradle.properties
+          sed -i 's/^org\.gradle\.jvmargs=.*/org.gradle.jvmargs=-Xmx3g -Dfile.encoding=UTF-8/' gradle.properties
+
+      - name: Make Gradle wrapper executable
+        run: chmod +x ./gradlew
+
+      - name: Build nonRoot debug APK
+        run: ./gradlew :app:assembleNonRootDebug --stacktrace
+
+      - name: Build nonRoot release APK
+        run: ./gradlew :app:assembleNonRootRelease --stacktrace
+
+      - name: Upload debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: moonlight-nonroot-debug-apk
+          path: app/build/outputs/apk/nonRoot/debug/*.apk
+          if-no-files-found: error
+
+      - name: Upload release APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: moonlight-nonroot-release-apk
+          path: app/build/outputs/apk/nonRoot/release/*.apk
+          if-no-files-found: error
