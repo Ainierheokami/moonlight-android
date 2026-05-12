@@ -6,6 +6,9 @@ on:
       - master
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build:
     name: Build nonRoot APKs
@@ -67,3 +70,31 @@ jobs:
           name: moonlight-nonroot-release-apk
           path: app/build/outputs/apk/nonRoot/release/*.apk
           if-no-files-found: error
+
+      - name: Prepare release APKs
+        run: |
+          mkdir -p release-apks
+          cp app/build/outputs/apk/nonRoot/debug/*.apk release-apks/
+          cp app/build/outputs/apk/nonRoot/release/*.apk release-apks/
+          ls -lh release-apks
+
+      - name: Publish latest GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -f latest "${GITHUB_SHA}"
+          git push origin latest --force
+
+          if gh release view latest >/dev/null 2>&1; then
+            gh release edit latest \
+              --title "Latest Android APK" \
+              --notes "Automated APK build from commit ${GITHUB_SHA}."
+          else
+            gh release create latest \
+              --title "Latest Android APK" \
+              --notes "Automated APK build from commit ${GITHUB_SHA}."
+          fi
+
+          gh release upload latest release-apks/*.apk --clobber
