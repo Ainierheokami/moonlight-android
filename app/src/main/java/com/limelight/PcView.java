@@ -15,6 +15,7 @@ import com.limelight.computers.ComputerManagerListener;
 import com.limelight.computers.ComputerManagerService;
 import com.limelight.grid.PcGridAdapter;
 import com.limelight.grid.PcRecyclerAdapter;
+import com.limelight.grid.assets.ComputerScreenshotCache;
 import com.limelight.grid.assets.DiskAssetLoader;
 import com.limelight.nvstream.http.ComputerDetails;
 import com.limelight.nvstream.http.NvApp;
@@ -41,6 +42,11 @@ import android.content.ComponentName;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.content.res.Configuration;
+import android.graphics.Bitmap;
+import android.graphics.Canvas;
+import android.graphics.Color;
+import android.graphics.Paint;
+import android.graphics.RectF;
 import android.opengl.GLSurfaceView;
 import android.os.Build;
 import android.os.Bundle;
@@ -57,7 +63,6 @@ import android.widget.AbsListView;
 import android.widget.AdapterView;
 import android.widget.AdapterView.OnItemClickListener;
 import android.widget.ImageButton;
-import android.widget.RelativeLayout;
 import android.widget.Toast;
 import android.widget.AdapterView.AdapterContextMenuInfo;
 
@@ -73,12 +78,13 @@ import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
 
 public class PcView extends Activity implements AdapterFragmentCallbacks {
-    private RelativeLayout noPcFoundLayout;
+    private View noPcFoundLayout;
     private PcGridAdapter pcGridAdapter;
     private PcRecyclerAdapter pcRecyclerAdapter;
     private ShortcutHelper shortcutHelper;
     private ComputerManagerService.ComputerManagerBinder managerBinder;
     private boolean freezeUpdates, runningPolling, inForeground, completeOnCreateCalled;
+    private boolean debugSampleComputersAdded;
     private PreferenceConfiguration prefs;
     private Map<String, PairingTask> activePairingTasks = new HashMap<>();
     private static final String PAIRING_TAG = "Pairing";
@@ -253,6 +259,8 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
         if (pcGridAdapter != null) {
             pcGridAdapter.notifyDataSetChanged();
         }
+
+        addDebugSampleComputersIfNeeded();
     }
 
     @Override
@@ -1288,6 +1296,7 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
         managerBinder.removeComputer(details);
 
         new DiskAssetLoader(this).deleteAssetsForComputer(details.uuid);
+        new ComputerScreenshotCache(this).delete(details.uuid);
 
         // Delete hidden games preference value
         getSharedPreferences(AppView.HIDDEN_APPS_PREF_FILENAME, MODE_PRIVATE)
@@ -1374,6 +1383,101 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
 
         // Notify the view that the data has changed
         pcGridAdapter.notifyDataSetChanged();
+    }
+
+    private void addDebugSampleComputersIfNeeded() {
+        if (!BuildConfig.DEBUG || debugSampleComputersAdded || pcGridAdapter == null || pcRecyclerAdapter == null) {
+            return;
+        }
+
+        debugSampleComputersAdded = true;
+        ComputerScreenshotCache screenshotCache = new ComputerScreenshotCache(this);
+
+        screenshotCache.saveBitmap("demo-online", createDebugCoverBitmap("#213547", "#38BDF8", "AURORA"));
+        updateComputer(createDebugComputer(
+                "demo-online",
+                "Aurora Studio",
+                "192.168.31.28",
+                ComputerDetails.State.ONLINE,
+                PairState.PAIRED,
+                0,
+                true));
+
+        screenshotCache.saveBitmap("demo-running", createDebugCoverBitmap("#1B2430", "#34D399", "SESSION"));
+        updateComputer(createDebugComputer(
+                "demo-running",
+                "Neon Rig",
+                "10.0.0.42",
+                ComputerDetails.State.ONLINE,
+                PairState.PAIRED,
+                1,
+                true));
+
+        screenshotCache.saveBitmap("demo-unpaired", createDebugCoverBitmap("#2A2336", "#FBBF24", "PAIR"));
+        updateComputer(createDebugComputer(
+                "demo-unpaired",
+                "Pairing Lab",
+                "172.16.2.15",
+                ComputerDetails.State.ONLINE,
+                PairState.NOT_PAIRED,
+                0,
+                true));
+
+        screenshotCache.saveBitmap("demo-offline", createDebugCoverBitmap("#242933", "#8A97A5", "OFFLINE"));
+        updateComputer(createDebugComputer(
+                "demo-offline",
+                "Archive PC",
+                "192.168.31.77",
+                ComputerDetails.State.OFFLINE,
+                PairState.PAIRED,
+                0,
+                false));
+    }
+
+    private ComputerDetails createDebugComputer(String uuid, String name, String address,
+                                                ComputerDetails.State state, PairState pairState,
+                                                int runningGameId, boolean reachable) {
+        ComputerDetails details = new ComputerDetails();
+        details.uuid = uuid;
+        details.name = name;
+        details.localAddress = new ComputerDetails.AddressTuple(address, NvHTTP.DEFAULT_HTTP_PORT);
+        details.activeAddress = details.localAddress;
+        details.httpsPort = 0;
+        details.state = state;
+        details.pairState = pairState;
+        details.runningGameId = runningGameId;
+        details.nvidiaServer = false;
+        if (reachable) {
+            details.reachableAddresses.add(details.localAddress);
+        }
+        return details;
+    }
+
+    private Bitmap createDebugCoverBitmap(String backgroundColor, String accentColor, String label) {
+        int width = 960;
+        int height = 540;
+        Bitmap bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
+        Canvas canvas = new Canvas(bitmap);
+        Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+
+        canvas.drawColor(Color.parseColor(backgroundColor));
+
+        paint.setColor(Color.parseColor(accentColor));
+        paint.setAlpha(210);
+        canvas.drawRoundRect(new RectF(80, 72, 880, 468), 38, 38, paint);
+
+        paint.setColor(Color.WHITE);
+        paint.setAlpha(42);
+        canvas.drawCircle(780, 130, 210, paint);
+        canvas.drawCircle(130, 430, 170, paint);
+
+        paint.setAlpha(255);
+        paint.setTextAlign(Paint.Align.CENTER);
+        paint.setTextSize(64);
+        paint.setFakeBoldText(true);
+        canvas.drawText(label, width / 2f, height / 2f + 22, paint);
+
+        return bitmap;
     }
 
     @Override

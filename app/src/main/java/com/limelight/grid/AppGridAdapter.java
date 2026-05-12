@@ -180,5 +180,24 @@ public class AppGridAdapter extends GenericGridAdapter<AppView.AppObject> {
         else {
             parentView.setAlpha(1.0f);
         }
+
+        View runningBadge = parentView.findViewById(R.id.app_running_badge);
+        TextView stateText = parentView.findViewById(R.id.app_state_text);
+        if (runningBadge != null) {
+            runningBadge.setVisibility(obj.isRunning ? View.VISIBLE : View.GONE);
+        }
+        if (stateText != null) {
+            if (obj.isRunning) {
+                stateText.setText(context.getString(R.string.applist_menu_resume));
+                stateText.setVisibility(View.VISIBLE);
+            }
+            else if (obj.isHidden) {
+                stateText.setText(context.getString(R.string.applist_menu_hide_app));
+                stateText.setVisibility(View.VISIBLE);
+            }
+            else {
+                stateText.setVisibility(View.GONE);
+            }
+        }
     }
 }

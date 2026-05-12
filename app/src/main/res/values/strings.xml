@@ -97,6 +97,8 @@
 
     <!-- General strings -->
     <string name="ip_hint">IP address of host PC</string>
+    <string name="title_stream_settings">Streaming Settings</string>
+    <string name="subtitle_stream_settings">Video, input, audio, and host preferences</string>
     <string name="searching_pc">Searching for host PCs on your local network…\n\n
         Ensure Sunshine is running on your host PC or GameStream is enabled in the GeForce Experience SHIELD settings.</string>
     <string name="yes">Yes</string>
@@ -138,6 +140,9 @@
 
     <!-- Add computer manually activity -->
     <string name="title_add_pc">Add PC Manually</string>
+    <string name="subtitle_add_pc">Connect by host name or address</string>
+    <string name="add_pc_host_label">Host address</string>
+    <string name="add_pc_host_helper">Examples: 192.168.1.25, gaming-pc.local, or 203.0.113.10:47989</string>
     <string name="msg_add_pc">Connecting to the PC…</string>
     <string name="addpc_fail">Unable to connect to the specified computer. Make sure the required ports are allowed through the firewall.</string>
     <string name="addpc_success">Successfully added computer</string>

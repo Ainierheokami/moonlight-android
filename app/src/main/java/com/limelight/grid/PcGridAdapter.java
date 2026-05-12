@@ -1,6 +1,7 @@
 package com.limelight.grid;
 
 import android.content.Context;
+import android.graphics.Bitmap;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
@@ -11,6 +12,7 @@ import android.widget.TextView;
 
 import com.limelight.PcView;
 import com.limelight.R;
+import com.limelight.grid.assets.ComputerScreenshotCache;
 import com.limelight.nvstream.http.ComputerDetails;
 import com.limelight.nvstream.http.PairingManager;
 import com.limelight.preferences.PreferenceConfiguration;
@@ -25,10 +27,12 @@ public class PcGridAdapter extends GenericGridAdapter<PcView.ComputerObject> {
     // 跟踪配对状态
     private Map<String, PairingState> pairingStates = new HashMap<>();
     private PcView pcView;
+    private final ComputerScreenshotCache screenshotCache;
     private static final String PAIRING_TAG = "Pairing";
 
     public PcGridAdapter(Context context, PreferenceConfiguration prefs) {
         super(context, getLayoutIdForPreferences(prefs));
+        screenshotCache = new ComputerScreenshotCache(context);
         if (context instanceof PcView) {
             this.pcView = (PcView) context;
         }
@@ -121,16 +125,32 @@ public class PcGridAdapter extends GenericGridAdapter<PcView.ComputerObject> {
 
     @Override
     public void populateView(View parentView, ImageView imgView, ProgressBar prgView, TextView txtView, ImageView overlayView, PcView.ComputerObject obj) {
-        imgView.setImageResource(R.drawable.ic_computer);
+        Bitmap screenshot = screenshotCache.load(obj.details.uuid);
+        View placeholderIcon = parentView.findViewById(R.id.pc_placeholder_icon);
+        if (screenshot != null) {
+            imgView.setImageBitmap(screenshot);
+            if (placeholderIcon != null) {
+                placeholderIcon.setVisibility(View.GONE);
+            }
+        }
+        else {
+            imgView.setImageDrawable(null);
+            if (placeholderIcon != null) {
+                placeholderIcon.setVisibility(View.VISIBLE);
+            }
+        }
 
         // 获取配对信息视图
         LinearLayout pairingInfoLayout = parentView.findViewById(R.id.pairing_info_layout);
         TextView pairingStatusText = parentView.findViewById(R.id.pairing_status_text);
         Button cancelPairingButton = parentView.findViewById(R.id.cancel_pairing_button);
+        TextView addressText = parentView.findViewById(R.id.pc_address_text);
+        TextView statusText = parentView.findViewById(R.id.pc_status_text);
+        View statusDot = parentView.findViewById(R.id.pc_status_dot);
 
         // Dim the entire view if this specific address is not reachable
         if (obj.address != null && !obj.details.reachableAddresses.contains(obj.address)) {
-            parentView.setAlpha(0.4f);
+            parentView.setAlpha(0.62f);
         }
         else {
             parentView.setAlpha(1.0f);
@@ -143,16 +163,15 @@ public class PcGridAdapter extends GenericGridAdapter<PcView.ComputerObject> {
             prgView.setVisibility(View.INVISIBLE);
         }
 
-        if (obj.address != null) {
-            txtView.setText(obj.details.name + "\n" + obj.address.address);
-        }
-        else {
-            txtView.setText(obj.details.name);
+        txtView.setText(obj.details.name);
+        if (addressText != null) {
+            addressText.setText(obj.address != null ? obj.address.address : "");
         }
 
         // 处理配对状态显示
         String key = getComputerKey(obj);
         PairingState pairingState = pairingStates.get(key);
+        updateStatusViews(obj, pairingState, statusText, statusDot);
         
         if (pairingState != null && pairingState.status == PairingStatus.PAIRING) {
             // 显示配对信息，带动画
@@ -215,6 +234,37 @@ public class PcGridAdapter extends GenericGridAdapter<PcView.ComputerObject> {
             else {
                 overlayView.setVisibility(View.GONE);
             }
+        }
+    }
+
+    private void updateStatusViews(PcView.ComputerObject obj, PairingState pairingState, TextView statusText, View statusDot) {
+        if (statusText == null || statusDot == null) {
+            return;
+        }
+
+        if (pairingState != null && pairingState.status == PairingStatus.PAIRING) {
+            statusText.setText(context.getString(R.string.pairing));
+            statusDot.setBackgroundResource(R.drawable.pc_status_dot_warning);
+        }
+        else if (obj.details.state == ComputerDetails.State.UNKNOWN && isPolling) {
+            statusText.setText(context.getString(R.string.searching_pc));
+            statusDot.setBackgroundResource(R.drawable.pc_status_dot_warning);
+        }
+        else if (obj.details.state == ComputerDetails.State.OFFLINE) {
+            statusText.setText(context.getString(R.string.pcview_menu_send_wol));
+            statusDot.setBackgroundResource(R.drawable.pc_status_dot_offline);
+        }
+        else if (obj.details.pairState == PairingManager.PairState.NOT_PAIRED) {
+            statusText.setText(context.getString(R.string.pcview_menu_pair_pc));
+            statusDot.setBackgroundResource(R.drawable.pc_status_dot_warning);
+        }
+        else if (obj.details.runningGameId != 0) {
+            statusText.setText(context.getString(R.string.applist_menu_resume));
+            statusDot.setBackgroundResource(R.drawable.pc_status_dot_online);
+        }
+        else {
+            statusText.setText(context.getString(R.string.pcview_menu_app_list));
+            statusDot.setBackgroundResource(R.drawable.pc_status_dot_online);
         }
     }
 

@@ -1,6 +1,7 @@
 package com.limelight.grid;
 
 import android.content.Context;
+import android.graphics.Bitmap;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -18,6 +19,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.limelight.PcView;
 import com.limelight.R;
+import com.limelight.grid.assets.ComputerScreenshotCache;
 import com.limelight.nvstream.http.ComputerDetails;
 import com.limelight.nvstream.http.PairingManager;
 
@@ -41,12 +43,14 @@ public class PcRecyclerAdapter extends RecyclerView.Adapter<PcRecyclerAdapter.Pc
     private List<PcView.ComputerObject> computerList;
     private Map<String, PairingState> pairingStates = new HashMap<>();
     private PcView pcView;
+    private final ComputerScreenshotCache screenshotCache;
     private static final String PAIRING_TAG = "Pairing";
     private static final int SET_BITRATE_ID = 1001;
     
     public PcRecyclerAdapter(Context context) {
         this.context = context;
         this.computerList = new ArrayList<>();
+        this.screenshotCache = new ComputerScreenshotCache(context);
         if (context instanceof PcView) {
             this.pcView = (PcView) context;
         }
@@ -163,6 +167,10 @@ public class PcRecyclerAdapter extends RecyclerView.Adapter<PcRecyclerAdapter.Pc
         private ImageView gridOverlay;
         private ProgressBar gridSpinner;
         private TextView gridText;
+        private TextView addressText;
+        private TextView statusText;
+        private View statusDot;
+        private View placeholderIcon;
         private LinearLayout pairingInfoLayout;
         private TextView pairingStatusText;
         private Button cancelPairingButton;
@@ -173,13 +181,29 @@ public class PcRecyclerAdapter extends RecyclerView.Adapter<PcRecyclerAdapter.Pc
             gridOverlay = itemView.findViewById(R.id.grid_overlay);
             gridSpinner = itemView.findViewById(R.id.grid_spinner);
             gridText = itemView.findViewById(R.id.grid_text);
+            addressText = itemView.findViewById(R.id.pc_address_text);
+            statusText = itemView.findViewById(R.id.pc_status_text);
+            statusDot = itemView.findViewById(R.id.pc_status_dot);
+            placeholderIcon = itemView.findViewById(R.id.pc_placeholder_icon);
             pairingInfoLayout = itemView.findViewById(R.id.pairing_info_layout);
             pairingStatusText = itemView.findViewById(R.id.pairing_status_text);
             cancelPairingButton = itemView.findViewById(R.id.cancel_pairing_button);
         }
         
         public void bind(PcView.ComputerObject computer) {
-            gridImage.setImageResource(R.drawable.ic_computer);
+            Bitmap screenshot = screenshotCache.load(computer.details.uuid);
+            if (screenshot != null) {
+                gridImage.setImageBitmap(screenshot);
+                if (placeholderIcon != null) {
+                    placeholderIcon.setVisibility(View.GONE);
+                }
+            }
+            else {
+                gridImage.setImageDrawable(null);
+                if (placeholderIcon != null) {
+                    placeholderIcon.setVisibility(View.VISIBLE);
+                }
+            }
             
             // 为每个item单独设置长按监听器，使用自定义弹出菜单
             itemView.setOnLongClickListener(new View.OnLongClickListener() {
@@ -196,7 +220,7 @@ public class PcRecyclerAdapter extends RecyclerView.Adapter<PcRecyclerAdapter.Pc
             
             // Dim the entire view if this specific address is not reachable
             if (computer.address != null && !computer.details.reachableAddresses.contains(computer.address)) {
-                itemView.setAlpha(0.4f);
+                itemView.setAlpha(0.62f);
             } else {
                 itemView.setAlpha(1.0f);
             }
@@ -207,15 +231,15 @@ public class PcRecyclerAdapter extends RecyclerView.Adapter<PcRecyclerAdapter.Pc
                 gridSpinner.setVisibility(View.INVISIBLE);
             }
             
-            if (computer.address != null) {
-                gridText.setText(computer.details.name + "\n" + computer.address.address);
-            } else {
-                gridText.setText(computer.details.name);
+            gridText.setText(computer.details.name);
+            if (addressText != null) {
+                addressText.setText(computer.address != null ? computer.address.address : "");
             }
             
             // 处理配对状态显示
             String key = getComputerKey(computer);
             PairingState pairingState = pairingStates.get(key);
+            updateStatusViews(computer, pairingState, statusText, statusDot);
             
             if (pairingState != null && pairingState.status == PairingStatus.PAIRING) {
                 // 显示配对信息，带动画
@@ -296,6 +320,37 @@ public class PcRecyclerAdapter extends RecyclerView.Adapter<PcRecyclerAdapter.Pc
                 }
             });
             
+        }
+    }
+
+    private void updateStatusViews(PcView.ComputerObject computer, PairingState pairingState, TextView statusText, View statusDot) {
+        if (statusText == null || statusDot == null) {
+            return;
+        }
+
+        if (pairingState != null && pairingState.status == PairingStatus.PAIRING) {
+            statusText.setText(context.getString(R.string.pairing));
+            statusDot.setBackgroundResource(R.drawable.pc_status_dot_warning);
+        }
+        else if (computer.details.state == ComputerDetails.State.UNKNOWN && isPolling) {
+            statusText.setText(context.getString(R.string.searching_pc));
+            statusDot.setBackgroundResource(R.drawable.pc_status_dot_warning);
+        }
+        else if (computer.details.state == ComputerDetails.State.OFFLINE) {
+            statusText.setText(context.getString(R.string.pcview_menu_send_wol));
+            statusDot.setBackgroundResource(R.drawable.pc_status_dot_offline);
+        }
+        else if (computer.details.pairState == PairingManager.PairState.NOT_PAIRED) {
+            statusText.setText(context.getString(R.string.pcview_menu_pair_pc));
+            statusDot.setBackgroundResource(R.drawable.pc_status_dot_warning);
+        }
+        else if (computer.details.runningGameId != 0) {
+            statusText.setText(context.getString(R.string.applist_menu_resume));
+            statusDot.setBackgroundResource(R.drawable.pc_status_dot_online);
+        }
+        else {
+            statusText.setText(context.getString(R.string.pcview_menu_app_list));
+            statusDot.setBackgroundResource(R.drawable.pc_status_dot_online);
         }
     }
     

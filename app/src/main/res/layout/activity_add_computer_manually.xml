@@ -1,51 +1,135 @@
+<?xml version="1.0" encoding="utf-8"?>
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
-    android:layout_width="fill_parent"
-    android:layout_height="fill_parent"
-    android:paddingBottom="@dimen/activity_vertical_margin"
-    android:paddingLeft="@dimen/activity_horizontal_margin"
-    android:paddingRight="@dimen/activity_horizontal_margin"
-    android:paddingTop="@dimen/activity_vertical_margin"
-    tools:context=".preferences.AddComputerManually" >
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#0B1016"
+    tools:context=".preferences.AddComputerManually">
 
-    <TextView
-        android:id="@+id/manuallyAddPcText"
-        android:text="@string/title_add_pc"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:preferKeepClear="true"
-        android:layout_centerHorizontal="true"
-        android:textAppearance="?android:attr/textAppearanceLarge"
-        android:layout_alignParentTop="true"/>
+    <LinearLayout
+        android:id="@+id/addPcToolbar"
+        android:layout_width="match_parent"
+        android:layout_height="72dp"
+        android:layout_alignParentTop="true"
+        android:background="@drawable/pc_toolbar_background"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingStart="12dp"
+        android:paddingEnd="18dp">
 
-    <EditText
-        android:id="@+id/hostTextView"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_below="@+id/manuallyAddPcText"
-        android:layout_toLeftOf="@+id/addPcButton"
-        android:layout_toStartOf="@+id/addPcButton"
-        android:layout_marginTop="25dp"
-        android:layout_alignParentLeft="true"
-        android:layout_alignParentStart="true"
-        android:ems="10"
-        android:singleLine="true"
-        android:preferKeepClear="true"
-        android:inputType="textNoSuggestions"
-        android:hint="@string/ip_hint" >
-        
-        <requestFocus />
-    </EditText>
+        <ImageButton
+            android:id="@+id/addPcBackButton"
+            style="?android:attr/borderlessButtonStyle"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="@drawable/pc_toolbar_button_background"
+            android:contentDescription="@android:string/cancel"
+            android:padding="12dp"
+            android:preferKeepClear="true"
+            android:scaleType="fitCenter"
+            android:src="@android:drawable/ic_media_previous" />
 
-    <Button
-        android:id="@+id/addPcButton"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="25dp"
-        android:layout_below="@+id/manuallyAddPcText"
-        android:layout_alignParentRight="true"
-        android:layout_alignParentEnd="true"
-        android:preferKeepClear="true"
-        android:text="@android:string/ok"/>
-	
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="14dp"
+            android:layout_weight="1"
+            android:gravity="center_vertical"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/manuallyAddPcText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:preferKeepClear="true"
+                android:text="@string/title_add_pc"
+                android:textColor="#F5F8FC"
+                android:textSize="20sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:text="@string/subtitle_add_pc"
+                android:textColor="#8FA0B2"
+                android:textSize="12sp" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_below="@id/addPcToolbar"
+        android:clipToPadding="false"
+        android:fillViewport="false"
+        android:paddingStart="18dp"
+        android:paddingTop="22dp"
+        android:paddingEnd="18dp"
+        android:paddingBottom="22dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@drawable/add_pc_panel_background"
+            android:gravity="center_vertical"
+            android:orientation="vertical"
+            android:paddingStart="20dp"
+            android:paddingTop="22dp"
+            android:paddingEnd="20dp"
+            android:paddingBottom="20dp">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/add_pc_host_label"
+                android:textColor="#DCE6F1"
+                android:textSize="13sp"
+                android:textStyle="bold" />
+
+            <EditText
+                android:id="@+id/hostTextView"
+                android:layout_width="match_parent"
+                android:layout_height="52dp"
+                android:layout_marginTop="10dp"
+                android:background="@drawable/add_pc_input_background"
+                android:hint="@string/ip_hint"
+                android:imeOptions="actionDone"
+                android:inputType="textNoSuggestions"
+                android:paddingStart="16dp"
+                android:paddingEnd="16dp"
+                android:preferKeepClear="true"
+                android:singleLine="true"
+                android:textColor="#F5F8FC"
+                android:textColorHint="#6F8091"
+                android:textSize="16sp">
+
+                <requestFocus />
+            </EditText>
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:text="@string/add_pc_host_helper"
+                android:textColor="#8FA0B2"
+                android:textSize="12sp" />
+
+            <Button
+                android:id="@+id/addPcButton"
+                android:layout_width="match_parent"
+                android:layout_height="52dp"
+                android:layout_marginTop="20dp"
+                android:background="@drawable/add_pc_primary_button_background"
+                android:minWidth="0dp"
+                android:minHeight="0dp"
+                android:preferKeepClear="true"
+                android:stateListAnimator="@null"
+                android:text="@android:string/ok"
+                android:textAllCaps="false"
+                android:textColor="#FFFFFF"
+                android:textSize="15sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+    </ScrollView>
 </RelativeLayout>

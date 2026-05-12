@@ -274,6 +274,13 @@ public class AddComputerManually extends Activity {
 
         UiHelper.notifyNewRootView(this);
 
+        findViewById(R.id.addPcBackButton).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                finish();
+            }
+        });
+
         this.hostText = findViewById(R.id.hostTextView);
         hostText.setImeOptions(EditorInfo.IME_ACTION_DONE);
         hostText.setOnEditorActionListener(new TextView.OnEditorActionListener() {

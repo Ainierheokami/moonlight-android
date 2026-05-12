@@ -1,13 +1,16 @@
 package com.limelight;
 
 import java.io.IOException;
+import java.io.FileOutputStream;
 import java.io.StringReader;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 
 import com.limelight.computers.ComputerManagerListener;
 import com.limelight.computers.ComputerManagerService;
 import com.limelight.grid.AppGridAdapter;
+import com.limelight.grid.assets.DiskAssetLoader;
 import com.limelight.nvstream.http.ComputerDetails;
 import com.limelight.nvstream.http.NvApp;
 import com.limelight.nvstream.http.NvHTTP;
@@ -30,6 +33,10 @@ import android.content.ServiceConnection;
 import android.content.SharedPreferences;
 import android.content.res.Configuration;
 import android.graphics.Bitmap;
+import android.graphics.Canvas;
+import android.graphics.Color;
+import android.graphics.Paint;
+import android.graphics.RectF;
 import android.graphics.drawable.BitmapDrawable;
 import android.os.Build;
 import android.os.Bundle;
@@ -62,6 +69,7 @@ public class AppView extends Activity implements AdapterFragmentCallbacks {
     private boolean suspendGridUpdates;
     private boolean inForeground;
     private boolean showHiddenApps;
+    private boolean debugSampleMode;
     private HashSet<Integer> hiddenAppIds = new HashSet<>();
     private ComputerDetails.AddressTuple selectedAddress;
 
@@ -95,13 +103,21 @@ public class AppView extends Activity implements AdapterFragmentCallbacks {
                     // Get the computer object
                     computer = localBinder.getComputer(uuidString);
                     if (computer == null) {
-                        finish();
-                        return;
+                        if (BuildConfig.DEBUG && uuidString != null && uuidString.startsWith("demo-")) {
+                            computer = createDebugComputer();
+                            debugSampleMode = true;
+                        }
+                        else {
+                            finish();
+                            return;
+                        }
                     }
 
                     // Add a launcher shortcut for this PC (forced, since this is user interaction)
-                    shortcutHelper.createAppViewShortcut(computer, true, getIntent().getBooleanExtra(NEW_PAIR_EXTRA, false));
-                    shortcutHelper.reportComputerShortcutUsed(computer);
+                    if (!debugSampleMode) {
+                        shortcutHelper.createAppViewShortcut(computer, true, getIntent().getBooleanExtra(NEW_PAIR_EXTRA, false));
+                        shortcutHelper.reportComputerShortcutUsed(computer);
+                    }
 
                     try {
                         appGridAdapter = new AppGridAdapter(AppView.this,
@@ -121,14 +137,19 @@ public class AppView extends Activity implements AdapterFragmentCallbacks {
                     // touching the appGridAdapter prior to initialization.
                     managerBinder = localBinder;
 
-                    // Load the app grid with cached data (if possible).
-                    // This must be done _before_ startComputerUpdates()
-                    // so the initial serverinfo response can update the running
-                    // icon.
-                    populateAppGridWithCache();
+                    if (debugSampleMode) {
+                        populateDebugAppGrid();
+                    }
+                    else {
+                        // Load the app grid with cached data (if possible).
+                        // This must be done _before_ startComputerUpdates()
+                        // so the initial serverinfo response can update the running
+                        // icon.
+                        populateAppGridWithCache();
 
-                    // Start updates
-                    startComputerUpdates();
+                        // Start updates
+                        startComputerUpdates();
+                    }
 
                     runOnUiThread(new Runnable() {
                         @Override
@@ -324,6 +345,89 @@ public class AppView extends Activity implements AdapterFragmentCallbacks {
         // Bind to the computer manager service
         bindService(new Intent(this, ComputerManagerService.class), serviceConnection,
                 Service.BIND_AUTO_CREATE);
+    }
+
+    private ComputerDetails createDebugComputer() {
+        ComputerDetails details = new ComputerDetails();
+        details.uuid = uuidString;
+        details.name = getIntent().getStringExtra(NAME_EXTRA);
+        if (details.name == null) {
+            details.name = "Demo PC";
+        }
+        details.state = ComputerDetails.State.ONLINE;
+        details.pairState = PairingManager.PairState.PAIRED;
+        details.localAddress = selectedAddress != null ? selectedAddress : new ComputerDetails.AddressTuple("192.168.31.28", NvHTTP.DEFAULT_HTTP_PORT);
+        details.activeAddress = details.localAddress;
+        details.reachableAddresses.add(details.localAddress);
+        details.runningGameId = uuidString.equals("demo-running") ? 1002 : 0;
+        return details;
+    }
+
+    private void populateDebugAppGrid() {
+        List<NvApp> apps = new ArrayList<>();
+        apps.add(new NvApp("Cyberpunk 2077", 1001, true));
+        apps.add(new NvApp("Steam Big Picture", 1002, false));
+        apps.add(new NvApp("Baldur's Gate 3", 1003, true));
+        apps.add(new NvApp("Forza Horizon 5", 1004, true));
+        apps.add(new NvApp("Desktop", 1005, false));
+        apps.add(new NvApp("Hades II", 1006, false));
+        populateDebugAppCovers(apps);
+        updateUiWithAppList(apps);
+        updateUiWithServerinfo(computer);
+    }
+
+    private void populateDebugAppCovers(List<NvApp> apps) {
+        String[] colors = {
+                "#38BDF8", "#36D399", "#A78BFA", "#FBBF24", "#F87171", "#60A5FA"
+        };
+        DiskAssetLoader diskAssetLoader = new DiskAssetLoader(this);
+        for (int i = 0; i < apps.size(); i++) {
+            Bitmap cover = createDebugAppCover(apps.get(i).getAppName(), colors[i % colors.length]);
+            java.io.File file = diskAssetLoader.getFile(computer.uuid, apps.get(i).getAppId());
+            java.io.File parent = file.getParentFile();
+            if (parent != null) {
+                parent.mkdirs();
+            }
+            try (FileOutputStream out = new FileOutputStream(file)) {
+                cover.compress(Bitmap.CompressFormat.PNG, 90, out);
+            } catch (IOException ignored) {
+            } finally {
+                cover.recycle();
+            }
+        }
+    }
+
+    private Bitmap createDebugAppCover(String name, String accentColor) {
+        int width = 300;
+        int height = 400;
+        Bitmap bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
+        Canvas canvas = new Canvas(bitmap);
+        Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+
+        canvas.drawColor(Color.parseColor("#151C24"));
+
+        paint.setColor(Color.parseColor(accentColor));
+        paint.setAlpha(220);
+        canvas.drawRoundRect(new RectF(28, 34, 272, 286), 24, 24, paint);
+
+        paint.setColor(Color.WHITE);
+        paint.setAlpha(44);
+        canvas.drawCircle(235, 70, 88, paint);
+        canvas.drawCircle(60, 260, 76, paint);
+
+        paint.setAlpha(255);
+        paint.setTextAlign(Paint.Align.CENTER);
+        paint.setFakeBoldText(true);
+        paint.setTextSize(32);
+        String[] words = name.split(" ");
+        String firstLine = words.length > 0 ? words[0] : name;
+        String secondLine = words.length > 1 ? words[1] : "";
+        canvas.drawText(firstLine, width / 2f, 170, paint);
+        if (!secondLine.isEmpty()) {
+            canvas.drawText(secondLine, width / 2f, 212, paint);
+        }
+
+        return bitmap;
     }
 
     private void updateHiddenApps(boolean hideImmediately) {

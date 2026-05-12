@@ -22,6 +22,7 @@ import com.limelight.binding.video.PerfOverlayListener;
 import com.limelight.heokami.GameGridLines;
 // import com.limelight.heokami.VirtualKeyboardMenu;
 import com.limelight.heokami.FloatingVirtualKeyboardFragment;
+import com.limelight.grid.assets.ComputerScreenshotCache;
 import com.limelight.portal.PortalManagerView;
 import android.app.FragmentManager;
 import android.app.Fragment;
@@ -198,6 +199,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
 
     private MediaCodecDecoderRenderer decoderRenderer;
     private boolean reportedCrash;
+    private boolean screenshotCaptureRequested;
 
     private WifiManager.WifiLock highPerfWifiLock;
     private WifiManager.WifiLock lowLatencyWifiLock;
@@ -605,6 +607,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
                 new ComputerDetails.AddressTuple(host, port),
                 httpsPort, uniqueId, config,
                 PlatformBinding.getCryptoProvider(this), serverCert);
+        screenshotCaptureRequested = false;
         controllerHandler = new ControllerHandler(this, conn, this, prefConfig);
         keyboardTranslator = new KeyboardTranslator();
 
@@ -2623,6 +2626,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
     private void stopConnection() {
         disconnectHandler.removeCallbacks(delayedSuspendRunnable);
         if (connecting || connected) {
+            captureLastFrameForComputer();
             connecting = connected = false;
             updatePipAutoEnter();
 
@@ -2645,6 +2649,20 @@ public class Game extends Activity implements SurfaceHolder.Callback,
                 }
             }.start();
         }
+    }
+
+    private void captureLastFrameForComputer() {
+        if (screenshotCaptureRequested) {
+            return;
+        }
+        screenshotCaptureRequested = true;
+
+        String uuid = getIntent().getStringExtra(EXTRA_PC_UUID);
+        if (uuid == null || uuid.isEmpty() || streamView == null) {
+            return;
+        }
+
+        new ComputerScreenshotCache(this).captureFromSurface(uuid, streamView);
     }
 
     @Override
@@ -3668,6 +3686,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
             new ComputerDetails.AddressTuple(lastHost, lastPort),
             lastHttpsPort, lastUniqueId, config,
             PlatformBinding.getCryptoProvider(this), serverCert);
+        screenshotCaptureRequested = false;
 
         // 重新初始化 controllerHandler、keyboardTranslator
         controllerHandler = new ControllerHandler(this, conn, this, prefConfig);
