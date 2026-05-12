@@ -3432,6 +3432,19 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         changeTouchMode(nextMode);
     }
 
+    public int getCurrentTouchMode() {
+        if (temporaryTouchMode != -1) {
+            return temporaryTouchMode;
+        }
+        if (!prefConfig.touchscreenTrackpad && prefConfig.multiTouchScreen) {
+            return 0;
+        }
+        if (!prefConfig.multiTouchScreen && prefConfig.touchscreenTrackpad) {
+            return 1;
+        }
+        return 2;
+    }
+
     public void changeTouchMode(int mode){
         this.temporaryTouchMode = mode; // Store the temporary choice
 
@@ -3491,6 +3504,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
                 ((com.limelight.heokami.EditMenuFragment) menuFragment).hideMenuWithAnimation();
                 return;
             }
+            com.limelight.heokami.EditMenu.setMenuShowing(false);
         }
         // 检查游戏菜单是否已经显示
         if (com.limelight.heokami.GameMenu.isMenuShowing()) {
@@ -3500,8 +3514,9 @@ public class Game extends Activity implements SurfaceHolder.Callback,
             android.util.Log.d("GameMenu", "Menu fragment found: " + (menuFragment != null));
             if (menuFragment != null && menuFragment instanceof com.limelight.heokami.GameMenuFragment) {
                 ((com.limelight.heokami.GameMenuFragment) menuFragment).hideMenuWithAnimation();
+                return;
             }
-            return;
+            com.limelight.heokami.GameMenu.setMenuShowing(false);
         }
         
         // 如果菜单没有显示，则显示菜单

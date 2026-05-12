@@ -16,7 +16,13 @@ public class EditMenu {
     }
 
     private void showMenu(){
-        if (isMenuShowing) return;
+        if (isMenuShowing) {
+            android.app.Fragment existing = game.getFragmentManager().findFragmentByTag("EditMenu");
+            if (existing instanceof EditMenuFragment && existing.isAdded()) {
+                return;
+            }
+            isMenuShowing = false;
+        }
         isMenuShowing = true;
         EditMenuFragment fragment = EditMenuFragment.newInstance(game, vk);
         game.getFragmentManager()

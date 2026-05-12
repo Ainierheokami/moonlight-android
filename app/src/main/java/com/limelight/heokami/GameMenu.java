@@ -36,8 +36,13 @@ public class GameMenu {
         
         // 如果菜单已经显示，则不重复显示
         if (isMenuShowing) {
-            android.util.Log.d("GameMenu", "Menu already showing, returning");
-            return;
+            android.app.Fragment existing = game.getFragmentManager().findFragmentByTag("GameMenu");
+            if (existing instanceof GameMenuFragment && existing.isAdded()) {
+                android.util.Log.d("GameMenu", "Menu already showing, returning");
+                return;
+            }
+            android.util.Log.w("GameMenu", "Menu state was showing but fragment is missing, resetting");
+            isMenuShowing = false;
         }
         
         isMenuShowing = true;

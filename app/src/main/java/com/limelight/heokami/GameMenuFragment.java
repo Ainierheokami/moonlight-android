@@ -10,6 +10,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
+import android.util.TypedValue;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -19,6 +20,9 @@ import android.widget.Toast;
 import android.app.Fragment;
 
 import android.widget.Button;
+import android.widget.GridLayout;
+import android.widget.LinearLayout;
+import android.widget.TextView;
 import com.limelight.Game;
 import com.limelight.R;
 import com.limelight.nvstream.NvConnection;
@@ -28,6 +32,9 @@ import com.limelight.heokami.FloatingVirtualKeyboardFragment;
 import com.limelight.portal.PortalConfig;
 import com.limelight.portal.PortalManagerView;
 import android.graphics.RectF;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
 
 /**
  * 游戏菜单Fragment
@@ -41,9 +48,13 @@ public class GameMenuFragment extends Fragment {
     private View backgroundView;
     // 主列表与二级面板
     private View mainScrollView;
-    private View bottomActionRow;
     private View touchModePanel;
+    private TextView touchModeCurrentView;
+    private LinearLayout statusContainer;
+    private LinearLayout dashboardContainer;
+    private LinearLayout touchModeOptions;
     private boolean isMenuVisible = false;
+    private long lastDisconnectTapMs = 0;
 
     // 动画持续时间
     private static final int ANIMATION_DURATION = 300;
@@ -90,10 +101,15 @@ public class GameMenuFragment extends Fragment {
     private void initViews(View view) {
         menuPanel = view.findViewById(R.id.menu_panel);
         backgroundView = view.findViewById(R.id.menu_background);
-        // 绑定主内容与二级面板容器
         mainScrollView = view.findViewById(R.id.main_scroll);
-        bottomActionRow = view.findViewById(R.id.bottom_action_row);
-        touchModePanel = view.findViewById(R.id.touch_mode_panel);
+        touchModePanel = view.findViewById(R.id.touch_mode_sheet);
+        touchModeCurrentView = view.findViewById(R.id.touch_mode_current);
+        statusContainer = view.findViewById(R.id.status_container);
+        dashboardContainer = view.findViewById(R.id.dashboard_container);
+        touchModeOptions = view.findViewById(R.id.touch_mode_options);
+        renderStatusBar();
+        renderDashboard();
+        renderTouchModeOptions();
     }
 
     /**
@@ -107,11 +123,10 @@ public class GameMenuFragment extends Fragment {
         // 获取当前屏幕方向
         int orientation = getResources().getConfiguration().orientation;
         
-        // 计算菜单宽度：直接使用当前屏幕宽度，不考虑方向
-        // 因为getDisplayMetrics().widthPixels已经考虑了屏幕方向
-        // 将400dp转换为px
-        int maxWidthPx = (int) (400 * getResources().getDisplayMetrics().density);
-        int menuWidth = Math.min(screenWidth / 3, maxWidthPx);
+        int maxWidthPx = (int) (480 * getResources().getDisplayMetrics().density);
+        int minWidthPx = (int) (320 * getResources().getDisplayMetrics().density);
+        int targetWidth = (int) (screenWidth * (screenWidth > screenHeight ? 0.38f : 0.86f));
+        int menuWidth = Math.min(Math.max(targetWidth, minWidthPx), Math.min(screenWidth, maxWidthPx));
         
         android.util.Log.d("GameMenu", "Screen width: " + screenWidth + ", Screen height: " + screenHeight + 
                           ", Orientation: " + orientation + ", Max width px: " + maxWidthPx + 
@@ -133,439 +148,378 @@ public class GameMenuFragment extends Fragment {
      * 设置点击事件监听器
      */
     private void setupClickListeners() {
-        // 背景点击关闭菜单
         backgroundView.setOnClickListener(v -> hideMenuWithAnimation());
 
-        // 关闭按钮
         View closeButton = getView().findViewById(R.id.btn_close_menu);
         if (closeButton != null) {
             closeButton.setOnClickListener(v -> hideMenuWithAnimation());
         }
 
-        // 输入控制按钮
-        setupInputControlButtons();
-        
-        // 热键按钮
-        setupHotkeyButtons();
-
-        // 自定义热键按钮与编辑入口
-        setupCustomHotkeysSection();
-        
-        // 剪贴板按钮
-        setupClipboardButtons();
-        
-        // 性能叠加层按钮
-        setupPerformanceOverlayButtons();
-
-        // 传送门管理按钮
-        setupPortalButtons();
-
-        // 底部操作按钮
         setupBottomButtons();
-
-        // 触摸模式二级菜单
-        setupTouchModeButtons();
     }
 
-    /**
-     * 设置输入控制按钮
-     */
-    private void setupInputControlButtons() {
-        // 启用输入法
-        Button btnEnableKeyboard = getView().findViewById(R.id.btn_enable_keyboard);
-        if (btnEnableKeyboard != null) {
-            btnEnableKeyboard.setOnClickListener(v -> {
-                hideMenuWithAnimation();
-                enableKeyboard();
-            });
+    private enum MenuSection {
+        INPUT(R.string.game_menu_section_input_controls),
+        HOTKEYS(R.string.game_menu_section_hotkeys),
+        OVERLAY(R.string.game_menu_section_screen_overlay),
+        PORTALS(R.string.game_menu_section_portals),
+        CUSTOM(R.string.game_menu_section_custom_hotkeys);
+
+        final int titleRes;
+        MenuSection(int titleRes) {
+            this.titleRes = titleRes;
+        }
+    }
+
+    private static final class MenuAction {
+        final String id;
+        final int titleRes;
+        final int iconRes;
+        final MenuSection section;
+        final int priority;
+        final boolean danger;
+        final boolean visible;
+        final boolean enabled;
+        final View.OnClickListener onClick;
+        final String overrideTitle;
+
+        MenuAction(String id, int titleRes, int iconRes, MenuSection section, int priority,
+                   boolean danger, boolean visible, boolean enabled, View.OnClickListener onClick) {
+            this(id, titleRes, iconRes, section, priority, danger, visible, enabled, onClick, null);
         }
 
-        // 悬浮键盘
-        Button btnFloatingKeyboard = getView().findViewById(R.id.btn_floating_keyboard);
-        if (btnFloatingKeyboard != null) {
-            btnFloatingKeyboard.setOnClickListener(v -> {
-                hideMenuWithAnimation();
-                try {
-                    Log.d("GameMenuFragment", "Attempting to show floating keyboard");
-                    FloatingVirtualKeyboardFragment.Companion.show(game);
-                } catch (Exception e) {
-                    Log.e("GameMenuFragment", "Error showing floating keyboard", e);
+        MenuAction(String id, int titleRes, int iconRes, MenuSection section, int priority,
+                   boolean danger, boolean visible, boolean enabled, View.OnClickListener onClick,
+                   String overrideTitle) {
+            this.id = id;
+            this.titleRes = titleRes;
+            this.iconRes = iconRes;
+            this.section = section;
+            this.priority = priority;
+            this.danger = danger;
+            this.visible = visible;
+            this.enabled = enabled;
+            this.onClick = onClick;
+            this.overrideTitle = overrideTitle;
+        }
+    }
+
+    private int dp(int value) {
+        return (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, value, getResources().getDisplayMetrics());
+    }
+
+    private void renderStatusBar() {
+        if (statusContainer == null) return;
+        statusContainer.removeAllViews();
+        addStatusChip(getString(R.string.game_menu_change_touch), getTouchModeName());
+        addStatusChip(getString(R.string.game_menu_section_virtual_keyboard), game.getVirtualKeyboard() != null ? getString(R.string.game_menu_status_ready) : getString(R.string.game_menu_status_unavailable));
+        addStatusChip(getString(R.string.game_menu_section_screen_overlay), getString(R.string.game_menu_status_quick));
+        addStatusChip(getString(R.string.game_menu_section_portals), game.arePortalsEnabled() ? getString(R.string.game_menu_status_on) : getString(R.string.game_menu_status_off));
+    }
+
+    private void addStatusChip(String label, String value) {
+        TextView chip = new TextView(game);
+        chip.setText(label + "\n" + value);
+        chip.setTextColor(0xFFE6E6E6);
+        chip.setTextSize(TypedValue.COMPLEX_UNIT_SP, 10);
+        chip.setGravity(android.view.Gravity.CENTER);
+        chip.setBackgroundResource(R.drawable.menu_panel_background);
+        chip.setPadding(dp(6), dp(6), dp(6), dp(6));
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, dp(42), 1f);
+        lp.setMargins(dp(3), 0, dp(3), 0);
+        statusContainer.addView(chip, lp);
+    }
+
+    private void renderDashboard() {
+        if (dashboardContainer == null) return;
+        dashboardContainer.removeAllViews();
+
+        List<MenuAction> actions = buildMenuActions();
+        for (MenuSection section : MenuSection.values()) {
+            List<MenuAction> sectionActions = new ArrayList<>();
+            for (MenuAction action : actions) {
+                if (action.visible && action.section == section) {
+                    sectionActions.add(action);
                 }
-            });
-        }
-
-        // 虚拟全键盘
-        Button btnVirtualFullKeyboard = getView().findViewById(R.id.btn_virtual_full_keyboard);
-        if (btnVirtualFullKeyboard != null) {
-            btnVirtualFullKeyboard.setOnClickListener(v -> {
-                hideMenuWithAnimation();
-                VirtualKeyboardDialogFragment fragment = new VirtualKeyboardDialogFragment();
-                fragment.show(game.getFragmentManager(), "VirtualKeyboard");
-            });
+            }
+            if (sectionActions.isEmpty()) continue;
+            sectionActions.sort(Comparator.comparingInt(a -> a.priority));
+            addSection(section, sectionActions);
         }
     }
 
-    /**
-     * 设置热键按钮
-     */
-    private void setupHotkeyButtons() {
-        // 复制热键
-        Button btnHotkeyCopy = getView().findViewById(R.id.btn_hotkey_copy);
-        if (btnHotkeyCopy != null) {
-            btnHotkeyCopy.setOnClickListener(v -> {
-                hideMenuWithAnimation();
-                sendKeys(new short[]{(short) VirtualKeyboardVkCode.VKCode.VK_LCONTROL.getCode(), (short) VirtualKeyboardVkCode.VKCode.VK_C.getCode()});
-            });
-        }
+    private List<MenuAction> buildMenuActions() {
+        List<MenuAction> actions = new ArrayList<>();
+        actions.add(new MenuAction("ime", R.string.game_menu_enable_keyboard, R.drawable.ic_keyboard, MenuSection.INPUT, 10, false, true, true, v -> {
+            hideMenuWithAnimation();
+            enableKeyboard();
+        }));
+        actions.add(new MenuAction("floating_keyboard", R.string.game_menu_floating_keyboard, R.drawable.ic_floating_keyboard, MenuSection.INPUT, 20, false, true, true, v -> {
+            hideMenuWithAnimation();
+            try {
+                FloatingVirtualKeyboardFragment.Companion.show(game);
+            } catch (Exception e) {
+                Log.e("GameMenuFragment", "Error showing floating keyboard", e);
+            }
+        }));
+        actions.add(new MenuAction("full_keyboard", R.string.game_menu_full_keyboard, R.drawable.ic_full_keyboard, MenuSection.INPUT, 30, false, true, true, v -> {
+            hideMenuWithAnimation();
+            VirtualKeyboardDialogFragment fragment = new VirtualKeyboardDialogFragment();
+            fragment.show(game.getFragmentManager(), "VirtualKeyboard");
+        }));
+        actions.add(new MenuAction("send_clipboard", R.string.game_menu_send_clipboard_content, R.drawable.ic_clipboard, MenuSection.INPUT, 40, false, true, true, v -> {
+            hideMenuWithAnimation();
+            conn.sendUtf8Text(getClipboardContentAsString(game, new int[]{3}, new long[]{30}));
+        }));
 
-        // 粘贴热键
-        Button btnHotkeyPaste = getView().findViewById(R.id.btn_hotkey_paste);
-        if (btnHotkeyPaste != null) {
-            btnHotkeyPaste.setOnClickListener(v -> {
-                hideMenuWithAnimation();
-                sendKeys(new short[]{(short) VirtualKeyboardVkCode.VKCode.VK_LCONTROL.getCode(), (short) VirtualKeyboardVkCode.VKCode.VK_V.getCode()});
-            });
-        }
+        actions.add(new MenuAction("copy", R.string.game_menu_copy, R.drawable.ic_copy, MenuSection.HOTKEYS, 10, false, true, true, v -> runHotkey(new short[]{(short) VirtualKeyboardVkCode.VKCode.VK_LCONTROL.getCode(), (short) VirtualKeyboardVkCode.VKCode.VK_C.getCode()})));
+        actions.add(new MenuAction("paste", R.string.game_menu_paste, R.drawable.ic_paste, MenuSection.HOTKEYS, 20, false, true, true, v -> runHotkey(new short[]{(short) VirtualKeyboardVkCode.VKCode.VK_LCONTROL.getCode(), (short) VirtualKeyboardVkCode.VKCode.VK_V.getCode()})));
+        actions.add(new MenuAction("screen_keyboard", R.string.game_menu_virtual_keyboard_short, R.drawable.ic_keyboard, MenuSection.HOTKEYS, 30, false, true, true, v -> runHotkey(new short[]{(short) VirtualKeyboardVkCode.VKCode.VK_LCONTROL.getCode(), (short) VirtualKeyboardVkCode.VKCode.VK_LWIN.getCode(), (short) VirtualKeyboardVkCode.VKCode.VK_O.getCode()})));
+        actions.add(new MenuAction("alt_tab", R.string.game_menu_switch_window_short, R.drawable.ic_switch_window, MenuSection.HOTKEYS, 40, false, true, true, v -> runHotkey(new short[]{(short) VirtualKeyboardVkCode.VKCode.VK_LWIN.getCode(), (short) VirtualKeyboardVkCode.VKCode.VK_TAB.getCode()})));
+        actions.add(new MenuAction("home", R.string.game_menu_hotkey_home, R.drawable.ic_home, MenuSection.HOTKEYS, 50, false, true, true, v -> runHotkey(new short[]{(short) VirtualKeyboardVkCode.VKCode.VK_LWIN.getCode(), (short) VirtualKeyboardVkCode.VKCode.VK_D.getCode()})));
 
-        // 虚拟键盘热键
-        Button btnHotkeyScreenKeyboard = getView().findViewById(R.id.btn_hotkey_screen_keyboard);
-        if (btnHotkeyScreenKeyboard != null) {
-            btnHotkeyScreenKeyboard.setOnClickListener(v -> {
-                hideMenuWithAnimation();
-                sendKeys(new short[]{(short) VirtualKeyboardVkCode.VKCode.VK_LCONTROL.getCode(), (short) VirtualKeyboardVkCode.VKCode.VK_LWIN.getCode(), (short) VirtualKeyboardVkCode.VKCode.VK_O.getCode()});
-            });
-        }
+        actions.add(new MenuAction("controller", R.string.game_menu_toggle_virtual_controller, 0, MenuSection.OVERLAY, 10, false, true, true, v -> {
+            hideMenuWithAnimation();
+            game.toggleVirtualController();
+        }));
+        actions.add(new MenuAction("virtual_keyboard", R.string.game_menu_toggle_virtual_keyboard, 0, MenuSection.OVERLAY, 20, false, true, true, v -> {
+            hideMenuWithAnimation();
+            game.toggleVirtualKeyboard();
+            Toast.makeText(game, game.getString(R.string.game_menu_toggle_virtual_keyboard_toast), Toast.LENGTH_SHORT).show();
+        }));
+        actions.add(new MenuAction("edit_virtual_keyboard", R.string.game_menu_edit_virtual_keyboard, 0, MenuSection.OVERLAY, 30, false, true, true, v -> openVirtualKeyboardEditor()));
+        actions.add(new MenuAction("perf", R.string.game_menu_toggle_perf_overlay, 0, MenuSection.OVERLAY, 40, false, true, true, v -> {
+            hideMenuWithAnimation();
+            game.togglePerfOverlay();
+        }));
 
-        // 切换窗口热键
-        Button btnHotkeyAltTab = getView().findViewById(R.id.btn_hotkey_alt_tab);
-        if (btnHotkeyAltTab != null) {
-            btnHotkeyAltTab.setOnClickListener(v -> {
-                hideMenuWithAnimation();
-                sendKeys(new short[]{(short) VirtualKeyboardVkCode.VKCode.VK_LWIN.getCode(), (short) VirtualKeyboardVkCode.VKCode.VK_TAB.getCode()});
-            });
-        }
+        actions.add(new MenuAction("portal_toggle", game.arePortalsEnabled() ? R.string.game_menu_portal_disable : R.string.game_menu_portal_enable, 0, MenuSection.PORTALS, 10, false, true, game.getPortalManagerView() != null, v -> togglePortals()));
+        actions.add(new MenuAction("portal_add", R.string.game_menu_portal_add, 0, MenuSection.PORTALS, 20, false, true, game.getPortalManagerView() != null, v -> addPortal()));
+        actions.add(new MenuAction("portal_edit", R.string.game_menu_portal_toggle_edit, 0, MenuSection.PORTALS, 30, false, true, game.getPortalManagerView() != null, v -> togglePortalEditMode()));
+        actions.add(new MenuAction("portal_manage", R.string.game_menu_portal_manage, 0, MenuSection.PORTALS, 40, false, true, true, v -> Toast.makeText(game, R.string.game_menu_portal_manage_pending, Toast.LENGTH_SHORT).show()));
 
-        // 返回桌面热键
-        Button btnHotkeyHome = getView().findViewById(R.id.btn_hotkey_home);
-        if (btnHotkeyHome != null) {
-            btnHotkeyHome.setOnClickListener(v -> {
-                hideMenuWithAnimation();
-                sendKeys(new short[]{(short) VirtualKeyboardVkCode.VKCode.VK_LWIN.getCode(), (short) VirtualKeyboardVkCode.VKCode.VK_D.getCode()});
-            });
+        actions.add(new MenuAction("edit_hotkeys", R.string.game_menu_edit_hotkeys, 0, MenuSection.CUSTOM, 10, false, true, true, v -> openCustomHotkeyManager()));
+        List<CustomHotkeysManager.CustomHotkey> customItems = CustomHotkeysManager.load(game);
+        int priority = 20;
+        for (CustomHotkeysManager.CustomHotkey item : customItems) {
+            actions.add(new MenuAction("custom_" + item.name, 0, 0, MenuSection.CUSTOM, priority++, false, true, true, v -> runCustomHotkey(item), item.name));
+        }
+        return actions;
+    }
+
+    private void addSection(MenuSection section, List<MenuAction> actions) {
+        TextView title = new TextView(game);
+        title.setText(section.titleRes);
+        title.setTextColor(0xFFB8B8B8);
+        title.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
+        title.setTypeface(title.getTypeface(), android.graphics.Typeface.BOLD);
+        title.setPadding(dp(4), dp(8), dp(4), dp(4));
+        dashboardContainer.addView(title);
+
+        GridLayout grid = new GridLayout(game);
+        grid.setColumnCount(2);
+        dashboardContainer.addView(grid, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+
+        for (MenuAction action : actions) {
+            grid.addView(createActionButton(action));
         }
     }
 
-    /**
-     * 设置自定义热键区域：
-     * - 渲染已保存的自定义热键按钮列表
-     * - 绑定“编辑热键”按钮，进入增删改管理（复用虚拟键盘宏编辑器）
-     */
-    private void setupCustomHotkeysSection() {
-        View editButton = getView().findViewById(R.id.btn_edit_hotkeys);
-        if (editButton != null) {
-            editButton.setOnClickListener(v -> {
-                hideMenuWithAnimation();
-                // 延后打开管理对话框，避免与菜单关闭动画重叠
-                new Handler(Looper.getMainLooper()).postDelayed(() -> {
-                    VirtualKeyboard vk = game.getVirtualKeyboard();
-                    if (vk == null) {
-                        Toast.makeText(game, "无法编辑：虚拟键盘未就绪", Toast.LENGTH_SHORT).show();
-                        return;
-                    }
-                    CustomHotkeysManager.showManageDialog(game, vk, this::renderCustomHotkeysButtons);
-                }, ANIMATION_DURATION + 50);
-            });
+    private Button createActionButton(MenuAction action) {
+        Button button = new Button(game);
+        button.setAllCaps(false);
+        button.setText(action.overrideTitle != null ? action.overrideTitle : getString(action.titleRes));
+        button.setTextColor(action.enabled ? 0xFFFFFFFF : 0xFF7D8797);
+        button.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
+        button.setEnabled(action.enabled);
+        button.setMaxLines(2);
+        button.setEllipsize(android.text.TextUtils.TruncateAt.END);
+        button.setGravity(android.view.Gravity.CENTER_VERTICAL | android.view.Gravity.START);
+        button.setPadding(dp(10), 0, dp(8), 0);
+        button.setBackgroundResource(action.danger ? R.drawable.button_background_red_dark : R.drawable.button_background_dark);
+        if (action.iconRes != 0) {
+            button.setCompoundDrawablesWithIntrinsicBounds(action.iconRes, 0, 0, 0);
+            button.setCompoundDrawablePadding(dp(8));
         }
-
-        // 初次渲染
-        renderCustomHotkeysButtons();
+        button.setOnClickListener(action.onClick);
+        GridLayout.LayoutParams lp = new GridLayout.LayoutParams();
+        lp.width = 0;
+        lp.height = dp(42);
+        lp.columnSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f);
+        lp.setMargins(dp(4), dp(4), dp(4), dp(4));
+        button.setLayoutParams(lp);
+        return button;
     }
 
-    /**
-     * 渲染自定义热键按钮列表
-     */
-    private void renderCustomHotkeysButtons() {
-        if (getView() == null) return;
-        ViewGroup container = getView().findViewById(R.id.custom_hotkeys_container);
-        if (container == null) return;
-        container.removeAllViews();
+    private void runHotkey(short[] keys) {
+        hideMenuWithAnimation();
+        sendKeys(keys);
+    }
 
-        java.util.List<CustomHotkeysManager.CustomHotkey> items = CustomHotkeysManager.load(game);
-        final int heightPx = (int) (48 * getResources().getDisplayMetrics().density);
-        final int marginBottom = (int) (8 * getResources().getDisplayMetrics().density);
-
-        for (CustomHotkeysManager.CustomHotkey item : items) {
-            Button btn = new Button(game);
-            btn.setAllCaps(false);
-            btn.setText(item.name);
-            btn.setTextColor(0xFFFFFFFF);
-            btn.setBackgroundResource(R.drawable.button_background_dark);
-            ViewGroup.MarginLayoutParams lp = new ViewGroup.MarginLayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, heightPx);
-            lp.bottomMargin = marginBottom;
-            btn.setLayoutParams(lp);
-            btn.setOnClickListener(v -> {
-                hideMenuWithAnimation();
-                VirtualKeyboard vk = game.getVirtualKeyboard();
-                if (vk == null) {
-                    Toast.makeText(game, "无法执行：虚拟键盘未就绪", Toast.LENGTH_SHORT).show();
-                    return;
-                }
-                CustomHotkeysManager.runCustomHotkey(game, vk, item);
-            });
-            container.addView(btn);
+    private void openVirtualKeyboardEditor() {
+        hideMenuWithAnimation();
+        VirtualKeyboard vk = game.getVirtualKeyboard();
+        if (vk != null) {
+            vk.show();
+            vk.enterEditMode();
+            new Handler(Looper.getMainLooper()).postDelayed(() -> new EditMenu(game, vk), ANIMATION_DURATION + 50);
+        } else {
+            Toast.makeText(game, "无法进入编辑模式：虚拟键盘未就绪", Toast.LENGTH_SHORT).show();
         }
     }
 
-    /**
-     * 设置剪贴板按钮
-     */
-    private void setupClipboardButtons() {
-        // 发送剪贴板内容
-        Button btnSendClipboard = getView().findViewById(R.id.btn_send_clipboard);
-        if (btnSendClipboard != null) {
-            btnSendClipboard.setOnClickListener(v -> {
-                hideMenuWithAnimation();
-                conn.sendUtf8Text(getClipboardContentAsString(game, new int[]{3}, new long[]{30}));
-            });
+    private void openCustomHotkeyManager() {
+        hideMenuWithAnimation();
+        new Handler(Looper.getMainLooper()).postDelayed(() -> {
+            VirtualKeyboard vk = game.getVirtualKeyboard();
+            if (vk == null) {
+                Toast.makeText(game, "无法编辑：虚拟键盘未就绪", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            CustomHotkeysManager.showManageDialog(game, vk, this::renderDashboard);
+        }, ANIMATION_DURATION + 50);
+    }
+
+    private void runCustomHotkey(CustomHotkeysManager.CustomHotkey item) {
+        hideMenuWithAnimation();
+        VirtualKeyboard vk = game.getVirtualKeyboard();
+        if (vk == null) {
+            Toast.makeText(game, "无法执行：虚拟键盘未就绪", Toast.LENGTH_SHORT).show();
+            return;
         }
+        CustomHotkeysManager.runCustomHotkey(game, vk, item);
     }
 
     /**
      * 设置底部操作按钮
      */
     private void setupBottomButtons() {
-        // 切换触屏模式
         Button btnChangeTouch = getView().findViewById(R.id.btn_change_touch);
         if (btnChangeTouch != null) {
-            btnChangeTouch.setOnClickListener(v -> {
-                // 显示二级面板，保持与菜单一致的侧边样式
-                showTouchModePanel();
-            });
+            btnChangeTouch.setOnClickListener(v -> toggleTouchModePanel());
         }
 
-        // 断开连接
         Button btnDisconnect = getView().findViewById(R.id.btn_disconnect);
         if (btnDisconnect != null) {
-            btnDisconnect.setOnClickListener(v -> {
+            btnDisconnect.setOnClickListener(v -> confirmDisconnect());
+            btnDisconnect.setOnLongClickListener(v -> {
                 hideMenuWithAnimation();
                 game.finish();
+                return true;
             });
         }
     }
 
-    /**
-     * 设置性能叠加层按钮
-     * 点击后切换性能叠加层的显示/隐藏（默认开启精简版）
-     */
-    private void setupPerformanceOverlayButtons() {
-        // 切换虚拟手柄
-        Button btnToggleVirtualController = getView().findViewById(R.id.btn_toggle_virtual_controller);
-        if (btnToggleVirtualController != null) {
-            btnToggleVirtualController.setOnClickListener(v -> {
-                hideMenuWithAnimation();
-                game.toggleVirtualController();
-            });
+    private void updateTouchModeSummary() {
+        if (touchModeCurrentView == null || game == null) {
+            return;
         }
-
-        // 切换屏幕虚拟键盘
-        Button btnToggleVirtualKeyboard = getView().findViewById(R.id.btn_toggle_virtual_keyboard);
-        if (btnToggleVirtualKeyboard != null) {
-            btnToggleVirtualKeyboard.setOnClickListener(v -> {
-                hideMenuWithAnimation();
-                game.toggleVirtualKeyboard();
-                Toast.makeText(game, game.getString(R.string.game_menu_toggle_virtual_keyboard_toast), Toast.LENGTH_SHORT).show();
-            });
+        int mode = game.getCurrentTouchMode();
+        String modeName;
+        if (mode == 0) {
+            modeName = getString(R.string.game_menu_touch_mode_multi_touch);
+        } else if (mode == 1) {
+            modeName = getString(R.string.game_menu_touch_mode_trackpad);
+        } else {
+            modeName = getString(R.string.game_menu_touch_mode_mouse);
         }
-
-        // 编辑屏幕虚拟键盘
-        Button btnEditVirtualKeyboard = getView().findViewById(R.id.btn_edit_virtual_keyboard);
-        if (btnEditVirtualKeyboard != null) {
-            btnEditVirtualKeyboard.setOnClickListener(v -> {
-                hideMenuWithAnimation();
-                VirtualKeyboard vk = game.getVirtualKeyboard();
-                if (vk != null) {
-                    vk.show();
-                    vk.enterEditMode();
-                    new Handler(Looper.getMainLooper()).postDelayed(() -> new EditMenu(game, vk),
-                            ANIMATION_DURATION + 50);
-                } else {
-                    Toast.makeText(game, "无法进入编辑模式：虚拟键盘未就绪", Toast.LENGTH_SHORT).show();
-                }
-            });
-        }
-
-        Button btnTogglePerfOverlay = getView().findViewById(R.id.btn_toggle_perf_overlay);
-        if (btnTogglePerfOverlay != null) {
-            btnTogglePerfOverlay.setOnClickListener(v -> {
-                hideMenuWithAnimation();
-                game.togglePerfOverlay();
-            });
-        }
+        touchModeCurrentView.setText(getString(R.string.game_menu_touch_mode_current, modeName));
     }
 
-    /**
-     * 设置传送门管理按钮
-     */
-    private void setupPortalButtons() {
-        Button btnPortalToggle = getView().findViewById(R.id.btn_portal_toggle);
-        if (btnPortalToggle != null) {
-            PortalManagerView portalManager = game.getPortalManagerView();
-            updatePortalToggleButton(btnPortalToggle, portalManager);
-            btnPortalToggle.setOnClickListener(v -> {
-                hideMenuWithAnimation();
-                if (portalManager != null) {
-                    boolean enabled = portalManager.togglePortalsEnabled();
-                    updatePortalToggleButton(btnPortalToggle, portalManager);
-                    game.postNotification(enabled ? "传送门已开启" : "传送门已关闭", 2000);
-                } else {
-                    Toast.makeText(game, "portalManager 为空", Toast.LENGTH_SHORT).show();
-                }
-            });
-        }
-
-        // 添加传送门
-        Button btnPortalAdd = getView().findViewById(R.id.btn_portal_add);
-        if (btnPortalAdd != null) {
-            btnPortalAdd.setOnClickListener(v -> {
-                hideMenuWithAnimation();
-                // 创建默认传送门并添加到管理器
-                PortalConfig config = new PortalConfig();
-                config.id = game.getPortalManagerView().generateNewId();
-                config.srcRect = new RectF(0.2f, 0.2f, 0.4f, 0.4f); // 归一化坐标
-                config.dstRect = new RectF(100, 100, 300, 300); // 像素坐标
-                config.enabled = true;
-                config.name = "传送门" + config.id;
-                game.getPortalManagerView().addPortal(config);
-                
-                // 自动进入编辑源区域模式，方便用户立即调整
-                game.getPortalManagerView().setEditingMode(1);
-                game.postNotification("已添加传送门，请调整源区域", 2000);
-            });
-        }
-
-        // 管理传送门（打开管理对话框）
-        Button btnPortalManage = getView().findViewById(R.id.btn_portal_manage);
-        if (btnPortalManage != null) {
-            btnPortalManage.setOnClickListener(v -> {
-                hideMenuWithAnimation();
-                // 暂时显示一个Toast，未来可扩展为对话框
-                Toast.makeText(game, "传送门管理功能待实现", Toast.LENGTH_SHORT).show();
-            });
-        }
-
-        // 切换编辑模式
-        Button btnPortalToggleEdit = getView().findViewById(R.id.btn_portal_toggle_edit);
-        if (btnPortalToggleEdit != null) {
-            updatePortalEditButton(btnPortalToggleEdit);
-            btnPortalToggleEdit.setOnClickListener(v -> {
-                hideMenuWithAnimation();
-                PortalManagerView portalManager = game.getPortalManagerView();
-                if (portalManager != null) {
-                    Object tag = btnPortalToggleEdit.getTag();
-                    int nextMode = (tag instanceof Integer) ? (Integer) tag : 1;
-                    
-                    Log.d("GameMenuFragment", "点击传送门编辑按钮，切换到 nextMode=" + nextMode);
-                    portalManager.setEditingMode(nextMode);
-                    
-                    String notificationText;
-                    if (nextMode == 1) {
-                        notificationText = "进入编辑源区域模式";
-                    } else if (nextMode == 2) {
-                        notificationText = "进入编辑目标区域模式";
-                    } else { // nextMode == 0
-                        notificationText = "已退出编辑模式";
-                    }
-                    game.postNotification(notificationText, 2000);
-                }
-            });
-        }
+    private String getTouchModeName() {
+        int mode = game.getCurrentTouchMode();
+        if (mode == 0) return getString(R.string.game_menu_touch_mode_multi_touch);
+        if (mode == 1) return getString(R.string.game_menu_touch_mode_trackpad);
+        return getString(R.string.game_menu_touch_mode_mouse);
     }
 
-    private void updatePortalEditButton(Button btnPortalToggleEdit) {
+    private void renderTouchModeOptions() {
+        if (touchModeOptions == null) return;
+        touchModeOptions.removeAllViews();
+        addTouchModeButton(0, R.string.game_menu_touch_mode_multi_touch);
+        addTouchModeButton(1, R.string.game_menu_touch_mode_trackpad);
+        addTouchModeButton(2, R.string.game_menu_touch_mode_mouse);
+        updateTouchModeSummary();
+    }
+
+    private void addTouchModeButton(int mode, int titleRes) {
+        Button button = new Button(game);
+        button.setAllCaps(false);
+        button.setText(titleRes);
+        button.setTextColor(0xFFFFFFFF);
+        button.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
+        button.setMaxLines(1);
+        button.setBackgroundResource(game.getCurrentTouchMode() == mode ? R.drawable.menu_header_background : R.drawable.button_background_dark);
+        button.setOnClickListener(v -> {
+            game.changeTouchMode(mode);
+            renderStatusBar();
+            renderTouchModeOptions();
+            if (touchModePanel != null) touchModePanel.setVisibility(View.GONE);
+        });
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, dp(42), 1f);
+        lp.setMargins(dp(4), 0, dp(4), 0);
+        touchModeOptions.addView(button, lp);
+    }
+
+    private void toggleTouchModePanel() {
+        if (touchModePanel == null) return;
+        renderTouchModeOptions();
+        touchModePanel.setVisibility(touchModePanel.getVisibility() == View.VISIBLE ? View.GONE : View.VISIBLE);
+    }
+
+    private void confirmDisconnect() {
+        long now = android.os.SystemClock.uptimeMillis();
+        if (now - lastDisconnectTapMs < 2200) {
+            hideMenuWithAnimation();
+            game.finish();
+            return;
+        }
+        lastDisconnectTapMs = now;
+        Toast.makeText(game, R.string.game_menu_disconnect_confirm, Toast.LENGTH_SHORT).show();
+    }
+
+    private void togglePortals() {
+        hideMenuWithAnimation();
         PortalManagerView portalManager = game.getPortalManagerView();
         if (portalManager != null) {
-            int currentMode = portalManager.getCurrentEditMode();
-            int nextMode;
-            String buttonText;
-            
-            if (currentMode == 0) {
-                nextMode = 1;
-                buttonText = "编辑源区域";
-            } else if (currentMode == 1) {
-                nextMode = 2;
-                buttonText = "编辑目标区域";
-            } else { // currentMode == 2
-                nextMode = 0;
-                buttonText = "退出编辑模式";
-            }
-            
-            btnPortalToggleEdit.setText(buttonText);
-            btnPortalToggleEdit.setTag(nextMode);
+            boolean enabled = portalManager.togglePortalsEnabled();
+            game.postNotification(enabled ? getString(R.string.game_menu_portal_enable) : getString(R.string.game_menu_portal_disable), 2000);
         } else {
-            btnPortalToggleEdit.setText("切换编辑模式");
-            btnPortalToggleEdit.setTag(1);
+            Toast.makeText(game, "portalManager 为空", Toast.LENGTH_SHORT).show();
         }
     }
 
-    private void updatePortalToggleButton(Button button, PortalManagerView portalManager) {
-        boolean enabled = portalManager != null && portalManager.arePortalsEnabled();
-        button.setText(enabled ? "关闭传送门" : "开启传送门");
+    private void addPortal() {
+        hideMenuWithAnimation();
+        PortalManagerView portalManager = game.getPortalManagerView();
+        if (portalManager == null) {
+            Toast.makeText(game, "portalManager 为空", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        PortalConfig config = new PortalConfig();
+        config.id = portalManager.generateNewId();
+        config.srcRect = new RectF(0.2f, 0.2f, 0.4f, 0.4f);
+        config.dstRect = new RectF(100, 100, 300, 300);
+        config.enabled = true;
+        config.name = "传送门" + config.id;
+        portalManager.addPortal(config);
+        portalManager.setEditingMode(1);
+        game.postNotification("已添加传送门，请调整源区域", 2000);
     }
 
-    /**
-     * 设置触摸模式子菜单按钮
-     * 包含：多点触控、触控板、鼠标 三种模式 + 返回
-     */
-    private void setupTouchModeButtons() {
-        if (touchModePanel == null) return;
-
-        View btnMulti = getView().findViewById(R.id.btn_touch_mode_multi);
-        if (btnMulti != null) {
-            btnMulti.setOnClickListener(v -> {
-                game.changeTouchMode(0); // 多点触控
-                showMainPanel();
-            });
-        }
-
-        View btnTrackpad = getView().findViewById(R.id.btn_touch_mode_trackpad);
-        if (btnTrackpad != null) {
-            btnTrackpad.setOnClickListener(v -> {
-                game.changeTouchMode(1); // 触控板
-                showMainPanel();
-            });
-        }
-
-        View btnMouse = getView().findViewById(R.id.btn_touch_mode_mouse);
-        if (btnMouse != null) {
-            btnMouse.setOnClickListener(v -> {
-                game.changeTouchMode(2); // 鼠标
-                showMainPanel();
-            });
-        }
-
-        View btnBack = getView().findViewById(R.id.btn_touch_mode_back);
-        if (btnBack != null) {
-            btnBack.setOnClickListener(v -> showMainPanel());
-        }
-    }
-
-    /**
-     * 显示触摸模式二级面板
-     * 隐藏主滚动内容与底部操作行
-     */
-    private void showTouchModePanel() {
-        if (mainScrollView != null) mainScrollView.setVisibility(View.GONE);
-        if (bottomActionRow != null) bottomActionRow.setVisibility(View.GONE);
-        if (touchModePanel != null) touchModePanel.setVisibility(View.VISIBLE);
-    }
-
-    /**
-     * 返回主一级菜单面板
-     */
-    private void showMainPanel() {
-        if (touchModePanel != null) touchModePanel.setVisibility(View.GONE);
-        if (mainScrollView != null) mainScrollView.setVisibility(View.VISIBLE);
-        if (bottomActionRow != null) bottomActionRow.setVisibility(View.VISIBLE);
+    private void togglePortalEditMode() {
+        hideMenuWithAnimation();
+        PortalManagerView portalManager = game.getPortalManagerView();
+        if (portalManager == null) return;
+        int currentMode = portalManager.getCurrentEditMode();
+        int nextMode = currentMode == 0 ? 1 : currentMode == 1 ? 2 : 0;
+        portalManager.setEditingMode(nextMode);
+        String notificationText = nextMode == 1
+                ? getString(R.string.game_menu_portal_edit_source)
+                : nextMode == 2
+                ? getString(R.string.game_menu_portal_edit_target)
+                : getString(R.string.game_menu_portal_exit_edit);
+        game.postNotification(notificationText, 2000);
     }
 
     /**
@@ -592,7 +546,13 @@ public class GameMenuFragment extends Fragment {
     public void hideMenuWithAnimation() {
         android.util.Log.d("GameMenu", "hideMenuWithAnimation called, isMenuVisible: " + isMenuVisible);
         
-        if (!isMenuVisible) return;
+        if (!isMenuVisible) {
+            GameMenu.setMenuShowing(false);
+            if (getFragmentManager() != null) {
+                getFragmentManager().beginTransaction().remove(this).commitAllowingStateLoss();
+            }
+            return;
+        }
         
         isMenuVisible = false;
         ObjectAnimator animator = ObjectAnimator.ofFloat(menuPanel, "translationX", 0, menuPanel.getWidth());
@@ -606,11 +566,17 @@ public class GameMenuFragment extends Fragment {
                 GameMenu.setMenuShowing(false);
                 
                 if (getFragmentManager() != null) {
-                    getFragmentManager().beginTransaction().remove(GameMenuFragment.this).commit();
+                    getFragmentManager().beginTransaction().remove(GameMenuFragment.this).commitAllowingStateLoss();
                 }
             }
         });
         animator.start();
+    }
+
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+        GameMenu.setMenuShowing(false);
     }
 
     /**

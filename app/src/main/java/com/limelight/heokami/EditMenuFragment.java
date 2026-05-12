@@ -157,10 +157,16 @@ public class EditMenuFragment extends Fragment {
         animator.addListener(new android.animation.AnimatorListenerAdapter(){
             @Override public void onAnimationEnd(android.animation.Animator animation){
                 if (getFragmentManager()!=null){
-                    getFragmentManager().beginTransaction().remove(EditMenuFragment.this).commit();
+                    getFragmentManager().beginTransaction().remove(EditMenuFragment.this).commitAllowingStateLoss();
                 }
                 EditMenu.setMenuShowing(false);
             }
         });
+    }
+
+    @Override
+    public void onDestroyView(){
+        super.onDestroyView();
+        EditMenu.setMenuShowing(false);
     }
 }

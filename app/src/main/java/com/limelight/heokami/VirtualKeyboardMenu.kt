@@ -2,8 +2,10 @@ package com.limelight.heokami
 
 import android.annotation.SuppressLint
 import android.app.AlertDialog
+import android.app.Dialog
 import android.content.Context
 import android.content.Intent
+import android.graphics.drawable.ColorDrawable
 import android.preference.PreferenceManager
 import android.text.Editable
 import android.text.InputType
@@ -13,6 +15,7 @@ import android.util.Log
 import android.util.TypedValue
 import android.view.View
 import android.view.ViewGroup
+import android.view.Window
 import android.widget.AdapterView
 import android.widget.ArrayAdapter
 import android.widget.Button
@@ -516,17 +519,40 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
 
         // ----------------- 2. 界面构建 -----------------
 
+        val panelBg = GradientDrawable().apply {
+            shape = GradientDrawable.RECTANGLE
+            cornerRadius = dp(8).toFloat()
+            setColor(Color.parseColor("#FF181818"))
+            setStroke(dp(1), Color.parseColor("#FF323232"))
+        }
+        fun panelBackground() = GradientDrawable().apply {
+            shape = GradientDrawable.RECTANGLE
+            cornerRadius = dp(8).toFloat()
+            setColor(Color.parseColor("#FF181818"))
+            setStroke(dp(1), Color.parseColor("#FF323232"))
+        }
+
         val rootLayout = LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
+            setPadding(dp(10), dp(10), dp(10), dp(10))
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = dp(10).toFloat()
+                setColor(Color.parseColor("#FF121212"))
+                setStroke(dp(1), Color.parseColor("#FF323232"))
+            }
             layoutParams = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
+                LinearLayout.LayoutParams.MATCH_PARENT
             )
         }
 
         val topTabLayout = TabLayout(ContextThemeWrapper(context, com.google.android.material.R.style.Theme_AppCompat)).apply {
             setPadding(0, dp(2), 0, dp(2))
             minimumHeight = 0
+            setBackgroundColor(Color.TRANSPARENT)
+            setSelectedTabIndicatorColor(Color.parseColor("#FF707070"))
+            setTabTextColors(Color.parseColor("#FFB8B8B8"), Color.parseColor("#FFFFFFFF"))
             try { @Suppress("DEPRECATION") setSelectedTabIndicatorHeight(dp(1)) } catch (_: Throwable) {}
             layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT)
         }
@@ -550,8 +576,8 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
         fun addCollapsibleSectionTo(parent: LinearLayout, title: String, defaultExpanded: Boolean = true): LinearLayout {
             val container = LinearLayout(context).apply { orientation = LinearLayout.VERTICAL }
             val header = LinearLayout(context).apply { orientation = LinearLayout.HORIZONTAL; setPadding(0, dp(6), 0, dp(6)) }
-            val titleView = TextView(context).apply { text = title; setTextColor(Color.parseColor("#666666")); setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f); layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f) }
-            val arrowView = TextView(context).apply { text = if (defaultExpanded) "▼" else "▶"; setTextColor(Color.parseColor("#999999")); setTextSize(TypedValue.COMPLEX_UNIT_SP, 18f); setPadding(dp(8), 0, dp(8), 0) }
+            val titleView = TextView(context).apply { text = title; setTextColor(Color.parseColor("#FFB8B8B8")); setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f); layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f) }
+            val arrowView = TextView(context).apply { text = if (defaultExpanded) "▼" else "▶"; setTextColor(Color.parseColor("#FFE6E6E6")); setTextSize(TypedValue.COMPLEX_UNIT_SP, 18f); setPadding(dp(8), 0, dp(8), 0) }
             header.addView(titleView); header.addView(arrowView)
             val content = LinearLayout(context).apply { orientation = LinearLayout.VERTICAL; visibility = if (defaultExpanded) View.VISIBLE else View.GONE }
             header.setOnClickListener {
@@ -565,40 +591,57 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
         }
 
         // 页签内容容器
-        val behaviorTabContent = LinearLayout(context).apply { orientation = LinearLayout.VERTICAL }
+        val baseTabContent = LinearLayout(context).apply { orientation = LinearLayout.VERTICAL }
+        val behaviorTabContent = LinearLayout(context).apply { orientation = LinearLayout.VERTICAL; visibility = View.GONE }
         val appearanceTabContent = LinearLayout(context).apply { orientation = LinearLayout.VERTICAL; visibility = View.GONE }
         val previewTabContent = LinearLayout(context).apply { orientation = LinearLayout.VERTICAL; visibility = View.GONE }
-        contentLayout.addView(behaviorTabContent); contentLayout.addView(appearanceTabContent); contentLayout.addView(previewTabContent)
+        contentLayout.addView(baseTabContent); contentLayout.addView(behaviorTabContent); contentLayout.addView(appearanceTabContent); contentLayout.addView(previewTabContent)
+        (baseTabContent.layoutParams as? LinearLayout.LayoutParams)?.topMargin = dp(4)
         (behaviorTabContent.layoutParams as? LinearLayout.LayoutParams)?.topMargin = dp(4)
         (appearanceTabContent.layoutParams as? LinearLayout.LayoutParams)?.topMargin = dp(4)
         (previewTabContent.layoutParams as? LinearLayout.LayoutParams)?.topMargin = dp(4)
 
-        topTabLayout.addTab(topTabLayout.newTab().setText("行为"))
-        topTabLayout.addTab(topTabLayout.newTab().setText("外观"))
-        topTabLayout.addTab(topTabLayout.newTab().setText("预览"))
+        topTabLayout.addTab(topTabLayout.newTab().setText(context.getString(R.string.virtual_keyboard_tab_base)))
+        topTabLayout.addTab(topTabLayout.newTab().setText(context.getString(R.string.virtual_keyboard_tab_behavior)))
+        topTabLayout.addTab(topTabLayout.newTab().setText(context.getString(R.string.virtual_keyboard_tab_appearance)))
         topTabLayout.addOnTabSelectedListener(object: TabLayout.OnTabSelectedListener{
             override fun onTabSelected(tab: TabLayout.Tab?) {
                 when (tab?.position) {
-                    0 -> { behaviorTabContent.visibility = View.VISIBLE; appearanceTabContent.visibility = View.GONE; previewTabContent.visibility = View.GONE }
-                    1 -> { behaviorTabContent.visibility = View.GONE; appearanceTabContent.visibility = View.VISIBLE; previewTabContent.visibility = View.GONE }
-                    2 -> { behaviorTabContent.visibility = View.GONE; appearanceTabContent.visibility = View.GONE; previewTabContent.visibility = View.VISIBLE }
+                    0 -> { baseTabContent.visibility = View.VISIBLE; behaviorTabContent.visibility = View.GONE; appearanceTabContent.visibility = View.GONE; previewTabContent.visibility = View.GONE }
+                    1 -> { baseTabContent.visibility = View.GONE; behaviorTabContent.visibility = View.VISIBLE; appearanceTabContent.visibility = View.GONE; previewTabContent.visibility = View.GONE }
+                    2 -> { baseTabContent.visibility = View.GONE; behaviorTabContent.visibility = View.GONE; appearanceTabContent.visibility = View.VISIBLE; previewTabContent.visibility = View.GONE }
                 }
             }
             override fun onTabUnselected(tab: TabLayout.Tab?) {}
             override fun onTabReselected(tab: TabLayout.Tab?) {}
         })
 
-        // --- 行为页签内容 ---
-        val baseSection = addCollapsibleSectionTo(behaviorTabContent, "基础设置（通用）", true)
-        baseSection.addView(TextView(context).apply { text = context.getString(R.string.virtual_keyboard_menu_button_id_hint) })
+        // --- 基础页签内容 ---
+        val baseSection = addCollapsibleSectionTo(baseTabContent, context.getString(R.string.virtual_keyboard_section_identity), true)
         val buttonIdEditText = EditText(context).apply { setInputType(InputType.TYPE_CLASS_NUMBER); setText((virtualKeyboard.lastElementId + 1).toString()) }
-        baseSection.addView(buttonIdEditText)
+        val groupEditText = EditText(context).apply { hint = context.getString(R.string.virtual_keyboard_menu_group_hint_id) }
+        val identityRow = LinearLayout(context).apply {
+            orientation = LinearLayout.HORIZONTAL
+            addView(LinearLayout(context).apply {
+                orientation = LinearLayout.VERTICAL
+                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply { rightMargin = dp(8) }
+                addView(TextView(context).apply { text = context.getString(R.string.virtual_keyboard_menu_button_id_hint) })
+                addView(buttonIdEditText)
+            })
+            addView(LinearLayout(context).apply {
+                orientation = LinearLayout.VERTICAL
+                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+                addView(TextView(context).apply { text = context.getString(R.string.virtual_keyboard_menu_grouping) })
+                addView(groupEditText)
+            })
+        }
+        baseSection.addView(identityRow)
         baseSection.addView(TextView(context).apply { text = context.getString(R.string.virtual_keyboard_menu_button_text_hint) })
         val buttonTextEditText = EditText(context).apply { layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f) }
         baseSection.addView(LinearLayout(context).apply { orientation = LinearLayout.HORIZONTAL; addView(buttonTextEditText); addView(Button(context).apply { text = "X"; setOnClickListener { buttonTextEditText.setText("") } }) })
 
         addSpacerTo(behaviorTabContent, 6)
-        val behaviorSection = addCollapsibleSectionTo(behaviorTabContent, "类型与编码（行为）", true)
+        val behaviorSection = addCollapsibleSectionTo(behaviorTabContent, context.getString(R.string.virtual_keyboard_section_behavior), true)
         val vkLayout = LinearLayout(context).apply { orientation = LinearLayout.HORIZONTAL; layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT) }
         val vkCodeEditText = EditText(context).apply { layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f); inputType = InputType.TYPE_CLASS_NUMBER; hint = context.getString(R.string.virtual_keyboard_menu_vk_code_hint) }
         val vkCodeButton = Button(context).apply { text = context.getString(R.string.virtual_keyboard_menu_vk_code_button); setOnClickListener { showVKCodeDialog(context, buttonTextEditText, vkCodeEditText) } }
@@ -639,22 +682,15 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
         if (element != null) { selectedButtonType = element!!.buttonType; typeTabLayout.getTabAt(selectedButtonType.ordinal)?.select() }
         behaviorSection.addView(typeTabLayout); behaviorSection.addView(vkLayout); addSpacerTo(behaviorSection, 6); behaviorSection.addView(touchpadSectionTitle); behaviorSection.addView(touchpadSensitivity); behaviorSection.addView(touchpadSensitivityText); behaviorSection.addView(rightClickNextTouchCheck)
 
-        val groupingSection = addCollapsibleSectionTo(behaviorSection, "编组（行为）", false)
-        val groupingRow = LinearLayout(context).apply { orientation = LinearLayout.HORIZONTAL }
-        val groupingLabel = TextView(context).apply { text = context.getString(R.string.virtual_keyboard_menu_grouping) }
-        val groupEditText = EditText(context).apply { hint = context.getString(R.string.virtual_keyboard_menu_group_hint_id); layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f) }
-        groupingRow.addView(groupingLabel); groupingRow.addView(groupEditText); groupingSection.addView(groupingRow)
-        val actionsContainer = LinearLayout(context).apply { orientation = LinearLayout.VERTICAL }; behaviorSection.addView(actionsContainer)
-
         // --- 外观页签内容 ---
         addSpacerTo(appearanceTabContent, 6)
-        val appearanceSection = addCollapsibleSectionTo(appearanceTabContent, "样式与外观（外观）", true)
-        val appearanceStateTabs = TabLayout(ContextThemeWrapper(context, com.google.android.material.R.style.Theme_AppCompat)).apply { addTab(newTab().setText("常态")); addTab(newTab().setText("按下")) }
+        val appearanceSection = addCollapsibleSectionTo(appearanceTabContent, context.getString(R.string.virtual_keyboard_section_appearance), true)
+        val appearanceStateTabs = TabLayout(ContextThemeWrapper(context, com.google.android.material.R.style.Theme_AppCompat)).apply { addTab(newTab().setText(context.getString(R.string.virtual_keyboard_state_normal))); addTab(newTab().setText(context.getString(R.string.virtual_keyboard_state_pressed))) }
         appearanceSection.addView(appearanceStateTabs)
         var isAppearancePressed = false
 
         addSpacerTo(appearanceSection, 6)
-        val colorSection = LinearLayout(context).apply { orientation = LinearLayout.VERTICAL }; appearanceSection.addView(colorSection); colorSection.addView(TextView(context).apply { text = "颜色（背景）" })
+        val colorSection = LinearLayout(context).apply { orientation = LinearLayout.VERTICAL }; appearanceSection.addView(colorSection); colorSection.addView(TextView(context).apply { text = context.getString(R.string.virtual_keyboard_section_background_color) })
 
         // 常态背景
         val bgRow = LinearLayout(context).apply { orientation = LinearLayout.HORIZONTAL }
@@ -738,19 +774,79 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
         styleActionsSection.addView(Button(context).apply { text = context.getString(R.string.virtual_keyboard_menu_apply_style_to_same_group); setOnClickListener { VirtualKeyboardConfigurationLoader.applyAppearanceStyleToSameGroup(virtualKeyboard, element, context); virtualKeyboard.refreshLayout() } })
         styleActionsSection.addView(Button(context).apply { text = context.getString(R.string.virtual_keyboard_menu_paste_appearance_style_to_form); setOnClickListener { try { val style = VirtualKeyboardConfigurationLoader.getAppearanceStyleFromClipboard(context); if (style != null) Toast.makeText(context, "样式已应用到表单", Toast.LENGTH_SHORT).show() } catch (e: Exception) { Toast.makeText(context, "粘贴失败", Toast.LENGTH_SHORT).show() } } })
 
-        // --- 预览 ---
-        addSpacerTo(previewTabContent, 6)
+        // --- 实时预览：横屏时固定在左侧，减少切换页签的来回成本 ---
         fun buildSinglePreview(): Pair<FrameLayout, Pair<View, TextView>> {
-            val container = FrameLayout(context).apply { layoutParams = LinearLayout.LayoutParams(0, dp(56), 1f) }
+            val container = FrameLayout(context).apply {
+                layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(42)).apply {
+                    bottomMargin = dp(8)
+                }
+                setPadding(dp(4), dp(4), dp(4), dp(4))
+                background = panelBackground()
+            }
             val bg = View(context).apply { layoutParams = FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT) }
             val txt = TextView(context).apply { val lp = FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT); lp.gravity = android.view.Gravity.CENTER; layoutParams = lp; text = ""; textSize = 16f; setSingleLine(true); ellipsize = TextUtils.TruncateAt.END; gravity = android.view.Gravity.CENTER }
             container.addView(bg); container.addView(txt); return container to (bg to txt)
         }
-        val previewRow = LinearLayout(context).apply { orientation = LinearLayout.HORIZONTAL }
+        val previewPanel = LinearLayout(context).apply {
+            orientation = LinearLayout.VERTICAL
+            visibility = View.GONE
+            background = panelBackground()
+            setPadding(dp(10), dp(8), dp(10), dp(9))
+            layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT)
+        }
+        previewPanel.addView(TextView(context).apply {
+            text = context.getString(R.string.virtual_keyboard_preview_title)
+            setTextColor(Color.parseColor("#FFFFFFFF"))
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
+            setPadding(0, 0, 0, dp(6))
+        })
         val (normalContainer, normalPair) = buildSinglePreview()
         val (pressedContainer, pressedPair) = buildSinglePreview()
-        (pressedContainer.layoutParams as LinearLayout.LayoutParams).setMargins(dp(8), 0, 0, 0)
-        previewRow.addView(normalContainer); previewRow.addView(pressedContainer); previewTabContent.addView(previewRow)
+        previewPanel.addView(normalContainer)
+        previewPanel.addView(pressedContainer)
+        previewPanel.addView(TextView(context).apply {
+            text = context.getString(R.string.virtual_keyboard_preview_hint)
+            setTextColor(Color.parseColor("#FFB8B8B8"))
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
+            setPadding(0, dp(2), 0, 0)
+        })
+        topTabLayout.addOnTabSelectedListener(object: TabLayout.OnTabSelectedListener{
+            override fun onTabSelected(tab: TabLayout.Tab?) {
+                previewPanel.visibility = if (tab?.position == 2) View.VISIBLE else View.GONE
+            }
+            override fun onTabUnselected(tab: TabLayout.Tab?) {}
+            override fun onTabReselected(tab: TabLayout.Tab?) {}
+        })
+
+        rootLayout.removeView(topTabLayout)
+        rootLayout.removeView(scrollView)
+
+        val editorColumn = LinearLayout(context).apply {
+            orientation = LinearLayout.VERTICAL
+            layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.MATCH_PARENT, 1f)
+        }
+        editorColumn.addView(topTabLayout)
+        editorColumn.addView(scrollView)
+
+        val isWideLayout = context.resources.configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
+        val workspaceLayout = LinearLayout(context).apply {
+            orientation = if (isWideLayout) LinearLayout.HORIZONTAL else LinearLayout.VERTICAL
+            layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f)
+        }
+        if (isWideLayout) {
+            previewPanel.layoutParams = LinearLayout.LayoutParams(dp(260), LinearLayout.LayoutParams.MATCH_PARENT).apply {
+                leftMargin = dp(8)
+            }
+            workspaceLayout.addView(editorColumn)
+            workspaceLayout.addView(previewPanel)
+        } else {
+            previewPanel.layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
+                bottomMargin = dp(8)
+            }
+            workspaceLayout.addView(editorColumn)
+            workspaceLayout.addView(previewPanel)
+        }
+        rootLayout.addView(workspaceLayout)
 
         // ----------------- 3. 逻辑绑定 -----------------
 
@@ -832,6 +928,7 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
         })
 
         // ================== 数据回填 ==================
+        lateinit var dialog: Dialog
         if (element != null) {
             buttonIdEditText.setText(element?.elementId.toString())
             buttonTextEditText.setText(element?.text)
@@ -859,6 +956,10 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
             } catch (_: Exception) {}
             updatePreview()
 
+            val moreSection = addCollapsibleSectionTo(baseTabContent, context.getString(R.string.virtual_keyboard_section_more), false)
+            val actionsContainer = LinearLayout(context).apply { orientation = LinearLayout.VERTICAL }
+            moreSection.addView(actionsContainer)
+
             val setJoyStickButton = Button(context).apply { text = context.getString(R.string.virtual_keyboard_menu_set_the_handle_arrow_keys); setOnClickListener { setJoyStickVKCodeDialog(context, element!!) }; visibility = if (vkCodeEditText.text.toString() == VirtualKeyboardVkCode.JoyCode.JOY_PAD.code.toString()) View.VISIBLE else View.GONE }
             actionsContainer.addView(setJoyStickButton)
             vkCodeEditText.addTextChangedListener(object : TextWatcher { override fun afterTextChanged(s: Editable?) { setJoyStickButton.visibility = if (s.toString() == VirtualKeyboardVkCode.JoyCode.JOY_PAD.code.toString()) View.VISIBLE else View.GONE }; override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}; override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {} })
@@ -866,30 +967,76 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
             actionsContainer.addView(Button(context).apply { text = context.getString(R.string.virtual_keyboard_menu_copy_button); setOnClickListener { VirtualKeyboardConfigurationLoader.copyButton(virtualKeyboard, element, context); game?.postNotification(context.getString(R.string.virtual_keyboard_menu_copy_button) + "\n" + element?.elementId, 2000); VirtualKeyboardConfigurationLoader.saveProfile(virtualKeyboard, context) } })
             if (element?.group != -1) { actionsContainer.addView(Button(context).apply { text = context.getString(R.string.virtual_keyboard_menu_delete_group_button); setOnClickListener { virtualKeyboard.elements.filter { it.group == element?.group }.forEach { virtualKeyboard.removeElementByElement(it) }; VirtualKeyboardConfigurationLoader.saveProfile(virtualKeyboard, context) } }) }
             actionsContainer.addView(Button(context).apply { text = context.getString(R.string.virtual_keyboard_menu_macro_edit_button); setOnClickListener { val macroEditor = MacroEditor(context, element!!.buttonData, object : OnMacroDataChangedListener { override fun onMacroDataChanged(newData: JSONObject) { element!!.buttonData = newData; element!!.invalidate(); VirtualKeyboardConfigurationLoader.saveProfile(virtualKeyboard, context) } }); macroEditor.setElements(virtualKeyboard.elements); macroEditor.showMacroEditor() } })
+            actionsContainer.addView(Button(context).apply {
+                text = context.getString(R.string.virtual_keyboard_menu_remove_button)
+                setTextColor(Color.parseColor("#FFFFC9C9"))
+                setOnClickListener {
+                    try {
+                        virtualKeyboard.removeElementByElement(element)
+                        VirtualKeyboardConfigurationLoader.saveProfile(virtualKeyboard, context)
+                        dialog.dismiss()
+                    } catch (e: Exception) {
+                        Log.e("vk", "delete failed", e)
+                    }
+                }
+            })
         }
 
-        val builder = AlertDialog.Builder(context)
-        val dialog: AlertDialog
-        if (element != null) {
-            dialog = builder.setTitle(context.getString(R.string.virtual_keyboard_menu_set_button_title))
-                .setView(rootLayout)
-                .setCancelable(false)
-                .setPositiveButton(R.string.virtual_keyboard_menu_save_button, null)
-                .setNeutralButton(R.string.virtual_keyboard_menu_remove_button) { _, _ -> try { virtualKeyboard.removeElementByElement(element); VirtualKeyboardConfigurationLoader.saveProfile(virtualKeyboard, context) } catch (e: Exception) { Log.e("vk", "delete failed", e) } }
-                .setNegativeButton(R.string.virtual_keyboard_menu_cancel_button, null)
-                .create()
-        } else {
-            dialog = builder.setTitle(context.getString(R.string.virtual_keyboard_menu_add_button_title))
-                .setView(rootLayout)
-                .setCancelable(true)
-                .setPositiveButton(R.string.virtual_keyboard_menu_confirm_button, null)
-                .setNegativeButton(R.string.virtual_keyboard_menu_cancel_button, null)
-                .create()
+        val headerRow = LinearLayout(context).apply {
+            orientation = LinearLayout.HORIZONTAL
+            setPadding(dp(14), dp(6), dp(14), dp(6))
+            background = panelBackground()
+            layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
+                bottomMargin = dp(6)
+            }
+            addView(TextView(context).apply {
+                text = if (element != null) context.getString(R.string.virtual_keyboard_menu_set_button_title) else context.getString(R.string.virtual_keyboard_menu_add_button_title)
+                setTextColor(Color.parseColor("#FFFFFFFF"))
+                setTextSize(TypedValue.COMPLEX_UNIT_SP, 17f)
+                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+            })
+        }
+        rootLayout.addView(headerRow, 0)
+
+        val footerRow = LinearLayout(context).apply {
+            orientation = LinearLayout.HORIZONTAL
+            setPadding(dp(8), dp(6), dp(8), dp(6))
+            background = panelBackground()
+            layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
+                topMargin = dp(6)
+            }
+        }
+        val cancelButton = Button(context).apply {
+            text = context.getString(R.string.virtual_keyboard_menu_cancel_button)
+            layoutParams = LinearLayout.LayoutParams(0, dp(38), 1f).apply { rightMargin = dp(8) }
+            setOnClickListener { dialog.dismiss() }
+        }
+        val saveButton = Button(context).apply {
+            text = context.getString(if (element != null) R.string.virtual_keyboard_menu_save_button else R.string.virtual_keyboard_menu_confirm_button)
+            layoutParams = LinearLayout.LayoutParams(0, dp(38), 1.2f)
+        }
+        footerRow.addView(cancelButton)
+        footerRow.addView(saveButton)
+        rootLayout.addView(footerRow)
+
+        dialog = Dialog(context).apply {
+            requestWindowFeature(Window.FEATURE_NO_TITLE)
+            setContentView(rootLayout)
+            setCancelable(element == null)
         }
         dialog.setCanceledOnTouchOutside(false)
         dialog.show()
+        dialog.window?.let { window ->
+            window.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+            val dm = context.resources.displayMetrics
+            if (isWideLayout) {
+                window.setLayout((dm.widthPixels * 0.86f).toInt(), (dm.heightPixels * 0.84f).toInt())
+            } else {
+                window.setLayout((dm.widthPixels * 0.94f).toInt(), ViewGroup.LayoutParams.WRAP_CONTENT)
+            }
+        }
 
-        dialog.getButton(AlertDialog.BUTTON_POSITIVE)?.setOnClickListener {
+        saveButton.setOnClickListener {
             try {
                 val buttonId = buttonIdEditText.text.toString().toIntOrNull() ?: (virtualKeyboard.lastElementId + 1)
                 val vkCode = vkCodeEditText.text.toString().ifEmpty { "0" }

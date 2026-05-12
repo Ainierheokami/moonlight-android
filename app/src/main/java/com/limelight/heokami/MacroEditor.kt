@@ -183,10 +183,12 @@ class MacroEditor(private val context: Context, private var jsonData: JSONObject
                 Log.d("MacroEditor", "saveMacro: no new macros to save, MACROS container will be absent.")
             }
 
-            // 3. 调用监听器。我们传递回的是被“就地修改”过的同一个对象实例。
-            // 外部接收到后，只需触发保存即可，无需再进行赋值操作。
             Log.d("MacroEditor", "Calling onMacroDataChanged with modified jsonData: ${dataToModify.toString(2)}")
-            listener?.onMacroDataChanged(dataToModify)
+            try {
+                listener?.onMacroDataChanged(dataToModify)
+            } catch (callbackError: Exception) {
+                Log.e("MacroEditor", "宏数据已更新，但外部保存回调失败: ${callbackError.message}", callbackError)
+            }
             Log.d("MacroEditor", "--- saveMacro finished ---")
 
         } catch (e: Exception) {
