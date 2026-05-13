@@ -39,6 +39,11 @@
     <string name="no_frame_received_error">Vaše připojení k síti není dost rychlé. Zkuste snížit datový tok videa nebo použijte rychlejší připojení.</string>
     <string name="applist_menu_hide_app">Skrýt aplikaci</string>
     <string name="title_add_pc">Přidat PC ručně</string>
+    <string name="title_stream_settings">Nastavení streamování</string>
+    <string name="subtitle_stream_settings">Video, vstup, zvuk a nastavení hostitele</string>
+    <string name="subtitle_add_pc">Připojit podle názvu hostitele nebo adresy</string>
+    <string name="add_pc_host_label">Adresa hostitele</string>
+    <string name="add_pc_host_helper">Příklady: 192.168.1.25, gaming-pc.local nebo 203.0.113.10:47989</string>
     <string name="title_audio_config_list">Konfigurace prostorového zvuku</string>
     <string name="searching_pc">Hledání PC, na kterých běží GameStream...
 \n

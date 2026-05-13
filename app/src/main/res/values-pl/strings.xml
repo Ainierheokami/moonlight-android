@@ -35,6 +35,11 @@
     <string name="applist_quit_confirmation">Czy na pewno chcesz zamknąć uruchomioną aplikację? Wszystkie niezapisane dane zostaną utracone.</string>
     <string name="applist_details_id">App ID:</string>
     <string name="title_add_pc">Dodaj komputer ręcznie</string>
+    <string name="title_stream_settings">Ustawienia strumieniowania</string>
+    <string name="subtitle_stream_settings">Preferencje obrazu, wejścia, dźwięku i hosta</string>
+    <string name="subtitle_add_pc">Połącz przez nazwę hosta lub adres</string>
+    <string name="add_pc_host_label">Adres hosta</string>
+    <string name="add_pc_host_helper">Przykłady: 192.168.1.25, gaming-pc.local lub 203.0.113.10:47989</string>
     <string name="msg_add_pc">Podłączanie do komputera…</string>
     <string name="addpc_unknown_host">Nie można określić adresu komputera. Upewnij się, że nie popełniłeś literówki w adresie.</string>
     <string name="addpc_wrong_sitelocal">Ten adres nie wygląda prawidłowo. Do przesyłania strumieniowego przez Internet należy używać publicznego adresu IP routera.</string>

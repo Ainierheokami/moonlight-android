@@ -112,6 +112,11 @@
     <string name="applist_details_id">ID de l\'appli :</string>
     <!-- Add computer manually activity -->
     <string name="title_add_pc">Ajouter un PC manuellement</string>
+    <string name="title_stream_settings">Paramètres de streaming</string>
+    <string name="subtitle_stream_settings">Préférences vidéo, saisie, audio et hôte</string>
+    <string name="subtitle_add_pc">Connexion par nom d’hôte ou adresse</string>
+    <string name="add_pc_host_label">Adresse de l’hôte</string>
+    <string name="add_pc_host_helper">Exemples : 192.168.1.25, gaming-pc.local ou 203.0.113.10:47989</string>
     <string name="msg_add_pc">Connexion au PC…</string>
     <string name="addpc_fail">Impossible de se connecter à l\'ordinateur spécifié. Assurez-vous que les ports requis sont autorisés via le pare-feu.</string>
     <string name="addpc_success">Ordinateur ajouté avec succès</string>

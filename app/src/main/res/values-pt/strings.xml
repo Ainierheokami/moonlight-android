@@ -172,6 +172,11 @@
     <string name="applist_quit_confirmation">Tem certeza de que deseja sair da app em execução\? Todos os dados não salvos serão perdidos.</string>
     <string name="applist_details_id">ID do App:</string>
     <string name="title_add_pc">Adicionar PC Manualmente</string>
+    <string name="title_stream_settings">Configurações de streaming</string>
+    <string name="subtitle_stream_settings">Preferências de vídeo, entrada, áudio e host</string>
+    <string name="subtitle_add_pc">Conectar por nome do host ou endereço</string>
+    <string name="add_pc_host_label">Endereço do host</string>
+    <string name="add_pc_host_helper">Exemplos: 192.168.1.25, gaming-pc.local ou 203.0.113.10:47989</string>
     <string name="msg_add_pc">Conectando ao PC…</string>
     <string name="addpc_success">Computador adicionado com sucesso</string>
     <string name="addpc_unknown_host">Não foi possível encontrar o PC. Certifique-se de que não cometeu um erro de digitação no endereço.</string>

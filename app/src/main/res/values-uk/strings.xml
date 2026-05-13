@@ -66,6 +66,11 @@
     <string name="applist_quit_confirmation">Ви впевнені, що хочете вийти з запущеного застосунку\? Усі незбережені дані будуть втрачені.</string>
     <!-- Add computer manually activity -->
     <string name="title_add_pc">Додати пристрій вручну</string>
+    <string name="title_stream_settings">Налаштування трансляції</string>
+    <string name="subtitle_stream_settings">Параметри відео, введення, звуку та хоста</string>
+    <string name="subtitle_add_pc">Підключення за іменем хоста або адресою</string>
+    <string name="add_pc_host_label">Адреса хоста</string>
+    <string name="add_pc_host_helper">Приклади: 192.168.1.25, gaming-pc.local або 203.0.113.10:47989</string>
     <string name="msg_add_pc">З\'єднання з пристроєм…</string>
     <string name="addpc_fail">Неможливо під\'єднатися до вибраного пристрою. Переконайтеся, що необхідні порти дозволені в налаштуваннях брандмауера.</string>
     <string name="addpc_success">Пристрій додано успішно</string>

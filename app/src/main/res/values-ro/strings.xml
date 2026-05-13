@@ -99,6 +99,11 @@
     <string name="applist_details_id">ID-ul aplicației:</string>
     <!-- Add computer manually activity -->
     <string name="title_add_pc">Adaugă PC manual</string>
+    <string name="title_stream_settings">Setări de streaming</string>
+    <string name="subtitle_stream_settings">Preferințe video, intrare, audio și gazdă</string>
+    <string name="subtitle_add_pc">Conectare după numele gazdei sau adresă</string>
+    <string name="add_pc_host_label">Adresa gazdei</string>
+    <string name="add_pc_host_helper">Exemple: 192.168.1.25, gaming-pc.local sau 203.0.113.10:47989</string>
     <string name="msg_add_pc">Conectare în curs…</string>
     <string name="addpc_fail">Nu s-a putut efectua conectarea la adresa introdusă. Asigurăte ca porturile nu sunt blocate in firewall.</string>
     <string name="addpc_success">PC adăugat cu succes</string>

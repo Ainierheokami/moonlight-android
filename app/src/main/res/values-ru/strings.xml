@@ -76,6 +76,11 @@
     <string name="applist_quit_confirmation">Вы уверены, что хотите выйти из запущенного приложения? Все несохраненные данные будут потеряны.</string>
     <!-- Add computer manually activity -->
     <string name="title_add_pc">Добавление PC вручную</string>
+    <string name="title_stream_settings">Настройки трансляции</string>
+    <string name="subtitle_stream_settings">Параметры видео, ввода, звука и хоста</string>
+    <string name="subtitle_add_pc">Подключение по имени хоста или адресу</string>
+    <string name="add_pc_host_label">Адрес хоста</string>
+    <string name="add_pc_host_helper">Примеры: 192.168.1.25, gaming-pc.local или 203.0.113.10:47989</string>
     <string name="msg_add_pc">Соединение с PC…</string>
     <string name="addpc_fail">Не удалось подключиться к выбранному компьютеру. Удостоверьтесь, что необходимые порты разрешены в настройках брандмауэра.</string>
     <string name="addpc_success">Компьютер добавлен успешно</string>

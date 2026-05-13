@@ -15,6 +15,13 @@
     <string name="pcview_menu_unpair_pc"> 取消配對 </string>
     <string name="pcview_menu_send_wol">傳送 Wake-On-LAN 要求</string>
     <string name="pcview_menu_delete_pc"> 刪除電腦 </string>
+    <string name="pc_actions_title">裝置操作</string>
+    <string name="pc_actions_address">位址：%1$s</string>
+    <string name="pc_view_delete_ip">刪除 IP</string>
+    <string name="delete_ip_msg">要從此裝置移除這個手動儲存的位址嗎？</string>
+    <string name="delete_ip_success">已刪除 IP 位址</string>
+    <string name="debug_write_test_cover">寫入測試封面</string>
+    <string name="debug_test_cover_written">已寫入測試封面（%1$d 位元組）</string>
     <string name="pcview_menu_details">檢視詳細資料</string>
     <!-- Pair messages -->
     <string name="pairing">正在配對…</string>
@@ -98,6 +105,11 @@
     <string name="applist_details_id">App ID：</string>
     <!-- Add computer manually activity -->
     <string name="title_add_pc">手動新增電腦</string>
+    <string name="title_stream_settings">串流設定</string>
+    <string name="subtitle_stream_settings">視訊、輸入、音訊與主機偏好設定</string>
+    <string name="subtitle_add_pc">透過主機名稱或位址連線</string>
+    <string name="add_pc_host_label">主機位址</string>
+    <string name="add_pc_host_helper">範例：192.168.1.25、gaming-pc.local 或 203.0.113.10:47989</string>
     <string name="msg_add_pc">正在連線電腦…</string>
     <string name="addpc_fail">無法連線至指定電腦。請確保必要通訊埠未被防火牆封鎖。</string>
     <string name="addpc_success">成功新增電腦</string>

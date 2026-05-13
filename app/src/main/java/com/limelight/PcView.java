@@ -1,6 +1,7 @@
 package com.limelight;
 
 import java.io.FileNotFoundException;
+import java.io.File;
 import java.io.IOException;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
@@ -37,8 +38,10 @@ import com.limelight.utils.UiHelper;
 
 import android.app.Activity;
 import android.app.ActivityManager;
+import android.app.AlertDialog;
 import android.app.Service;
 import android.content.ComponentName;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.content.res.Configuration;
@@ -47,6 +50,7 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.RectF;
+import android.graphics.drawable.ColorDrawable;
 import android.opengl.GLSurfaceView;
 import android.os.Build;
 import android.os.Bundle;
@@ -54,15 +58,20 @@ import android.os.IBinder;
 import android.preference.PreferenceManager;
 import android.util.DisplayMetrics;
 import android.view.ContextMenu;
+import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.Window;
 import android.view.ContextMenu.ContextMenuInfo;
 import android.view.View.OnClickListener;
 import android.widget.AbsListView;
 import android.widget.AdapterView;
 import android.widget.AdapterView.OnItemClickListener;
+import android.widget.Button;
 import android.widget.ImageButton;
+import android.widget.LinearLayout;
+import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.AdapterView.AdapterContextMenuInfo;
 
@@ -456,8 +465,12 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
         // Only update layout if adapter is properly initialized
         if (pcGridAdapter != null) {
             pcGridAdapter.updateLayoutWithPreferences(this, prefs);
+            pcGridAdapter.notifyDataSetChanged();
         } else {
             Log.e("PcView", "Unable to initialize pcGridAdapter in onResume()");
+        }
+        if (pcRecyclerAdapter != null) {
+            pcRecyclerAdapter.notifyDataSetChanged();
         }
 
         inForeground = true;
@@ -1130,20 +1143,7 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
                 return true;
 
             case DELETE_ID:
-                if (ActivityManager.isUserAMonkey()) {
-                    LimeLog.info("Ignoring delete PC request from monkey");
-                    return true;
-                }
-                UiHelper.displayDeletePcConfirmationDialog(this, computer.details, new Runnable() {
-                    @Override
-                    public void run() {
-                        if (managerBinder == null) {
-                            Toast.makeText(PcView.this, getResources().getString(R.string.error_manager_not_running), Toast.LENGTH_LONG).show();
-                            return;
-                        }
-                        removeComputer(computer.details);
-                    }
-                }, null);
+                confirmRemoveComputer(computer);
                 return true;
 
             case FULL_APP_LIST_ID:
@@ -1197,6 +1197,14 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
     }
 
    private void doRemoveIp(final ComputerObject computer) {
+       if (managerBinder == null) {
+           Toast.makeText(PcView.this, getResources().getString(R.string.error_manager_not_running), Toast.LENGTH_LONG).show();
+           return;
+       }
+       if (computer == null || computer.address == null ||
+               !computer.details.manualAddresses.contains(computer.address)) {
+           return;
+       }
        // Create a new set to avoid modifying the one we're iterating over
        java.util.HashSet<ComputerDetails.AddressTuple> newManualAddresses = new java.util.HashSet<>(computer.details.manualAddresses);
        newManualAddresses.remove(computer.address);
@@ -1204,12 +1212,13 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
 
        // Save the updated computer details
        managerBinder.updateComputer(computer.details);
+       Toast.makeText(PcView.this, getResources().getString(R.string.delete_ip_success), Toast.LENGTH_SHORT).show();
 
        // The UI will be refreshed by the callback
    }
    
    // 处理自定义上下文菜单项点击
-   public boolean onContextItemSelected(android.view.MenuItem item, ComputerObject computer) {
+    public boolean onContextItemSelected(android.view.MenuItem item, ComputerObject computer) {
        Log.d("PcView", "自定义菜单项点击: " + item.getItemId() + ", 计算机: " + computer.details.name);
        
        switch (item.getItemId()) {
@@ -1226,20 +1235,7 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
                return true;
 
            case DELETE_ID:
-               if (ActivityManager.isUserAMonkey()) {
-                   LimeLog.info("Ignoring delete PC request from monkey");
-                   return true;
-               }
-               UiHelper.displayDeletePcConfirmationDialog(this, computer.details, new Runnable() {
-                   @Override
-                   public void run() {
-                       if (managerBinder == null) {
-                           Toast.makeText(PcView.this, getResources().getString(R.string.error_manager_not_running), Toast.LENGTH_LONG).show();
-                           return;
-                       }
-                       removeComputer(computer.details);
-                   }
-               }, null);
+               confirmRemoveComputer(computer);
                return true;
 
            case FULL_APP_LIST_ID:
@@ -1291,6 +1287,262 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
                return false;
        }
    }
+
+    public void showComputerActions(final ComputerObject computer) {
+        if (computer == null || computer.details == null || isFinishing()) {
+            return;
+        }
+
+        final AlertDialog actionDialog = new AlertDialog.Builder(this).create();
+        View content = LayoutInflater.from(this).inflate(R.layout.dialog_pc_actions, null);
+
+        TextView title = content.findViewById(R.id.pcActionTitle);
+        TextView subtitle = content.findViewById(R.id.pcActionSubtitle);
+        LinearLayout actionList = content.findViewById(R.id.pcActionList);
+
+        title.setText(computer.details.name);
+        String addressText = computer.address != null ? computer.address.address : getString(R.string.pcview_menu_header_unknown);
+        subtitle.setText(getString(R.string.pc_actions_address, addressText));
+
+        if (computer.details.state == ComputerDetails.State.OFFLINE ||
+                computer.details.state == ComputerDetails.State.UNKNOWN) {
+            addComputerAction(actionList, actionDialog, R.string.pcview_menu_send_wol, false, new Runnable() {
+                @Override
+                public void run() {
+                    doWakeOnLan(computer.details);
+                }
+            });
+            addComputerAction(actionList, actionDialog, R.string.pcview_menu_eol, false, new Runnable() {
+                @Override
+                public void run() {
+                    HelpLauncher.launchGameStreamEolFaq(PcView.this);
+                }
+            });
+        }
+        else if (computer.details.pairState != PairState.PAIRED) {
+            addComputerAction(actionList, actionDialog, R.string.pcview_menu_pair_pc, false, new Runnable() {
+                @Override
+                public void run() {
+                    doPair(computer);
+                }
+            });
+            if (computer.details.nvidiaServer) {
+                addComputerAction(actionList, actionDialog, R.string.pcview_menu_eol, false, new Runnable() {
+                    @Override
+                    public void run() {
+                        HelpLauncher.launchGameStreamEolFaq(PcView.this);
+                    }
+                });
+            }
+        }
+        else {
+            if (computer.details.runningGameId != 0) {
+                addComputerAction(actionList, actionDialog, R.string.applist_menu_resume, false, new Runnable() {
+                    @Override
+                    public void run() {
+                        if (managerBinder == null) {
+                            Toast.makeText(PcView.this, getResources().getString(R.string.error_manager_not_running), Toast.LENGTH_LONG).show();
+                            return;
+                        }
+                        ServerHelper.doStart(PcView.this, new NvApp("app", computer.details.runningGameId, false), computer.details, managerBinder);
+                    }
+                });
+                addComputerAction(actionList, actionDialog, R.string.applist_menu_quit, false, new Runnable() {
+                    @Override
+                    public void run() {
+                        if (managerBinder == null) {
+                            Toast.makeText(PcView.this, getResources().getString(R.string.error_manager_not_running), Toast.LENGTH_LONG).show();
+                            return;
+                        }
+                        UiHelper.displayQuitConfirmationDialog(PcView.this, new Runnable() {
+                            @Override
+                            public void run() {
+                                ServerHelper.doQuit(PcView.this, computer.details,
+                                        new NvApp("app", 0, false), managerBinder, null);
+                            }
+                        }, null);
+                    }
+                });
+            }
+
+            if (computer.details.nvidiaServer) {
+                addComputerAction(actionList, actionDialog, R.string.pcview_menu_eol, false, new Runnable() {
+                    @Override
+                    public void run() {
+                        HelpLauncher.launchGameStreamEolFaq(PcView.this);
+                    }
+                });
+            }
+
+            addComputerAction(actionList, actionDialog, R.string.pcview_menu_app_list, false, new Runnable() {
+                @Override
+                public void run() {
+                    doAppList(computer, false, true);
+                }
+            });
+        }
+
+        addComputerAction(actionList, actionDialog, R.string.pcview_menu_test_network, false, new Runnable() {
+            @Override
+            public void run() {
+                ServerHelper.doNetworkTest(PcView.this);
+            }
+        });
+
+        if (BuildConfig.DEBUG) {
+            addComputerAction(actionList, actionDialog, R.string.debug_write_test_cover, false, new Runnable() {
+                @Override
+                public void run() {
+                    writeDebugTestCover(computer);
+                }
+            });
+        }
+
+        if (computer.address != null && computer.details.manualAddresses.contains(computer.address)) {
+            addComputerAction(actionList, actionDialog, R.string.pc_view_delete_ip, true, new Runnable() {
+                @Override
+                public void run() {
+                    confirmRemoveIp(computer);
+                }
+            });
+        }
+
+        addComputerAction(actionList, actionDialog, R.string.pcview_menu_delete_pc, true, new Runnable() {
+            @Override
+            public void run() {
+                confirmRemoveComputer(computer);
+            }
+        });
+
+        addComputerAction(actionList, actionDialog, R.string.pcview_menu_details, false, new Runnable() {
+            @Override
+            public void run() {
+                Dialog.displayDialog(PcView.this, getResources().getString(R.string.title_details), computer.details.toString(), false);
+            }
+        });
+
+        actionDialog.setView(content);
+        actionDialog.setOnDismissListener(new DialogInterface.OnDismissListener() {
+            @Override
+            public void onDismiss(DialogInterface dialog) {
+                startComputerUpdates();
+            }
+        });
+        stopComputerUpdates(false);
+        actionDialog.show();
+
+        Window window = actionDialog.getWindow();
+        if (window != null) {
+            window.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+        }
+    }
+
+    private void addComputerAction(LinearLayout actionList, final AlertDialog dialog, int labelResId,
+                                   boolean dangerous, final Runnable action) {
+        Button button = new Button(this);
+        button.setAllCaps(false);
+        button.setText(labelResId);
+        button.setTextColor(dangerous ? Color.rgb(255, 172, 186) : Color.rgb(220, 230, 241));
+        button.setTextSize(14);
+        button.setGravity(android.view.Gravity.CENTER_VERTICAL | android.view.Gravity.START);
+        button.setMinHeight(0);
+        button.setMinWidth(0);
+        button.setPadding(dp(16), 0, dp(16), 0);
+        button.setBackgroundResource(dangerous ? R.drawable.pc_action_danger_button_background : R.drawable.pc_action_button_background);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            button.setStateListAnimator(null);
+        }
+
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, dp(48));
+        params.setMargins(0, 0, 0, dp(8));
+        actionList.addView(button, params);
+
+        button.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                dialog.dismiss();
+                if (action != null) {
+                    action.run();
+                }
+            }
+        });
+    }
+
+    private int dp(int value) {
+        return Math.round(value * getResources().getDisplayMetrics().density);
+    }
+
+    private void writeDebugTestCover(ComputerObject computer) {
+        if (computer == null || computer.details == null || computer.details.uuid == null) {
+            return;
+        }
+
+        ComputerScreenshotCache screenshotCache = new ComputerScreenshotCache(this);
+        screenshotCache.saveBitmap(computer.details.uuid,
+                createDebugCoverBitmap("#132235", "#11B8A7", "TEST " + System.currentTimeMillis() % 100000));
+        File coverFile = screenshotCache.getFile(computer.details.uuid);
+        long coverSize = coverFile != null && coverFile.exists() ? coverFile.length() : 0;
+
+        if (pcGridAdapter != null) {
+            pcGridAdapter.notifyDataSetChanged();
+        }
+        if (pcRecyclerAdapter != null) {
+            pcRecyclerAdapter.notifyDataSetChanged();
+        }
+
+        Toast.makeText(this, getString(R.string.debug_test_cover_written, coverSize), Toast.LENGTH_SHORT).show();
+    }
+
+    private void confirmRemoveComputer(final ComputerObject computer) {
+        if (ActivityManager.isUserAMonkey()) {
+            LimeLog.info("Ignoring delete PC request from monkey");
+            return;
+        }
+        UiHelper.displayDeletePcConfirmationDialog(this, computer.details, new Runnable() {
+            @Override
+            public void run() {
+                if (managerBinder == null) {
+                    Toast.makeText(PcView.this, getResources().getString(R.string.error_manager_not_running), Toast.LENGTH_LONG).show();
+                    return;
+                }
+                removeComputer(computer.details);
+            }
+        }, null);
+    }
+
+    private void confirmRemoveIp(final ComputerObject computer) {
+        final AlertDialog dialog = new AlertDialog.Builder(this).create();
+        View content = LayoutInflater.from(this).inflate(R.layout.dialog_modern_message, null);
+        ((TextView) content.findViewById(R.id.dialogTitleText)).setText(computer.details.name);
+        ((TextView) content.findViewById(R.id.dialogMessageText)).setText(getString(R.string.delete_ip_msg));
+
+        Button helpButton = content.findViewById(R.id.dialogHelpButton);
+        helpButton.setText(R.string.no);
+        Button okButton = content.findViewById(R.id.dialogOkButton);
+        okButton.setText(R.string.yes);
+
+        helpButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                dialog.dismiss();
+            }
+        });
+        okButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                dialog.dismiss();
+                doRemoveIp(computer);
+            }
+        });
+
+        dialog.setView(content);
+        dialog.show();
+        Window window = dialog.getWindow();
+        if (window != null) {
+            window.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+        }
+    }
     
     private void removeComputer(ComputerDetails details) {
         managerBinder.removeComputer(details);
@@ -1393,7 +1645,7 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
         debugSampleComputersAdded = true;
         ComputerScreenshotCache screenshotCache = new ComputerScreenshotCache(this);
 
-        screenshotCache.saveBitmap("demo-online", createDebugCoverBitmap("#213547", "#38BDF8", "AURORA"));
+        saveDebugCoverIfMissing(screenshotCache, "demo-online", "#213547", "#38BDF8", "AURORA");
         updateComputer(createDebugComputer(
                 "demo-online",
                 "Aurora Studio",
@@ -1403,7 +1655,7 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
                 0,
                 true));
 
-        screenshotCache.saveBitmap("demo-running", createDebugCoverBitmap("#1B2430", "#34D399", "SESSION"));
+        saveDebugCoverIfMissing(screenshotCache, "demo-running", "#1B2430", "#34D399", "SESSION");
         updateComputer(createDebugComputer(
                 "demo-running",
                 "Neon Rig",
@@ -1413,7 +1665,7 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
                 1,
                 true));
 
-        screenshotCache.saveBitmap("demo-unpaired", createDebugCoverBitmap("#2A2336", "#FBBF24", "PAIR"));
+        saveDebugCoverIfMissing(screenshotCache, "demo-unpaired", "#2A2336", "#FBBF24", "PAIR");
         updateComputer(createDebugComputer(
                 "demo-unpaired",
                 "Pairing Lab",
@@ -1423,7 +1675,7 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
                 0,
                 true));
 
-        screenshotCache.saveBitmap("demo-offline", createDebugCoverBitmap("#242933", "#8A97A5", "OFFLINE"));
+        saveDebugCoverIfMissing(screenshotCache, "demo-offline", "#242933", "#8A97A5", "OFFLINE");
         updateComputer(createDebugComputer(
                 "demo-offline",
                 "Archive PC",
@@ -1432,6 +1684,16 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
                 PairState.PAIRED,
                 0,
                 false));
+    }
+
+    private void saveDebugCoverIfMissing(ComputerScreenshotCache screenshotCache, String uuid,
+                                         String startColor, String endColor, String label) {
+        File coverFile = screenshotCache.getFile(uuid);
+        if (coverFile == null || coverFile.exists()) {
+            return;
+        }
+
+        screenshotCache.saveBitmap(uuid, createDebugCoverBitmap(startColor, endColor, label));
     }
 
     private ComputerDetails createDebugComputer(String uuid, String name, String address,
@@ -1504,6 +1766,13 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
                 } else {
                     doAppList(computer, false, false);
                 }
+            }
+        });
+        listView.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
+            @Override
+            public boolean onItemLongClick(AdapterView<?> parent, View view, int position, long id) {
+                showComputerActions((ComputerObject) pcGridAdapter.getItem(position));
+                return true;
             }
         });
         UiHelper.applyStatusBarPadding(listView);

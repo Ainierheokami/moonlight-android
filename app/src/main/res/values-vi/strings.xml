@@ -87,6 +87,11 @@
     <string name="addpc_fail">Không thể kết nối đến máy tính được chỉ định. Hãy chắc chắn là các cổng được yêu cầu được cho phép qua tường lửa.</string>
     <string name="msg_add_pc">Đang kết nối đến PC…</string>
     <string name="title_add_pc">Thêm PC thủ công</string>
+    <string name="title_stream_settings">Cài đặt phát trực tuyến</string>
+    <string name="subtitle_stream_settings">Tùy chọn video, nhập liệu, âm thanh và máy chủ</string>
+    <string name="subtitle_add_pc">Kết nối bằng tên máy chủ hoặc địa chỉ</string>
+    <string name="add_pc_host_label">Địa chỉ máy chủ</string>
+    <string name="add_pc_host_helper">Ví dụ: 192.168.1.25, gaming-pc.local hoặc 203.0.113.10:47989</string>
     <string name="applist_details_id">ID ứng dụng:</string>
     <string name="applist_quit_confirmation">Bạn có chắc bạn muốn thoát ứng dụng đang chạy không\? Tất cả dữ liệu chưa được lưu sẽ bị mất.</string>
     <string name="applist_quit_fail">Thoát thất bại</string>

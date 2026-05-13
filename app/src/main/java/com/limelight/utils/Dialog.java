@@ -4,8 +4,13 @@ import java.util.ArrayList;
 
 import android.app.Activity;
 import android.app.AlertDialog;
-import android.content.DialogInterface;
+import android.graphics.Color;
+import android.graphics.drawable.ColorDrawable;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.Window;
 import android.widget.Button;
+import android.widget.TextView;
 
 import com.limelight.R;
 
@@ -65,23 +70,27 @@ public class Dialog implements Runnable {
 
         alert = new AlertDialog.Builder(activity).create();
 
-        alert.setTitle(title);
-        alert.setMessage(message);
-        alert.setCancelable(false);
-        alert.setCanceledOnTouchOutside(false);
- 
-        alert.setButton(AlertDialog.BUTTON_POSITIVE, activity.getResources().getText(android.R.string.ok), new DialogInterface.OnClickListener() {
-              public void onClick(DialogInterface dialog, int which) {
-                  synchronized (rundownDialogs) {
-                      rundownDialogs.remove(Dialog.this);
-                      alert.dismiss();
-                  }
+        View content = LayoutInflater.from(activity).inflate(R.layout.dialog_modern_message, null);
+        ((TextView) content.findViewById(R.id.dialogTitleText)).setText(title);
+        ((TextView) content.findViewById(R.id.dialogMessageText)).setText(message);
 
-                  runOnDismiss.run();
-              }
+        Button okButton = content.findViewById(R.id.dialogOkButton);
+        okButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                synchronized (rundownDialogs) {
+                    rundownDialogs.remove(Dialog.this);
+                    alert.dismiss();
+                }
+
+                runOnDismiss.run();
+            }
         });
-        alert.setButton(AlertDialog.BUTTON_NEUTRAL, activity.getResources().getText(R.string.help), new DialogInterface.OnClickListener() {
-            public void onClick(DialogInterface dialog, int which) {
+
+        Button helpButton = content.findViewById(R.id.dialogHelpButton);
+        helpButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
                 synchronized (rundownDialogs) {
                     rundownDialogs.remove(Dialog.this);
                     alert.dismiss();
@@ -92,22 +101,23 @@ public class Dialog implements Runnable {
                 HelpLauncher.launchTroubleshooting(activity);
             }
         });
-        alert.setOnShowListener(new DialogInterface.OnShowListener(){
 
-            @Override
-            public void onShow(DialogInterface dialog) {
-                // Set focus to the OK button by default
-                Button button = alert.getButton(AlertDialog.BUTTON_POSITIVE);
-                button.setFocusable(true);
-                button.setFocusableInTouchMode(true);
-                button.requestFocus();
-            }
-        });
+        alert.setView(content);
+        alert.setCancelable(false);
+        alert.setCanceledOnTouchOutside(false);
 
         synchronized (rundownDialogs) {
             rundownDialogs.add(this);
             alert.show();
         }
-    }
 
+        Window window = alert.getWindow();
+        if (window != null) {
+            window.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+        }
+
+        okButton.setFocusable(true);
+        okButton.setFocusableInTouchMode(true);
+        okButton.requestFocus();
+    }
 }

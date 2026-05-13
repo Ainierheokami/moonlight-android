@@ -63,6 +63,11 @@
     <string name="applist_quit_confirmation">本当にゲームを終了しますか?  保存されていないデータは破棄されます</string>
     <!-- Add computer manually activity -->
     <string name="title_add_pc">手動でコンピュータを追加する</string>
+    <string name="title_stream_settings">ストリーミング設定</string>
+    <string name="subtitle_stream_settings">映像、入力、音声、ホストの設定</string>
+    <string name="subtitle_add_pc">ホスト名またはアドレスで接続</string>
+    <string name="add_pc_host_label">ホストアドレス</string>
+    <string name="add_pc_host_helper">例: 192.168.1.25、gaming-pc.local、203.0.113.10:47989</string>
     <string name="msg_add_pc">コンピュータに接続中</string>
     <string name="addpc_fail">指定されたコンピュータに接続できませんでした。ファイアーウォールの設定を確認してください</string>
     <string name="addpc_success">コンピュータの追加に成功しました</string>

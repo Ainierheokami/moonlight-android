@@ -100,6 +100,11 @@
     <string name="applist_details_id">App ID：</string>
     <!-- Add computer manually activity -->
     <string name="title_add_pc"> 手动添加电脑 </string>
+    <string name="title_stream_settings">串流设置</string>
+    <string name="subtitle_stream_settings">视频、输入、音频和主机偏好设置</string>
+    <string name="subtitle_add_pc">通过主机名或地址连接</string>
+    <string name="add_pc_host_label">主机地址</string>
+    <string name="add_pc_host_helper">示例：192.168.1.25、gaming-pc.local 或 203.0.113.10:47989</string>
     <string name="msg_add_pc"> 正在连接电脑…… </string>
     <string name="addpc_fail">无法连接至指定电脑。请确保所需端口没有被防火墙阻止。</string>
     <string name="addpc_success"> 成功添加电脑 </string>
@@ -257,6 +262,12 @@
     <string name="pacing_balanced">平衡</string>
     <string name="pacing_smoothness">优先视频流畅度（可能会显著增大延迟）</string>
     <string name="pc_view_delete_ip">删除 IP</string>
+    <string name="pc_actions_title">设备操作</string>
+    <string name="pc_actions_address">地址：%1$s</string>
+    <string name="delete_ip_msg">要从该设备中移除这个手动保存的地址吗？</string>
+    <string name="delete_ip_success">已删除 IP 地址</string>
+    <string name="debug_write_test_cover">写入测试封面</string>
+    <string name="debug_test_cover_written">已写入测试封面（%1$d 字节）</string>
     <string name="summary_setup_guide">查看有关如何设置游戏电脑以进行流传输的说明</string>
     <string name="title_privacy_policy">隐私政策</string>
     <string name="summary_privacy_policy">查看 Moonlight 隐私政策</string>

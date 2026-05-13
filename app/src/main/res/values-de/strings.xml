@@ -118,6 +118,11 @@
     <string name="applist_details_id">App ID:</string>
     <!-- Add computer manually activity -->
     <string name="title_add_pc">Host manuell hinzufügen</string>
+    <string name="title_stream_settings">Streaming-Einstellungen</string>
+    <string name="subtitle_stream_settings">Video, Eingabe, Audio und Host-Einstellungen</string>
+    <string name="subtitle_add_pc">Über Hostnamen oder Adresse verbinden</string>
+    <string name="add_pc_host_label">Host-Adresse</string>
+    <string name="add_pc_host_helper">Beispiele: 192.168.1.25, gaming-pc.local oder 203.0.113.10:47989</string>
     <string name="msg_add_pc">Verbinde zum Host…</string>
     <string name="addpc_fail">Verbindung fehlgeschlagen. Stelle sicher, dass die benötigten Ports von deiner Firewall nicht gesperrt sind.</string>
     <string name="addpc_success">Host erfolgreich hinzugefügt</string>

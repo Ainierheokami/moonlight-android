@@ -388,77 +388,8 @@ public class PcRecyclerAdapter extends RecyclerView.Adapter<PcRecyclerAdapter.Pc
             return;
         }
         
-        // 创建弹出菜单
-        android.widget.PopupMenu popupMenu = new android.widget.PopupMenu(context, anchorView);
-        android.view.Menu menu = popupMenu.getMenu();
-        
-        // 添加菜单项 - 复制原有的菜单逻辑
-        // PopupMenu不支持setHeaderTitle，我们跳过标题设置
-        
-        // 根据计算机状态添加菜单项
-        if (computer.details.state == ComputerDetails.State.OFFLINE ||
-            computer.details.state == ComputerDetails.State.UNKNOWN) {
-            menu.add(android.view.Menu.NONE, PcView.WOL_ID, 1,
-                    context.getResources().getString(R.string.pcview_menu_send_wol));
-            menu.add(android.view.Menu.NONE, PcView.GAMESTREAM_EOL_ID, 2,
-                    context.getResources().getString(R.string.pcview_menu_eol));
-        }
-        else if (computer.details.pairState != PairingManager.PairState.PAIRED) {
-            menu.add(android.view.Menu.NONE, PcView.PAIR_ID, 1,
-                    context.getResources().getString(R.string.pcview_menu_pair_pc));
-            if (computer.details.nvidiaServer) {
-                menu.add(android.view.Menu.NONE, PcView.GAMESTREAM_EOL_ID, 2,
-                        context.getResources().getString(R.string.pcview_menu_eol));
-            }
-        }
-        else {
-            if (computer.details.runningGameId != 0) {
-                menu.add(android.view.Menu.NONE, PcView.RESUME_ID, 1,
-                        context.getResources().getString(R.string.applist_menu_resume));
-                menu.add(android.view.Menu.NONE, PcView.QUIT_ID, 2,
-                        context.getResources().getString(R.string.applist_menu_quit));
-            }
-            
-            if (computer.details.nvidiaServer) {
-                menu.add(android.view.Menu.NONE, PcView.GAMESTREAM_EOL_ID, 3,
-                        context.getResources().getString(R.string.pcview_menu_eol));
-            }
-            
-            menu.add(android.view.Menu.NONE, PcView.FULL_APP_LIST_ID, 4,
-                    context.getResources().getString(R.string.pcview_menu_app_list));
-        }
-        
-        menu.add(android.view.Menu.NONE, PcView.TEST_NETWORK_ID, 5,
-                context.getResources().getString(R.string.pcview_menu_test_network));
-        if (computer.address != null && computer.details.manualAddresses.contains(computer.address)) {
-            menu.add(android.view.Menu.NONE, PcView.DELETE_IP_ID, 6,
-                    context.getResources().getString(R.string.pc_view_delete_ip));
-        }
-        menu.add(android.view.Menu.NONE, PcView.DELETE_ID, 7,
-                context.getResources().getString(R.string.pcview_menu_delete_pc));
-        menu.add(android.view.Menu.NONE, PcView.VIEW_DETAILS_ID, 8,
-                context.getResources().getString(R.string.pcview_menu_details));
-        
-        // Add Set Bitrate item
-        menu.add(android.view.Menu.NONE, SET_BITRATE_ID, 9,
-                context.getResources().getString(R.string.pcview_menu_set_bitrate));
-        
-        // 设置菜单项点击监听器
-        popupMenu.setOnMenuItemClickListener(new android.widget.PopupMenu.OnMenuItemClickListener() {
-            @Override
-            public boolean onMenuItemClick(android.view.MenuItem item) {
-                Log.d("PcRecyclerAdapter", "菜单项点击: " + item.getItemId());
-                if (item.getItemId() == SET_BITRATE_ID) {
-                    showBitrateDialog(computer);
-                    return true;
-                }
-                return pcView.onContextItemSelected(item, computer);
-            }
-        });
-        
-        // 显示菜单
-        popupMenu.show();
-        Log.d("PcRecyclerAdapter", "自定义上下文菜单已显示");
+        pcView.showComputerActions(computer);
+        Log.d("PcRecyclerAdapter", "设备操作面板已显示");
     }
 
     private void showBitrateDialog(final PcView.ComputerObject computer) {

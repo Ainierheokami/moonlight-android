@@ -14,6 +14,11 @@ import android.widget.Button
 import android.widget.ImageButton
 import android.widget.LinearLayout
 import android.content.Context
+import android.graphics.Color
+import android.text.SpannableString
+import android.text.Spanned
+import android.text.style.ForegroundColorSpan
+import android.text.style.RelativeSizeSpan
 import android.util.DisplayMetrics
 import kotlin.math.abs
 import kotlin.math.min
@@ -296,6 +301,7 @@ class FloatingVirtualKeyboardFragment : DialogFragment() {
      * 设置单个按钮
      */
     private fun setupButton(button: Button) {
+        decorateShiftLabel(button)
         button.setOnTouchListener { _, event ->
             when (event.actionMasked) {
                 MotionEvent.ACTION_DOWN -> {
@@ -326,6 +332,68 @@ class FloatingVirtualKeyboardFragment : DialogFragment() {
                 }
                 else -> false
             }
+        }
+    }
+
+    private fun decorateShiftLabel(button: Button) {
+        val vkCodeString = button.tag?.toString() ?: return
+        val vkCode = try {
+            vkCodeString.removePrefix("0x").toInt(16)
+        } catch (e: NumberFormatException) {
+            return
+        }
+
+        val normalLabel = button.text?.toString() ?: return
+        val shiftLabel = getShiftLabel(vkCode, normalLabel) ?: return
+        if (shiftLabel == normalLabel) {
+            return
+        }
+
+        button.setAllCaps(false)
+        button.includeFontPadding = false
+        button.maxLines = 2
+        button.setLineSpacing(0f, 0.88f)
+
+        val combined = "$shiftLabel\n${getNormalLabel(vkCode, normalLabel)}"
+        val spannable = SpannableString(combined)
+        spannable.setSpan(RelativeSizeSpan(0.72f), 0, shiftLabel.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+        spannable.setSpan(ForegroundColorSpan(Color.rgb(138, 224, 220)), 0, shiftLabel.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+        button.text = spannable
+    }
+
+    private fun getNormalLabel(vkCode: Int, label: String): String {
+        return if (vkCode in 0x41..0x5A && label.length == 1) {
+            label.lowercase()
+        } else {
+            label
+        }
+    }
+
+    private fun getShiftLabel(vkCode: Int, label: String): String? {
+        return when (vkCode) {
+            0xC0 -> "~"
+            0x31 -> "!"
+            0x32 -> "@"
+            0x33 -> "#"
+            0x34 -> "$"
+            0x35 -> "%"
+            0x36 -> "^"
+            0x37 -> "&"
+            0x38 -> "*"
+            0x39 -> "("
+            0x30 -> ")"
+            0xBD -> "_"
+            0xBB -> "+"
+            0xDB -> "{"
+            0xDD -> "}"
+            0xDC -> "|"
+            0xBA -> ":"
+            0xDE -> "\""
+            0xBC -> "<"
+            0xBE -> ">"
+            0xBF -> "?"
+            in 0x41..0x5A -> label.uppercase()
+            else -> null
         }
     }
 

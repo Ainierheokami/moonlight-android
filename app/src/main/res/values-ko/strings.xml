@@ -76,6 +76,11 @@
     <string name="applist_quit_confirmation">실행되고 있는 앱을 종료하길 원하시나요\? 모든 저장되지 않은 데이터가 삭제됩니다.</string>
     <!-- Add computer manually activity -->
     <string name="title_add_pc">수동으로 PC 추가</string>
+    <string name="title_stream_settings">스트리밍 설정</string>
+    <string name="subtitle_stream_settings">비디오, 입력, 오디오 및 호스트 설정</string>
+    <string name="subtitle_add_pc">호스트 이름 또는 주소로 연결</string>
+    <string name="add_pc_host_label">호스트 주소</string>
+    <string name="add_pc_host_helper">예: 192.168.1.25, gaming-pc.local 또는 203.0.113.10:47989</string>
     <string name="msg_add_pc">PC에 연결 중…</string>
     <string name="addpc_fail">지정된 컴퓨터에 연결하는 데에 실패했습니다. PC의 방화벽과 적절한 포트 설정을 확인하세요.</string>
     <string name="addpc_success">컴퓨터 추가 성공</string>

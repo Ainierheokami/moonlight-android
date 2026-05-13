@@ -90,6 +90,11 @@
     <string name="addpc_fail">Nem sikerült csatlakozni a megadott számítógéphez. Győződjön meg arról, hogy a szükséges portok engedélyezve vannak a tűzfalon keresztül.</string>
     <string name="msg_add_pc">Csatlakozás a számítógéphez…</string>
     <string name="title_add_pc">Számítógép hozzáadása manuálisan</string>
+    <string name="title_stream_settings">Streamelési beállítások</string>
+    <string name="subtitle_stream_settings">Videó-, bemeneti-, hang- és gépbeállítások</string>
+    <string name="subtitle_add_pc">Csatlakozás gépnévvel vagy címmel</string>
+    <string name="add_pc_host_label">Gép címe</string>
+    <string name="add_pc_host_helper">Példák: 192.168.1.25, gaming-pc.local vagy 203.0.113.10:47989</string>
     <string name="applist_details_id">Alkalmazásazonosító:</string>
     <string name="applist_quit_confirmation">Biztosan kilép a futó alkalmazásból\? Minden nem mentett adat elvész.</string>
     <string name="applist_quit_fail">Nem sikerült kilépni</string>

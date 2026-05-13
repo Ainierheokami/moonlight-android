@@ -66,6 +66,11 @@
     <string name="applist_quit_success">יציאה הושלמה בהצלחה</string>
     <string name="applist_details_id">מספר אפליקציה:</string>
     <string name="title_add_pc">הוספת מחשב ידנית</string>
+    <string name="title_stream_settings">הגדרות הזרמה</string>
+    <string name="subtitle_stream_settings">העדפות וידאו, קלט, שמע ומארח</string>
+    <string name="subtitle_add_pc">התחברות לפי שם מארח או כתובת</string>
+    <string name="add_pc_host_label">כתובת מארח</string>
+    <string name="add_pc_host_helper">דוגמאות: 192.168.1.25, gaming-pc.local או 203.0.113.10:47989</string>
     <string name="addpc_enter_ip">חייב להכניס כתובת IP</string>
     <string name="category_basic_settings">הגדרות בסיסיות</string>
     <string name="title_resolution_list">רזולוציית וידיאו</string>

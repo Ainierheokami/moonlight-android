@@ -135,6 +135,11 @@
     <string name="applist_refresh_msg">Uygulamalar yenileniyor…</string>
     <string name="applist_refresh_error_title">Hata</string>
     <string name="title_add_pc">Bilgisayarı manuel olarak Ekle</string>
+    <string name="title_stream_settings">Yayın ayarları</string>
+    <string name="subtitle_stream_settings">Video, giriş, ses ve ana makine tercihleri</string>
+    <string name="subtitle_add_pc">Ana makine adı veya adresiyle bağlan</string>
+    <string name="add_pc_host_label">Ana makine adresi</string>
+    <string name="add_pc_host_helper">Örnekler: 192.168.1.25, gaming-pc.local veya 203.0.113.10:47989</string>
     <string name="title_resolution_list">Video çözünürlüğü</string>
     <string name="summary_fps_list">Daha akıcı bir video akışı için artırın. Düşük uçlu cihazlarda daha iyi performans için azaltın.</string>
     <string name="resolution_prefix_native">Yerel</string>

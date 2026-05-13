@@ -69,6 +69,11 @@
     <string name="applist_quit_confirmation">¿Estás seguro que deseas quitar la aplicación en ejecución? Todo dato sin salvar se perderá.</string>
     <!-- Add computer manually activity -->
     <string name="title_add_pc">Añadir PC manualmente</string>
+    <string name="title_stream_settings">Configuración de streaming</string>
+    <string name="subtitle_stream_settings">Preferencias de vídeo, entrada, audio y host</string>
+    <string name="subtitle_add_pc">Conectar por nombre de host o dirección</string>
+    <string name="add_pc_host_label">Dirección del host</string>
+    <string name="add_pc_host_helper">Ejemplos: 192.168.1.25, gaming-pc.local o 203.0.113.10:47989</string>
     <string name="msg_add_pc">Conectando al PC…</string>
     <string name="addpc_fail">Imposible conectar al ordenador indicado. Asegurate que los puertos necesarios están permitidos a través del firewall.</string>
     <string name="addpc_success">Ordenador añadido satisfactoriamente</string>

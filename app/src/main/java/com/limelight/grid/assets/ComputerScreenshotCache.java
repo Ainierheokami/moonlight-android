@@ -5,6 +5,7 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.os.Build;
 import android.os.Handler;
+import android.os.HandlerThread;
 import android.os.Looper;
 import android.view.PixelCopy;
 import android.view.SurfaceView;
@@ -15,6 +16,8 @@ import com.limelight.utils.CacheHelper;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 public class ComputerScreenshotCache {
     private static final String CACHE_DIR = "computer-screenshots";
@@ -35,6 +38,13 @@ public class ComputerScreenshotCache {
             return null;
         }
         return CacheHelper.openPath(false, cacheDir, CACHE_DIR, computerUuid + ".jpg");
+    }
+
+    private File getWritableFile(String computerUuid) {
+        if (computerUuid == null || computerUuid.isEmpty()) {
+            return null;
+        }
+        return CacheHelper.openPath(true, cacheDir, CACHE_DIR, computerUuid + ".jpg");
     }
 
     public Bitmap load(String computerUuid) {
@@ -67,36 +77,106 @@ public class ComputerScreenshotCache {
             return;
         }
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
+            LimeLog.info("Skipping computer screenshot capture: PixelCopy requires Android 8.0+");
             return;
         }
         if (surfaceView.getWidth() <= 0 || surfaceView.getHeight() <= 0 ||
                 surfaceView.getHolder() == null || surfaceView.getHolder().getSurface() == null ||
                 !surfaceView.getHolder().getSurface().isValid()) {
+            LimeLog.info("Skipping computer screenshot capture: surface is not ready");
             return;
         }
 
         final Bitmap captureBitmap = Bitmap.createBitmap(surfaceView.getWidth(), surfaceView.getHeight(), Bitmap.Config.ARGB_8888);
-        PixelCopy.request(surfaceView, captureBitmap, new PixelCopy.OnPixelCopyFinishedListener() {
-            @Override
-            public void onPixelCopyFinished(int copyResult) {
-                if (copyResult != PixelCopy.SUCCESS) {
-                    captureBitmap.recycle();
-                    return;
-                }
-
-                new Thread(new Runnable() {
-                    @Override
-                    public void run() {
-                        saveScaledBitmap(computerUuid, captureBitmap);
+        try {
+            PixelCopy.request(surfaceView, captureBitmap, new PixelCopy.OnPixelCopyFinishedListener() {
+                @Override
+                public void onPixelCopyFinished(int copyResult) {
+                    if (copyResult != PixelCopy.SUCCESS) {
+                        LimeLog.warning("Unable to pre-cache computer screenshot. PixelCopy result: " + copyResult);
                         captureBitmap.recycle();
+                        return;
                     }
-                }, "ComputerScreenshotWriter").start();
+
+                    new Thread(new Runnable() {
+                        @Override
+                        public void run() {
+                            saveScaledBitmap(computerUuid, captureBitmap);
+                            captureBitmap.recycle();
+                            LimeLog.info("Pre-cached computer screenshot for " + computerUuid);
+                        }
+                    }, "ComputerScreenshotWriter").start();
+                }
+            }, new Handler(Looper.getMainLooper()));
+        } catch (IllegalArgumentException e) {
+            LimeLog.warning("Unable to request computer screenshot pre-cache: " + e.getMessage());
+            captureBitmap.recycle();
+        }
+    }
+
+    public boolean captureFromSurfaceBlocking(final String computerUuid, final SurfaceView surfaceView, long timeoutMs) {
+        if (computerUuid == null || computerUuid.isEmpty() || surfaceView == null) {
+            return false;
+        }
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
+            LimeLog.info("Skipping final computer screenshot capture: PixelCopy requires Android 8.0+");
+            return false;
+        }
+        if (surfaceView.getWidth() <= 0 || surfaceView.getHeight() <= 0 ||
+                surfaceView.getHolder() == null || surfaceView.getHolder().getSurface() == null ||
+                !surfaceView.getHolder().getSurface().isValid()) {
+            LimeLog.info("Skipping computer screenshot capture: surface is not ready");
+            return false;
+        }
+
+        final Bitmap captureBitmap = Bitmap.createBitmap(surfaceView.getWidth(), surfaceView.getHeight(), Bitmap.Config.ARGB_8888);
+        final CountDownLatch latch = new CountDownLatch(1);
+        final boolean[] success = new boolean[] { false };
+        HandlerThread handlerThread = new HandlerThread("ComputerScreenshotPixelCopy");
+        handlerThread.start();
+
+        try {
+            PixelCopy.request(surfaceView, captureBitmap, new PixelCopy.OnPixelCopyFinishedListener() {
+                @Override
+                public void onPixelCopyFinished(int copyResult) {
+                    success[0] = copyResult == PixelCopy.SUCCESS;
+                    if (!success[0]) {
+                        LimeLog.warning("Unable to capture computer screenshot. PixelCopy result: " + copyResult);
+                    }
+                    latch.countDown();
+                }
+            }, new Handler(handlerThread.getLooper()));
+
+            if (!latch.await(timeoutMs, TimeUnit.MILLISECONDS)) {
+                LimeLog.warning("Timed out capturing computer screenshot");
+                captureBitmap.recycle();
+                return false;
             }
-        }, new Handler(Looper.getMainLooper()));
+
+            if (!success[0]) {
+                captureBitmap.recycle();
+                return false;
+            }
+
+            saveScaledBitmap(computerUuid, captureBitmap);
+            captureBitmap.recycle();
+            LimeLog.info("Saved computer screenshot cache for " + computerUuid);
+            return true;
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            captureBitmap.recycle();
+            return false;
+        } catch (IllegalArgumentException e) {
+            LimeLog.warning("Unable to request computer screenshot capture: " + e.getMessage());
+            captureBitmap.recycle();
+            return false;
+        } finally {
+            handlerThread.quitSafely();
+        }
     }
 
     private void saveScaledBitmap(String computerUuid, Bitmap bitmap) {
-        File file = getFile(computerUuid);
+        File file = getWritableFile(computerUuid);
         if (file == null) {
             return;
         }

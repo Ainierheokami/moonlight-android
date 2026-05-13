@@ -69,6 +69,11 @@
     <string name="applist_quit_confirmation">Weet je het zeker dat je de app wilt sluiten? Alle niet-opgeslagen gegevens gaan verloren.</string>
     <!-- Add computer manually activity -->
     <string name="title_add_pc">Voeg handmatig PC toe</string>
+    <string name="title_stream_settings">Streaminginstellingen</string>
+    <string name="subtitle_stream_settings">Voorkeuren voor video, invoer, audio en host</string>
+    <string name="subtitle_add_pc">Verbinden met hostnaam of adres</string>
+    <string name="add_pc_host_label">Hostadres</string>
+    <string name="add_pc_host_helper">Voorbeelden: 192.168.1.25, gaming-pc.local of 203.0.113.10:47989</string>
     <string name="msg_add_pc">Verbinding maken met PC…</string>
     <string name="addpc_fail">Verbinden mislukt. Controleer of de benodigde poorten openstaan in de firewall.</string>
     <string name="addpc_success">Computer toevoegen succesvol</string>

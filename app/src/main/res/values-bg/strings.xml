@@ -119,6 +119,11 @@
     <string name="applist_details_id">ID на приложението:</string>
     <string name="applist_quit_confirmation">Сигурни ли сте, че искате да затворите работещото приложение\? Всички незапазени данни ще бъдат загубени.</string>
     <string name="title_add_pc">Ръчно добавяне на компютър</string>
+    <string name="title_stream_settings">Настройки за стрийминг</string>
+    <string name="subtitle_stream_settings">Видео, вход, звук и настройки на хоста</string>
+    <string name="subtitle_add_pc">Свързване чрез име на хост или адрес</string>
+    <string name="add_pc_host_label">Адрес на хоста</string>
+    <string name="add_pc_host_helper">Примери: 192.168.1.25, gaming-pc.local или 203.0.113.10:47989</string>
     <string name="addpc_fail">Неуспешна връзка с посочения компютър. Уверете се, че необходимите портове са разрешени през защитната стена.</string>
     <string name="category_basic_settings">Основни настройки</string>
     <string name="addpc_success">Успешно добавен компютър</string>

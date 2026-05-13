@@ -139,6 +139,8 @@ public class Game extends Activity implements SurfaceHolder.Callback,
     private static final int STYLUS_UP_DEAD_ZONE_RADIUS = 50;
 
     private static final int THREE_FINGER_TAP_THRESHOLD = 300;
+    private static final int SCREENSHOT_PRECACHE_INITIAL_DELAY_MS = 3000;
+    private static final int SCREENSHOT_PRECACHE_INTERVAL_MS = 5000;
 
     private ControllerHandler controllerHandler;
     private KeyboardTranslator keyboardTranslator;
@@ -173,6 +175,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
     private ViewGroup reconnectionOverlay;
     private Handler disconnectHandler = new Handler();
     private Runnable delayedSuspendRunnable;
+    private Runnable screenshotPrecacheRunnable;
     private boolean shouldReconnectOnForeground = false;
 
     private int modifierFlags = 0;
@@ -649,6 +652,15 @@ public class Game extends Activity implements SurfaceHolder.Callback,
             @Override
             public void run() {
                 suspendConnection();
+            }
+        };
+        screenshotPrecacheRunnable = new Runnable() {
+            @Override
+            public void run() {
+                if (connected && !isFinishing()) {
+                    cacheCurrentFrameForComputer();
+                    disconnectHandler.postDelayed(this, SCREENSHOT_PRECACHE_INTERVAL_MS);
+                }
             }
         };
 
@@ -1250,6 +1262,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        stopScreenshotPrecache();
 
         if (lowLatencyWifiLock != null) {
             lowLatencyWifiLock.release();
@@ -1343,6 +1356,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         Log.i("MoonReconnect", "[Game] onPause: isFinishing=" + isFinishing() + ", connected=" + connected + ", connecting=" + connecting);
 
         if (isFinishing()) {
+            captureLastFrameForComputer();
             Log.i("MoonReconnect", "[Game] onPause: stopping controller and input");
             if (controllerHandler != null) {
                 controllerHandler.stop();
@@ -2627,6 +2641,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         disconnectHandler.removeCallbacks(delayedSuspendRunnable);
         if (connecting || connected) {
             captureLastFrameForComputer();
+            stopScreenshotPrecache();
             connecting = connected = false;
             updatePipAutoEnter();
 
@@ -2651,18 +2666,44 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         }
     }
 
-    private void captureLastFrameForComputer() {
-        if (screenshotCaptureRequested) {
+    private void startScreenshotPrecache() {
+        if (screenshotPrecacheRunnable == null) {
             return;
         }
-        screenshotCaptureRequested = true;
 
+        disconnectHandler.removeCallbacks(screenshotPrecacheRunnable);
+        disconnectHandler.postDelayed(screenshotPrecacheRunnable, SCREENSHOT_PRECACHE_INITIAL_DELAY_MS);
+    }
+
+    private void stopScreenshotPrecache() {
+        if (screenshotPrecacheRunnable != null) {
+            disconnectHandler.removeCallbacks(screenshotPrecacheRunnable);
+        }
+    }
+
+    private void cacheCurrentFrameForComputer() {
         String uuid = getIntent().getStringExtra(EXTRA_PC_UUID);
         if (uuid == null || uuid.isEmpty() || streamView == null) {
             return;
         }
 
         new ComputerScreenshotCache(this).captureFromSurface(uuid, streamView);
+    }
+
+    private void captureLastFrameForComputer() {
+        if (screenshotCaptureRequested) {
+            return;
+        }
+
+        String uuid = getIntent().getStringExtra(EXTRA_PC_UUID);
+        if (uuid == null || uuid.isEmpty() || streamView == null) {
+            LimeLog.warning("Skipping final computer screenshot capture: missing UUID or stream view");
+            return;
+        }
+
+        if (new ComputerScreenshotCache(this).captureFromSurfaceBlocking(uuid, streamView, 500)) {
+            screenshotCaptureRequested = true;
+        }
     }
 
     @Override
@@ -2879,6 +2920,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
                 connected = true;
                 connecting = false;
                 updatePipAutoEnter();
+                startScreenshotPrecache();
 
                 // Hide the mouse cursor now after a short delay.
                 // Doing it before dismissing the spinner seems to be undone

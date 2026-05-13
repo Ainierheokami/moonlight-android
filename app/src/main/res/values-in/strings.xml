@@ -140,6 +140,11 @@
     <string name="applist_refresh_msg">Menyegarkan aplikasi…</string>
     <string name="applist_quit_fail">Gagal untuk keluar</string>
     <string name="title_add_pc">Tambahkan PC Secara Manual</string>
+    <string name="title_stream_settings">Pengaturan Streaming</string>
+    <string name="subtitle_stream_settings">Preferensi video, input, audio, dan host</string>
+    <string name="subtitle_add_pc">Hubungkan dengan nama host atau alamat</string>
+    <string name="add_pc_host_label">Alamat host</string>
+    <string name="add_pc_host_helper">Contoh: 192.168.1.25, gaming-pc.local, atau 203.0.113.10:47989</string>
     <string name="msg_add_pc">Menghubungkan ke PC…</string>
     <string name="addpc_fail">Tidak dapat terhubung ke komputer yang ditentukan. Pastikan port yang diperlukan diizinkan melalui firewall.</string>
     <string name="addpc_success">Berhasil menambahkan komputer</string>

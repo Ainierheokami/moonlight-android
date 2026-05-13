@@ -75,6 +75,11 @@
     <string name="addpc_success">Datamaskin tillagt</string>
     <string name="msg_add_pc">Kobler til PC-en …</string>
     <string name="title_add_pc">Legg til PC manuelt</string>
+    <string name="title_stream_settings">Strømmeinnstillinger</string>
+    <string name="subtitle_stream_settings">Innstillinger for video, inndata, lyd og vert</string>
+    <string name="subtitle_add_pc">Koble til med vertsnavn eller adresse</string>
+    <string name="add_pc_host_label">Vertsadresse</string>
+    <string name="add_pc_host_helper">Eksempler: 192.168.1.25, gaming-pc.local eller 203.0.113.10:47989</string>
     <string name="applist_details_id">Program-ID:</string>
     <string name="applist_quit_fail">Klarte ikke å avslutte</string>
     <string name="applist_quit_success">Avsluttet</string>
