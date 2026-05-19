@@ -158,10 +158,9 @@ public class PairingService extends Service {
             Log.i(TAG, "后台配对任务开始: " + computer.name);
             NvHTTP httpConn = null;
             int retryCount = 0;
-            
             while (retryCount <= MAX_RETRY_COUNT && !cancelled) {
                 try {
-                    Log.i(TAG, "第 " + (retryCount + 1) + " 次配对尝试");
+                    Log.i(TAG, "开始配对尝试: " + (retryCount + 1));
                     // 创建AddressTuple对象
                     ComputerDetails.AddressTuple addressTuple = new ComputerDetails.AddressTuple(address, port);
                     httpConn = new NvHTTP(addressTuple, computer.httpsPort,
@@ -171,51 +170,27 @@ public class PairingService extends Service {
                     // 检查是否已经配对
                     if (httpConn.getPairState() == PairState.PAIRED) {
                         Log.i(TAG, "PC已经配对，跳过配对过程");
+                        computer.pairState = PairState.PAIRED;
                         if (callback != null) {
                             callback.onPairingSuccess(computer);
                         }
                         break;
                     }
                     
-                    // 设置配对超时
-                    long startTime = System.currentTimeMillis();
                     PairingManager pm = httpConn.getPairingManager();
-                    PairState pairState = null;
                     
-                    Log.i(TAG, "开始执行配对过程");
-                    // 在超时时间内执行配对
-                    while (System.currentTimeMillis() - startTime < PAIRING_TIMEOUT_MS && !cancelled) {
-                        try {
-                            pairState = pm.pair(httpConn.getServerInfo(true), pin);
-                            Log.i(TAG, "配对API调用完成，状态: " + pairState);
-                            break; // 配对完成，退出循环
-                        } catch (IOException e) {
-                            // 网络错误，可能是临时问题，等待后重试
-                            Log.w(TAG, "配对网络错误: " + e.getMessage());
-                            if (System.currentTimeMillis() - startTime < PAIRING_TIMEOUT_MS - 5000) {
-                                // 还有时间，等待1秒后重试
-                                Log.i(TAG, "网络错误重试，等待1秒");
-                                Thread.sleep(1000);
-                                continue;
-                            } else {
-                                throw e; // 超时了，抛出异常
-                            }
-                        }
+                    if (retryCount > 0) {
+                        clearHostPairingState(httpConn);
                     }
+
+                    Log.i(TAG, "开始执行配对过程");
+                    PairState pairState = pm.pair(httpConn.getServerInfo(true), pin);
+                    Log.i(TAG, "配对API调用完成，状态: " + pairState);
                     
                     if (cancelled) {
                         Log.i(TAG, "配对任务被取消");
                         if (callback != null) {
                             callback.onPairingCancelled(computer);
-                        }
-                        break;
-                    }
-                    
-                    // 检查超时
-                    if (System.currentTimeMillis() - startTime >= PAIRING_TIMEOUT_MS) {
-                        Log.e(TAG, "配对超时，耗时: " + (System.currentTimeMillis() - startTime) + "ms");
-                        if (callback != null) {
-                            callback.onPairingFailed(computer, "配对超时");
                         }
                         break;
                     }
@@ -236,19 +211,11 @@ public class PairingService extends Service {
                             break;
                         }
                         else {
-                            // 如果是第一次失败，重试
-                            if (retryCount < MAX_RETRY_COUNT) {
-                                retryCount++;
-                                Log.i(TAG, "配对失败，第 " + retryCount + " 次重试");
-                                Thread.sleep(2000); // 等待2秒后重试
-                                continue;
-                            } else {
-                                Log.e(TAG, "配对失败，已达到最大重试次数");
-                                if (callback != null) {
-                                    callback.onPairingFailed(computer, "配对失败");
-                                }
-                                break;
+                            Log.e(TAG, "配对失败");
+                            if (callback != null) {
+                                callback.onPairingFailed(computer, "配对失败");
                             }
+                            break;
                         }
                     }
                     else if (pairState == PairState.ALREADY_IN_PROGRESS) {
@@ -266,6 +233,7 @@ public class PairingService extends Service {
                                 new com.limelight.computers.ComputerDatabaseManager(PairingService.this);
                             // 更新计算机的配对证书
                             computer.serverCert = pm.getPairedCert();
+                            computer.pairState = PairState.PAIRED;
                             dbManager.updateComputer(computer);
                             Log.i(TAG, "配对证书已保存到数据库");
                         } catch (Exception e) {
@@ -299,30 +267,15 @@ public class PairingService extends Service {
                     }
                     break;
                 } catch (IOException e) {
-                    // 网络错误，重试
-                    if (retryCount < MAX_RETRY_COUNT) {
+                    if (isRecoverablePairingDisconnect(e) && retryCount < MAX_RETRY_COUNT) {
+                        Log.w(TAG, "配对连接被主机断开，清理配对状态后重试: " + e.getMessage());
+                        clearHostPairingState(httpConn);
                         retryCount++;
-                        Log.i(TAG, "网络错误，第 " + retryCount + " 次重试: " + e.getMessage());
-                        try {
-                            Thread.sleep(2000); // 等待2秒后重试
-                        } catch (InterruptedException ie) {
-                            Thread.currentThread().interrupt();
-                            if (callback != null) {
-                                callback.onPairingFailed(computer, "配对被中断");
-                            }
-                            break;
-                        }
+                        sleepBeforeRetry();
                         continue;
-                    } else {
-                        if (callback != null) {
-                            callback.onPairingFailed(computer, "网络错误: " + e.getMessage());
-                        }
-                        break;
                     }
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
                     if (callback != null) {
-                        callback.onPairingFailed(computer, "配对被中断");
+                        callback.onPairingFailed(computer, "网络错误: " + e.getMessage());
                     }
                     break;
                 } catch (Exception e) {
@@ -341,6 +294,41 @@ public class PairingService extends Service {
             stopForeground(true);
             stopSelf();
             Log.i(TAG, "后台配对任务结束");
+        }
+
+        private boolean isRecoverablePairingDisconnect(IOException e) {
+            String message = e.getMessage();
+            if (message == null) {
+                return false;
+            }
+
+            message = message.toLowerCase(java.util.Locale.US);
+            return message.contains("unexpected end of stream") ||
+                    message.contains("stream was reset") ||
+                    message.contains("socket closed") ||
+                    message.contains("connection reset") ||
+                    message.contains("end of stream");
+        }
+
+        private void clearHostPairingState(NvHTTP httpConn) {
+            if (httpConn == null) {
+                return;
+            }
+
+            try {
+                httpConn.unpair();
+            } catch (IOException e) {
+                Log.w(TAG, "清理主机配对状态失败: " + e.getMessage());
+            }
+        }
+
+        private void sleepBeforeRetry() {
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                cancelled = true;
+            }
         }
     }
     

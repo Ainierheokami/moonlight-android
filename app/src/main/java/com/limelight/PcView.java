@@ -6,8 +6,10 @@ import java.io.IOException;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import android.util.Log;
 import com.limelight.binding.PlatformBinding;
@@ -96,6 +98,7 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
     private boolean debugSampleComputersAdded;
     private PreferenceConfiguration prefs;
     private Map<String, PairingTask> activePairingTasks = new HashMap<>();
+    private Set<String> activeServicePairingTasks = new HashSet<>();
     private static final String PAIRING_TAG = "Pairing";
     private PairingService pairingService;
     private boolean pairingServiceBound = false;
@@ -435,6 +438,7 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
             task.cancelPairing();
         }
         activePairingTasks.clear();
+        activeServicePairingTasks.clear();
     }
 
     @Override
@@ -582,7 +586,7 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
         }
 
         menu.add(Menu.NONE, TEST_NETWORK_ID, 5, getResources().getString(R.string.pcview_menu_test_network));
-        if (computer.address != null && computer.details.manualAddresses.contains(computer.address)) {
+        if (computer.address != null) {
             menu.add(Menu.NONE, DELETE_IP_ID, 6, R.string.pc_view_delete_ip);
         }
         menu.add(Menu.NONE, DELETE_ID, 7, getResources().getString(R.string.pcview_menu_delete_pc));
@@ -625,9 +629,14 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
             pcRecyclerAdapter.startPairing(computer, pinStr);
         }
 
+        // Keep discovery polling from replacing this row while the stateful pairing
+        // handshake is in progress.
+        stopComputerUpdates(true);
+
         // 使用后台服务执行配对，确保在应用切换到后台时也能继续
         if (pairingServiceBound && pairingService != null) {
             String taskKey = getComputerKey(computer);
+            activeServicePairingTasks.add(taskKey);
             Log.i(PAIRING_TAG, "启动后台配对服务: " + taskKey);
             
             // 创建配对回调
@@ -639,6 +648,14 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
                     runOnUiThread(new Runnable() {
                         @Override
                         public void run() {
+                            String taskKey = getComputerKey(finalComputer);
+                            activeServicePairingTasks.remove(taskKey);
+
+                            computerDetails.pairState = PairState.PAIRED;
+                            finalComputer.details.update(computerDetails);
+                            managerBinder.updateComputer(computerDetails);
+                            managerBinder.invalidateStateForComputer(computerDetails.uuid);
+
                             pcGridAdapter.updatePairingStatus(finalComputer, PcGridAdapter.PairingStatus.SUCCESS);
                             if (pcRecyclerAdapter != null) {
                                 pcRecyclerAdapter.updatePairingStatus(finalComputer, PcRecyclerAdapter.PairingStatus.SUCCESS);
@@ -648,6 +665,9 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
                                 @Override
                                 public void run() {
                                     pcGridAdapter.clearPairingStatus(finalComputer);
+                                    if (pcRecyclerAdapter != null) {
+                                        pcRecyclerAdapter.clearPairingStatus(finalComputer);
+                                    }
                                     doAppList(finalComputer, true, false);
                                 }
                             }, 1000);
@@ -661,6 +681,9 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
                     runOnUiThread(new Runnable() {
                         @Override
                         public void run() {
+                            String taskKey = getComputerKey(finalComputer);
+                            activeServicePairingTasks.remove(taskKey);
+
                             pcGridAdapter.updatePairingStatus(finalComputer, PcGridAdapter.PairingStatus.FAILED);
                             if (pcRecyclerAdapter != null) {
                                 pcRecyclerAdapter.updatePairingStatus(finalComputer, PcRecyclerAdapter.PairingStatus.FAILED);
@@ -670,6 +693,9 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
                                 @Override
                                 public void run() {
                                     pcGridAdapter.clearPairingStatus(finalComputer);
+                                    if (pcRecyclerAdapter != null) {
+                                        pcRecyclerAdapter.clearPairingStatus(finalComputer);
+                                    }
                                     Toast.makeText(PcView.this, errorMessage, Toast.LENGTH_LONG).show();
                                     // 重新开始轮询
                                     startComputerUpdates();
@@ -685,6 +711,9 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
                     runOnUiThread(new Runnable() {
                         @Override
                         public void run() {
+                            String taskKey = getComputerKey(finalComputer);
+                            activeServicePairingTasks.remove(taskKey);
+
                             pcGridAdapter.updatePairingStatus(finalComputer, PcGridAdapter.PairingStatus.CANCELLED);
                             if (pcRecyclerAdapter != null) {
                                 pcRecyclerAdapter.updatePairingStatus(finalComputer, PcRecyclerAdapter.PairingStatus.CANCELLED);
@@ -732,6 +761,9 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
                 Log.i(PAIRING_TAG, "取消配对任务: " + taskKey);
                 pairingTask.cancelPairing();
                 activePairingTasks.remove(taskKey);
+            } else if (activeServicePairingTasks.remove(taskKey) && pairingServiceBound && pairingService != null) {
+                Log.i(PAIRING_TAG, "取消后台配对服务任务: " + taskKey);
+                pairingService.cancelPairing();
             } else {
                 Log.w(PAIRING_TAG, "未找到对应的配对任务: " + taskKey);
             }
@@ -1201,20 +1233,46 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
            Toast.makeText(PcView.this, getResources().getString(R.string.error_manager_not_running), Toast.LENGTH_LONG).show();
            return;
        }
-       if (computer == null || computer.address == null ||
-               !computer.details.manualAddresses.contains(computer.address)) {
+       if (computer == null || computer.address == null) {
            return;
        }
-       // Create a new set to avoid modifying the one we're iterating over
-       java.util.HashSet<ComputerDetails.AddressTuple> newManualAddresses = new java.util.HashSet<>(computer.details.manualAddresses);
-       newManualAddresses.remove(computer.address);
-       computer.details.manualAddresses = newManualAddresses;
+       if (!removeSelectedAddress(computer.details, computer.address)) {
+           return;
+       }
 
        // Save the updated computer details
        managerBinder.updateComputer(computer.details);
        Toast.makeText(PcView.this, getResources().getString(R.string.delete_ip_success), Toast.LENGTH_SHORT).show();
 
        // The UI will be refreshed by the callback
+   }
+
+   private boolean removeSelectedAddress(ComputerDetails details, ComputerDetails.AddressTuple address) {
+       boolean removed = false;
+
+       // Create a new set to avoid modifying the one we're iterating over.
+       HashSet<ComputerDetails.AddressTuple> newManualAddresses = new HashSet<>(details.manualAddresses);
+       removed |= newManualAddresses.remove(address);
+       details.manualAddresses = newManualAddresses;
+
+       if (address.equals(details.localAddress)) {
+           details.localAddress = null;
+           removed = true;
+       }
+       if (address.equals(details.remoteAddress)) {
+           details.remoteAddress = null;
+           removed = true;
+       }
+       if (address.equals(details.ipv6Address)) {
+           details.ipv6Address = null;
+           removed = true;
+       }
+       if (address.equals(details.activeAddress)) {
+           details.activeAddress = null;
+       }
+
+       details.reachableAddresses.remove(address);
+       return removed;
    }
    
    // 处理自定义上下文菜单项点击
@@ -1398,7 +1456,7 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
             });
         }
 
-        if (computer.address != null && computer.details.manualAddresses.contains(computer.address)) {
+        if (computer.address != null) {
             addComputerAction(actionList, actionDialog, R.string.pc_view_delete_ip, true, new Runnable() {
                 @Override
                 public void run() {
@@ -1556,24 +1614,29 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
                 .remove(details.uuid)
                 .apply();
 
-        for (int i = 0; i < pcGridAdapter.getCount(); i++) {
+        shortcutHelper.disableComputerShortcut(details,
+                getResources().getString(R.string.scut_deleted_pc));
+
+        for (int i = pcGridAdapter.getCount() - 1; i >= 0; i--) {
             ComputerObject computer = (ComputerObject) pcGridAdapter.getItem(i);
 
-            if (details.equals(computer.details)) {
-                // Disable or delete shortcuts referencing this PC
-                shortcutHelper.disableComputerShortcut(details,
-                        getResources().getString(R.string.scut_deleted_pc));
-
+            if (details.uuid.equals(computer.details.uuid)) {
                 pcGridAdapter.removeComputer(computer);
-                pcGridAdapter.notifyDataSetChanged();
-
-                if (pcGridAdapter.getCount() == 0) {
-                    // Show the "Discovery in progress" view
-                    noPcFoundLayout.setVisibility(View.VISIBLE);
-                }
-
-                break;
             }
+        }
+
+        pcGridAdapter.notifyDataSetChanged();
+        if (pcRecyclerAdapter != null) {
+            List<ComputerObject> currentList = new ArrayList<>();
+            for (int i = 0; i < pcGridAdapter.getCount(); i++) {
+                currentList.add((ComputerObject) pcGridAdapter.getItem(i));
+            }
+            pcRecyclerAdapter.setComputers(currentList);
+        }
+
+        if (pcGridAdapter.getCount() == 0) {
+            // Show the "Discovery in progress" view
+            noPcFoundLayout.setVisibility(View.VISIBLE);
         }
     }
     

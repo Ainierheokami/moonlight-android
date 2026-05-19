@@ -16,7 +16,7 @@
     <string name="pcview_menu_pair_pc"> 和电脑配对 </string>
     <string name="pcview_menu_unpair_pc"> 取消配对 </string>
     <string name="pcview_menu_send_wol"> 发送 Wake-On-LAN 请求 </string>
-    <string name="pcview_menu_delete_pc"> 删除电脑 </string>
+    <string name="pcview_menu_delete_pc">删除设备（包含全部地址）</string>
     <string name="pcview_menu_set_bitrate"> 设置独立码率 </string>
     <string name="pcview_menu_details"> 查看详情 </string>
     <!-- Pair messages -->
@@ -261,11 +261,11 @@
     <string name="resolution_720p">720p</string>
     <string name="pacing_balanced">平衡</string>
     <string name="pacing_smoothness">优先视频流畅度（可能会显著增大延迟）</string>
-    <string name="pc_view_delete_ip">删除 IP</string>
+    <string name="pc_view_delete_ip">删除连接地址（仅当前地址）</string>
     <string name="pc_actions_title">设备操作</string>
     <string name="pc_actions_address">地址：%1$s</string>
-    <string name="delete_ip_msg">要从该设备中移除这个手动保存的地址吗？</string>
-    <string name="delete_ip_success">已删除 IP 地址</string>
+    <string name="delete_ip_msg">仅从该设备中移除当前选择的地址吗？</string>
+    <string name="delete_ip_success">已删除连接地址</string>
     <string name="debug_write_test_cover">写入测试封面</string>
     <string name="debug_test_cover_written">已写入测试封面（%1$d 字节）</string>
     <string name="summary_setup_guide">查看有关如何设置游戏电脑以进行流传输的说明</string>

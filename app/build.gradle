@@ -1,6 +1,25 @@
 apply plugin: 'com.android.application'
 apply plugin: 'org.jetbrains.kotlin.android'
 
+def shouldIncrementBuildSeq = gradle.startParameter.taskNames.any { taskName ->
+    def name = taskName.toLowerCase()
+    name.contains("assemble") || name.contains("bundle")
+}
+def buildSeqFile = rootProject.file("build-seq.properties")
+def buildSeqProps = new Properties()
+if (buildSeqFile.exists()) {
+    buildSeqFile.withInputStream { buildSeqProps.load(it) }
+}
+def buildDate = new Date().format("yyyyMMdd")
+def previousBuildDate = buildSeqProps.getProperty("buildDate")
+def currentBuildSeq = previousBuildDate == buildDate ? (buildSeqProps.getProperty("buildSeq") ?: "0") as int : 0
+def buildSeq = shouldIncrementBuildSeq ? currentBuildSeq + 1 : currentBuildSeq
+if (shouldIncrementBuildSeq) {
+    buildSeqProps.setProperty("buildDate", buildDate)
+    buildSeqProps.setProperty("buildSeq", buildSeq.toString())
+    buildSeqFile.withOutputStream { buildSeqProps.store(it, "Auto-incremented APK build sequence") }
+}
+
 android {
     ndkVersion "27.0.12077973"
 
@@ -19,7 +38,7 @@ android {
         targetSdk 34
 
         def baseVersion = "12.1"
-        def customTag = "-heokami-" + new Date().format("yyyyMMdd")
+        def customTag = "-heokami-" + buildDate + "(${buildSeq})"
         versionName baseVersion + customTag
         versionCode = 315
 

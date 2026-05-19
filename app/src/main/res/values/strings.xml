@@ -19,7 +19,7 @@
     <string name="pcview_menu_pair_pc">Pair with PC</string>
     <string name="pcview_menu_unpair_pc">Unpair</string>
     <string name="pcview_menu_send_wol">Send Wake-On-LAN request</string>
-    <string name="pcview_menu_delete_pc">Delete PC</string>
+    <string name="pcview_menu_delete_pc">Delete device (all addresses)</string>
     <string name="pcview_menu_test_network">Test Network Connection</string>
     <string name="pcview_menu_set_bitrate">Set specific bitrate</string>
     <string name="pcview_menu_details">View Details</string>
@@ -262,11 +262,11 @@
     <string name="summary_checkbox_disable_warnings">Disable on-screen connection warning messages while streaming</string>
     <string name="title_disable_frame_drop">Never drop frames</string>
     <string name="summary_disable_frame_drop">May reduce micro-stuttering on some devices, but can increase latency</string>
-    <string name="pc_view_delete_ip">Delete IP</string>
+    <string name="pc_view_delete_ip">Delete connection address (selected only)</string>
     <string name="pc_actions_title">Device actions</string>
     <string name="pc_actions_address">Address: %1$s</string>
-    <string name="delete_ip_msg">Remove this saved manual address from the device?</string>
-    <string name="delete_ip_success">IP address removed</string>
+    <string name="delete_ip_msg">Remove only the selected address from this device?</string>
+    <string name="delete_ip_success">Connection address removed</string>
     <string name="debug_write_test_cover">Write test cover</string>
     <string name="debug_test_cover_written">Test cover written (%1$d bytes)</string>
     <string name="title_video_format">Change codec settings</string>

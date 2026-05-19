@@ -76,7 +76,33 @@ jobs:
           mkdir -p release-apks
           cp app/build/outputs/apk/nonRoot/debug/*.apk release-apks/
           cp app/build/outputs/apk/nonRoot/release/*.apk release-apks/
+          release_apk="$(basename "$(ls release-apks/*-release.apk | head -n 1)")"
+          version_name="${release_apk#Moonlight-}"
+          version_name="${version_name%-release.apk}"
+          echo "VERSION_TAG=v${version_name}" >> "$GITHUB_ENV"
+          echo "VERSION_TITLE=Moonlight ${version_name}" >> "$GITHUB_ENV"
           ls -lh release-apks
+
+      - name: Publish versioned GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -f "${VERSION_TAG}" "${GITHUB_SHA}"
+          git push origin "${VERSION_TAG}" --force
+
+          if gh release view "${VERSION_TAG}" >/dev/null 2>&1; then
+            gh release edit "${VERSION_TAG}" \
+              --title "${VERSION_TITLE}" \
+              --notes "Automated APK build from commit ${GITHUB_SHA}."
+          else
+            gh release create "${VERSION_TAG}" \
+              --title "${VERSION_TITLE}" \
+              --notes "Automated APK build from commit ${GITHUB_SHA}."
+          fi
+
+          gh release upload "${VERSION_TAG}" release-apks/*.apk --clobber
 
       - name: Publish latest GitHub Release
         env:
@@ -96,5 +122,9 @@ jobs:
               --title "Latest Android APK" \
               --notes "Automated APK build from commit ${GITHUB_SHA}."
           fi
+
+          gh release view latest --json assets --jq '.assets[].name | select(endswith(".apk"))' | while read -r asset; do
+            gh release delete-asset latest "$asset" --yes
+          done
 
           gh release upload latest release-apks/*.apk --clobber
