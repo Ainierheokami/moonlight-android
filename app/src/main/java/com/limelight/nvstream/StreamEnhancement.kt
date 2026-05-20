@@ -19,6 +19,11 @@ object StreamEnhancement {
             return baseQuery
         }
 
+        // 如果用户根本没有开启任何 Sunshine 扩展参数，保持 100% 原始 baseQuery，零侵入保障常规串流绝对安全与兼容性
+        if (!hasActiveSunshineExtension(context)) {
+            return baseQuery
+        }
+
         val query = StringBuilder(baseQuery)
         if (config.resolutionScale != 100) {
             query.append("&resolutionScale=").append(config.resolutionScale)
