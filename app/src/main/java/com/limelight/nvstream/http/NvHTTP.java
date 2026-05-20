@@ -900,7 +900,7 @@ public class NvHTTP {
     public boolean rotateDisplay(int angle, String displayName) throws IOException, XmlPullParserException {
         String query = "angle=" + angle;
         if (displayName != null && !displayName.trim().isEmpty()) {
-            query += "&display_name=" + java.net.URLEncoder.encode(displayName.trim(), "UTF-8");
+            query += "&display_name=" + displayName.trim();
         }
         try {
             String jsonStr = openHttpConnectionToString(httpClientLongConnectTimeout, getHttpsUrl(true),

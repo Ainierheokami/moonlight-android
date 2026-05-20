@@ -2709,20 +2709,20 @@ public class Game extends Activity implements SurfaceHolder.Callback,
                     targetDisplay = displayName;
                 }
 
-                // 1. 读取当前的全局配置（以保持与全局 VDD 设置逻辑一致）
-                android.content.SharedPreferences prefs = android.preference.PreferenceManager.getDefaultSharedPreferences(Game.this);
-                boolean globalUseVdd = prefs.getBoolean("checkbox_stream_enhance_use_vdd", false);
-
-                // 2. 赋值给内存覆盖变量，绝对不读写改动全局 SharedPreferences，实现物理隔离
+                // 1. 赋值给内存覆盖变量，绝对不读写改动全局 SharedPreferences，实现物理隔离
                 tempOverrideDisplayName = targetDisplay;
                 
                 // 智能判定 useVdd 设定：只有当目标显示器的原始全名中包含 "Zako" 或者是 "Virtual"（说明是虚拟屏幕）时，才可能/需要启用 VDD
                 // 对于其他任何物理屏幕（无论物理主屏 DISPLAY1 还是物理副屏 DISPLAY2 等其他物理副屏），均强制禁用 VDD，防止被虚拟屏幕抢占锁死
-                boolean isVirtualDisplay = displayName.contains("Zako") || displayName.contains("Virtual");
+                String displayNameLower = displayName.toLowerCase(java.util.Locale.ROOT);
+                boolean isVirtualDisplay = displayNameLower.contains("zako") || displayNameLower.contains("virtual");
                 tempOverrideUseVdd = isVirtualDisplay;
                 
                 // 强行把 force-resume 设为 false，确保重连拉起时执行 /launch 进行换屏，而非单纯 /resume
                 tempOverrideForceResume = false;
+
+                Log.i("MoonReconnect", "[Game] recreateConnectionWithDisplay: targetDisplay=" + targetDisplay
+                        + ", selectedDisplay=" + displayName + ", useVdd=" + isVirtualDisplay);
 
                 // 3. 标记正在切换显示器中，隔离旧连接销毁带来的 JNI 退出回调
                 isSwitchingDisplay = true;
@@ -3904,6 +3904,9 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         }
         if (tempOverrideUseVdd != null) {
             prefConfig.streamEnhanceUseVdd = tempOverrideUseVdd;
+            if (!tempOverrideUseVdd) {
+                prefConfig.streamEnhanceVddMode = -1;
+            }
             Log.i("MoonReconnect", "[Game] startConnection Override streamEnhanceUseVdd to: " + tempOverrideUseVdd);
         }
         if (tempOverrideForceResume != null) {
@@ -4009,6 +4012,14 @@ public class Game extends Activity implements SurfaceHolder.Callback,
             .setColorRange(decoderRenderer.getPreferredColorRange())
             .setPersistGamepadsAfterDisconnect(!prefConfig.multiController)
             .build();
+
+        Log.i("MoonReconnect", "[Game] startConnection streamEnhance: displayName="
+                + prefConfig.streamEnhanceDisplayName
+                + ", useVdd=" + prefConfig.streamEnhanceUseVdd
+                + ", screenMode=" + prefConfig.streamEnhanceScreenMode
+                + ", vddMode=" + prefConfig.streamEnhanceVddMode
+                + ", forceResume=" + prefConfig.forceResumeCurrentSession
+                + ", forceRelaunch=" + isSwitchingDisplayForcedRelaunch);
 
         // new NvConnection
         X509Certificate serverCert = null;

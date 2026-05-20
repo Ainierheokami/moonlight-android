@@ -1,7 +1,5 @@
 package com.limelight.nvstream
 
-import java.net.URLEncoder
-
 /**
  * Sunshine extension parameters adapted from the protocol usage in
  * qiin2333/moonlight-vplus:
@@ -41,7 +39,7 @@ object StreamEnhancement {
             query.append("&customVddScreenMode=").append(config.customVddScreenMode)
         }
         context.displayName?.takeIf { it.isNotBlank() }?.let {
-            query.append("&display_name=").append(URLEncoder.encode(it, "UTF-8"))
+            query.append("&display_name=").append(it)
         }
         return query.toString()
     }
