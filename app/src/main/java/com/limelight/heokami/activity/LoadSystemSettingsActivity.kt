@@ -35,7 +35,8 @@ class LoadSystemSettingsActivity : AppCompatActivity() {
 
         filePicker = FilePickerUtils(this)
         filePicker.pickFile(
-            mimeType = "text/*",
+            mimeType = "application/json",
+            extraMimeTypes = arrayOf("application/json", "text/json", "text/plain"),
             callback = object : FilePickerUtils.FilePickerCallback {
                 override fun onCallBack(fileName: String, content: String, uri: Uri) {
                     try {

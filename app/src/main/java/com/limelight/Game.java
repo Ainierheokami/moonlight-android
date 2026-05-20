@@ -165,6 +165,8 @@ public class Game extends Activity implements SurfaceHolder.Callback,
 
     // 新增：标记是否需要恢复流
     private boolean tempDisableForceResume = false;
+    private static final String PREF_LAST_STREAM_DISPLAY_NAME = "last_stream_display_name";
+    private static final String PREF_LAST_STREAM_DISPLAY_USE_VDD = "last_stream_display_use_vdd";
     // 新增：内存覆盖变量，隔离竞态条件，保证实时切换显示器时不污染 SharedPreferences 且 100% 成功切换
     private String tempOverrideDisplayName = null;
     private Boolean tempOverrideUseVdd = null;
@@ -594,6 +596,8 @@ public class Game extends Activity implements SurfaceHolder.Callback,
             prefConfig.bitrate = deviceBitrate;
             LimeLog.info("Using device-specific bitrate: " + deviceBitrate);
         }
+
+        applyLastStreamDisplayOverride();
 
         StreamConfiguration config = new StreamConfiguration.Builder()
                 .setResolution(prefConfig.width, prefConfig.height)
@@ -2697,6 +2701,28 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         }
     }
 
+    private void applyLastStreamDisplayOverride() {
+        if (prefConfig == null) {
+            return;
+        }
+
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
+        String lastDisplayName = prefs.getString(PREF_LAST_STREAM_DISPLAY_NAME, "");
+        if (lastDisplayName == null || lastDisplayName.trim().isEmpty()) {
+            return;
+        }
+
+        boolean lastDisplayUseVdd = prefs.getBoolean(PREF_LAST_STREAM_DISPLAY_USE_VDD, false);
+        prefConfig.streamEnhanceDisplayName = lastDisplayName.trim();
+        prefConfig.streamEnhanceUseVdd = lastDisplayUseVdd;
+        if (!lastDisplayUseVdd) {
+            prefConfig.streamEnhanceVddMode = -1;
+        }
+        prefConfig.forceResumeCurrentSession = false;
+        LimeLog.info("Using last stream display selection: " + prefConfig.streamEnhanceDisplayName
+                + ", useVdd=" + prefConfig.streamEnhanceUseVdd);
+    }
+
     public void recreateConnectionWithDisplay(final String displayName) {
         runOnUiThread(new Runnable() {
             @Override
@@ -2717,7 +2743,12 @@ public class Game extends Activity implements SurfaceHolder.Callback,
                 String displayNameLower = displayName.toLowerCase(java.util.Locale.ROOT);
                 boolean isVirtualDisplay = displayNameLower.contains("zako") || displayNameLower.contains("virtual");
                 tempOverrideUseVdd = isVirtualDisplay;
-                
+
+                PreferenceManager.getDefaultSharedPreferences(Game.this).edit()
+                        .putString(PREF_LAST_STREAM_DISPLAY_NAME, targetDisplay)
+                        .putBoolean(PREF_LAST_STREAM_DISPLAY_USE_VDD, isVirtualDisplay)
+                        .apply();
+
                 // 强行把 force-resume 设为 false，确保重连拉起时执行 /launch 进行换屏，而非单纯 /resume
                 tempOverrideForceResume = false;
 
@@ -3811,6 +3842,12 @@ public class Game extends Activity implements SurfaceHolder.Callback,
                         streamView, prefConfig);
             }
         }
+
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
+        prefs.edit()
+                .putBoolean("checkbox_multitouch_screen", prefConfig.multiTouchScreen)
+                .putBoolean("checkbox_touchscreen_trackpad", prefConfig.touchscreenTrackpad)
+                .apply();
     }
 
     public void showMenu() {
@@ -3896,6 +3933,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
 
         // 重新读取 prefConfig，防止配置变动
         prefConfig = PreferenceConfiguration.readPreferences(this);
+        applyLastStreamDisplayOverride();
 
         // 应用临时内存变量覆盖（物理隔离 preferences 与前台实时切屏冲突，终极解耦）
         if (tempOverrideDisplayName != null) {

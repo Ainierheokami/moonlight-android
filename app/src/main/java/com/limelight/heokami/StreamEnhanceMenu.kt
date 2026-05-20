@@ -24,6 +24,8 @@ object StreamEnhanceMenu {
     private const val DISPLAY_NAME = "edittext_stream_enhance_display_name"
     private const val ROTATION_SYNC = "checkbox_stream_enhance_rotation_sync"
     private const val FORCE_RESUME = "checkbox_force_resume_current_session"
+    private const val LAST_STREAM_DISPLAY_NAME = "last_stream_display_name"
+    private const val LAST_STREAM_DISPLAY_USE_VDD = "last_stream_display_use_vdd"
 
     private val modeValues = listOf("-1", "0", "1")
 
@@ -133,6 +135,8 @@ object StreamEnhanceMenu {
                 val editor = prefs.edit()
                     .putBoolean(ROTATION_SYNC, rotationSync.isChecked)
                     .putBoolean(FORCE_RESUME, forceResume.isChecked)
+                    .remove(LAST_STREAM_DISPLAY_NAME)
+                    .remove(LAST_STREAM_DISPLAY_USE_VDD)
 
                 when (modeGroup.checkedRadioButtonId) {
                     R.id.stream_enhance_mode_secondary_channel -> editor

@@ -491,18 +491,8 @@ public class GameMenuFragment extends Fragment {
                         // 1. 改变文案为“退出串流”
                         String quitText = "zh".equals(java.util.Locale.getDefault().getLanguage()) ? "退出串流" : "Quit Stream";
                         btnDisconnect.setText(quitText);
-                        
-                        // 2. 渐变过渡为黄色 (#FFFFD600)
-                        android.animation.ValueAnimator colorAnim = android.animation.ValueAnimator.ofObject(
-                            new android.animation.ArgbEvaluator(), 
-                            originalTextColor, 
-                            0xFFFFD600
-                        );
-                        colorAnim.setDuration(150);
-                        colorAnim.addUpdateListener(anim -> {
-                            btnDisconnect.setTextColor((int) anim.getAnimatedValue());
-                        });
-                        colorAnim.start();
+                        btnDisconnect.setTextColor(originalTextColor);
+                        btnDisconnect.setBackgroundResource(R.drawable.button_background_warning_dark);
                     }
                 };
 
@@ -513,18 +503,8 @@ public class GameMenuFragment extends Fragment {
                     if (isTransitioned) {
                         isTransitioned = false;
                         btnDisconnect.setText(R.string.game_menu_disconnect);
-                        
-                        // 渐变过渡回原有白色
-                        android.animation.ValueAnimator colorAnim = android.animation.ValueAnimator.ofObject(
-                            new android.animation.ArgbEvaluator(), 
-                            btnDisconnect.getCurrentTextColor(), 
-                            originalTextColor
-                        );
-                        colorAnim.setDuration(150);
-                        colorAnim.addUpdateListener(anim -> {
-                            btnDisconnect.setTextColor((int) anim.getAnimatedValue());
-                        });
-                        colorAnim.start();
+                        btnDisconnect.setTextColor(originalTextColor);
+                        btnDisconnect.setBackgroundResource(R.drawable.button_background_red_dark);
                     }
                 }
 
@@ -539,7 +519,7 @@ public class GameMenuFragment extends Fragment {
                             
                             // 延时 1000ms（1秒）执行长按退出任务
                             longPressHandler.postDelayed(longPressRunnable, 1000);
-                            // 延时 200ms 执行文案和颜色渐变为黄色“退出串流”
+                            // 延时 200ms 执行文案和背景变色提示“退出串流”
                             longPressHandler.postDelayed(transitionRunnable, 200);
                             
                             // 启动 1000ms 慢收缩充能微动画 (1.0 -> 0.88, Alpha: 1.0 -> 0.6)

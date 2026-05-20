@@ -1,7 +1,9 @@
 package com.limelight.heokami
 
 import android.content.Context
+import android.content.SharedPreferences
 import android.os.Build
+import android.preference.PreferenceManager
 import android.provider.Settings
 import android.util.Base64
 import android.util.Log
@@ -24,7 +26,11 @@ import javax.crypto.spec.SecretKeySpec
  */
 object SystemSettingsBackupHelper {
     private const val TAG = "SettingsBackupHelper"
-    private const val PREFS_NAME = "com.limelight_preferences"
+    private val EXTRA_PREFS_NAMES = arrayOf(
+        "OSK",
+        "floating_keyboard_prefs",
+        "game_menu_prefs"
+    )
     
     // 加密配置：使用 AES-256-CBC 配合 16 字节静态 IV，保证物理指纹密文的完美对称解密
     private const val AES_ALGORITHM = "AES/CBC/PKCS5Padding"
@@ -81,6 +87,83 @@ object SystemSettingsBackupHelper {
         }
     }
 
+    private fun putPreferenceValue(json: JSONObject, key: String, value: Any?) {
+        val item = JSONObject()
+        when (value) {
+            is Boolean -> {
+                item.put("type", "boolean")
+                item.put("value", value)
+            }
+            is Int -> {
+                item.put("type", "int")
+                item.put("value", value)
+            }
+            is Long -> {
+                item.put("type", "long")
+                item.put("value", value)
+            }
+            is Float -> {
+                item.put("type", "float")
+                item.put("value", value.toDouble())
+            }
+            is String -> {
+                item.put("type", "string")
+                item.put("value", value)
+            }
+            is Set<*> -> {
+                item.put("type", "string_set")
+                val arr = JSONArray()
+                value.filterIsInstance<String>().forEach { arr.put(it) }
+                item.put("value", arr)
+            }
+            else -> return
+        }
+        json.put(key, item)
+    }
+
+    private fun exportPreferences(prefs: SharedPreferences): JSONObject {
+        val prefsObj = JSONObject()
+        for ((key, value) in prefs.all) {
+            if (key != "uniqueid") {
+                putPreferenceValue(prefsObj, key, value)
+            }
+        }
+        return prefsObj
+    }
+
+    private fun importPreferences(editor: SharedPreferences.Editor, prefsObj: JSONObject) {
+        val keys = prefsObj.keys()
+        while (keys.hasNext()) {
+            val key = keys.next()
+            val rawValue = prefsObj.get(key)
+            if (rawValue is JSONObject && rawValue.has("type")) {
+                when (rawValue.optString("type")) {
+                    "boolean" -> editor.putBoolean(key, rawValue.getBoolean("value"))
+                    "int" -> editor.putInt(key, rawValue.getInt("value"))
+                    "long" -> editor.putLong(key, rawValue.getLong("value"))
+                    "float" -> editor.putFloat(key, rawValue.getDouble("value").toFloat())
+                    "string" -> editor.putString(key, rawValue.optString("value", ""))
+                    "string_set" -> {
+                        val arr = rawValue.optJSONArray("value") ?: JSONArray()
+                        val set = LinkedHashSet<String>()
+                        for (i in 0 until arr.length()) {
+                            set.add(arr.optString(i))
+                        }
+                        editor.putStringSet(key, set)
+                    }
+                }
+            } else {
+                when (rawValue) {
+                    is Boolean -> editor.putBoolean(key, rawValue)
+                    is Int -> editor.putInt(key, rawValue)
+                    is Long -> editor.putLong(key, rawValue)
+                    is Float -> editor.putFloat(key, rawValue)
+                    is String -> editor.putString(key, rawValue)
+                }
+            }
+        }
+    }
+
     /**
      * 全量系统配置导出。
      * 包括：SharedPreferences 设置参数、Computers 数据库、以及基于物理设备指纹 AES 加密处理的证书和 UniqueID。
@@ -101,15 +184,18 @@ object SystemSettingsBackupHelper {
             root.put("metadata", metadata)
 
             // 2. 导出所有串流设置 Preferences (比特率、帧率、辅助模式开关等)
-            val prefsObj = JSONObject()
-            val sharedPrefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-            for ((key, value) in sharedPrefs.all) {
-                // 过滤与本机强相关的运行期动态属性
-                if (key != "uniqueid") {
-                    prefsObj.put(key, value)
+            // 使用 PreferenceManager 动态获取，自适应所有 applicationId 变体（com.heokami.debug 等）
+            val sharedPrefs = PreferenceManager.getDefaultSharedPreferences(context)
+            root.put("preferences", exportPreferences(sharedPrefs))
+
+            val extraPrefs = JSONObject()
+            for (name in EXTRA_PREFS_NAMES) {
+                val prefs = context.getSharedPreferences(name, Context.MODE_PRIVATE)
+                if (prefs.all.isNotEmpty()) {
+                    extraPrefs.put(name, exportPreferences(prefs))
                 }
             }
-            root.put("preferences", prefsObj)
+            root.put("extra_preferences", extraPrefs)
 
             // 3. 导出已配对电脑数据库列表 (SQLite computers4.db -> JSON)
             val computersArray = JSONArray()
@@ -189,22 +275,25 @@ object SystemSettingsBackupHelper {
         // 1. 恢复主要 Preferences 设置参数
         if (root.has("preferences")) {
             val prefsObj = root.getJSONObject("preferences")
-            val editor = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).edit()
+            // 使用 PreferenceManager 动态获取，自适应所有 applicationId 变体
+            val editor = PreferenceManager.getDefaultSharedPreferences(context).edit()
             editor.clear()
             
-            val keys = prefsObj.keys()
-            while (keys.hasNext()) {
-                val key = keys.next()
-                when (val value = prefsObj.get(key)) {
-                    is Boolean -> editor.putBoolean(key, value)
-                    is Int -> editor.putInt(key, value)
-                    is Long -> editor.putLong(key, value)
-                    is Float -> editor.putFloat(key, value)
-                    is String -> editor.putString(key, value)
-                }
-            }
+            importPreferences(editor, prefsObj)
             editor.apply()
             Log.i(TAG, "已成功批量恢复串流参数 Preference 配置")
+        }
+
+        if (root.has("extra_preferences")) {
+            val extraPrefs = root.getJSONObject("extra_preferences")
+            for (name in EXTRA_PREFS_NAMES) {
+                if (!extraPrefs.has(name)) continue
+                val editor = context.getSharedPreferences(name, Context.MODE_PRIVATE).edit()
+                editor.clear()
+                importPreferences(editor, extraPrefs.getJSONObject(name))
+                editor.apply()
+            }
+            Log.i(TAG, "已成功恢复虚拟键盘、悬浮键盘与自定义热键配置")
         }
 
         // 2. 批量将已存电脑表恢复写入 SQLite computers4.db
