@@ -21,6 +21,7 @@ import java.security.SecureRandom;
 import java.security.cert.X509Certificate;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.List;
 import java.util.concurrent.Semaphore;
 
 import javax.crypto.KeyGenerator;
@@ -51,6 +52,16 @@ public class NvConnection {
 
     public NvConnection(Context appContext, ComputerDetails.AddressTuple host, int httpsPort, String uniqueId, StreamConfiguration config, LimelightCryptoProvider cryptoProvider, X509Certificate serverCert)
     {
+        this(appContext, host, httpsPort, uniqueId, config, cryptoProvider, serverCert, null, false);
+    }
+
+    public NvConnection(Context appContext, ComputerDetails.AddressTuple host, int httpsPort, String uniqueId, StreamConfiguration config, LimelightCryptoProvider cryptoProvider, X509Certificate serverCert, String displayName, boolean forceResumeCurrentSession)
+    {
+        this(appContext, host, httpsPort, uniqueId, config, cryptoProvider, serverCert, displayName, forceResumeCurrentSession, false);
+    }
+
+    public NvConnection(Context appContext, ComputerDetails.AddressTuple host, int httpsPort, String uniqueId, StreamConfiguration config, LimelightCryptoProvider cryptoProvider, X509Certificate serverCert, String displayName, boolean forceResumeCurrentSession, boolean forceRelaunch)
+    {
         this.appContext = appContext;
         this.cryptoProvider = cryptoProvider;
         this.uniqueId = uniqueId;
@@ -60,6 +71,9 @@ public class NvConnection {
         this.context.httpsPort = httpsPort;
         this.context.streamConfig = config;
         this.context.serverCert = serverCert;
+        this.context.displayName = displayName;
+        this.context.forceResumeCurrentSession = forceResumeCurrentSession;
+        this.context.forceRelaunch = forceRelaunch;
 
         // This is unique per connection
         this.context.riKey = generateRiAesKey();
@@ -336,10 +350,20 @@ public class NvConnection {
             }
         }
         
+        int currentGame = h.getCurrentGame(serverInfo);
+        if (context.forceResumeCurrentSession && currentGame != 0) {
+            if (!h.launchApp(context, "resume", currentGame, context.negotiatedHdr)) {
+                context.connListener.displayMessage("Failed to resume existing session");
+                return false;
+            }
+            LimeLog.info("Resumed current host session without relaunch");
+            return true;
+        }
+
         // If there's a game running, resume it
-        if (h.getCurrentGame(serverInfo) != 0) {
+        if (currentGame != 0) {
             try {
-                if (h.getCurrentGame(serverInfo) == app.getAppId()) {
+                if (currentGame == app.getAppId() && !context.forceRelaunch) {
                     if (!h.launchApp(context, "resume", app.getAppId(), context.negotiatedHdr)) {
                         context.connListener.displayMessage("Failed to resume existing session");
                         return false;
@@ -496,6 +520,77 @@ public class NvConnection {
                         context.connListener.stageFailed(appName, 0, -1);
                         return;
                     }
+                }
+            }
+        }).start();
+    }
+
+    public interface BitrateAdjustmentCallback {
+        void onComplete(boolean success, String error);
+    }
+
+    public interface DisplayRotationCallback {
+        void onComplete(boolean success, String error);
+    }
+
+    public int getCurrentBitrate() {
+        return context.streamConfig.getBitrate();
+    }
+
+    public boolean isNvidiaServerSoftware() {
+        return context.isNvidiaServerSoftware;
+    }
+
+    public List<String> getDisplayNames() throws IOException, XmlPullParserException {
+        NvHTTP h = new NvHTTP(context.serverAddress, context.httpsPort, uniqueId, context.serverCert, cryptoProvider);
+        return h.getDisplayNames();
+    }
+
+    public void setBitrate(final int bitrateKbps, final BitrateAdjustmentCallback callback) {
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    if (context.isNvidiaServerSoftware) {
+                        callback.onComplete(false, "Runtime bitrate adjustment requires Sunshine");
+                        return;
+                    }
+                    LimeLog.info("Requesting runtime bitrate adjustment to " + bitrateKbps + " Kbps");
+                    int result = MoonBridge.sendDynamicBitrate(bitrateKbps);
+                    if (result == 0) {
+                        context.streamConfig.setBitrate(bitrateKbps);
+                        LimeLog.info("Runtime bitrate adjusted to " + bitrateKbps + " Kbps");
+                        callback.onComplete(true, null);
+                    }
+                    else if (result == MoonBridge.LI_ERR_UNSUPPORTED) {
+                        callback.onComplete(false, "Host does not support runtime bitrate adjustment");
+                    }
+                    else {
+                        callback.onComplete(false, "Failed to send bitrate adjustment: " + result);
+                    }
+                } catch (Exception e) {
+                    LimeLog.warning("Runtime bitrate adjustment failed: " + e.getMessage());
+                    callback.onComplete(false, e.getMessage());
+                }
+            }
+        }).start();
+    }
+
+    public void rotateDisplay(final int angle, final DisplayRotationCallback callback) {
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    if (context.isNvidiaServerSoftware) {
+                        callback.onComplete(false, "Display rotation requires Sunshine");
+                        return;
+                    }
+                    NvHTTP h = new NvHTTP(context.serverAddress, context.httpsPort, uniqueId, context.serverCert, cryptoProvider);
+                    boolean success = h.rotateDisplay(angle, context.displayName);
+                    callback.onComplete(success, success ? null : "Host rejected display rotation");
+                } catch (Exception e) {
+                    LimeLog.warning("Display rotation failed: " + e.getMessage());
+                    callback.onComplete(false, e.getMessage());
                 }
             }
         }).start();

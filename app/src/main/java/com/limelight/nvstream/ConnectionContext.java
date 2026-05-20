@@ -31,4 +31,7 @@ public class ConnectionContext {
     public int negotiatedPacketSize;
 
     public int videoCapabilities;
+    public String displayName;
+    public boolean forceResumeCurrentSession;
+    public boolean forceRelaunch;
 }

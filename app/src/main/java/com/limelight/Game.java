@@ -77,6 +77,7 @@ import android.view.InputDevice;
 import android.view.KeyCharacterMap;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
+import android.view.OrientationEventListener;
 import android.view.Surface;
 import android.view.SurfaceHolder;
 import android.view.View;
@@ -161,6 +162,12 @@ public class Game extends Activity implements SurfaceHolder.Callback,
     private boolean attemptedConnection = false;
     private int suppressPipRefCount = 0;
     private String pcName;
+
+    // 新增：标记是否需要恢复流
+    private boolean tempDisableForceResume = false;
+    private Boolean originalForceResumeSession = null;
+    private boolean isSwitchingDisplay = false;
+    private boolean isSwitchingDisplayForcedRelaunch = false;
     private String appName;
     private NvApp app;
     private float desiredRefreshRate;
@@ -199,6 +206,10 @@ public class Game extends Activity implements SurfaceHolder.Callback,
     private FrameLayout controlsOverlayContainer; // 虚拟输入（键盘/手柄）容器
     private FrameLayout menuOverlayContainer;     // 菜单（编辑/游戏）容器
     private PortalManagerView portalManagerView; // 传送门管理器
+    private OrientationEventListener streamRotationListener;
+    private final Handler streamRotationHandler = new Handler();
+    private Runnable pendingRotationSyncRunnable;
+    private int lastSyncedStreamRotation = -1;
 
     private MediaCodecDecoderRenderer decoderRenderer;
     private boolean reportedCrash;
@@ -236,12 +247,6 @@ public class Game extends Activity implements SurfaceHolder.Callback,
     public static final String EXTRA_SERVER_CERT = "ServerCert";
 
     // 新增：标记是否需要恢复流
-    // 删除不再需要的变量
-
-    // 添加一个标志来跟踪是否需要在返回前台时重新连接
-
-    
-    // 保存连接参数，以便在重新连接时使用
     private String lastHost;
     private int lastPort;
     private int lastHttpsPort;
@@ -342,6 +347,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
 
         // Enter landscape unless we're on a square screen
         setPreferredOrientationForCurrentDisplay();
+        scheduleCurrentDisplayRotationSync(300);
 
         if (prefConfig.stretchVideo || prefConfig.centerVideo || shouldIgnoreInsetsForResolution(prefConfig.width, prefConfig.height) ) {
             // Allow the activity to layout under notches if the fill-screen option
@@ -593,6 +599,9 @@ public class Game extends Activity implements SurfaceHolder.Callback,
                 .setApp(app)
                 .setBitrate(prefConfig.bitrate)
                 .setEnableSops(prefConfig.enableSops)
+                .setUseVdd(prefConfig.streamEnhanceUseVdd)
+                .setCustomScreenMode(prefConfig.streamEnhanceScreenMode)
+                .setCustomVddScreenMode(prefConfig.streamEnhanceVddMode)
                 .enableLocalAudioPlayback(prefConfig.playHostAudio)
                 .setMaxPacketSize(1392)
                 .setRemoteConfiguration(StreamConfiguration.STREAM_CFG_AUTO) // NvConnection will perform LAN and VPN detection
@@ -609,7 +618,8 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         conn = new NvConnection(getApplicationContext(),
                 new ComputerDetails.AddressTuple(host, port),
                 httpsPort, uniqueId, config,
-                PlatformBinding.getCryptoProvider(this), serverCert);
+                PlatformBinding.getCryptoProvider(this), serverCert,
+                prefConfig.streamEnhanceDisplayName, prefConfig.forceResumeCurrentSession, false);
         screenshotCaptureRequested = false;
         controllerHandler = new ControllerHandler(this, conn, this, prefConfig);
         keyboardTranslator = new KeyboardTranslator();
@@ -715,10 +725,21 @@ public class Game extends Activity implements SurfaceHolder.Callback,
 
         // The connection will be started when the surface gets created
         streamView.getHolder().addCallback(this);
+
+        // [新增] 显式初始化重连参数，确保在前台直接换屏时 lastHost 等参数 100% 完备
+        saveConnectionParams();
     }
 
     private void setPreferredOrientationForCurrentDisplay() {
         Display display = getWindowManager().getDefaultDisplay();
+
+        // Rotation sync means the phone orientation is the source of truth for
+        // the Sunshine display. Let the client follow that same orientation so
+        // a portrait host stream is not squeezed into a forced landscape view.
+        if (prefConfig != null && prefConfig.streamEnhanceRotationSync) {
+            setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_FULL_USER);
+            return;
+        }
 
         // For semi-square displays, we use more complex logic to determine which orientation to use (if any)
         if (PreferenceConfiguration.isSquarishScreen(display)) {
@@ -1353,6 +1374,12 @@ public class Game extends Activity implements SurfaceHolder.Callback,
     @Override
     protected void onPause() {
         currentGameInstance = null;
+        if (streamRotationListener != null) {
+            streamRotationListener.disable();
+        }
+        if (pendingRotationSyncRunnable != null) {
+            streamRotationHandler.removeCallbacks(pendingRotationSyncRunnable);
+        }
         Log.i("MoonReconnect", "[Game] onPause: isFinishing=" + isFinishing() + ", connected=" + connected + ", connecting=" + connecting);
 
         if (isFinishing()) {
@@ -1464,6 +1491,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
     @Override
     protected void onResume() {
         super.onResume();
+        setupStreamRotationSync();
         
         // 停止之前的挂起计划
         disconnectHandler.removeCallbacks(delayedSuspendRunnable);
@@ -2666,6 +2694,197 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         }
     }
 
+    public void recreateConnectionWithDisplay(final String displayName) {
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                // 1. 将首选显示器名称持久化至 preferences 中
+                android.content.SharedPreferences prefs = android.preference.PreferenceManager.getDefaultSharedPreferences(Game.this);
+                prefs.edit().putString("edittext_stream_enhance_display_name", displayName).apply();
+                
+                // 备份并硬锁定 checkbox_force_resume_current_session 为 false，确保 Sunshine 执行 /launch 重新加载显示器，而非 /resume
+                if (originalForceResumeSession == null) {
+                    originalForceResumeSession = prefs.getBoolean("checkbox_force_resume_current_session", false);
+                }
+                prefs.edit().putBoolean("checkbox_force_resume_current_session", false).apply();
+
+                // 2. 标记正在切换显示器中，隔离旧连接销毁带来的 JNI 退出回调
+                isSwitchingDisplay = true;
+                isSwitchingDisplayForcedRelaunch = true;
+                tempDisableForceResume = true;
+
+                // 3. 展现平滑的重连遮罩
+                if (reconnectionOverlay != null) {
+                    reconnectionOverlay.setAlpha(1.0f);
+                    reconnectionOverlay.setVisibility(View.VISIBLE);
+                }
+                
+                // 4. 彻底回收旧连接
+                if (conn != null) {
+                    Log.i("MoonReconnect", "[Game] recreateConnectionWithDisplay: stopping old connection");
+                    stopConnection();
+                }
+                
+                // 5. 释放解码器
+                if (decoderRenderer != null) {
+                    decoderRenderer.cleanup();
+                }
+                
+                // 6. 延迟 300ms 后拉起新连接，保证旧连接的网络 socket 及 JNI 正确释放
+                new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(new Runnable() {
+                    @Override
+                    public void run() {
+                        // 准备启动新连接时，恢复 isSwitchingDisplay 为 false，允许捕获新连接可能出现的错误
+                        isSwitchingDisplay = false;
+                        if (streamView != null && streamView.getHolder() != null) {
+                            Log.i("MoonReconnect", "[Game] recreateConnectionWithDisplay: starting new connection with display: " + displayName);
+                            startConnection(streamView.getHolder());
+                        }
+                    }
+                }, 300);
+            }
+        });
+    }
+
+    public void syncCurrentStreamRotation() {
+        if (conn == null || prefConfig == null || !prefConfig.streamEnhanceRotationSync) {
+            return;
+        }
+        scheduleCurrentDisplayRotationSync(0);
+    }
+
+    private void setupStreamRotationSync() {
+        if (prefConfig == null || !prefConfig.streamEnhanceRotationSync) {
+            if (streamRotationListener != null) {
+                streamRotationListener.disable();
+            }
+            return;
+        }
+
+        if (streamRotationListener == null) {
+            streamRotationListener = new OrientationEventListener(this) {
+                @Override
+                public void onOrientationChanged(int orientation) {
+                    if (orientation == ORIENTATION_UNKNOWN) {
+                        return;
+                    }
+                    // Treat raw sensor orientation as a signal only. Android may
+                    // report transient sensor angles while the activity is still
+                    // settling into its final display rotation, so sync using
+                    // Display.getRotation() after the UI rotation has stabilized.
+                    scheduleCurrentDisplayRotationSync(700);
+                }
+            };
+        }
+
+        if (streamRotationListener.canDetectOrientation()) {
+            streamRotationListener.enable();
+            scheduleCurrentDisplayRotationSync(0);
+        }
+    }
+
+    private int getDisplayRotationAngle() {
+        boolean isPortrait = getResources().getConfiguration().orientation == android.content.res.Configuration.ORIENTATION_PORTRAIT;
+        return isPortrait ? 90 : 0;
+    }
+
+    private void scheduleCurrentDisplayRotationSync(long delayMs) {
+        if (conn == null) {
+            return;
+        }
+        if (pendingRotationSyncRunnable != null) {
+            streamRotationHandler.removeCallbacks(pendingRotationSyncRunnable);
+        }
+        pendingRotationSyncRunnable = new Runnable() {
+            @Override
+            public void run() {
+                pendingRotationSyncRunnable = null;
+                int angle = getDisplayRotationAngle();
+                syncStreamRotation(angle);
+            }
+        };
+        streamRotationHandler.postDelayed(pendingRotationSyncRunnable, delayMs);
+    }
+
+    private void updateStreamViewScale() {
+        if (streamView == null) return;
+        streamView.post(new Runnable() {
+            @Override
+            public void run() {
+                if (streamView == null || prefConfig == null) return;
+                
+                View parent = (View) streamView.getParent();
+                if (parent == null) return;
+                
+                int parentWidth = parent.getWidth();
+                int parentHeight = parent.getHeight();
+                
+                if (parentWidth <= 0 || parentHeight <= 0) return;
+                
+                double desiredAspect = streamView.getDesiredAspectRatio();
+                float viewWidth = parentWidth;
+                float viewHeight = parentHeight;
+                
+                if (desiredAspect > 0 && !prefConfig.stretchVideo) {
+                    if (parentWidth > parentHeight * desiredAspect) {
+                        viewHeight = parentHeight;
+                        viewWidth = (float) (parentHeight * desiredAspect);
+                    } else {
+                        viewWidth = parentWidth;
+                        viewHeight = (float) (parentWidth / desiredAspect);
+                    }
+                }
+                
+                float scale = 1.0f;
+                // Aspect Fit the active video area inside the stream
+                if (prefConfig.streamEnhanceRotationSync && !prefConfig.stretchVideo) {
+                    boolean isPhonePortrait = parentHeight > parentWidth;
+                    
+                    // Infer host monitor aspect ratio from prefConfig
+                    float baseAspect = (float) Math.max(prefConfig.width, prefConfig.height) / Math.min(prefConfig.width, prefConfig.height);
+                    float activeAspect = isPhonePortrait ? (1.0f / baseAspect) : baseAspect;
+                    float streamAspect = viewWidth / viewHeight;
+                    
+                    float activeWidth = viewWidth;
+                    float activeHeight = viewHeight;
+                    
+                    // Determine if Sunshine padded the active video
+                    if (streamAspect > activeAspect) {
+                        activeHeight = viewHeight;
+                        activeWidth = viewHeight * activeAspect;
+                    } else {
+                        activeWidth = viewWidth;
+                        activeHeight = viewWidth / activeAspect;
+                    }
+                    
+                    float scaleX = parentWidth / activeWidth;
+                    float scaleY = parentHeight / activeHeight;
+                    scale = Math.min(scaleX, scaleY); // Fit narrowest side
+                }
+                
+                streamView.setScaleX(scale);
+                streamView.setScaleY(scale);
+            }
+        });
+    }
+
+    private void syncStreamRotation(final int angle) {
+        updateStreamViewScale();
+        if (conn == null || angle == lastSyncedStreamRotation) {
+            return;
+        }
+        conn.rotateDisplay(angle, new NvConnection.DisplayRotationCallback() {
+            @Override
+            public void onComplete(boolean success, String error) {
+                if (success) {
+                    lastSyncedStreamRotation = angle;
+                } else if (error != null) {
+                    LimeLog.warning("Stream rotation sync failed: " + error);
+                }
+            }
+        });
+    }
+
     private void startScreenshotPrecache() {
         if (screenshotPrecacheRunnable == null) {
             return;
@@ -2708,6 +2927,11 @@ public class Game extends Activity implements SurfaceHolder.Callback,
 
     @Override
     public void stageFailed(final String stage, final int portFlags, final int errorCode) {
+        if (isSwitchingDisplay) {
+            Log.i("MoonReconnect", "[Game] stageFailed ignored during display switching");
+            return;
+        }
+
         // Perform a connection test if the failure could be due to a blocked port
         // This does network I/O, so don't do it on the main thread.
         final int portTestResult = MoonBridge.testClientConnectivity(ServerHelper.CONNECTION_TEST_SERVER, 443, portFlags);
@@ -2715,6 +2939,12 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
+                // 还原强制恢复会话的首选项，做到无痕
+                if (originalForceResumeSession != null) {
+                    android.content.SharedPreferences prefs = android.preference.PreferenceManager.getDefaultSharedPreferences(Game.this);
+                    prefs.edit().putBoolean("checkbox_force_resume_current_session", originalForceResumeSession).apply();
+                    originalForceResumeSession = null;
+                }
                 if (spinner != null) {
                     spinner.dismiss();
                     spinner = null;
@@ -2766,6 +2996,11 @@ public class Game extends Activity implements SurfaceHolder.Callback,
 
     @Override
     public void connectionTerminated(final int errorCode) {
+        if (isSwitchingDisplay) {
+            Log.i("MoonReconnect", "[Game] connectionTerminated ignored during display switching");
+            return;
+        }
+
         // Perform a connection test if the failure could be due to a blocked port
         // This does network I/O, so don't do it on the main thread.
         final int portFlags = MoonBridge.getPortFlagsFromTerminationErrorCode(errorCode);
@@ -2776,6 +3011,12 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
+                // 还原强制恢复会话的首选项，做到无痕
+                if (originalForceResumeSession != null) {
+                    android.content.SharedPreferences prefs = android.preference.PreferenceManager.getDefaultSharedPreferences(Game.this);
+                    prefs.edit().putBoolean("checkbox_force_resume_current_session", originalForceResumeSession).apply();
+                    originalForceResumeSession = null;
+                }
                 // Let the display go to sleep now
                 getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
@@ -2901,6 +3142,12 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
+                // 还原强制恢复会话的首选项，做到无痕
+                if (originalForceResumeSession != null) {
+                    android.content.SharedPreferences prefs = android.preference.PreferenceManager.getDefaultSharedPreferences(Game.this);
+                    prefs.edit().putBoolean("checkbox_force_resume_current_session", originalForceResumeSession).apply();
+                    originalForceResumeSession = null;
+                }
                 if (spinner != null) {
                     spinner.dismiss();
                     spinner = null;
@@ -2921,6 +3168,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
                 connecting = false;
                 updatePipAutoEnter();
                 startScreenshotPrecache();
+                setupStreamRotationSync();
 
                 // Hide the mouse cursor now after a short delay.
                 // Doing it before dismissing the spinner seems to be undone
@@ -3014,7 +3262,8 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         Log.i("MoonReconnect", "[Game] surfaceChanged: holder=" + holder + ", format=" + format + ", width=" + width + ", height=" + height + ", surface valid=" + (holder != null && holder.getSurface() != null && holder.getSurface().isValid()));
         Log.i("MoonReconnect", "[Game] surfaceChanged: isBackgroundSuspended=" + isBackgroundSuspended + ", shouldReconnectOnForeground=" + shouldReconnectOnForeground + ", lastHost=" + lastHost);
         if (!surfaceCreated) {
-            throw new IllegalStateException("Surface changed before creation!");
+            Log.w("MoonReconnect", "[Game] surfaceChanged called before surfaceCreated, ignoring safely.");
+            return;
         }
         
         // 如果我们需要重新连接，在这里开始（防止某些设备只触发surfaceChanged）
@@ -3089,7 +3338,8 @@ public class Game extends Activity implements SurfaceHolder.Callback,
     public void surfaceDestroyed(SurfaceHolder holder) {
         Log.i("MoonReconnect", "[Game] surfaceDestroyed");
         if (!surfaceCreated) {
-            throw new IllegalStateException("Surface destroyed before creation!");
+            Log.w("MoonReconnect", "[Game] surfaceDestroyed called before surfaceCreated, ignoring safely.");
+            return;
         }
 
         if (attemptedConnection) {
@@ -3206,6 +3456,33 @@ public class Game extends Activity implements SurfaceHolder.Callback,
             @Override
             public void run() {
                 performanceOverlayView.setText(text);
+            }
+        });
+    }
+
+    @Override
+    public void onVideoSizeChanged(final int width, final int height) {
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                if (streamView == null || width <= 0 || height <= 0) {
+                    return;
+                }
+
+                if (prefConfig != null && prefConfig.stretchVideo) {
+                    streamView.getHolder().setFixedSize(width, height);
+                }
+                else {
+                    streamView.setDesiredAspectRatio((double) width / (double) height);
+                }
+                streamView.requestLayout();
+                updateStreamViewScale();
+
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && isInPictureInPictureMode()) {
+                    setPictureInPictureParams(new PictureInPictureParams.Builder()
+                            .setAspectRatio(new Rational(width, height))
+                            .build());
+                }
             }
         });
     }
@@ -3622,6 +3899,11 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         // 重新读取 prefConfig，防止配置变动
         prefConfig = PreferenceConfiguration.readPreferences(this);
 
+        if (tempDisableForceResume) {
+            prefConfig.forceResumeCurrentSession = false;
+            tempDisableForceResume = false;
+        }
+
         // [新增] 检查设备特定的码率覆盖（修复后台恢复问题）
         String uuid = getIntent().getStringExtra(EXTRA_PC_UUID);
         String address = getIntent().getStringExtra(EXTRA_HOST);
@@ -3701,6 +3983,9 @@ public class Game extends Activity implements SurfaceHolder.Callback,
             .setApp(app)
             .setBitrate(prefConfig.bitrate)
             .setEnableSops(prefConfig.enableSops)
+            .setUseVdd(prefConfig.streamEnhanceUseVdd)
+            .setCustomScreenMode(prefConfig.streamEnhanceScreenMode)
+            .setCustomVddScreenMode(prefConfig.streamEnhanceVddMode)
             .enableLocalAudioPlayback(prefConfig.playHostAudio)
             .setMaxPacketSize(1392)
             .setRemoteConfiguration(StreamConfiguration.STREAM_CFG_AUTO)
@@ -3727,7 +4012,10 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         conn = new NvConnection(getApplicationContext(),
             new ComputerDetails.AddressTuple(lastHost, lastPort),
             lastHttpsPort, lastUniqueId, config,
-            PlatformBinding.getCryptoProvider(this), serverCert);
+            PlatformBinding.getCryptoProvider(this), serverCert,
+            prefConfig.streamEnhanceDisplayName, prefConfig.forceResumeCurrentSession,
+            isSwitchingDisplayForcedRelaunch);
+        isSwitchingDisplayForcedRelaunch = false; // 单次消费后立即复位
         screenshotCaptureRequested = false;
 
         // 重新初始化 controllerHandler、keyboardTranslator
