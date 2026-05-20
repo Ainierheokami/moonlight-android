@@ -68,7 +68,11 @@ class FilePickerUtils(private val activity: AppCompatActivity) {
             } else{
                 val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
                     addCategory(Intent.CATEGORY_OPENABLE)
-                    type = mimeType
+                    // 🌟 首席架构师特调高兼容导入方案：
+                    // 使用 */* 兜底并通过 EXTRA_MIME_TYPES 同时申明对 .txt 和 .json 的支持，
+                    // 彻底解决某些 Android 定制 ROM 将 .json 文件错误识别为 binary 并予以置灰无法选择的问题。
+                    type = "*/*"
+                    putExtra(Intent.EXTRA_MIME_TYPES, arrayOf("text/plain", "application/json", "text/*"))
                     
                     // 🌟 导入时同样自动指引定位到系统的 Download 目录
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
