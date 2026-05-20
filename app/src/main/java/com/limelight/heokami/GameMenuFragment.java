@@ -444,6 +444,8 @@ public class GameMenuFragment extends Fragment {
                 private long downTime = 0;
                 private boolean isLongPressed = false;
                 private boolean isCancelled = false;
+                private boolean isTransitioned = false;
+                private int originalTextColor = 0xFFFFFFFF;
                 private final Handler longPressHandler = new Handler(Looper.getMainLooper());
                 
                 private final Runnable longPressRunnable = new Runnable() {
@@ -480,6 +482,52 @@ public class GameMenuFragment extends Fragment {
                     }
                 };
 
+                private final Runnable transitionRunnable = new Runnable() {
+                    @Override
+                    public void run() {
+                        isTransitioned = true;
+                        originalTextColor = btnDisconnect.getCurrentTextColor();
+                        
+                        // 1. 改变文案为“退出串流”
+                        String quitText = "zh".equals(java.util.Locale.getDefault().getLanguage()) ? "退出串流" : "Quit Stream";
+                        btnDisconnect.setText(quitText);
+                        
+                        // 2. 渐变过渡为黄色 (#FFFFD600)
+                        android.animation.ValueAnimator colorAnim = android.animation.ValueAnimator.ofObject(
+                            new android.animation.ArgbEvaluator(), 
+                            originalTextColor, 
+                            0xFFFFD600
+                        );
+                        colorAnim.setDuration(150);
+                        colorAnim.addUpdateListener(anim -> {
+                            btnDisconnect.setTextColor((int) anim.getAnimatedValue());
+                        });
+                        colorAnim.start();
+                    }
+                };
+
+                private void restoreOriginalState() {
+                    longPressHandler.removeCallbacks(longPressRunnable);
+                    longPressHandler.removeCallbacks(transitionRunnable);
+                    
+                    if (isTransitioned) {
+                        isTransitioned = false;
+                        btnDisconnect.setText(R.string.game_menu_disconnect);
+                        
+                        // 渐变过渡回原有白色
+                        android.animation.ValueAnimator colorAnim = android.animation.ValueAnimator.ofObject(
+                            new android.animation.ArgbEvaluator(), 
+                            btnDisconnect.getCurrentTextColor(), 
+                            originalTextColor
+                        );
+                        colorAnim.setDuration(150);
+                        colorAnim.addUpdateListener(anim -> {
+                            btnDisconnect.setTextColor((int) anim.getAnimatedValue());
+                        });
+                        colorAnim.start();
+                    }
+                }
+
                 @Override
                 public boolean onTouch(View v, android.view.MotionEvent event) {
                     switch (event.getAction()) {
@@ -487,16 +535,19 @@ public class GameMenuFragment extends Fragment {
                             downTime = android.os.SystemClock.elapsedRealtime();
                             isLongPressed = false;
                             isCancelled = false;
+                            isTransitioned = false;
                             
-                            // 延时 1500ms 执行长按退出任务
-                            longPressHandler.postDelayed(longPressRunnable, 1500);
+                            // 延时 1000ms（1秒）执行长按退出任务
+                            longPressHandler.postDelayed(longPressRunnable, 1000);
+                            // 延时 200ms 执行文案和颜色渐变为黄色“退出串流”
+                            longPressHandler.postDelayed(transitionRunnable, 200);
                             
-                            // 启动 1500ms 慢收缩充能微动画 (1.0 -> 0.88, Alpha: 1.0 -> 0.6)
+                            // 启动 1000ms 慢收缩充能微动画 (1.0 -> 0.88, Alpha: 1.0 -> 0.6)
                             if (holdAnimator != null) {
                                 holdAnimator.cancel();
                             }
                             holdAnimator = android.animation.ValueAnimator.ofFloat(1.0f, 0.88f);
-                            holdAnimator.setDuration(1500);
+                            holdAnimator.setDuration(1000);
                             holdAnimator.setInterpolator(new android.view.animation.DecelerateInterpolator());
                             holdAnimator.addUpdateListener(animation -> {
                                 float val = (float) animation.getAnimatedValue();
@@ -516,7 +567,7 @@ public class GameMenuFragment extends Fragment {
                             float y = event.getY();
                             if (x < 0 || x > v.getWidth() || y < 0 || y > v.getHeight()) {
                                 isCancelled = true;
-                                longPressHandler.removeCallbacks(longPressRunnable);
+                                restoreOriginalState();
                                 if (holdAnimator != null) {
                                     holdAnimator.cancel();
                                 }
@@ -533,7 +584,7 @@ public class GameMenuFragment extends Fragment {
                             return true;
                             
                         case android.view.MotionEvent.ACTION_UP:
-                            longPressHandler.removeCallbacks(longPressRunnable);
+                            restoreOriginalState();
                             if (holdAnimator != null) {
                                 holdAnimator.cancel();
                             }
@@ -559,7 +610,7 @@ public class GameMenuFragment extends Fragment {
                             return true;
                             
                         case android.view.MotionEvent.ACTION_CANCEL:
-                            longPressHandler.removeCallbacks(longPressRunnable);
+                            restoreOriginalState();
                             if (holdAnimator != null) {
                                 holdAnimator.cancel();
                             }
