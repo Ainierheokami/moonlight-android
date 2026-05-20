@@ -958,69 +958,166 @@ public class VirtualKeyboardConfigurationLoader {
         SharedPreferences pref = context.getSharedPreferences(OSK_PREFERENCE, Activity.MODE_PRIVATE);
         Map<String, ?> keys = pref.getAll();
         try {
-            JSONObject json = new JSONObject();
+            JSONObject root = new JSONObject();
+            
+            // 1. 构建元数据 Metadata
+            JSONObject metadata = new JSONObject();
+            metadata.put("app_identifier", "com.limelight.heokami");
+            metadata.put("format_version", 2);
+            metadata.put("export_time", System.currentTimeMillis());
+            root.put("metadata", metadata);
+            
+            // 2. 构建扁平的元素数组 elements
+            org.json.JSONArray elementsArray = new org.json.JSONArray();
+            
+            // 按照数字 ID 排序，使得导出的文件顺序具有极佳的可读性
+            TreeMap<Integer, String> sortedKeys = new TreeMap<>();
             for (Map.Entry<String, ?> entry : keys.entrySet()) {
-                String elementId = entry.getKey();
-                String jsonConfig = (String) entry.getValue();
-                if (jsonConfig != null){
-                    json.put(elementId, jsonConfig);
+                try {
+                    sortedKeys.put(Integer.parseInt(entry.getKey()), (String) entry.getValue());
+                } catch (NumberFormatException ignored) {}
+            }
+            
+            for (Map.Entry<Integer, String> entry : sortedKeys.entrySet()) {
+                String jsonConfigStr = entry.getValue();
+                if (jsonConfigStr != null) {
+                    JSONObject configObj = new JSONObject(jsonConfigStr);
+                    // 写入外层键作为元素内字段，拉平嵌套
+                    configObj.put("ELEMENT_ID", entry.getKey());
+                    elementsArray.put(configObj);
                 }
             }
-            return json.toString();
-        }catch (JSONException e){
-            Log.e("heokami", e.toString(), e);
+            
+            root.put("elements", elementsArray);
+            
+            // 缩进 4 格美化输出，极其利于极客直接在文本中修改
+            return root.toString(4);
+        } catch (JSONException e) {
+            Log.e("heokami", "配置文件序列化 JSON 失败", e);
         }
-
         return null;
     }
 
     public static void loadForFile(final Context context, final String data) {
-        SharedPreferences pref = context.getSharedPreferences(OSK_PREFERENCE, Activity.MODE_PRIVATE);
-        pref.edit().clear().apply();
         try {
-            JSONObject json = new JSONObject(data);
-            Iterator<String> keys = json.keys();
-            while (keys.hasNext()) {
-                String elementId = keys.next();
-                String jsonConfig = json.getString(elementId);
-                pref.edit()
-                        .putString(elementId, jsonConfig)
-                        .apply();
+            JSONObject root = new JSONObject(data);
+            SharedPreferences pref = context.getSharedPreferences(OSK_PREFERENCE, Activity.MODE_PRIVATE);
+            SharedPreferences.Editor editor = pref.edit();
+            
+            // 批量事务清空
+            editor.clear();
+
+            // 🌟 双轨兼容：判断是否是升级后的扁平 Schema 格式
+            if (root.has("elements")) {
+                // 新版格式：拉平的 elements 数组
+                org.json.JSONArray elementsArray = root.getJSONArray("elements");
+                for (int i = 0; i < elementsArray.length(); i++) {
+                    JSONObject configObj = elementsArray.getJSONObject(i);
+                    if (configObj.has("ELEMENT_ID")) {
+                        int elementId = configObj.getInt("ELEMENT_ID");
+                        JSONObject spConfig = new JSONObject(configObj.toString());
+                        spConfig.remove("ELEMENT_ID");
+                        
+                        editor.putString(String.valueOf(elementId), spConfig.toString());
+                    }
+                }
+            } else {
+                // 🌟 向下兼容：如果直接是数字 Key (老版格式备份)
+                Iterator<String> keys = root.keys();
+                while (keys.hasNext()) {
+                    String elementId = keys.next();
+                    try {
+                        // 判断 Key 是否是数字格式的 ElementId
+                        Integer.parseInt(elementId);
+                        String val = root.getString(elementId);
+                        
+                        // 如果 Value 已经是 JSON 字符串（老版双重转义数据）
+                        if (val.startsWith("{")) {
+                            editor.putString(elementId, val);
+                        } else {
+                            // 兜底防御
+                            editor.putString(elementId, root.getJSONObject(elementId).toString());
+                        }
+                    } catch (Exception ignored) {}
+                }
             }
-        }catch (JSONException e){
-            Log.e("heokami", e.toString(), e);
+            
+            // 单次批量磁盘异步提交，消除 I/O 阻塞并极速完成导入
+            editor.apply();
+            Log.i("heokami", "OSK 配置高兼容导入成功，已触发原子提交");
+        } catch (JSONException e) {
+            Log.e("heokami", "配置文件反序列化 JSON 失败", e);
         }
     }
 
     public static void loadForFileAdd(final Context context, final String data) {
-        SharedPreferences pref = context.getSharedPreferences(OSK_PREFERENCE, Activity.MODE_PRIVATE);
-        @SuppressLint("CommitPrefEdits")
-        SharedPreferences.Editor editor = pref.edit(); // 获取Editor，一次性提交所有修改
-
         try {
-            JSONObject json = new JSONObject(data);
-            Iterator<String> keys = json.keys();
-            while (keys.hasNext()) {
-                String elementId = keys.next();
-                String jsonConfig = json.getString(elementId);
-                if (pref.contains(elementId)){
-                    // 处理冲突：创建新的elementId
-                    int counter = 1;
-                    int newElementId;
-                    do {
-                        newElementId = Integer.parseInt(elementId) + counter; // 例如：1_1, 1_2, 1_3...
-                        counter++;
-                    } while (pref.contains(String.valueOf(newElementId))); // 确保新ID不重复
-
-                    Log.w("SharedPreferencesUtils", "ElementId冲突: " + elementId + "，已重命名为: " + newElementId);
-                    editor.putString(String.valueOf(newElementId), jsonConfig); // 存储到新的ID
-                }else {
-                    editor.putString(elementId, jsonConfig);
-                }
-                editor.apply(); // 提交所有修改
+            JSONObject root = new JSONObject(data);
+            SharedPreferences pref = context.getSharedPreferences(OSK_PREFERENCE, Activity.MODE_PRIVATE);
+            
+            // 提取当前 SP 存在的全局 Max ID，防止粗糙相加溢出崩溃
+            int maxId = 0;
+            for (String key : pref.getAll().keySet()) {
+                try {
+                    int id = Integer.parseInt(key);
+                    if (id > maxId) maxId = id;
+                } catch (NumberFormatException ignored) {}
             }
-        }catch (JSONException e){
-            Log.e("heokami", e.toString(), e);
+            
+            // 自增基准偏移
+            int nextAvailableId = maxId + 1;
+            SharedPreferences.Editor editor = pref.edit();
+
+            // 🌟 导出追加的双轨兼容：将新/老格式统一转换为扁平 JSONArray 进行处理
+            org.json.JSONArray elementsArray;
+            if (root.has("elements")) {
+                elementsArray = root.getJSONArray("elements");
+            } else {
+                elementsArray = new org.json.JSONArray();
+                Iterator<String> keys = root.keys();
+                while (keys.hasNext()) {
+                    String elementId = keys.next();
+                    try {
+                        Integer.parseInt(elementId);
+                        String val = root.getString(elementId);
+                        JSONObject elementObj;
+                        if (val.startsWith("{")) {
+                            elementObj = new JSONObject(val);
+                        } else {
+                            elementObj = root.getJSONObject(elementId);
+                        }
+                        elementObj.put("ELEMENT_ID", Integer.parseInt(elementId));
+                        elementsArray.put(elementObj);
+                    } catch (Exception ignored) {}
+                }
+            }
+
+            // 遍历进行追加写入并自愈重映射
+            for (int i = 0; i < elementsArray.length(); i++) {
+                JSONObject configObj = elementsArray.getJSONObject(i);
+                if (configObj.has("ELEMENT_ID")) {
+                    int originalId = configObj.getInt("ELEMENT_ID");
+                    int finalId = originalId;
+                    
+                    JSONObject spConfig = new JSONObject(configObj.toString());
+                    spConfig.remove("ELEMENT_ID");
+                    
+                    // 若存在 ID 冲突，自适应向后映射到空闲 ID
+                    if (pref.contains(String.valueOf(originalId))) {
+                        finalId = nextAvailableId;
+                        nextAvailableId++;
+                        Log.w("heokami", "ElementId 冲突: " + originalId + "，已安全重映射为: " + finalId);
+                    }
+                    
+                    editor.putString(String.valueOf(finalId), spConfig.toString());
+                }
+            }
+            
+            // 仅单次批量磁盘异步提交
+            editor.apply();
+            Log.i("heokami", "OSK 配置追加导入成功，已触发原子提交");
+        } catch (JSONException e) {
+            Log.e("heokami", "OSK 配置文件追加 JSON 失败", e);
         }
     }
 }

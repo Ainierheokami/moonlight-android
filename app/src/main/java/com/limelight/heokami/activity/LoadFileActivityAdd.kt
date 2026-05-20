@@ -29,11 +29,17 @@ class LoadFileActivityAdd : AppCompatActivity() {
         filePicker.pickFile(mimeType = "text/*", callback = object :
             FilePickerUtils.FilePickerCallback {
             override fun onCallBack(fileName: String, content: String, uri: Uri) {
-                // 处理选中的文件
-                Log.d("pickFile", "文件名: $fileName")
-                Log.d("pickFile", "文件内容: $content")
+                try {
+                    // 处理选中的文件
+                    Log.d("pickFile", "文件名: $fileName")
+                    Log.d("pickFile", "文件内容: $content")
 
-                VirtualKeyboardConfigurationLoader.loadForFileAdd(this@LoadFileActivityAdd, content)
+                    VirtualKeyboardConfigurationLoader.loadForFileAdd(this@LoadFileActivityAdd, content)
+                    android.widget.Toast.makeText(this@LoadFileActivityAdd, "加载配置成功", android.widget.Toast.LENGTH_SHORT).show()
+                } catch (e: Exception) {
+                    Log.e("pickFile", "追加按键配置异常", e)
+                    android.widget.Toast.makeText(this@LoadFileActivityAdd, "配置格式破损，无法追加虚拟键盘布局", android.widget.Toast.LENGTH_LONG).show()
+                }
                 this@LoadFileActivityAdd.finish()
             }
 

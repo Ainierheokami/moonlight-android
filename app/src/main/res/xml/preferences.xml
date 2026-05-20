@@ -256,6 +256,18 @@
             android:title="@string/virtual_keyboard_menu_load_profile_add"
             android:summary="@string/virtual_keyboard_menu_load_profile_add_summary"
             />
+        <com.limelight.heokami.pref.SaveSystemSettingsPreference
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:title="备份配对与系统设置"
+            android:summary="导出配对的电脑、串流参数与安全凭据（绑定设备指纹）"
+            />
+        <com.limelight.heokami.pref.LoadSystemSettingsPreference
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:title="还原配对与系统设置"
+            android:summary="还原配对电脑与串流参数（跨设备导入自动安全隔离）"
+            />
         <CheckBoxPreference
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"

@@ -207,6 +207,14 @@
             android:theme="@style/Theme.AppCompat.Dialog">
         </activity>
         <activity
+            android:name=".heokami.activity.SaveSystemSettingsActivity"
+            android:theme="@style/Theme.AppCompat.Dialog">
+        </activity>
+        <activity
+            android:name=".heokami.activity.LoadSystemSettingsActivity"
+            android:theme="@style/Theme.AppCompat.Dialog">
+        </activity>
+        <activity
             android:name=".heokami.VirtualKeyboardActivity"
             android:theme="@style/Theme.AppCompat.Dialog">
         </activity>
