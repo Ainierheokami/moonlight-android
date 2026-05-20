@@ -203,7 +203,8 @@ object VirtualKeyboardVkCode {
     }
 
     fun replaceSpecialKeys(vkCode: Short): Byte {
-        val modifierMask = when (vkCode) {
+        val cleanCode = (vkCode.toInt() and 0xFF).toShort()
+        val modifierMask = when (cleanCode) {
             VKCode.VK_LCONTROL.code.toShort(), VKCode.VK_RCONTROL.code.toShort() -> KeyboardPacket.MODIFIER_CTRL
             VKCode.VK_LSHIFT.code.toShort(), VKCode.VK_RSHIFT.code.toShort() -> KeyboardPacket.MODIFIER_SHIFT
             VKCode.VK_LMENU.code.toShort(), VKCode.VK_RMENU.code.toShort() -> KeyboardPacket.MODIFIER_ALT

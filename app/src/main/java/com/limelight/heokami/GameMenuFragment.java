@@ -159,6 +159,7 @@ public class GameMenuFragment extends Fragment {
     }
 
     private enum MenuSection {
+        STREAM(R.string.game_menu_section_stream),
         INPUT(R.string.game_menu_section_input_controls),
         HOTKEYS(R.string.game_menu_section_hotkeys),
         OVERLAY(R.string.game_menu_section_screen_overlay),
@@ -211,10 +212,27 @@ public class GameMenuFragment extends Fragment {
     private void renderStatusBar() {
         if (statusContainer == null) return;
         statusContainer.removeAllViews();
+        
+        // 1. 触控模式 (保留)
         addStatusChip(getString(R.string.game_menu_change_touch), getTouchModeName());
-        addStatusChip(getString(R.string.game_menu_section_virtual_keyboard), game.getVirtualKeyboard() != null ? getString(R.string.game_menu_status_ready) : getString(R.string.game_menu_status_unavailable));
-        addStatusChip(getString(R.string.game_menu_section_screen_overlay), getString(R.string.game_menu_status_quick));
-        addStatusChip(getString(R.string.game_menu_section_portals), game.arePortalsEnabled() ? getString(R.string.game_menu_status_on) : getString(R.string.game_menu_status_off));
+        
+        // 2. 串流画质 (分辨率与帧率)
+        String quality = "未知";
+        if (game.getPrefConfig() != null) {
+            quality = game.getPrefConfig().width + "x" + game.getPrefConfig().height + "  " + game.getPrefConfig().fps + "帧";
+        }
+        addStatusChip("串流画质", quality);
+        
+        // 3. 视频码率
+        String bitrate = "未知";
+        if (game.getPrefConfig() != null) {
+            bitrate = (game.getPrefConfig().bitrate / 1000) + " Mbps";
+        }
+        addStatusChip("视频码率", bitrate);
+        
+        // 4. 当前时间
+        String currentTime = new java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault()).format(new java.util.Date());
+        addStatusChip("当前时间", currentTime);
     }
 
     private void addStatusChip(String label, String value) {
@@ -250,6 +268,23 @@ public class GameMenuFragment extends Fragment {
 
     private List<MenuAction> buildMenuActions() {
         List<MenuAction> actions = new ArrayList<>();
+        actions.add(new MenuAction("bitrate", R.string.game_menu_adjust_bitrate_short, 0, MenuSection.STREAM, 10, false, true, true, v -> {
+            hideMenuWithAnimation();
+            StreamBitrateMenu.show(game, conn);
+        }));
+        actions.add(new MenuAction("presets", R.string.game_menu_stream_presets_short, 0, MenuSection.STREAM, 20, false, true, true, v -> {
+            hideMenuWithAnimation();
+            StreamPresetMenu.show(game, conn);
+        }));
+        actions.add(new MenuAction("stream_enhance", R.string.game_menu_stream_enhance, 0, MenuSection.STREAM, 30, false, true, true, v -> {
+            hideMenuWithAnimation();
+            StreamEnhanceMenu.show(game, conn);
+        }));
+        actions.add(new MenuAction("switch_display", 0, 0, MenuSection.STREAM, 40, false, true, true, v -> {
+            hideMenuWithAnimation();
+            showSwitchDisplayDialog();
+        }, "实时切换屏幕"));
+
         actions.add(new MenuAction("ime", R.string.game_menu_enable_keyboard, R.drawable.ic_keyboard, MenuSection.INPUT, 10, false, true, true, v -> {
             hideMenuWithAnimation();
             enableKeyboard();
@@ -604,20 +639,33 @@ public class GameMenuFragment extends Fragment {
      * 发送键盘按键
      */
     private void sendKeys(short[] keys) {
-        final byte[] modifier = {(byte) 0};
+        sendKeys(keys, 25);
+    }
 
-        for (short key : keys) {
-            conn.sendKeyboardInput(key, KeyboardPacket.KEY_DOWN, modifier[0], (byte) 0);
-            modifier[0] |= VirtualKeyboardVkCode.INSTANCE.replaceSpecialKeys(key);
-        }
+    private void runHotkeyWithDelay(short[] keys, int delay) {
+        hideMenuWithAnimation();
+        sendKeys(keys, delay);
+    }
 
-        new Handler().postDelayed(() -> {
+    private void sendKeys(short[] keys, int delayMs) {
+        new Thread(() -> {
+            final byte[] modifier = {(byte) 0};
+
+            for (short key : keys) {
+                conn.sendKeyboardInput(key, KeyboardPacket.KEY_DOWN, modifier[0], (byte) 0);
+                modifier[0] |= VirtualKeyboardVkCode.INSTANCE.replaceSpecialKeys(key);
+                try { Thread.sleep(15); } catch (InterruptedException ignored) {}
+            }
+
+            try { Thread.sleep(delayMs); } catch (InterruptedException ignored) {}
+
             for (int pos = keys.length - 1; pos >= 0; pos--) {
                 short key = keys[pos];
                 modifier[0] &= (byte) ~VirtualKeyboardVkCode.INSTANCE.replaceSpecialKeys(key);
                 conn.sendKeyboardInput(key, KeyboardPacket.KEY_UP, modifier[0], (byte) 0);
+                try { Thread.sleep(15); } catch (InterruptedException ignored) {}
             }
-        }, 25);
+        }).start();
     }
 
     /**
@@ -647,5 +695,64 @@ public class GameMenuFragment extends Fragment {
     public static String getClipboardContentAsString(Game context, final int[] retryCount, final long[] retryDelay) {
         CharSequence charSequence = getClipboardContent(context, retryCount, retryDelay);
         return charSequence != null ? charSequence.toString() : "";
+    }
+
+    private void showSwitchDisplayDialog() {
+        Toast.makeText(game, "正在获取屏幕列表...", Toast.LENGTH_SHORT).show();
+        new Thread(() -> {
+            try {
+                List<String> displays = conn.getDisplayNames();
+                new Handler(Looper.getMainLooper()).post(() -> {
+                    if (displays == null || displays.isEmpty()) {
+                        showFallbackSwitchDisplayDialog();
+                        return;
+                    }
+                    android.app.AlertDialog.Builder builder = new android.app.AlertDialog.Builder(game);
+                    builder.setTitle("切换显示器");
+                    String[] items = displays.toArray(new String[0]);
+                    builder.setItems(items, (dialog, which) -> {
+                        String selectedDisplay = items[which];
+                        Toast.makeText(game, "正在切换到: " + selectedDisplay + "，请稍候...", Toast.LENGTH_SHORT).show();
+                        game.recreateConnectionWithDisplay(selectedDisplay);
+                    });
+                    builder.setNegativeButton(android.R.string.cancel, null);
+                    builder.show();
+                });
+            } catch (Exception e) {
+                new Handler(Looper.getMainLooper()).post(this::showFallbackSwitchDisplayDialog);
+            }
+        }).start();
+    }
+
+    private void showFallbackSwitchDisplayDialog() {
+        android.app.AlertDialog.Builder builder = new android.app.AlertDialog.Builder(game);
+        builder.setTitle("切换显示器 (未能自动获取列表，请选择常用项)");
+        
+        final String[] items = new String[]{"\\\\.\\DISPLAY1", "\\\\.\\DISPLAY2", "\\\\.\\DISPLAY3", "\\\\.\\DISPLAY4", "手动输入名称..."};
+        builder.setItems(items, (dialog, which) -> {
+            if (which == items.length - 1) {
+                // 弹出手动输入框
+                android.app.AlertDialog.Builder inputBuilder = new android.app.AlertDialog.Builder(game);
+                inputBuilder.setTitle("输入显示器名称");
+                final android.widget.EditText input = new android.widget.EditText(game);
+                input.setHint("Windows 示例: \\\\.\\DISPLAY2\nLinux 示例: DP-1");
+                inputBuilder.setView(input);
+                inputBuilder.setPositiveButton("确定", (dialog1, which1) -> {
+                    String customDisplay = input.getText().toString().trim();
+                    if (!customDisplay.isEmpty()) {
+                        Toast.makeText(game, "正在切换到: " + customDisplay + "，请稍候...", Toast.LENGTH_SHORT).show();
+                        game.recreateConnectionWithDisplay(customDisplay);
+                    }
+                });
+                inputBuilder.setNegativeButton(android.R.string.cancel, null);
+                inputBuilder.show();
+            } else {
+                String selectedDisplay = items[which];
+                Toast.makeText(game, "正在切换到: " + selectedDisplay + "，请稍候...", Toast.LENGTH_SHORT).show();
+                game.recreateConnectionWithDisplay(selectedDisplay);
+            }
+        });
+        builder.setNegativeButton(android.R.string.cancel, null);
+        builder.show();
     }
 } 

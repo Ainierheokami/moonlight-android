@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingLeft="24dp"
+        android:paddingTop="12dp"
+        android:paddingRight="24dp"
+        android:paddingBottom="6dp">
+
+        <RadioGroup
+            android:id="@+id/stream_enhance_mode_group"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <RadioButton
+                android:id="@+id/stream_enhance_mode_default"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/stream_enhance_mode_default" />
+
+            <RadioButton
+                android:id="@+id/stream_enhance_mode_secondary_channel"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/stream_enhance_mode_secondary_channel" />
+
+            <RadioButton
+                android:id="@+id/stream_enhance_mode_custom"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/stream_enhance_mode_custom_display" />
+        </RadioGroup>
+
+        <TextView
+            android:id="@+id/stream_enhance_mode_hint"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="@string/stream_enhance_mode_default_hint"
+            android:textSize="13sp" />
+
+        <TextView
+            android:id="@+id/stream_enhance_host_section"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="18dp"
+            android:text="@string/stream_enhance_section_host"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/stream_enhance_screen_mode_label"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:text="@string/title_stream_enhance_screen_mode" />
+
+        <Spinner
+            android:id="@+id/stream_enhance_screen_mode"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
+
+        <TextView
+            android:id="@+id/stream_enhance_vdd_mode_label"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:text="@string/title_stream_enhance_vdd_mode" />
+
+        <Spinner
+            android:id="@+id/stream_enhance_vdd_mode"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
+
+        <TextView
+            android:id="@+id/stream_enhance_display_label"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:text="@string/title_stream_enhance_display_name" />
+
+        <Spinner
+            android:id="@+id/stream_enhance_display_spinner"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
+
+        <EditText
+            android:id="@+id/stream_enhance_display_name"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="@string/title_stream_enhance_display_name"
+            android:singleLine="true" />
+
+        <TextView
+            android:id="@+id/stream_enhance_client_section"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="18dp"
+            android:text="@string/stream_enhance_section_client"
+            android:textStyle="bold" />
+
+        <CheckBox
+            android:id="@+id/stream_enhance_rotation_sync"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:text="@string/title_stream_enhance_rotation_sync" />
+
+        <CheckBox
+            android:id="@+id/stream_enhance_force_resume"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/title_force_resume_current_session" />
+    </LinearLayout>
+</ScrollView>

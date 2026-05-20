@@ -15,6 +15,10 @@ public class StreamView extends SurfaceView {
         this.desiredAspectRatio = aspectRatio;
     }
 
+    public double getDesiredAspectRatio() {
+        return desiredAspectRatio;
+    }
+
     public void setInputCallbacks(InputCallbacks callbacks) {
         this.inputCallbacks = callbacks;
     }

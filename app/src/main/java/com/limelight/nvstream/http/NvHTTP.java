@@ -23,7 +23,11 @@ import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.LinkedList;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.ListIterator;
+import java.util.List;
 import java.util.Stack;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
@@ -45,10 +49,14 @@ import javax.net.ssl.X509TrustManager;
 import org.xmlpull.v1.XmlPullParser;
 import org.xmlpull.v1.XmlPullParserException;
 import org.xmlpull.v1.XmlPullParserFactory;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import com.limelight.BuildConfig;
 import com.limelight.LimeLog;
 import com.limelight.nvstream.ConnectionContext;
+import com.limelight.nvstream.StreamEnhancement;
 import com.limelight.nvstream.http.PairingManager.PairState;
 import com.limelight.nvstream.jni.MoonBridge;
 
@@ -537,6 +545,71 @@ public class NvHTTP {
         // ServerCodecModeSupport wasn't present on old GFE versions
         return getXmlString(serverInfo, "GfeVersion", false);
     }
+
+    public List<String> getDisplayNames(String serverInfo) {
+        HashSet<String> names = new HashSet<String>();
+        String[] tagNames = new String[] {
+                "display_name", "displayName", "DisplayName", "name", "Name"
+        };
+
+        for (String tagName : tagNames) {
+            int index = 0;
+            String startTag = "<" + tagName + ">";
+            String endTag = "</" + tagName + ">";
+            while ((index = serverInfo.indexOf(startTag, index)) >= 0) {
+                int valueStart = index + startTag.length();
+                int valueEnd = serverInfo.indexOf(endTag, valueStart);
+                if (valueEnd < 0) {
+                    break;
+                }
+                String value = serverInfo.substring(valueStart, valueEnd).trim();
+                if (!value.isEmpty() && !value.contains("_SERVER_")) {
+                    names.add(value);
+                }
+                index = valueEnd + endTag.length();
+            }
+        }
+
+        ArrayList<String> sortedNames = new ArrayList<String>(names);
+        Collections.sort(sortedNames);
+        return sortedNames;
+    }
+
+    public List<String> getDisplayNames() throws IOException, XmlPullParserException {
+        try {
+            String jsonStr = openHttpConnectionToString(httpClientLongConnectTimeout, getHttpsUrl(true), "displays");
+            JSONObject json = new JSONObject(jsonStr);
+            if (json.optInt("status_code", 200) != 200) {
+                throw new IOException("Failed to get displays: " + json.optString("status_message"));
+            }
+
+            JSONArray displaysArray = json.optJSONArray("displays");
+            if (displaysArray == null) {
+                return new ArrayList<String>();
+            }
+
+            ArrayList<String> names = new ArrayList<String>();
+            for (int i = 0; i < displaysArray.length(); i++) {
+                JSONObject display = displaysArray.getJSONObject(i);
+                String displayName = display.optString("display_name", "");
+                String friendlyName = display.optString("friendly_name", "");
+                if (displayName.isEmpty()) {
+                    displayName = "Display " + (i + 1);
+                }
+                
+                if (!friendlyName.isEmpty() && !friendlyName.equals(displayName)) {
+                    names.add(displayName + " (" + friendlyName + ")");
+                } else {
+                    names.add(displayName);
+                }
+            }
+            return names;
+        } catch (JSONException e) {
+            throw new IOException("Failed to parse displays response: " + e.getMessage(), e);
+        } catch (FileNotFoundException e) {
+            return getDisplayNames(getServerInfo(true));
+        }
+    }
     
     public boolean supports4K(String serverInfo) throws XmlPullParserException, IOException {
         // Only allow 4K on GFE 3.x. GfeVersion wasn't present on very old versions of GFE.
@@ -776,8 +849,7 @@ public class NvHTTP {
             }
         }
 
-        String xmlStr = openHttpConnectionToString(httpClientLongConnectNoReadTimeout, getHttpsUrl(true), verb,
-            "appid=" + appId +
+        String launchQuery = "appid=" + appId +
             "&mode=" + context.negotiatedWidth + "x" + context.negotiatedHeight + "x" + fps +
             "&additionalStates=1&sops=" + (enableSops ? 1 : 0) +
             "&rikey="+bytesToHex(context.riKey.getEncoded()) +
@@ -788,7 +860,9 @@ public class NvHTTP {
             "&remoteControllersBitmap=" + context.streamConfig.getAttachedGamepadMask() +
             "&gcmap=" + context.streamConfig.getAttachedGamepadMask() +
             "&gcpersist="+(context.streamConfig.getPersistGamepadsAfterDisconnect() ? 1 : 0) +
-            MoonBridge.getLaunchUrlQueryParameters());
+            MoonBridge.getLaunchUrlQueryParameters();
+        String xmlStr = openHttpConnectionToString(httpClientLongConnectNoReadTimeout, getHttpsUrl(true), verb,
+                StreamEnhancement.appendLaunchQuery(launchQuery, context));
         if ((verb.equals("launch") && !getXmlString(xmlStr, "gamesession", true).equals("0") ||
                 (verb.equals("resume") && !getXmlString(xmlStr, "resume", true).equals("0")))) {
             // sessionUrl0 will be missing for older GFE versions
@@ -815,5 +889,26 @@ public class NvHTTP {
         }
 
         return true;
+    }
+
+    public boolean setBitrate(int bitrateKbps) throws IOException, XmlPullParserException {
+        String xmlStr = openHttpConnectionToString(httpClientLongConnectNoReadTimeout, getHttpsUrl(true),
+                "bitrate", "bitrate=" + bitrateKbps);
+        return !getXmlString(xmlStr, "bitrate", true).equals("0");
+    }
+
+    public boolean rotateDisplay(int angle, String displayName) throws IOException, XmlPullParserException {
+        String query = "angle=" + angle;
+        if (displayName != null && !displayName.trim().isEmpty()) {
+            query += "&display_name=" + java.net.URLEncoder.encode(displayName.trim(), "UTF-8");
+        }
+        try {
+            String jsonStr = openHttpConnectionToString(httpClientLongConnectTimeout, getHttpsUrl(true),
+                    "rotate-display", query);
+            JSONObject json = new JSONObject(jsonStr);
+            return json.optInt("status_code", 0) == 200 && json.optBoolean("success", false);
+        } catch (JSONException e) {
+            throw new IOException("Failed to parse rotate display response: " + e.getMessage(), e);
+        }
     }
 }

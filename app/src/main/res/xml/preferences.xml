@@ -278,6 +278,40 @@
             android:title="@string/title_checkbox_host_audio"
             android:summary="@string/summary_checkbox_host_audio"
             android:defaultValue="false" />
+        <CheckBoxPreference
+            android:key="checkbox_stream_enhance_use_vdd"
+            android:title="@string/title_stream_enhance_use_vdd"
+            android:summary="@string/summary_stream_enhance_use_vdd"
+            android:defaultValue="false" />
+        <ListPreference
+            android:key="list_stream_enhance_screen_mode"
+            android:title="@string/title_stream_enhance_screen_mode"
+            android:summary="@string/summary_stream_enhance_screen_mode"
+            android:entries="@array/stream_enhance_mode_names"
+            android:entryValues="@array/stream_enhance_mode_values"
+            android:defaultValue="-1" />
+        <ListPreference
+            android:key="list_stream_enhance_vdd_mode"
+            android:title="@string/title_stream_enhance_vdd_mode"
+            android:summary="@string/summary_stream_enhance_vdd_mode"
+            android:entries="@array/stream_enhance_mode_names"
+            android:entryValues="@array/stream_enhance_mode_values"
+            android:defaultValue="-1" />
+        <EditTextPreference
+            android:key="edittext_stream_enhance_display_name"
+            android:title="@string/title_stream_enhance_display_name"
+            android:summary="@string/summary_stream_enhance_display_name"
+            android:defaultValue="" />
+        <CheckBoxPreference
+            android:key="checkbox_stream_enhance_rotation_sync"
+            android:title="@string/title_stream_enhance_rotation_sync"
+            android:summary="@string/summary_stream_enhance_rotation_sync"
+            android:defaultValue="false" />
+        <CheckBoxPreference
+            android:key="checkbox_force_resume_current_session"
+            android:title="@string/title_force_resume_current_session"
+            android:summary="@string/summary_force_resume_current_session"
+            android:defaultValue="false" />
     </PreferenceCategory>
     <PreferenceCategory android:title="@string/category_ui_settings"
         android:key="category_ui_settings">

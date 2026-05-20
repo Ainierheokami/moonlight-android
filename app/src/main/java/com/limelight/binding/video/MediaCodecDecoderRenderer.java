@@ -80,6 +80,7 @@ public class MediaCodecDecoderRenderer extends VideoDecoderRenderer implements C
     private byte optimalSlicesPerFrame;
     private boolean refFrameInvalidationActive;
     private int initialWidth, initialHeight;
+    private volatile int currentVideoWidth, currentVideoHeight;
     private int videoFormat;
     private SurfaceHolder renderTarget;
     private volatile boolean stopping;
@@ -876,10 +877,45 @@ public class MediaCodecDecoderRenderer extends VideoDecoderRenderer implements C
     public int setup(int format, int width, int height, int redrawRate) {
         this.initialWidth = width;
         this.initialHeight = height;
+        updateCurrentVideoSize(width, height);
         this.videoFormat = format;
         this.refreshRate = redrawRate;
 
         return initializeDecoder(false);
+    }
+
+    private void updateCurrentVideoSize(int width, int height) {
+        if (width <= 0 || height <= 0) {
+            return;
+        }
+
+        if (currentVideoWidth == width && currentVideoHeight == height) {
+            return;
+        }
+
+        currentVideoWidth = width;
+        currentVideoHeight = height;
+        if (perfListener != null) {
+            perfListener.onVideoSizeChanged(width, height);
+        }
+    }
+
+    private void updateCurrentVideoSize(MediaFormat format) {
+        if (format == null || !format.containsKey(MediaFormat.KEY_WIDTH) || !format.containsKey(MediaFormat.KEY_HEIGHT)) {
+            return;
+        }
+
+        int width = format.getInteger(MediaFormat.KEY_WIDTH);
+        int height = format.getInteger(MediaFormat.KEY_HEIGHT);
+
+        if (format.containsKey("crop-left") && format.containsKey("crop-right")) {
+            width = format.getInteger("crop-right") - format.getInteger("crop-left") + 1;
+        }
+        if (format.containsKey("crop-top") && format.containsKey("crop-bottom")) {
+            height = format.getInteger("crop-bottom") - format.getInteger("crop-top") + 1;
+        }
+
+        updateCurrentVideoSize(width, height);
     }
 
     // All threads that interact with the MediaCodec instance must call this function regularly!
@@ -1317,6 +1353,7 @@ public class MediaCodecDecoderRenderer extends VideoDecoderRenderer implements C
                                     LimeLog.info("Output format changed");
                                     outputFormat = videoDecoder.getOutputFormat();
                                     LimeLog.info("New output format: " + outputFormat);
+                                    updateCurrentVideoSize(outputFormat);
                                     break;
                                 default:
                                     break;
@@ -1649,10 +1686,13 @@ public class MediaCodecDecoderRenderer extends VideoDecoderRenderer implements C
 
                 float decodeTimeMs = (float)lastTwo.decoderTimeMs / lastTwo.totalFramesReceived;
                 long rttInfo = MoonBridge.getEstimatedRttInfo();
+                int overlayWidth = currentVideoWidth > 0 ? currentVideoWidth : initialWidth;
+                int overlayHeight = currentVideoHeight > 0 ? currentVideoHeight : initialHeight;
+                String currentResolution = overlayWidth + "x" + overlayHeight;
 
                 if (prefs.enablePerfOverlay){
                     StringBuilder sb = new StringBuilder();
-                    sb.append(context.getString(R.string.perf_overlay_streamdetails, initialWidth + "x" + initialHeight, fps.totalFps)).append('\n');
+                    sb.append(context.getString(R.string.perf_overlay_streamdetails, currentResolution, fps.totalFps)).append('\n');
                     sb.append(context.getString(R.string.perf_overlay_decoder, decoder)).append('\n');
                     sb.append(context.getString(R.string.perf_overlay_incomingfps, fps.receivedFps)).append('\n');
                     sb.append(context.getString(R.string.perf_overlay_renderingfps, fps.renderedFps)).append('\n');
@@ -1718,7 +1758,7 @@ public class MediaCodecDecoderRenderer extends VideoDecoderRenderer implements C
                     ));
                     data.put("@data11", String.format(Locale.getDefault(), "%.2fMB/s", relinputRateMBps)); // 真实输入流量速率);
                     data.put("@data12", String.format(Locale.getDefault(), "%.2fMB/s", reloutputRateMBps)); // 真实输出流量速率);
-                    data.put("@data13", initialWidth + "x" + initialHeight); // 分辨率
+                    data.put("@data13", currentResolution); // 实时解码输出分辨率
                     String result = TemplateRenderer.render(template, data);
                     perfListener.onPerfUpdate(result);
                 }
@@ -1901,40 +1941,55 @@ public class MediaCodecDecoderRenderer extends VideoDecoderRenderer implements C
                 // If this is the first CSD blob or we aren't supporting fused IDR frames, we will
                 // submit the CSD blob in a separate input buffer for each IDR frame.
                 if (!submittedCsd || !fusedIdrFrame) {
-                    if (!fetchNextInputBuffer()) {
-                        return MoonBridge.DR_NEED_IDR;
-                    }
-
-                    // Submit all CSD when we receive the first non-CSD blob in an IDR frame
-                    for (byte[] vpsBuffer : vpsBuffers) {
-                        nextInputBuffer.put(vpsBuffer);
-                    }
-                    for (byte[] spsBuffer : spsBuffers) {
-                        nextInputBuffer.put(spsBuffer);
-                    }
-                    for (byte[] ppsBuffer : ppsBuffers) {
-                        nextInputBuffer.put(ppsBuffer);
-                    }
-
-                    if (!queueNextInputBuffer(0, MediaCodec.BUFFER_FLAG_CODEC_CONFIG)) {
-                        return MoonBridge.DR_NEED_IDR;
-                    }
-
-                    // Remember that we already submitted CSD for this frame, so we don't do it
-                    // again in the fused IDR case below.
-                    csdSubmittedForThisFrame = true;
-
-                    // Remember that we submitted CSD globally for this MediaCodec instance
-                    submittedCsd = true;
-
-                    if (needsBaselineSpsHack) {
-                        needsBaselineSpsHack = false;
-
-                        if (!replaySps()) {
+                    try {
+                        if (!fetchNextInputBuffer()) {
                             return MoonBridge.DR_NEED_IDR;
                         }
 
-                        LimeLog.info("SPS replay complete");
+                        if (nextInputBuffer == null) {
+                            return MoonBridge.DR_NEED_IDR;
+                        }
+
+                        // Submit all CSD when we receive the first non-CSD blob in an IDR frame
+                        for (byte[] vpsBuffer : vpsBuffers) {
+                            if (nextInputBuffer != null) {
+                                nextInputBuffer.put(vpsBuffer);
+                            }
+                        }
+                        for (byte[] spsBuffer : spsBuffers) {
+                            if (nextInputBuffer != null) {
+                                nextInputBuffer.put(spsBuffer);
+                            }
+                        }
+                        for (byte[] ppsBuffer : ppsBuffers) {
+                            if (nextInputBuffer != null) {
+                                nextInputBuffer.put(ppsBuffer);
+                            }
+                        }
+
+                        if (!queueNextInputBuffer(0, MediaCodec.BUFFER_FLAG_CODEC_CONFIG)) {
+                            return MoonBridge.DR_NEED_IDR;
+                        }
+
+                        // Remember that we already submitted CSD for this frame, so we don't do it
+                        // again in the fused IDR case below.
+                        csdSubmittedForThisFrame = true;
+
+                        // Remember that we submitted CSD globally for this MediaCodec instance
+                        submittedCsd = true;
+
+                        if (needsBaselineSpsHack) {
+                            needsBaselineSpsHack = false;
+
+                            if (!replaySps()) {
+                                return MoonBridge.DR_NEED_IDR;
+                            }
+
+                            LimeLog.info("SPS replay complete");
+                        }
+                    } catch (Exception e) {
+                        LimeLog.warning("Exception during CSD buffer submission, likely stopping: " + e.getMessage());
+                        return MoonBridge.DR_OK;
                     }
                 }
             }
@@ -1961,83 +2016,109 @@ public class MediaCodecDecoderRenderer extends VideoDecoderRenderer implements C
             activeWindowVideoStats.totalTimeMs += enqueueTimeMs - receiveTimeMs;
         }
 
-        if (!fetchNextInputBuffer()) {
-            return MoonBridge.DR_NEED_IDR;
-        }
+        try {
+            if (!fetchNextInputBuffer()) {
+                return MoonBridge.DR_NEED_IDR;
+            }
 
-        int codecFlags = 0;
+            if (nextInputBuffer == null) {
+                return MoonBridge.DR_NEED_IDR;
+            }
 
-        if (frameType == MoonBridge.FRAME_TYPE_IDR) {
-            codecFlags |= MediaCodec.BUFFER_FLAG_SYNC_FRAME;
+            int codecFlags = 0;
 
-            // If we are using fused IDR frames, submit the CSD with each IDR frame
-            if (fusedIdrFrame && !csdSubmittedForThisFrame) {
-                for (byte[] vpsBuffer : vpsBuffers) {
-                    nextInputBuffer.put(vpsBuffer);
-                }
-                for (byte[] spsBuffer : spsBuffers) {
-                    nextInputBuffer.put(spsBuffer);
-                }
-                for (byte[] ppsBuffer : ppsBuffers) {
-                    nextInputBuffer.put(ppsBuffer);
+            if (frameType == MoonBridge.FRAME_TYPE_IDR) {
+                codecFlags |= MediaCodec.BUFFER_FLAG_SYNC_FRAME;
+
+                // If we are using fused IDR frames, submit the CSD with each IDR frame
+                if (fusedIdrFrame && !csdSubmittedForThisFrame) {
+                    for (byte[] vpsBuffer : vpsBuffers) {
+                        if (nextInputBuffer != null) {
+                            nextInputBuffer.put(vpsBuffer);
+                        }
+                    }
+                    for (byte[] spsBuffer : spsBuffers) {
+                        if (nextInputBuffer != null) {
+                            nextInputBuffer.put(spsBuffer);
+                        }
+                    }
+                    for (byte[] ppsBuffer : ppsBuffers) {
+                        if (nextInputBuffer != null) {
+                            nextInputBuffer.put(ppsBuffer);
+                        }
+                    }
                 }
             }
-        }
 
-        long timestampUs = SystemClock.uptimeMillis() * 1000;
-        if (timestampUs <= lastTimestampUs) {
-            // We can't submit multiple buffers with the same timestamp
-            // so bump it up by one before queuing
-            timestampUs = lastTimestampUs + 1;
-        }
-        lastTimestampUs = timestampUs;
-
-        numFramesIn++;
-
-        if (decodeUnitLength > nextInputBuffer.limit() - nextInputBuffer.position()) {
-            IllegalArgumentException exception = new IllegalArgumentException(
-                    "Decode unit length "+decodeUnitLength+" too large for input buffer "+nextInputBuffer.limit());
-            if (!reportedCrash) {
-                reportedCrash = true;
-                crashListener.notifyCrash(exception);
+            long timestampUs = SystemClock.uptimeMillis() * 1000;
+            if (timestampUs <= lastTimestampUs) {
+                // We can't submit multiple buffers with the same timestamp
+                // so bump it up by one before queuing
+                timestampUs = lastTimestampUs + 1;
             }
-            throw new RendererException(this, exception);
-        }
+            lastTimestampUs = timestampUs;
 
-        // Copy data from our buffer list into the input buffer
-        nextInputBuffer.put(decodeUnitData, 0, decodeUnitLength);
+            numFramesIn++;
 
-        if (!queueNextInputBuffer(timestampUs, codecFlags)) {
-            return MoonBridge.DR_NEED_IDR;
+            if (decodeUnitLength > nextInputBuffer.limit() - nextInputBuffer.position()) {
+                IllegalArgumentException exception = new IllegalArgumentException(
+                        "Decode unit length "+decodeUnitLength+" too large for input buffer "+nextInputBuffer.limit());
+                if (!reportedCrash) {
+                    reportedCrash = true;
+                    crashListener.notifyCrash(exception);
+                }
+                throw new RendererException(this, exception);
+            }
+
+            // Copy data from our buffer list into the input buffer
+            if (nextInputBuffer != null) {
+                nextInputBuffer.put(decodeUnitData, 0, decodeUnitLength);
+            }
+
+            if (!queueNextInputBuffer(timestampUs, codecFlags)) {
+                return MoonBridge.DR_NEED_IDR;
+            }
+        } catch (Exception e) {
+            LimeLog.warning("Exception during submitDecodeUnit, likely stopping: " + e.getMessage());
+            return MoonBridge.DR_OK;
         }
 
         return MoonBridge.DR_OK;
     }
 
     private boolean replaySps() {
-        if (!fetchNextInputBuffer()) {
+        try {
+            if (!fetchNextInputBuffer()) {
+                return false;
+            }
+
+            if (nextInputBuffer == null) {
+                return false;
+            }
+
+            // Write the Annex B header
+            nextInputBuffer.put(new byte[]{0x00, 0x00, 0x00, 0x01, 0x67});
+
+            // Switch the H264 profile back to high
+            savedSps.profileIdc = 100;
+
+            // Patch the SPS constraint flags
+            doProfileSpecificSpsPatching(savedSps);
+
+            // The H264Utils.writeSPS function safely handles
+            // Annex B NALUs (including NALUs with escape sequences)
+            ByteBuffer escapedNalu = H264Utils.writeSPS(savedSps, 128);
+            nextInputBuffer.put(escapedNalu);
+
+            // No need for the SPS anymore
+            savedSps = null;
+
+            // Queue the new SPS
+            return queueNextInputBuffer(0, MediaCodec.BUFFER_FLAG_CODEC_CONFIG);
+        } catch (Exception e) {
+            LimeLog.warning("Exception during replaySps: " + e.getMessage());
             return false;
         }
-
-        // Write the Annex B header
-        nextInputBuffer.put(new byte[]{0x00, 0x00, 0x00, 0x01, 0x67});
-
-        // Switch the H264 profile back to high
-        savedSps.profileIdc = 100;
-
-        // Patch the SPS constraint flags
-        doProfileSpecificSpsPatching(savedSps);
-
-        // The H264Utils.writeSPS function safely handles
-        // Annex B NALUs (including NALUs with escape sequences)
-        ByteBuffer escapedNalu = H264Utils.writeSPS(savedSps, 128);
-        nextInputBuffer.put(escapedNalu);
-
-        // No need for the SPS anymore
-        savedSps = null;
-
-        // Queue the new SPS
-        return queueNextInputBuffer(0, MediaCodec.BUFFER_FLAG_CODEC_CONFIG);
     }
 
     @Override

@@ -165,7 +165,10 @@ public class Game extends Activity implements SurfaceHolder.Callback,
 
     // 新增：标记是否需要恢复流
     private boolean tempDisableForceResume = false;
-    private Boolean originalForceResumeSession = null;
+    // 新增：内存覆盖变量，隔离竞态条件，保证实时切换显示器时不污染 SharedPreferences 且 100% 成功切换
+    private String tempOverrideDisplayName = null;
+    private Boolean tempOverrideUseVdd = null;
+    private Boolean tempOverrideForceResume = null;
     private boolean isSwitchingDisplay = false;
     private boolean isSwitchingDisplayForcedRelaunch = false;
     private String appName;
@@ -2698,46 +2701,59 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                // 1. 将首选显示器名称持久化至 preferences 中
-                android.content.SharedPreferences prefs = android.preference.PreferenceManager.getDefaultSharedPreferences(Game.this);
-                prefs.edit().putString("edittext_stream_enhance_display_name", displayName).apply();
-                
-                // 备份并硬锁定 checkbox_force_resume_current_session 为 false，确保 Sunshine 执行 /launch 重新加载显示器，而非 /resume
-                if (originalForceResumeSession == null) {
-                    originalForceResumeSession = prefs.getBoolean("checkbox_force_resume_current_session", false);
+                // 如果传入的显示器名称包含友好提示后缀 (如 "\\\\.\\DISPLAY1 (HP 27mq)")，我们提取真实的底层显示器名字
+                final String targetDisplay;
+                if (displayName.contains(" (")) {
+                    targetDisplay = displayName.substring(0, displayName.indexOf(" (")).trim();
+                } else {
+                    targetDisplay = displayName;
                 }
-                prefs.edit().putBoolean("checkbox_force_resume_current_session", false).apply();
 
-                // 2. 标记正在切换显示器中，隔离旧连接销毁带来的 JNI 退出回调
+                // 1. 读取当前的全局配置（以保持与全局 VDD 设置逻辑一致）
+                android.content.SharedPreferences prefs = android.preference.PreferenceManager.getDefaultSharedPreferences(Game.this);
+                boolean globalUseVdd = prefs.getBoolean("checkbox_stream_enhance_use_vdd", false);
+
+                // 2. 赋值给内存覆盖变量，绝对不读写改动全局 SharedPreferences，实现物理隔离
+                tempOverrideDisplayName = targetDisplay;
+                
+                // 智能判定 useVdd 设定：如果目标屏幕包含 "display1"（物理主屏），强制禁用 VDD，确保物理主屏能拿回画面控制权
+                // 否则（如虚拟屏或物理副屏），使用用户在全局设置里本来的 VDD 设定
+                boolean isTargetPrimaryPhysical = targetDisplay.toLowerCase().contains("display1");
+                tempOverrideUseVdd = isTargetPrimaryPhysical ? false : globalUseVdd;
+                
+                // 强行把 force-resume 设为 false，确保重连拉起时执行 /launch 进行换屏，而非单纯 /resume
+                tempOverrideForceResume = false;
+
+                // 3. 标记正在切换显示器中，隔离旧连接销毁带来的 JNI 退出回调
                 isSwitchingDisplay = true;
                 isSwitchingDisplayForcedRelaunch = true;
                 tempDisableForceResume = true;
 
-                // 3. 展现平滑的重连遮罩
+                // 4. 展现平滑的重连遮罩
                 if (reconnectionOverlay != null) {
                     reconnectionOverlay.setAlpha(1.0f);
                     reconnectionOverlay.setVisibility(View.VISIBLE);
                 }
                 
-                // 4. 彻底回收旧连接
+                // 5. 彻底回收旧连接
                 if (conn != null) {
                     Log.i("MoonReconnect", "[Game] recreateConnectionWithDisplay: stopping old connection");
                     stopConnection();
                 }
                 
-                // 5. 释放解码器
+                // 6. 释放解码器
                 if (decoderRenderer != null) {
                     decoderRenderer.cleanup();
                 }
                 
-                // 6. 延迟 300ms 后拉起新连接，保证旧连接的网络 socket 及 JNI 正确释放
+                // 7. 延迟 300ms 后拉起新连接，保证旧连接的网络 socket 及 JNI 正确释放
                 new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(new Runnable() {
                     @Override
                     public void run() {
                         // 准备启动新连接时，恢复 isSwitchingDisplay 为 false，允许捕获新连接可能出现的错误
                         isSwitchingDisplay = false;
                         if (streamView != null && streamView.getHolder() != null) {
-                            Log.i("MoonReconnect", "[Game] recreateConnectionWithDisplay: starting new connection with display: " + displayName);
+                            Log.i("MoonReconnect", "[Game] recreateConnectionWithDisplay: starting new connection with display (override): " + tempOverrideDisplayName);
                             startConnection(streamView.getHolder());
                         }
                     }
@@ -2939,12 +2955,10 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                // 还原强制恢复会话的首选项，做到无痕
-                if (originalForceResumeSession != null) {
-                    android.content.SharedPreferences prefs = android.preference.PreferenceManager.getDefaultSharedPreferences(Game.this);
-                    prefs.edit().putBoolean("checkbox_force_resume_current_session", originalForceResumeSession).apply();
-                    originalForceResumeSession = null;
-                }
+                // 重置内存覆盖变量，恢复到首选项默认行为
+                tempOverrideDisplayName = null;
+                tempOverrideUseVdd = null;
+                tempOverrideForceResume = null;
                 if (spinner != null) {
                     spinner.dismiss();
                     spinner = null;
@@ -3011,12 +3025,10 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                // 还原强制恢复会话的首选项，做到无痕
-                if (originalForceResumeSession != null) {
-                    android.content.SharedPreferences prefs = android.preference.PreferenceManager.getDefaultSharedPreferences(Game.this);
-                    prefs.edit().putBoolean("checkbox_force_resume_current_session", originalForceResumeSession).apply();
-                    originalForceResumeSession = null;
-                }
+                // 重置内存覆盖变量，恢复到首选项默认行为
+                tempOverrideDisplayName = null;
+                tempOverrideUseVdd = null;
+                tempOverrideForceResume = null;
                 // Let the display go to sleep now
                 getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
@@ -3142,12 +3154,10 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                // 还原强制恢复会话的首选项，做到无痕
-                if (originalForceResumeSession != null) {
-                    android.content.SharedPreferences prefs = android.preference.PreferenceManager.getDefaultSharedPreferences(Game.this);
-                    prefs.edit().putBoolean("checkbox_force_resume_current_session", originalForceResumeSession).apply();
-                    originalForceResumeSession = null;
-                }
+                // 重置内存覆盖变量，恢复到首选项默认行为
+                tempOverrideDisplayName = null;
+                tempOverrideUseVdd = null;
+                tempOverrideForceResume = null;
                 if (spinner != null) {
                     spinner.dismiss();
                     spinner = null;
@@ -3898,6 +3908,20 @@ public class Game extends Activity implements SurfaceHolder.Callback,
 
         // 重新读取 prefConfig，防止配置变动
         prefConfig = PreferenceConfiguration.readPreferences(this);
+
+        // 应用临时内存变量覆盖（物理隔离 preferences 与前台实时切屏冲突，终极解耦）
+        if (tempOverrideDisplayName != null) {
+            prefConfig.streamEnhanceDisplayName = tempOverrideDisplayName;
+            Log.i("MoonReconnect", "[Game] startConnection Override streamEnhanceDisplayName to: " + tempOverrideDisplayName);
+        }
+        if (tempOverrideUseVdd != null) {
+            prefConfig.streamEnhanceUseVdd = tempOverrideUseVdd;
+            Log.i("MoonReconnect", "[Game] startConnection Override streamEnhanceUseVdd to: " + tempOverrideUseVdd);
+        }
+        if (tempOverrideForceResume != null) {
+            prefConfig.forceResumeCurrentSession = tempOverrideForceResume;
+            Log.i("MoonReconnect", "[Game] startConnection Override forceResumeCurrentSession to: " + tempOverrideForceResume);
+        }
 
         if (tempDisableForceResume) {
             prefConfig.forceResumeCurrentSession = false;

@@ -97,6 +97,12 @@ Java_com_limelight_nvstream_jni_MoonBridge_sendControllerBatteryEvent(JNIEnv *en
     return LiSendControllerBatteryEvent(controllerNumber, batteryState, batteryPercentage);
 }
 
+JNIEXPORT jint JNICALL
+Java_com_limelight_nvstream_jni_MoonBridge_sendDynamicBitrate(JNIEnv *env, jclass clazz,
+                                                              jint bitrateKbps) {
+    return LiSendDynamicBitrate((uint32_t)bitrateKbps);
+}
+
 JNIEXPORT void JNICALL
 Java_com_limelight_nvstream_jni_MoonBridge_sendKeyboardInput(JNIEnv *env, jclass clazz, jshort keyCode, jbyte keyAction, jbyte modifiers, jbyte flags) {
     LiSendKeyboardEvent2(keyCode, keyAction, modifiers, flags);

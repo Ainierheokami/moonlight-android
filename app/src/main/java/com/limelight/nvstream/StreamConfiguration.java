@@ -12,6 +12,7 @@ public class StreamConfiguration {
     
     private NvApp app;
     private int width, height;
+    private int hostResolutionScaleX100;
     private int refreshRate;
     private int launchRefreshRate;
     private int clientRefreshRateX100;
@@ -28,6 +29,9 @@ public class StreamConfiguration {
     private int colorRange;
     private int colorSpace;
     private boolean persistGamepadsAfterDisconnect;
+    private boolean useVdd;
+    private int customScreenMode;
+    private int customVddScreenMode;
 
     public static class Builder {
         private StreamConfiguration config = new StreamConfiguration();
@@ -47,6 +51,11 @@ public class StreamConfiguration {
             config.height = height;
             return this;
         }
+
+        public StreamConfiguration.Builder setHostResolutionScaleX100(int scaleX100) {
+            config.hostResolutionScaleX100 = scaleX100;
+            return this;
+        }
         
         public StreamConfiguration.Builder setRefreshRate(int refreshRate) {
             config.refreshRate = refreshRate;
@@ -60,6 +69,21 @@ public class StreamConfiguration {
         
         public StreamConfiguration.Builder setBitrate(int bitrate) {
             config.bitrate = bitrate;
+            return this;
+        }
+
+        public StreamConfiguration.Builder setUseVdd(boolean useVdd) {
+            config.useVdd = useVdd;
+            return this;
+        }
+
+        public StreamConfiguration.Builder setCustomScreenMode(int mode) {
+            config.customScreenMode = mode;
+            return this;
+        }
+
+        public StreamConfiguration.Builder setCustomVddScreenMode(int mode) {
+            config.customVddScreenMode = mode;
             return this;
         }
         
@@ -138,6 +162,7 @@ public class StreamConfiguration {
         this.app = new NvApp("Steam");
         this.width = 1280;
         this.height = 720;
+        this.hostResolutionScaleX100 = 100;
         this.refreshRate = 60;
         this.launchRefreshRate = 60;
         this.bitrate = 10000;
@@ -148,6 +173,8 @@ public class StreamConfiguration {
         this.audioConfiguration = MoonBridge.AUDIO_CONFIGURATION_STEREO;
         this.supportedVideoFormats = MoonBridge.VIDEO_FORMAT_H264;
         this.attachedGamepadMask = 0;
+        this.customScreenMode = -1;
+        this.customVddScreenMode = -1;
     }
     
     public int getWidth() {
@@ -156,6 +183,22 @@ public class StreamConfiguration {
     
     public int getHeight() {
         return height;
+    }
+
+    public int getHostResolutionScaleX100() {
+        return hostResolutionScaleX100;
+    }
+
+    public int getReqWidth() {
+        return StreamEnhancement.requestedWidth(this);
+    }
+
+    public int getReqHeight() {
+        return StreamEnhancement.requestedHeight(this);
+    }
+
+    public int getResolutionScale() {
+        return hostResolutionScaleX100;
     }
     
     public int getRefreshRate() {
@@ -168,6 +211,22 @@ public class StreamConfiguration {
     
     public int getBitrate() {
         return bitrate;
+    }
+
+    public void setBitrate(int bitrate) {
+        this.bitrate = bitrate;
+    }
+
+    public boolean getUseVdd() {
+        return useVdd;
+    }
+
+    public int getCustomScreenMode() {
+        return customScreenMode;
+    }
+
+    public int getCustomVddScreenMode() {
+        return customVddScreenMode;
     }
     
     public int getMaxPacketSize() {

@@ -76,6 +76,12 @@ public class PreferenceConfiguration {
     private static final String GAMEPAD_MOTION_SENSORS_PREF_STRING = "checkbox_gamepad_motion_sensors";
     private static final String GAMEPAD_MOTION_FALLBACK_PREF_STRING = "checkbox_gamepad_motion_fallback";
     private static final String SHOW_OFFLINE_PCS_PREF_STRING = "checkbox_show_offline_pcs";
+    private static final String STREAM_ENHANCE_USE_VDD_PREF_STRING = "checkbox_stream_enhance_use_vdd";
+    private static final String STREAM_ENHANCE_SCREEN_MODE_PREF_STRING = "list_stream_enhance_screen_mode";
+    private static final String STREAM_ENHANCE_VDD_MODE_PREF_STRING = "list_stream_enhance_vdd_mode";
+    private static final String STREAM_ENHANCE_DISPLAY_NAME_PREF_STRING = "edittext_stream_enhance_display_name";
+    private static final String STREAM_ENHANCE_ROTATION_SYNC_PREF_STRING = "checkbox_stream_enhance_rotation_sync";
+    private static final String FORCE_RESUME_CURRENT_SESSION_PREF_STRING = "checkbox_force_resume_current_session";
 
     // 后台切回自动重连相关设置
     private static final String BACKGROUND_RECONNECT_ENABLED_PREF_STRING = "checkbox_background_reconnect_enabled";
@@ -126,6 +132,10 @@ public class PreferenceConfiguration {
     public static final int DEFAULT_TOUCHPAD_SENSITIVITY = 100;
     private static final boolean DEFAULT_GAMEPAD_MOTION_FALLBACK = false;
     private static final boolean DEFAULT_SHOW_OFFLINE_PCS = true;
+    private static final boolean DEFAULT_STREAM_ENHANCE_USE_VDD = false;
+    private static final boolean DEFAULT_STREAM_ENHANCE_ROTATION_SYNC = false;
+    private static final boolean DEFAULT_FORCE_RESUME_CURRENT_SESSION = false;
+    private static final String DEFAULT_STREAM_ENHANCE_MODE = "-1";
 
     // 后台切回自动重连默认值
     private static final boolean DEFAULT_BACKGROUND_RECONNECT_ENABLED = true;
@@ -180,6 +190,12 @@ public class PreferenceConfiguration {
     public boolean gamepadTouchpadAsMouse;
     public boolean gamepadMotionSensorsFallbackToDevice;
     public boolean showOfflinePcs;
+    public boolean streamEnhanceUseVdd;
+    public int streamEnhanceScreenMode;
+    public int streamEnhanceVddMode;
+    public String streamEnhanceDisplayName;
+    public boolean streamEnhanceRotationSync;
+    public boolean forceResumeCurrentSession;
     // 默认触摸板灵敏度（应用于全局相对触摸）
     public int defaultTouchpadSensitivity;
     
@@ -689,6 +705,12 @@ public class PreferenceConfiguration {
         config.gamepadMotionSensors = prefs.getBoolean(GAMEPAD_MOTION_SENSORS_PREF_STRING, DEFAULT_GAMEPAD_MOTION_SENSORS);
         config.gamepadMotionSensorsFallbackToDevice = prefs.getBoolean(GAMEPAD_MOTION_FALLBACK_PREF_STRING, DEFAULT_GAMEPAD_MOTION_FALLBACK);
         config.showOfflinePcs = prefs.getBoolean(SHOW_OFFLINE_PCS_PREF_STRING, DEFAULT_SHOW_OFFLINE_PCS);
+        config.streamEnhanceUseVdd = prefs.getBoolean(STREAM_ENHANCE_USE_VDD_PREF_STRING, DEFAULT_STREAM_ENHANCE_USE_VDD);
+        config.streamEnhanceScreenMode = parseIntPref(prefs, STREAM_ENHANCE_SCREEN_MODE_PREF_STRING, DEFAULT_STREAM_ENHANCE_MODE);
+        config.streamEnhanceVddMode = parseIntPref(prefs, STREAM_ENHANCE_VDD_MODE_PREF_STRING, DEFAULT_STREAM_ENHANCE_MODE);
+        config.streamEnhanceDisplayName = prefs.getString(STREAM_ENHANCE_DISPLAY_NAME_PREF_STRING, "");
+        config.streamEnhanceRotationSync = prefs.getBoolean(STREAM_ENHANCE_ROTATION_SYNC_PREF_STRING, DEFAULT_STREAM_ENHANCE_ROTATION_SYNC);
+        config.forceResumeCurrentSession = prefs.getBoolean(FORCE_RESUME_CURRENT_SESSION_PREF_STRING, DEFAULT_FORCE_RESUME_CURRENT_SESSION);
         config.simplifyPerfOverlayPrefTemplate = prefs.getString(EDITTEXT_SIMPLE_PERF_OVERLAY_PREF_STRING, context.getString(R.string.default_template_simple_perf_overlay));
         // 读取默认触摸板灵敏度（10-300），用于非虚拟键盘的默认相对触控
         config.defaultTouchpadSensitivity = Math.max(10, Math.min(300, prefs.getInt(DEFAULT_TOUCHPAD_SENSITIVITY_PREF_STRING, DEFAULT_TOUCHPAD_SENSITIVITY)));
@@ -703,5 +725,13 @@ public class PreferenceConfiguration {
         config.backgroundReconnectTimeout = prefs.getInt(BACKGROUND_RECONNECT_TIMEOUT_PREF_STRING, DEFAULT_BACKGROUND_RECONNECT_TIMEOUT);
         
         return config;
+    }
+
+    private static int parseIntPref(SharedPreferences prefs, String key, String defaultValue) {
+        try {
+            return Integer.parseInt(prefs.getString(key, defaultValue));
+        } catch (NumberFormatException e) {
+            return Integer.parseInt(defaultValue);
+        }
     }
 }
