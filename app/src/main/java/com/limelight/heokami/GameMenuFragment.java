@@ -55,6 +55,7 @@ public class GameMenuFragment extends Fragment {
     private LinearLayout touchModeOptions;
     private boolean isMenuVisible = false;
     private long lastDisconnectTapMs = 0;
+    private android.animation.ValueAnimator holdAnimator = null;
 
     // 动画持续时间
     private static final int ANIMATION_DURATION = 300;
@@ -436,11 +437,145 @@ public class GameMenuFragment extends Fragment {
 
         Button btnDisconnect = getView().findViewById(R.id.btn_disconnect);
         if (btnDisconnect != null) {
-            btnDisconnect.setOnClickListener(v -> confirmDisconnect());
-            btnDisconnect.setOnLongClickListener(v -> {
-                hideMenuWithAnimation();
-                game.finish();
-                return true;
+            btnDisconnect.setOnClickListener(null);
+            btnDisconnect.setOnLongClickListener(null);
+            
+            btnDisconnect.setOnTouchListener(new View.OnTouchListener() {
+                private long downTime = 0;
+                private boolean isLongPressed = false;
+                private boolean isCancelled = false;
+                private final Handler longPressHandler = new Handler(Looper.getMainLooper());
+                
+                private final Runnable longPressRunnable = new Runnable() {
+                    @Override
+                    public void run() {
+                        isLongPressed = true;
+                        
+                        // 1. 触发物理震动反馈
+                        try {
+                            android.os.Vibrator vibrator = (android.os.Vibrator) game.getSystemService(Context.VIBRATOR_SERVICE);
+                            if (vibrator != null && vibrator.hasVibrator()) {
+                                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                                    vibrator.vibrate(android.os.VibrationEffect.createOneShot(80, android.os.VibrationEffect.DEFAULT_AMPLITUDE));
+                                } else {
+                                    vibrator.vibrate(80);
+                                }
+                            }
+                        } catch (Exception ignored) {}
+                        
+                        // 2. 播放瞬间收编坍塌与淡出的强退过渡动画
+                        btnDisconnect.animate()
+                            .scaleX(0.7f)
+                            .scaleY(0.7f)
+                            .alpha(0.0f)
+                            .setDuration(180)
+                            .withEndAction(new Runnable() {
+                                @Override
+                                public void run() {
+                                    hideMenuWithAnimation();
+                                    game.quitAndDisconnect();
+                                }
+                            })
+                            .start();
+                    }
+                };
+
+                @Override
+                public boolean onTouch(View v, android.view.MotionEvent event) {
+                    switch (event.getAction()) {
+                        case android.view.MotionEvent.ACTION_DOWN:
+                            downTime = android.os.SystemClock.elapsedRealtime();
+                            isLongPressed = false;
+                            isCancelled = false;
+                            
+                            // 延时 1500ms 执行长按退出任务
+                            longPressHandler.postDelayed(longPressRunnable, 1500);
+                            
+                            // 启动 1500ms 慢收缩充能微动画 (1.0 -> 0.88, Alpha: 1.0 -> 0.6)
+                            if (holdAnimator != null) {
+                                holdAnimator.cancel();
+                            }
+                            holdAnimator = android.animation.ValueAnimator.ofFloat(1.0f, 0.88f);
+                            holdAnimator.setDuration(1500);
+                            holdAnimator.setInterpolator(new android.view.animation.DecelerateInterpolator());
+                            holdAnimator.addUpdateListener(animation -> {
+                                float val = (float) animation.getAnimatedValue();
+                                btnDisconnect.setScaleX(val);
+                                btnDisconnect.setScaleY(val);
+                                float alpha = 1.0f - (1.0f - val) / (1.0f - 0.88f) * 0.4f;
+                                btnDisconnect.setAlpha(alpha);
+                            });
+                            holdAnimator.start();
+                            return true;
+                            
+                        case android.view.MotionEvent.ACTION_MOVE:
+                            if (isCancelled || isLongPressed) return true;
+                            
+                            // 检测滑出边界防误触
+                            float x = event.getX();
+                            float y = event.getY();
+                            if (x < 0 || x > v.getWidth() || y < 0 || y > v.getHeight()) {
+                                isCancelled = true;
+                                longPressHandler.removeCallbacks(longPressRunnable);
+                                if (holdAnimator != null) {
+                                    holdAnimator.cancel();
+                                }
+                                
+                                // 平滑阻尼回弹
+                                btnDisconnect.animate()
+                                    .scaleX(1.0f)
+                                    .scaleY(1.0f)
+                                    .alpha(1.0f)
+                                    .setDuration(250)
+                                    .setInterpolator(new android.view.animation.OvershootInterpolator(1.5f))
+                                    .start();
+                            }
+                            return true;
+                            
+                        case android.view.MotionEvent.ACTION_UP:
+                            longPressHandler.removeCallbacks(longPressRunnable);
+                            if (holdAnimator != null) {
+                                holdAnimator.cancel();
+                            }
+                            
+                            if (isLongPressed) {
+                                return true;
+                            }
+                            
+                            // 平滑阻尼回弹
+                            btnDisconnect.animate()
+                                .scaleX(1.0f)
+                                .scaleY(1.0f)
+                                .alpha(1.0f)
+                                .setDuration(250)
+                                .setInterpolator(new android.view.animation.OvershootInterpolator(1.5f))
+                                .start();
+                            
+                            // 短按双击判断
+                            long duration = android.os.SystemClock.elapsedRealtime() - downTime;
+                            if (duration < 500 && !isCancelled) {
+                                confirmDisconnect();
+                            }
+                            return true;
+                            
+                        case android.view.MotionEvent.ACTION_CANCEL:
+                            longPressHandler.removeCallbacks(longPressRunnable);
+                            if (holdAnimator != null) {
+                                holdAnimator.cancel();
+                            }
+                            
+                            // 平滑弹性回弹
+                            btnDisconnect.animate()
+                                .scaleX(1.0f)
+                                .scaleY(1.0f)
+                                .alpha(1.0f)
+                                .setDuration(250)
+                                .setInterpolator(new android.view.animation.OvershootInterpolator(1.5f))
+                                .start();
+                            return true;
+                    }
+                    return false;
+                }
             });
         }
     }

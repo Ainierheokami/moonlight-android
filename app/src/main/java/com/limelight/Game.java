@@ -4146,4 +4146,51 @@ public class Game extends Activity implements SurfaceHolder.Callback,
 
         return new float[] { normalizedX, normalizedY };
     }
+
+    /**
+     * 强力强杀 PC 端当前会话并退出串流
+     */
+    public void quitAndDisconnect() {
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    String host = getIntent().getStringExtra(EXTRA_HOST);
+                    int httpsPort = getIntent().getIntExtra(EXTRA_HTTPS_PORT, 47984);
+                    String uniqueId = getIntent().getStringExtra(EXTRA_UNIQUEID);
+                    byte[] certBytes = getIntent().getByteArrayExtra(EXTRA_SERVER_CERT);
+                    
+                    java.security.cert.X509Certificate serverCert = null;
+                    if (certBytes != null) {
+                        try {
+                            java.security.cert.CertificateFactory cf = java.security.cert.CertificateFactory.getInstance("X.509");
+                            serverCert = (java.security.cert.X509Certificate) cf.generateCertificate(new java.io.ByteArrayInputStream(certBytes));
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                    }
+                    
+                    if (host != null && uniqueId != null) {
+                        NvHTTP httpConn = new NvHTTP(
+                            new com.limelight.nvstream.http.ComputerDetails.AddressTuple(host, NvHTTP.DEFAULT_HTTP_PORT),
+                            httpsPort,
+                            uniqueId,
+                            serverCert,
+                            com.limelight.binding.PlatformBinding.getCryptoProvider(Game.this)
+                        );
+                        
+                        LimeLog.info("Sending quitApp request from Game.java...");
+                        boolean success = httpConn.quitApp();
+                        LimeLog.info("quitApp result: " + success);
+                    }
+                } catch (Exception e) {
+                    LimeLog.severe("Failed to send quitApp request: " + e.getMessage());
+                    e.printStackTrace();
+                }
+            }
+        }).start();
+
+        // 强退时执行 Activity 销毁
+        finish();
+    }
 }
