@@ -27,9 +27,12 @@ class SaveSystemSettingsActivity : AppCompatActivity() {
         val button = findViewById<Button>(R.id.ok_button)
         button.setOnClickListener { finish() }
 
+        val timeStamp = java.text.SimpleDateFormat("yyyyMMdd_HHmmss", java.util.Locale.getDefault()).format(java.util.Date())
+        val defaultName = "Moonlight_System_Backup_$timeStamp.json"
+
         filePicker = FilePickerUtils(this)
         filePicker.pickFile(
-            mimeType = "text/*", // 采用 text/* 兼容性最好，保证用户能顺利保存为文本/JSON
+            mimeType = "application/json",
             callback = object : FilePickerUtils.FilePickerCallback {
                 override fun onCallBack(fileName: String, content: String, uri: Uri) {
                     try {
@@ -56,7 +59,8 @@ class SaveSystemSettingsActivity : AppCompatActivity() {
                 }
             },
             saveMode = true,
-            intentLaunch = (savedInstanceState == null)
+            intentLaunch = (savedInstanceState == null),
+            defaultFileName = defaultName
         )
     }
 }

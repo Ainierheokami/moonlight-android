@@ -11,6 +11,9 @@ import java.io.BufferedReader
 import java.io.InputStreamReader
 import java.io.OutputStream
 
+import android.os.Build
+import android.provider.DocumentsContract
+
 class FilePickerUtils(private val activity: AppCompatActivity) {
 
     // 回调接口
@@ -36,20 +39,46 @@ class FilePickerUtils(private val activity: AppCompatActivity) {
     }
 
     // 打开文件选择器
-    fun pickFile(mimeType: String = "*/*", callback: FilePickerCallback, saveMode: Boolean = false, intentLaunch: Boolean = true) {
+    fun pickFile(
+        mimeType: String = "*/*",
+        callback: FilePickerCallback,
+        saveMode: Boolean = false,
+        intentLaunch: Boolean = true,
+        defaultFileName: String = "File.txt"
+    ) {
         this.callback = callback
         if (intentLaunch) {
             if (saveMode){
                 val intent = Intent(Intent.ACTION_CREATE_DOCUMENT).apply {
                     addCategory(Intent.CATEGORY_OPENABLE)
                     type = mimeType
-                    putExtra(Intent.EXTRA_TITLE, "File.txt")
+                    putExtra(Intent.EXTRA_TITLE, defaultFileName)
+                    
+                    // 🌟 首席架构师特调：自动指引初始选择器定位到系统的 Download (下载) 目录，方便查找和归类
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                        try {
+                            val initialUri = Uri.parse("content://com.android.externalstorage.documents/document/primary%3ADownload")
+                            putExtra(DocumentsContract.EXTRA_INITIAL_URI, initialUri)
+                        } catch (e: Exception) {
+                            Log.w("FilePickerUtils", "设置初始SAF路径失败: ${e.message}")
+                        }
+                    }
                 }
                 filePicker.launch(intent)
             } else{
                 val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
                     addCategory(Intent.CATEGORY_OPENABLE)
                     type = mimeType
+                    
+                    // 🌟 导入时同样自动指引定位到系统的 Download 目录
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                        try {
+                            val initialUri = Uri.parse("content://com.android.externalstorage.documents/document/primary%3ADownload")
+                            putExtra(DocumentsContract.EXTRA_INITIAL_URI, initialUri)
+                        } catch (e: Exception) {
+                            Log.w("FilePickerUtils", "设置初始SAF路径失败: ${e.message}")
+                        }
+                    }
                 }
                 filePicker.launch(intent)
             }

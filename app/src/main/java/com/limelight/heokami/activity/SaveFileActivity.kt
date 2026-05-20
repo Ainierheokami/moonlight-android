@@ -25,9 +25,12 @@ class SaveFileActivity : AppCompatActivity() {
         button.setOnClickListener {
             finish()
         }
+        val timeStamp = java.text.SimpleDateFormat("yyyyMMdd_HHmmss", java.util.Locale.getDefault()).format(java.util.Date())
+        val defaultName = "Moonlight_OSK_Backup_$timeStamp.json"
+
         filePicker = FilePickerUtils(this)
         filePicker.pickFile(
-            mimeType = "text/*",
+            mimeType = "application/json",
             callback = object : FilePickerUtils.FilePickerCallback {
                 override fun onCallBack(fileName: String, content: String, uri: Uri) {
                     // 处理选中的文件
@@ -47,7 +50,8 @@ class SaveFileActivity : AppCompatActivity() {
                 }
             },
             saveMode = true,
-            intentLaunch = (savedInstanceState == null)
+            intentLaunch = (savedInstanceState == null),
+            defaultFileName = defaultName
         )
     }
 }
