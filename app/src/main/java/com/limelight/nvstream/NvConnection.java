@@ -416,6 +416,13 @@ public class NvConnection {
             }
         }
 
+        try {
+            // 给 Windows 硬件层及 Sunshine 预留 1.2 秒的安全窗口，用于完全卸载与释放 VDD 虚拟显示器，防范重连切物理屏时的硬件级竞态冲突
+            Thread.sleep(1200);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+
         return launchNotRunningApp(h, context);
     }
     

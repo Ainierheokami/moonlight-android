@@ -25,6 +25,8 @@ object StreamEnhancement {
         }
         if (config.useVdd) {
             query.append("&useVdd=1")
+        } else {
+            query.append("&useVdd=0")
         }
 
         if (config.customScreenMode >= 0) {
