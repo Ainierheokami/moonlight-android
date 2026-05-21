@@ -1,63 +1,82 @@
-# Moonlight Android
+# 🎮 Moonlight Android - AinierHeokami Premium Edition
 
-[![AppVeyor Build Status](https://ci.appveyor.com/api/projects/status/232a8tadrrn8jv0k/branch/master?svg=true)](https://ci.appveyor.com/project/cgutman/moonlight-android/branch/master)
-[![Translation Status](https://hosted.weblate.org/widgets/moonlight/-/moonlight-android/svg-badge.svg)](https://hosted.weblate.org/projects/moonlight/moonlight-android/)
+> [🇨🇳 简体中文](README-zh.md) | 🇬🇧 English
 
-[Moonlight for Android](https://moonlight-stream.org) is an open source client for NVIDIA GameStream and [Sunshine](https://github.com/LizardByte/Sunshine).
+[![Android Platform](https://img.shields.io/badge/Platform-Android_5.0%2B-brightgreen.svg?style=flat-square)](https://developer.android.com)
+[![Gradle Build](https://img.shields.io/badge/Gradle-9.4.1-blue.svg?style=flat-square)](https://gradle.org)
+[![NDK Version](https://img.shields.io/badge/NDK-27.0-orange.svg?style=flat-square)](https://developer.android.com/ndk)
+[![License](https://img.shields.io/badge/License-GPL_v3-red.svg?style=flat-square)](LICENSE.txt)
 
-Moonlight for Android will allow you to stream your full collection of games from your Windows PC to your Android device,
-whether in your own home or over the internet.
+> **✨ AinierHeokami Premium Edition**: A deeply refactored and highly extended game streaming client built upon the official Moonlight Android codebase. Tailored for power users and enthusiasts, it integrates minimalist performance overlays, advanced OSK macros with custom keymapping, intuitive haptic hold-to-disconnect transitions, and robust system-level backup & recovery. Experience a butter-smooth, deeply customizable cloud gaming journey.
 
-Moonlight also has a [PC client](https://github.com/moonlight-stream/moonlight-qt) and [iOS/tvOS client](https://github.com/moonlight-stream/moonlight-ios).
+---
 
-You can follow development on our [Discord server](https://moonlight-stream.org/discord) and help translate Moonlight into your language on [Weblate](https://hosted.weblate.org/projects/moonlight/moonlight-android/).
+## 🚀 Key Features
 
-## Features 功能
-  
-- 精简的实时性能展示（可自定模板）
-- 返回菜单（快捷切换触摸、虚拟手柄、虚拟键盘）
-- 可自定义虚拟键盘 需参考 [按键码映射表](https://learn.microsoft.com/zh-cn/windows/win32/inputdev/virtual-key-codes) 进行配置（需要16进制转10进制使用，如：0x41=65）
-- 可导入导出自定义虚拟按键
-- 简单的键盘宏
-- 自定义快捷键
-- 按键显示隐藏切换
-- 按键编组
+### 📺 Performance Overlay & Control
+*   **Minimalist Performance Overlay**: Built-in lightweight floating performance monitor to check streaming frame rates, bit rates, and network latency at a glance.
+*   **Customizable Monitor Templates**: Highly customizable layout templates for performance metrics based on your preferences.
+*   **Quick Return Menu**: Summon the dashboard mid-stream to seamlessly hot-swap between touch mode, virtual gamepad, and custom OSK within a second.
 
-### en language
+### 💾 Backup & Recovery
+*   **One-Click Full Backup**: Export all configuration settings, paired computer hostlists, custom OSK keymaps, and custom hotkeys into a single backup file.
+*   **Dual-Mode Smart Import**: Auto-adapt to either full recovery on the same device or sandbox-downgraded import on a cross-device configuration. Hot-restart the app upon successful importing to apply changes without manual process killing.
 
-- Minimal real-time performance display (customizable template)
-- Return menu (quick switch touch, virtual joystick, virtual keyboard)
-- Customizable virtual keyboard (refer to [Virtual Key Code Mapping Table](https://docs.microsoft.com/en-us/windows/win32/inputdev/virtual-key-codes) for configuration, need to convert hexadecimal to decimal, such as 0x41=65)
-- Import and export custom virtual keysboard
-- Simple keyboard macros
-- Customizable hotkeys
-- Key display toggle
-- Key grouping
+### ⌨️ Advanced OSK & Hotkeys Pro
+*   **Multi-Format Keymapping**: Supports adaptive mapping of both decimal and hexadecimal keycodes, covering diverse keys needed for PC gaming.
+*   **Key Grouping & Toggles**: Organize custom buttons into groups to batch show/hide them to keep your gameplay UI clean and immersive.
+*   **Simple OSK Macros**: Define sequences of key presses and combo macros to execute complex game operations with a single tap.
+*   **Immersive OSK Extensions**: Built-in ultra-responsive floating keyboard, virtual joystick, and physical/virtual hotkey triggers to replace hardware peripherals.
 
-## Thanks
+### 🎨 Premium UX/UI
+*   **Hold-to-Disconnect with Damping Transition**: Prevent accidental stream disconnection via haptic vibration feedback and a smooth `ValueAnimator`-driven background color gradient transition (from active Red `#F44336` to warning Yellow `#FFD600`) while keeping white text sharp.
+*   **Modernized Settings Hierarchy**: Rearranged settings categories, elevating "Backup & Recovery" to a top-level preference item.
 
-* [GameMenu](https://github.com/kmreisi/limelight-android)
+### 📂 SAF File Picker Pro
+*   **Custom ROM Compatibility**: Thoroughly fixes SAF (Storage Access Framework) filter bugs on heavily customized Android ROMs such as Xiaomi (MIUI/HyperOS).
+*   **Smart Union MIME Filtering**: Employs multi-type SAF matching to instantly and cleanly show `.txt` and `.json` files without grey-out issues.
 
-## Downloads
+---
 
-* [Google Play Store](https://play.google.com/store/apps/details?id=com.limelight)
-* [Amazon App Store](https://www.amazon.com/gp/product/B00JK4MFN2)
-* [F-Droid](https://f-droid.org/packages/com.limelight)
-* [APK](https://github.com/moonlight-stream/moonlight-android/releases)
+## 🏗 Modern Build Guide
 
-## Building
+The project engineering stack has been fully modernized, supporting rapid and stable local compilation.
 
-* Install Android Studio and the Android NDK
-* Run ‘git submodule update --init --recursive’ from within moonlight-android/
-* In moonlight-android/, create a file called ‘local.properties’. Add an ‘ndk.dir=’ property to the local.properties file and set it equal to your NDK directory.
-* Build the APK using Android Studio or gradle
+### Prerequisites
+1.  **JDK 17 / 21** development environment.
+2.  **Android SDK** compilation version (compileSdk) `35`.
+3.  **Android NDK** version `27.0.12077973`.
 
-## Authors
+### Quick Build Steps
+1.  **Pull Submodules**:
+    ```bash
+    git submodule update --init --recursive
+    ```
+2.  **Configure Environment**:
+    Create a `local.properties` file in the root directory and specify your SDK and NDK paths:
+    ```properties
+    sdk.dir=/your/path/to/Android/Sdk
+    ndk.dir=/your/path/to/Android/Sdk/ndk/27.0.12077973
+    ```
+3.  **Assemble Debug APK** (Non-Root Variant):
+    *   **Windows (PowerShell)**:
+        ```powershell
+        .\gradlew.bat assembleNonRootDebug
+        ```
+    *   **Linux / macOS**:
+        ```bash
+        ./gradlew assembleNonRootDebug
+        ```
+    The compiled APK will be output to: `app/build/outputs/apk/nonRoot/debug/`
 
-* [Cameron Gutman](https://github.com/cgutman)  
-* [Diego Waxemberg](https://github.com/dwaxemberg)  
-* [Aaron Neyer](https://github.com/Aaronneyer)  
-* [Andrew Hennessy](https://github.com/yetanothername)
+---
 
-Moonlight is the work of students at [Case Western](http://case.edu) and was
-started as a project at [MHacks](http://mhacks.org).
+## 👥 Credits
+
+*   **Project Tailoring & Refactoring**: [ainierheokami](https://github.com/ainierheokami)
+*   **Official Upstream Client**: [Moonlight Stream Team](https://github.com/moonlight-stream)
+*   **Classic GameMenu Reference**: [kmreisi](https://github.com/kmreisi/limelight-android)
+
+---
+
+> **⚠️ Disclaimer**: This premium edition client is developed strictly for personal learning, communication, and research on cloud game streaming technologies. Please use it reasonably under local laws and regulations.
