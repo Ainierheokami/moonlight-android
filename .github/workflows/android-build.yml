@@ -49,13 +49,16 @@ jobs:
           sed -i 's/^org\.gradle\.jvmargs=.*/org.gradle.jvmargs=-Xmx3g -Dfile.encoding=UTF-8/' gradle.properties
 
       - name: Restore release signing keystore
-        if: ${{ secrets.MOONLIGHT_RELEASE_KEYSTORE_BASE64 != '' }}
         env:
           MOONLIGHT_RELEASE_KEYSTORE_BASE64: ${{ secrets.MOONLIGHT_RELEASE_KEYSTORE_BASE64 }}
           MOONLIGHT_RELEASE_STORE_PASSWORD: ${{ secrets.MOONLIGHT_RELEASE_STORE_PASSWORD }}
           MOONLIGHT_RELEASE_KEY_ALIAS: ${{ secrets.MOONLIGHT_RELEASE_KEY_ALIAS }}
           MOONLIGHT_RELEASE_KEY_PASSWORD: ${{ secrets.MOONLIGHT_RELEASE_KEY_PASSWORD }}
         run: |
+          if [ -z "$MOONLIGHT_RELEASE_KEYSTORE_BASE64" ]; then
+            echo "Release signing keystore secret is not configured; falling back to debug signing."
+            exit 0
+          fi
           mkdir -p "$RUNNER_TEMP/signing"
           printf '%s' "$MOONLIGHT_RELEASE_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/signing/moonlight-release.jks"
           {
