@@ -266,6 +266,33 @@ public class NvConnection {
     {
         NvHTTP h = new NvHTTP(context.serverAddress, context.httpsPort, uniqueId, context.serverCert, cryptoProvider);
 
+        if (!context.isNvidiaServerSoftware) {
+            try {
+                List<NvHTTP.DisplayInfo> list = h.getDisplays();
+                if (list != null) {
+                    NvHTTP.DisplayInfo physicalInfo = null;
+                    for (NvHTTP.DisplayInfo info : list) {
+                        String lowerName = info.displayName.toLowerCase(java.util.Locale.ROOT);
+                        String lowerFriendly = info.friendlyName.toLowerCase(java.util.Locale.ROOT);
+                        if (!lowerName.contains("zako") && !lowerName.contains("virtual") &&
+                            !lowerFriendly.contains("zako") && !lowerFriendly.contains("virtual")) {
+                            physicalInfo = info;
+                            break;
+                        }
+                    }
+                    if (physicalInfo != null && physicalInfo.deviceId != null && !physicalInfo.deviceId.trim().isEmpty()) {
+                        android.preference.PreferenceManager.getDefaultSharedPreferences(appContext)
+                                .edit()
+                                .putString("cached_physical_display_guid", physicalInfo.deviceId.trim())
+                                .apply();
+                        LimeLog.info("Automatically cached physical display GUID: " + physicalInfo.deviceId.trim());
+                    }
+                }
+            } catch (Exception e) {
+                LimeLog.warning("Failed to automatically cache physical display GUID: " + e.getMessage());
+            }
+        }
+
         String serverInfo = h.getServerInfo(true);
         
         context.serverAppVersion = h.getServerVersion(serverInfo);

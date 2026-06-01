@@ -28,6 +28,7 @@ object StreamEnhanceMenu {
     private const val LAST_STREAM_DISPLAY_NAME = "last_stream_display_name"
     private const val LAST_STREAM_DISPLAY_USE_VDD = "last_stream_display_use_vdd"
     private const val PHYSICAL_ONLY = "checkbox_stream_enhance_physical_only"
+    private const val CACHED_PHYSICAL_GUID = "cached_physical_display_guid"
 
     private val modeValues = listOf("-1", "0", "1")
 
@@ -112,6 +113,19 @@ object StreamEnhanceMenu {
             Handler(Looper.getMainLooper()).post {
                 displays.clear()
                 displays.addAll(fetched)
+                
+                val detectedPhysical = fetched.firstOrNull {
+                    val lowerName = it.displayName.lowercase()
+                    val lowerFriendly = it.friendlyName.lowercase()
+                    !lowerName.contains("zako") && !lowerName.contains("virtual") &&
+                    !lowerFriendly.contains("zako") && !lowerFriendly.contains("virtual")
+                }
+                detectedPhysical?.let {
+                    if (it.deviceId.isNotBlank()) {
+                        prefs.edit().putString(CACHED_PHYSICAL_GUID, it.deviceId).apply()
+                    }
+                }
+
                 displayNames.clear()
                 displayNames.add(game.getString(R.string.stream_enhance_display_manual))
                 displayNames.addAll(fetched.map { it.toString() })
@@ -157,6 +171,8 @@ object StreamEnhanceMenu {
                     .remove(LAST_STREAM_DISPLAY_USE_VDD)
                     .putBoolean(PHYSICAL_ONLY, false)
 
+                val cachedGuid = prefs.getString(CACHED_PHYSICAL_GUID, "")
+
                 when (modeGroup.checkedRadioButtonId) {
                     R.id.stream_enhance_mode_physical_only -> {
                         editor.putBoolean(PHYSICAL_ONLY, true)
@@ -172,7 +188,7 @@ object StreamEnhanceMenu {
                         }
                         val physicalDisplay = physicalDisplayInfo?.let {
                             if (it.deviceId.isNotBlank()) it.deviceId else it.displayName
-                        } ?: "\\\\.\\DISPLAY1"
+                        } ?: cachedGuid?.takeIf { it.isNotBlank() } ?: "\\\\.\\DISPLAY1"
                         
                         editor.putString(DISPLAY_NAME, physicalDisplay)
                     }
@@ -191,7 +207,7 @@ object StreamEnhanceMenu {
                             }
                             val physicalDisplay = physicalDisplayInfo?.let {
                                 if (it.deviceId.isNotBlank()) it.deviceId else it.displayName
-                            } ?: "\\\\.\\DISPLAY1"
+                            } ?: cachedGuid?.takeIf { it.isNotBlank() } ?: "\\\\.\\DISPLAY1"
                             physicalDisplay
                         } else {
                             finalDisplayName

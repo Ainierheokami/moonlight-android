@@ -868,11 +868,27 @@ public class GameMenuFragment extends Fragment {
         Toast.makeText(game, "正在获取屏幕列表...", Toast.LENGTH_SHORT).show();
         new Thread(() -> {
             try {
-                final List<NvHTTP.DisplayInfo> displays = conn.getDisplays();
+                final List<NvHTTP.DisplayInfo> rawDisplays = conn.getDisplays();
                 new Handler(Looper.getMainLooper()).post(() -> {
-                    if (displays == null || displays.isEmpty()) {
+                    if (rawDisplays == null || rawDisplays.isEmpty()) {
                         showFallbackSwitchDisplayDialog();
                         return;
+                    }
+                    final List<NvHTTP.DisplayInfo> displays = new ArrayList<>(rawDisplays);
+                    boolean hasPhysical = false;
+                    for (NvHTTP.DisplayInfo info : displays) {
+                        String lowerName = info.displayName.toLowerCase(java.util.Locale.ROOT);
+                        String lowerFriendly = info.friendlyName.toLowerCase(java.util.Locale.ROOT);
+                        if (!lowerName.contains("zako") && !lowerName.contains("virtual") &&
+                            !lowerFriendly.contains("zako") && !lowerFriendly.contains("virtual")) {
+                            hasPhysical = true;
+                            break;
+                        }
+                    }
+                    if (!hasPhysical) {
+                        String cachedGuid = android.preference.PreferenceManager.getDefaultSharedPreferences(game)
+                                .getString("cached_physical_display_guid", "");
+                        displays.add(0, new NvHTTP.DisplayInfo("\\\\.\\DISPLAY1", "物理主显示器", cachedGuid));
                     }
                     android.app.AlertDialog.Builder builder = new android.app.AlertDialog.Builder(game);
                     builder.setTitle("切换显示器");
