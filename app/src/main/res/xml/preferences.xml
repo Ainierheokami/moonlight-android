@@ -309,6 +309,11 @@
             android:summary="@string/summary_stream_enhance_rotation_sync"
             android:defaultValue="false" />
         <CheckBoxPreference
+            android:key="checkbox_stream_enhance_suppress_video"
+            android:title="@string/title_stream_enhance_suppress_video"
+            android:summary="@string/summary_stream_enhance_suppress_video"
+            android:defaultValue="false" />
+        <CheckBoxPreference
             android:key="checkbox_force_resume_current_session"
             android:title="@string/title_force_resume_current_session"
             android:summary="@string/summary_force_resume_current_session"

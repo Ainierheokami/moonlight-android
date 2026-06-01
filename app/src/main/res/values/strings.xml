@@ -584,6 +584,8 @@
     <string name="stream_enhance_mode_custom_display_hint">Select or manually enter a target display (physical or virtual) to stream.</string>
     <string name="title_stream_enhance_rotation_sync">Rotation sync</string>
     <string name="summary_stream_enhance_rotation_sync">Sync device rotation to Sunshine display rotation.</string>
+    <string name="title_stream_enhance_suppress_video">Do not stream video</string>
+    <string name="summary_stream_enhance_suppress_video">Pseudo audio-only mode: keeps audio active while minimizing video to very low resolution, FPS, and bitrate.</string>
     <string name="title_force_resume_current_session">Keep current stream when switching apps</string>
     <string name="summary_force_resume_current_session">Resume the current host session instead of quitting and relaunching another app.</string>
     <string name="stream_enhance_set_primary">Set Primary</string>
@@ -594,4 +596,5 @@
     <string name="stream_enhance_current_streaming">Current Streaming: %1$s</string>
     <string name="stream_enhance_device_id">Device ID: %1$s</string>
     <string name="stream_enhance_unknown">Unknown</string>
+    <string name="pcview_menu_stream_enhance">Stream enhancement</string>
 </resources>

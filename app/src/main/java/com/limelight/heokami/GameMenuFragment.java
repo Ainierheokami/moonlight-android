@@ -43,6 +43,8 @@ import java.util.List;
  */
 public class GameMenuFragment extends Fragment {
 
+    private static final String PREF_LAST_STREAM_DISPLAY_LABEL = "last_stream_display_label";
+
     private Game game;
     private NvConnection conn;
     private View menuPanel;
@@ -208,7 +210,8 @@ public class GameMenuFragment extends Fragment {
     }
 
     private int dp(int value) {
-        return (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, value, getResources().getDisplayMetrics());
+        android.content.res.Resources resources = game != null ? game.getResources() : getResources();
+        return (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, value, resources.getDisplayMetrics());
     }
 
     private void renderStatusBar() {
@@ -227,8 +230,10 @@ public class GameMenuFragment extends Fragment {
         
         // 3. 视频码率
         String bitrate = "未知";
-        if (game.getPrefConfig() != null) {
-            bitrate = (game.getPrefConfig().bitrate / 1000) + " Mbps";
+        if (conn != null) {
+            bitrate = String.format(java.util.Locale.getDefault(), "%.1f Mbps", conn.getCurrentBitrate() / 1000f);
+        } else if (game.getPrefConfig() != null) {
+            bitrate = String.format(java.util.Locale.getDefault(), "%.1f Mbps", game.getPrefConfig().bitrate / 1000f);
         }
         addStatusChip("视频码率", bitrate);
         
@@ -870,6 +875,10 @@ public class GameMenuFragment extends Fragment {
             try {
                 final List<NvHTTP.DisplayInfo> rawDisplays = conn.getDisplays();
                 new Handler(Looper.getMainLooper()).post(() -> {
+                    if (!canShowSwitchDisplayUi()) {
+                        return;
+                    }
+
                     if (rawDisplays == null || rawDisplays.isEmpty()) {
                         showFallbackSwitchDisplayDialog();
                         return;
@@ -878,10 +887,7 @@ public class GameMenuFragment extends Fragment {
                     boolean hasPhysical = false;
                     boolean hasVirtual = false;
                     for (NvHTTP.DisplayInfo info : displays) {
-                        String lowerName = info.displayName.toLowerCase(java.util.Locale.ROOT);
-                        String lowerFriendly = info.friendlyName.toLowerCase(java.util.Locale.ROOT);
-                        if (!lowerName.contains("zako") && !lowerName.contains("virtual") &&
-                            !lowerFriendly.contains("zako") && !lowerFriendly.contains("virtual")) {
+                        if (!isVirtualDisplayInfo(info)) {
                             hasPhysical = true;
                         } else {
                             hasVirtual = true;
@@ -901,11 +907,23 @@ public class GameMenuFragment extends Fragment {
                     // 获取当前正在串流的显示器配置
                     String currentConfigDisplay = android.preference.PreferenceManager.getDefaultSharedPreferences(game)
                             .getString("last_stream_display_name", "");
+                    boolean currentConfigUseVdd = android.preference.PreferenceManager.getDefaultSharedPreferences(game)
+                            .getBoolean("last_stream_display_use_vdd", false);
+                    String currentConfigLabel = android.preference.PreferenceManager.getDefaultSharedPreferences(game)
+                            .getString(PREF_LAST_STREAM_DISPLAY_LABEL, "");
                     
                     NvHTTP.DisplayInfo currentInfo = null;
                     if (currentConfigDisplay != null && !currentConfigDisplay.trim().isEmpty()) {
                         for (NvHTTP.DisplayInfo info : displays) {
-                            if (currentConfigDisplay.equals(info.deviceId) || currentConfigDisplay.equals(info.displayName)) {
+                            if (matchesDisplaySelection(info, currentConfigDisplay)) {
+                                currentInfo = info;
+                                break;
+                            }
+                        }
+                    }
+                    if (currentInfo == null && currentConfigUseVdd) {
+                        for (NvHTTP.DisplayInfo info : displays) {
+                            if (isVirtualDisplayInfo(info)) {
                                 currentInfo = info;
                                 break;
                             }
@@ -915,15 +933,17 @@ public class GameMenuFragment extends Fragment {
                     String currentDisplayNameText;
                     String currentDeviceIdText;
                     if (currentInfo != null) {
-                        currentDisplayNameText = currentInfo.toString();
-                        currentDeviceIdText = (currentInfo.deviceId != null && !currentInfo.deviceId.trim().isEmpty()) 
-                                ? currentInfo.deviceId : currentInfo.displayName;
+                        currentDisplayNameText = getDisplayNickname(currentInfo);
+                        currentDeviceIdText = getDisplayIdentifier(currentInfo);
                     } else {
-                        if (currentConfigDisplay == null || currentConfigDisplay.trim().isEmpty()) {
-                            currentDisplayNameText = "物理主屏幕";
+                        if (currentConfigUseVdd) {
+                            currentDisplayNameText = !isBlank(currentConfigLabel) ? currentConfigLabel : "虚拟显示器 (强制激活)";
+                            currentDeviceIdText = "VDD";
+                        } else if (currentConfigDisplay == null || currentConfigDisplay.trim().isEmpty()) {
+                            currentDisplayNameText = !isBlank(currentConfigLabel) ? currentConfigLabel : "物理主屏幕";
                             currentDeviceIdText = (cachedGuid != null && !cachedGuid.trim().isEmpty()) ? cachedGuid : "\\\\.\\DISPLAY1";
                         } else {
-                            currentDisplayNameText = currentConfigDisplay;
+                            currentDisplayNameText = !isBlank(currentConfigLabel) ? currentConfigLabel : "自定义显示器";
                             currentDeviceIdText = currentConfigDisplay;
                         }
                     }
@@ -958,13 +978,10 @@ public class GameMenuFragment extends Fragment {
                     for (NvHTTP.DisplayInfo selected : displays) {
                         // 过滤掉当前正在串流的显示器
                         boolean isCurrent = false;
-                        if (selected.displayName.equals("virtual_fallback")) {
-                            isCurrent = (currentConfigDisplay == null || currentConfigDisplay.trim().isEmpty()) && 
-                                    android.preference.PreferenceManager.getDefaultSharedPreferences(game)
-                                    .getBoolean("last_stream_display_use_vdd", false);
+                        if (currentConfigUseVdd && (currentConfigDisplay == null || currentConfigDisplay.trim().isEmpty())) {
+                            isCurrent = isVirtualDisplayInfo(selected);
                         } else {
-                            isCurrent = selected.displayName.equals(currentDeviceIdText) || 
-                                    (selected.deviceId != null && selected.deviceId.equals(currentDeviceIdText));
+                            isCurrent = matchesDisplaySelection(selected, currentDeviceIdText);
                         }
                         
                         if (isCurrent) {
@@ -972,7 +989,7 @@ public class GameMenuFragment extends Fragment {
                         }
                         
                         TextView item = new TextView(game);
-                        item.setText(selected.displayName.equals("virtual_fallback") ? "虚拟显示器 (强制激活)" : selected.toString());
+                        item.setText(getDisplayOptionLabel(selected));
                         item.setTextColor(0xFFFFFFFF);
                         item.setTextSize(15);
                         item.setPadding(dp(16), dp(14), dp(16), dp(14));
@@ -986,17 +1003,14 @@ public class GameMenuFragment extends Fragment {
                             String targetValue = (selected.deviceId != null && !selected.deviceId.trim().isEmpty()) 
                                     ? selected.deviceId : selected.displayName;
                             
-                            boolean isVirtual = selected.displayName.toLowerCase(java.util.Locale.ROOT).contains("zako")
-                                    || selected.displayName.toLowerCase(java.util.Locale.ROOT).contains("virtual")
-                                    || selected.friendlyName.toLowerCase(java.util.Locale.ROOT).contains("zako")
-                                    || selected.friendlyName.toLowerCase(java.util.Locale.ROOT).contains("virtual")
-                                    || "virtual_fallback".equals(selected.displayName);
+                            boolean isVirtual = isVirtualDisplayInfo(selected);
                             
                             if ("virtual_fallback".equals(selected.displayName)) {
                                 targetValue = "";
                             }
                             
-                            String toastText = targetValue.isEmpty() ? "虚拟显示器" : targetValue;
+                            String toastText = getDisplayNickname(selected);
+                            rememberDisplayLabel(toastText);
                             Toast.makeText(game, "正在切换到: " + toastText + "，请稍候...", Toast.LENGTH_SHORT).show();
                             game.recreateConnectionWithDisplay(targetValue, isVirtual);
                             dialog.dismiss();
@@ -1019,12 +1033,20 @@ public class GameMenuFragment extends Fragment {
                     dialog.show();
                 });
             } catch (Exception e) {
-                new Handler(Looper.getMainLooper()).post(this::showFallbackSwitchDisplayDialog);
+                new Handler(Looper.getMainLooper()).post(() -> {
+                    if (canShowSwitchDisplayUi()) {
+                        showFallbackSwitchDisplayDialog();
+                    }
+                });
             }
         }).start();
     }
 
     private void showFallbackSwitchDisplayDialog() {
+        if (!canShowSwitchDisplayUi()) {
+            return;
+        }
+
         android.app.AlertDialog.Builder builder = new android.app.AlertDialog.Builder(game);
         builder.setTitle("切换显示器 (未能自动获取列表，请选择常用项)");
         
@@ -1034,9 +1056,11 @@ public class GameMenuFragment extends Fragment {
                 String cachedGuid = android.preference.PreferenceManager.getDefaultSharedPreferences(game)
                         .getString("cached_physical_display_guid", "");
                 String targetDisplay = (cachedGuid != null && !cachedGuid.trim().isEmpty()) ? cachedGuid : "\\\\.\\DISPLAY1";
+                rememberDisplayLabel("物理主屏幕");
                 Toast.makeText(game, "正在切换到: " + targetDisplay + "，请稍候...", Toast.LENGTH_SHORT).show();
                 game.recreateConnectionWithDisplay(targetDisplay, false);
             } else if (which == 1) {
+                rememberDisplayLabel("虚拟显示器 (强制激活)");
                 Toast.makeText(game, "正在激活并切换到虚拟显示器，请稍候...", Toast.LENGTH_SHORT).show();
                 game.recreateConnectionWithDisplay("", true);
             } else {
@@ -1050,6 +1074,7 @@ public class GameMenuFragment extends Fragment {
                     if (!customDisplay.isEmpty()) {
                         boolean isVirtual = customDisplay.toLowerCase(java.util.Locale.ROOT).contains("zako")
                                 || customDisplay.toLowerCase(java.util.Locale.ROOT).contains("virtual");
+                        rememberDisplayLabel(customDisplay);
                         Toast.makeText(game, "正在切换到: " + customDisplay + "，请稍候...", Toast.LENGTH_SHORT).show();
                         game.recreateConnectionWithDisplay(customDisplay, isVirtual);
                     }
@@ -1060,5 +1085,104 @@ public class GameMenuFragment extends Fragment {
         });
         builder.setNegativeButton(android.R.string.cancel, null);
         builder.show();
+    }
+
+    private boolean canShowSwitchDisplayUi() {
+        return game != null && !game.isFinishing() && !game.isDestroyed();
+    }
+
+    private void rememberDisplayLabel(String label) {
+        if (game == null || isBlank(label)) {
+            return;
+        }
+
+        android.preference.PreferenceManager.getDefaultSharedPreferences(game)
+                .edit()
+                .putString(PREF_LAST_STREAM_DISPLAY_LABEL, label.trim())
+                .apply();
+    }
+
+    private String getDisplayNickname(NvHTTP.DisplayInfo info) {
+        if (info == null) {
+            return "未知显示器";
+        }
+
+        if ("virtual_fallback".equals(info.displayName)) {
+            return "虚拟显示器 (强制激活)";
+        }
+
+        String friendlyName = normalizeDisplayName(info.friendlyName);
+        String displayName = normalizeDisplayName(info.displayName);
+        if (!friendlyName.isEmpty()) {
+            return friendlyName;
+        }
+
+        if (isVirtualDisplayInfo(info)) {
+            return "虚拟显示器";
+        }
+
+        return displayName.isEmpty() ? "物理显示器" : displayName;
+    }
+
+    private String getDisplayIdentifier(NvHTTP.DisplayInfo info) {
+        if (info == null) {
+            return "";
+        }
+
+        String deviceId = normalizeDisplayName(info.deviceId);
+        if (!deviceId.isEmpty()) {
+            return deviceId;
+        }
+        return normalizeDisplayName(info.displayName);
+    }
+
+    private String getDisplayOptionLabel(NvHTTP.DisplayInfo info) {
+        return getDisplayNickname(info);
+    }
+
+    private boolean isVirtualDisplayInfo(NvHTTP.DisplayInfo info) {
+        if (info == null) {
+            return false;
+        }
+
+        String lowerName = safeLower(info.displayName);
+        String lowerFriendly = safeLower(info.friendlyName);
+        String lowerDeviceId = safeLower(info.deviceId);
+        return lowerName.contains("zako") || lowerName.contains("virtual")
+                || lowerFriendly.contains("zako") || lowerFriendly.contains("virtual")
+                || lowerDeviceId.contains("zako") || lowerDeviceId.contains("virtual")
+                || "virtual_fallback".equals(info.displayName);
+    }
+
+    private boolean matchesDisplaySelection(NvHTTP.DisplayInfo info, String selection) {
+        if (info == null || selection == null) {
+            return false;
+        }
+
+        String normalizedSelection = normalizeDisplayName(selection);
+        return normalizedSelection.equals(normalizeDisplayName(info.displayName))
+                || normalizedSelection.equals(normalizeDisplayName(info.deviceId))
+                || normalizedSelection.equals(normalizeDisplayName(info.toString()));
+    }
+
+    private String normalizeDisplayName(String value) {
+        if (value == null) {
+            return "";
+        }
+
+        String normalized = value.trim();
+        int friendlySuffixIndex = normalized.indexOf(" (");
+        if (friendlySuffixIndex >= 0) {
+            normalized = normalized.substring(0, friendlySuffixIndex).trim();
+        }
+        return normalized;
+    }
+
+    private String safeLower(String value) {
+        return value == null ? "" : value.toLowerCase(java.util.Locale.ROOT);
+    }
+
+    private boolean isBlank(String value) {
+        return value == null || value.trim().isEmpty();
     }
 } 

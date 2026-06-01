@@ -20,6 +20,7 @@ import com.limelight.grid.PcGridAdapter;
 import com.limelight.grid.PcRecyclerAdapter;
 import com.limelight.grid.assets.ComputerScreenshotCache;
 import com.limelight.grid.assets.DiskAssetLoader;
+import com.limelight.heokami.StreamEnhanceMenu;
 import com.limelight.nvstream.http.ComputerDetails;
 import com.limelight.nvstream.http.NvApp;
 import com.limelight.nvstream.http.NvHTTP;
@@ -1444,6 +1445,17 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
             @Override
             public void run() {
                 ServerHelper.doNetworkTest(PcView.this);
+            }
+        });
+
+        addComputerAction(actionList, actionDialog, R.string.pcview_menu_stream_enhance, false, new Runnable() {
+            @Override
+            public void run() {
+                if (managerBinder == null) {
+                    Toast.makeText(PcView.this, getResources().getString(R.string.error_manager_not_running), Toast.LENGTH_LONG).show();
+                    return;
+                }
+                StreamEnhanceMenu.show(PcView.this, computer.details, managerBinder.getUniqueId());
             }
         });
 

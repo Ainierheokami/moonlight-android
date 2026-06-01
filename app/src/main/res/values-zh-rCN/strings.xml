@@ -519,6 +519,8 @@
     <string name="stream_enhance_mode_custom_display_hint">选择或手动输入指定的物理/虚拟显示器进行串流（选择物理屏时将强行停用 VDD 以保障直连）。</string>
     <string name="title_stream_enhance_rotation_sync">旋转同步</string>
     <string name="summary_stream_enhance_rotation_sync">将设备旋转同步到 Sunshine 显示器旋转。</string>
+    <string name="title_stream_enhance_suppress_video">不串流画面</string>
+    <string name="summary_stream_enhance_suppress_video">伪音频模式：保留声音，将画面压到极低分辨率、帧率和码率。</string>
     <string name="title_force_resume_current_session">切换应用不断开串流</string>
     <string name="summary_force_resume_current_session">恢复当前主机 session，不退出并重新启动其他应用。</string>
     <string name="stream_enhance_set_primary">设为主屏</string>
@@ -529,4 +531,5 @@
     <string name="stream_enhance_current_streaming">当前串流：%1$s</string>
     <string name="stream_enhance_device_id">设备 ID：%1$s</string>
     <string name="stream_enhance_unknown">未知</string>
+    <string name="pcview_menu_stream_enhance">串流增强</string>
 </resources>

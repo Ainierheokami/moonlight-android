@@ -272,8 +272,11 @@ public class NvConnection {
                 if (list != null) {
                     NvHTTP.DisplayInfo physicalInfo = null;
                     for (NvHTTP.DisplayInfo info : list) {
-                        String lowerName = info.displayName.toLowerCase(java.util.Locale.ROOT);
-                        String lowerFriendly = info.friendlyName.toLowerCase(java.util.Locale.ROOT);
+                        if (info == null) {
+                            continue;
+                        }
+                        String lowerName = info.displayName == null ? "" : info.displayName.toLowerCase(java.util.Locale.ROOT);
+                        String lowerFriendly = info.friendlyName == null ? "" : info.friendlyName.toLowerCase(java.util.Locale.ROOT);
                         if (!lowerName.contains("zako") && !lowerName.contains("virtual") &&
                             !lowerFriendly.contains("zako") && !lowerFriendly.contains("virtual")) {
                             physicalInfo = info;

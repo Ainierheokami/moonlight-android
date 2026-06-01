@@ -598,6 +598,8 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         }
 
         applyLastStreamDisplayOverride();
+        applyStreamEnhanceSuppressVideoMode();
+        chosenFrameRate = Math.min(chosenFrameRate, prefConfig.fps);
 
         StreamConfiguration config = new StreamConfiguration.Builder()
                 .setResolution(prefConfig.width, prefConfig.height)
@@ -2708,12 +2710,12 @@ public class Game extends Activity implements SurfaceHolder.Callback,
 
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
         String lastDisplayName = prefs.getString(PREF_LAST_STREAM_DISPLAY_NAME, "");
-        if (lastDisplayName == null || lastDisplayName.trim().isEmpty()) {
+        boolean lastDisplayUseVdd = prefs.getBoolean(PREF_LAST_STREAM_DISPLAY_USE_VDD, false);
+        if ((lastDisplayName == null || lastDisplayName.trim().isEmpty()) && !lastDisplayUseVdd) {
             return;
         }
 
-        boolean lastDisplayUseVdd = prefs.getBoolean(PREF_LAST_STREAM_DISPLAY_USE_VDD, false);
-        prefConfig.streamEnhanceDisplayName = lastDisplayName.trim();
+        prefConfig.streamEnhanceDisplayName = lastDisplayName == null ? "" : lastDisplayName.trim();
         prefConfig.streamEnhanceUseVdd = lastDisplayUseVdd;
         if (!lastDisplayUseVdd) {
             prefConfig.streamEnhanceVddMode = -1;
@@ -2721,6 +2723,18 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         prefConfig.forceResumeCurrentSession = false;
         LimeLog.info("Using last stream display selection: " + prefConfig.streamEnhanceDisplayName
                 + ", useVdd=" + prefConfig.streamEnhanceUseVdd);
+    }
+
+    private void applyStreamEnhanceSuppressVideoMode() {
+        if (prefConfig == null || !prefConfig.streamEnhanceSuppressVideo) {
+            return;
+        }
+
+        prefConfig.width = 640;
+        prefConfig.height = 360;
+        prefConfig.fps = 1;
+        prefConfig.bitrate = Math.min(prefConfig.bitrate, 500);
+        LimeLog.info("Stream enhance suppress-video mode active: using 640x360 @ 1 FPS, 500 Kbps");
     }
 
     public void recreateConnectionWithDisplay(final String displayName) {
@@ -2732,11 +2746,12 @@ public class Game extends Activity implements SurfaceHolder.Callback,
             @Override
             public void run() {
                 // 如果传入的显示器名称包含友好提示后缀 (如 "\\\\.\\DISPLAY1 (HP 27mq)")，我们提取真实的底层显示器名字
+                final String selectedDisplay = displayName == null ? "" : displayName;
                 final String targetDisplay;
-                if (displayName.contains(" (")) {
-                    targetDisplay = displayName.substring(0, displayName.indexOf(" (")).trim();
+                if (selectedDisplay.contains(" (")) {
+                    targetDisplay = selectedDisplay.substring(0, selectedDisplay.indexOf(" (")).trim();
                 } else {
-                    targetDisplay = displayName;
+                    targetDisplay = selectedDisplay.trim();
                 }
 
                 // 1. 赋值给内存覆盖变量，绝对不读写改动全局 SharedPreferences，实现物理隔离
@@ -2748,9 +2763,10 @@ public class Game extends Activity implements SurfaceHolder.Callback,
                 if (overrideUseVdd != null) {
                     isVirtualDisplay = overrideUseVdd;
                 } else {
-                    String displayNameLower = displayName.toLowerCase(java.util.Locale.ROOT);
+                    String displayNameLower = selectedDisplay.toLowerCase(java.util.Locale.ROOT);
                     isVirtualDisplay = displayNameLower.contains("zako") || displayNameLower.contains("virtual");
                 }
+                final boolean wasVirtualDisplay = prefConfig != null && prefConfig.streamEnhanceUseVdd;
                 tempOverrideUseVdd = isVirtualDisplay;
 
                 PreferenceManager.getDefaultSharedPreferences(Game.this).edit()
@@ -2762,7 +2778,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
                 tempOverrideForceResume = false;
 
                 Log.i("MoonReconnect", "[Game] recreateConnectionWithDisplay: targetDisplay=" + targetDisplay
-                        + ", selectedDisplay=" + displayName + ", useVdd=" + isVirtualDisplay);
+                        + ", selectedDisplay=" + selectedDisplay + ", useVdd=" + isVirtualDisplay);
 
                 // 3. 标记正在切换显示器中，隔离旧连接销毁带来的 JNI 退出回调
                 isSwitchingDisplay = true;
@@ -2786,7 +2802,8 @@ public class Game extends Activity implements SurfaceHolder.Callback,
                     decoderRenderer.cleanup();
                 }
                 
-                // 7. 延迟 300ms 后拉起新连接，保证旧连接的网络 socket 及 JNI 正确释放
+                // 7. 延迟后拉起新连接，保证旧连接的网络 socket、JNI 和 VDD 硬件层正确释放
+                final long relaunchDelayMs = wasVirtualDisplay && !isVirtualDisplay ? 1200 : 300;
                 new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(new Runnable() {
                     @Override
                     public void run() {
@@ -2797,7 +2814,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
                             startConnection(streamView.getHolder());
                         }
                     }
-                }, 300);
+                }, relaunchDelayMs);
             }
         });
     }
@@ -3974,6 +3991,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
             prefConfig.bitrate = deviceBitrate;
             Log.i("MoonReconnect", "Using device-specific bitrate for reconnection: " + deviceBitrate);
         }
+        applyStreamEnhanceSuppressVideoMode();
 
         boolean willStreamHdr = shouldStreamHdr(false);
 

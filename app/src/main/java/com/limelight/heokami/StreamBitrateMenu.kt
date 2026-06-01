@@ -27,8 +27,12 @@ object StreamBitrateMenu {
         val prefs = PreferenceManager.getDefaultSharedPreferences(game)
         seekBar.max = 59
 
-        fun updateValue(progress: Int) {
-            valueText.text = game.getString(R.string.game_menu_current_bitrate_mbps, progressToKbps(progress) / 1000f)
+        fun updateValue(kbps: Int) {
+            valueText.text = game.getString(R.string.game_menu_current_bitrate_mbps, kbps / 1000f)
+        }
+
+        fun updateValueForProgress(progress: Int) {
+            updateValue(progressToKbps(progress))
         }
 
         fun applyBitrate(progress: Int) {
@@ -38,6 +42,7 @@ object StreamBitrateMenu {
                 Handler(Looper.getMainLooper()).post {
                     if (success) {
                         prefs.edit().putInt("seekbar_bitrate_kbps", bitrateKbps).apply()
+                        game.prefConfig?.bitrate = bitrateKbps
                         Toast.makeText(game, R.string.game_menu_bitrate_applied, Toast.LENGTH_SHORT).show()
                     } else {
                         Toast.makeText(game, error ?: game.getString(R.string.game_menu_bitrate_failed), Toast.LENGTH_LONG).show()
@@ -46,11 +51,12 @@ object StreamBitrateMenu {
             }
         }
 
-        seekBar.progress = kbpsToProgress(conn.currentBitrate)
-        updateValue(seekBar.progress)
+        val currentBitrateKbps = conn.currentBitrate
+        seekBar.progress = kbpsToProgress(currentBitrateKbps)
+        updateValue(currentBitrateKbps)
         seekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: SeekBar, progress: Int, fromUser: Boolean) {
-                updateValue(progress)
+                updateValueForProgress(progress)
             }
 
             override fun onStartTrackingTouch(seekBar: SeekBar) = Unit
@@ -75,11 +81,6 @@ object StreamBitrateMenu {
         else -> 100_000 + (progress - 49) * 10_000
     }
 
-    private fun kbpsToProgress(kbps: Int): Int = when {
-        kbps <= 5_000 -> ((kbps - 500) / 500).coerceIn(0, 9)
-        kbps <= 20_000 -> (9 + (kbps - 5_000) / 1_000).coerceIn(10, 24)
-        kbps <= 50_000 -> (24 + (kbps - 20_000) / 2_000).coerceIn(25, 39)
-        kbps <= 100_000 -> (39 + (kbps - 50_000) / 5_000).coerceIn(40, 49)
-        else -> (49 + (kbps - 100_000) / 10_000).coerceIn(50, 59)
-    }
+    private fun kbpsToProgress(kbps: Int): Int =
+        (0..59).minByOrNull { kotlin.math.abs(progressToKbps(it) - kbps) } ?: 0
 }

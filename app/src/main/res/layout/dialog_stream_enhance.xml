@@ -139,6 +139,19 @@
             android:text="@string/title_stream_enhance_rotation_sync" />
 
         <CheckBox
+            android:id="@+id/stream_enhance_suppress_video"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/title_stream_enhance_suppress_video" />
+
+        <TextView
+            android:id="@+id/stream_enhance_suppress_video_hint"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/summary_stream_enhance_suppress_video"
+            android:textSize="12sp" />
+
+        <CheckBox
             android:id="@+id/stream_enhance_force_resume"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"

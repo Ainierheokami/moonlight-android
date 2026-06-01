@@ -1,6 +1,7 @@
 package com.limelight.heokami
 
 import android.app.AlertDialog
+import android.app.Activity
 import android.os.Handler
 import android.os.Looper
 import android.preference.PreferenceManager
@@ -16,8 +17,10 @@ import android.widget.RadioGroup
 import android.widget.TextView
 import android.widget.Toast
 import com.limelight.Game
+import com.limelight.binding.PlatformBinding
 import com.limelight.R
 import com.limelight.nvstream.NvConnection
+import com.limelight.nvstream.http.ComputerDetails
 import com.limelight.nvstream.http.NvHTTP
 
 /**
@@ -30,6 +33,7 @@ object StreamEnhanceMenu {
     private const val VDD_MODE = "list_stream_enhance_vdd_mode"
     private const val DISPLAY_NAME = "edittext_stream_enhance_display_name"
     private const val ROTATION_SYNC = "checkbox_stream_enhance_rotation_sync"
+    private const val SUPPRESS_VIDEO = "checkbox_stream_enhance_suppress_video"
     private const val FORCE_RESUME = "checkbox_force_resume_current_session"
     private const val CACHED_PHYSICAL_GUID = "cached_physical_display_guid"
 
@@ -40,16 +44,53 @@ object StreamEnhanceMenu {
             return
         }
 
+        showInternal(game, { conn.displays }, { game.syncCurrentStreamRotation() })
+    }
+
+    @JvmStatic
+    fun show(activity: Activity, computer: ComputerDetails, uniqueId: String?) {
+        if (computer.nvidiaServer) {
+            Toast.makeText(activity, R.string.game_menu_sunshine_required, Toast.LENGTH_LONG).show()
+            return
+        }
+
+        showInternal(activity, {
+            val address = computer.activeAddress
+                ?: computer.localAddress
+                ?: computer.remoteAddress
+                ?: computer.ipv6Address
+                ?: computer.manualAddresses.firstOrNull()
+            if (address == null || uniqueId.isNullOrEmpty()) {
+                emptyList()
+            } else {
+                NvHTTP(
+                    address,
+                    computer.httpsPort,
+                    uniqueId,
+                    computer.serverCert,
+                    PlatformBinding.getCryptoProvider(activity)
+                ).displays
+            }
+        }, null)
+    }
+
+    private fun showInternal(
+        game: Activity,
+        fetchDisplays: () -> List<NvHTTP.DisplayInfo>,
+        onSyncRotation: (() -> Unit)?
+    ) {
         val prefs = PreferenceManager.getDefaultSharedPreferences(game)
         val view = LayoutInflater.from(game).inflate(R.layout.dialog_stream_enhance, null)
         val modeGroup = view.findViewById<RadioGroup>(R.id.stream_enhance_mode_group)
         val rotationSync = view.findViewById<CheckBox>(R.id.stream_enhance_rotation_sync)
+        val suppressVideo = view.findViewById<CheckBox>(R.id.stream_enhance_suppress_video)
         val forceResume = view.findViewById<CheckBox>(R.id.stream_enhance_force_resume)
         val modeHint = view.findViewById<TextView>(R.id.stream_enhance_mode_hint)
         val customStatus = view.findViewById<TextView>(R.id.stream_enhance_custom_status)
         val container = view.findViewById<LinearLayout>(R.id.stream_enhance_displays_container)
 
         rotationSync.isChecked = prefs.getBoolean(ROTATION_SYNC, false)
+        suppressVideo.isChecked = prefs.getBoolean(SUPPRESS_VIDEO, false)
         forceResume.isChecked = prefs.getBoolean(FORCE_RESUME, false)
 
         // 内存临时变量保存当前配置
@@ -248,7 +289,7 @@ object StreamEnhanceMenu {
 
         Thread {
             val fetched = try {
-                conn.displays
+                fetchDisplays()
             } catch (_: Exception) {
                 emptyList<NvHTTP.DisplayInfo>()
             }
@@ -298,12 +339,13 @@ object StreamEnhanceMenu {
             .setView(view)
             .setNeutralButton(R.string.game_menu_sync_rotation_now) { _, _ ->
                 prefs.edit().putBoolean(ROTATION_SYNC, true).apply()
-                game.syncCurrentStreamRotation()
+                onSyncRotation?.invoke()
             }
             .setNegativeButton(android.R.string.cancel, null)
             .setPositiveButton(android.R.string.ok) { _, _ ->
                 val editor = prefs.edit()
                     .putBoolean(ROTATION_SYNC, rotationSync.isChecked)
+                    .putBoolean(SUPPRESS_VIDEO, suppressVideo.isChecked)
                     .putBoolean(FORCE_RESUME, forceResume.isChecked)
 
                 if (modeGroup.checkedRadioButtonId == R.id.stream_enhance_mode_default) {
