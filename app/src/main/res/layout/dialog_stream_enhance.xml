@@ -28,6 +28,7 @@
                 android:id="@+id/stream_enhance_mode_secondary_channel"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:visibility="gone"
                 android:text="@string/stream_enhance_mode_secondary_channel" />
 
             <RadioButton
@@ -46,10 +47,29 @@
             android:textSize="13sp" />
 
         <TextView
+            android:id="@+id/stream_enhance_custom_status"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:textColor="#FFB0B0B0"
+            android:textSize="13sp"
+            android:textStyle="italic"
+            android:visibility="gone" />
+
+        <LinearLayout
+            android:id="@+id/stream_enhance_displays_container"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:orientation="vertical"
+            android:visibility="gone" />
+
+        <TextView
             android:id="@+id/stream_enhance_host_section"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="18dp"
+            android:visibility="gone"
             android:text="@string/stream_enhance_section_host"
             android:textStyle="bold" />
 
@@ -58,41 +78,48 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="12dp"
+            android:visibility="gone"
             android:text="@string/title_stream_enhance_screen_mode" />
 
         <Spinner
             android:id="@+id/stream_enhance_screen_mode"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content" />
+            android:layout_height="wrap_content"
+            android:visibility="gone" />
 
         <TextView
             android:id="@+id/stream_enhance_vdd_mode_label"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="12dp"
+            android:visibility="gone"
             android:text="@string/title_stream_enhance_vdd_mode" />
 
         <Spinner
             android:id="@+id/stream_enhance_vdd_mode"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content" />
+            android:layout_height="wrap_content"
+            android:visibility="gone" />
 
         <TextView
             android:id="@+id/stream_enhance_display_label"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="12dp"
+            android:visibility="gone"
             android:text="@string/title_stream_enhance_display_name" />
 
         <Spinner
             android:id="@+id/stream_enhance_display_spinner"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content" />
+            android:layout_height="wrap_content"
+            android:visibility="gone" />
 
         <EditText
             android:id="@+id/stream_enhance_display_name"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:visibility="gone"
             android:hint="@string/title_stream_enhance_display_name"
             android:singleLine="true" />
 

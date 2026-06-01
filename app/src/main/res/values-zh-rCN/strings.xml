@@ -521,4 +521,12 @@
     <string name="summary_stream_enhance_rotation_sync">将设备旋转同步到 Sunshine 显示器旋转。</string>
     <string name="title_force_resume_current_session">切换应用不断开串流</string>
     <string name="summary_force_resume_current_session">恢复当前主机 session，不退出并重新启动其他应用。</string>
+    <string name="stream_enhance_set_primary">设为主屏</string>
+    <string name="stream_enhance_stream_only">串流该屏</string>
+    <string name="stream_enhance_status_format">主屏：%1$s | 串流：%2$s</string>
+    <string name="stream_enhance_status_default">默认（不干涉主机设置）</string>
+    <string name="stream_enhance_virtual_activate_title">虚拟显示器 (强制激活)</string>
+    <string name="stream_enhance_current_streaming">当前串流：%1$s</string>
+    <string name="stream_enhance_device_id">设备 ID：%1$s</string>
+    <string name="stream_enhance_unknown">未知</string>
 </resources>

@@ -586,4 +586,12 @@
     <string name="summary_stream_enhance_rotation_sync">Sync device rotation to Sunshine display rotation.</string>
     <string name="title_force_resume_current_session">Keep current stream when switching apps</string>
     <string name="summary_force_resume_current_session">Resume the current host session instead of quitting and relaunching another app.</string>
+    <string name="stream_enhance_set_primary">Set Primary</string>
+    <string name="stream_enhance_stream_only">Stream This</string>
+    <string name="stream_enhance_status_format">Primary: %1$s | Stream: %2$s</string>
+    <string name="stream_enhance_status_default">Default (No override)</string>
+    <string name="stream_enhance_virtual_activate_title">Virtual Display (Force Activate)</string>
+    <string name="stream_enhance_current_streaming">Current Streaming: %1$s</string>
+    <string name="stream_enhance_device_id">Device ID: %1$s</string>
+    <string name="stream_enhance_unknown">Unknown</string>
 </resources>
