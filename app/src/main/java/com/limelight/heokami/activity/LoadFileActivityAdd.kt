@@ -30,7 +30,7 @@ class LoadFileActivityAdd : AppCompatActivity() {
             finish()
         }
         filePicker = FilePickerUtils(this)
-        filePicker.pickFile(mimeType = "text/*", callback = object :
+        filePicker.pickFile(mimeType = "*/*", callback = object :
             FilePickerUtils.FilePickerCallback {
             override fun onCallBack(fileName: String, content: String, uri: Uri) {
                 try {

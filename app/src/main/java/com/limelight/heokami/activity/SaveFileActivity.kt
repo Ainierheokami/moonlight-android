@@ -5,6 +5,7 @@ import android.os.Bundle
 import android.util.Log
 import android.widget.Button
 import android.widget.TextView
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 
 import com.limelight.R
@@ -29,6 +30,18 @@ class SaveFileActivity : AppCompatActivity() {
         val defaultName = "Moonlight_OSK_Backup_$timeStamp.json"
 
         filePicker = FilePickerUtils(this)
+        val backupData = VirtualKeyboardConfigurationLoader.saveToFile(this@SaveFileActivity)
+        val savedUri = filePicker.saveTextToDownloadsFolder(
+            defaultName,
+            backupData
+        )
+        if (savedUri != null) {
+            Log.d("pickFile", "自动保存配置到: $savedUri")
+            Toast.makeText(this, "配置已保存到 Download/Moonlight", Toast.LENGTH_SHORT).show()
+            finish()
+            return
+        }
+
         filePicker.pickFile(
             mimeType = "application/json",
             callback = object : FilePickerUtils.FilePickerCallback {
@@ -38,7 +51,7 @@ class SaveFileActivity : AppCompatActivity() {
                     Log.d("pickFile", "文件内容: $content")
                     filePicker.saveToUri(
                         uri,
-                        VirtualKeyboardConfigurationLoader.saveToFile(this@SaveFileActivity)
+                        backupData
                     )
                     this@SaveFileActivity.finish()
                 }

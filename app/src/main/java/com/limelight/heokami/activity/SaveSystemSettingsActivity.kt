@@ -31,20 +31,40 @@ class SaveSystemSettingsActivity : AppCompatActivity() {
         val defaultName = "Moonlight_System_Backup_$timeStamp.json"
 
         filePicker = FilePickerUtils(this)
+        val backupData = try {
+            SystemSettingsBackupHelper.exportSystemBackup(this@SaveSystemSettingsActivity)
+        } catch (e: Exception) {
+            Log.e("SaveSettingsActivity", "备份发生异常", e)
+            textView.text = "备份失败"
+            android.widget.Toast.makeText(this, "备份保存异常，请重试", android.widget.Toast.LENGTH_SHORT).show()
+            finish()
+            return
+        }
+
+        if (backupData == null) {
+            textView.text = "备份失败：导出生成为空"
+            android.widget.Toast.makeText(this, "备份失败，配置生成为空", android.widget.Toast.LENGTH_SHORT).show()
+            finish()
+            return
+        }
+
+        val savedUri = filePicker.saveTextToDownloadsFolder(defaultName, backupData)
+        if (savedUri != null) {
+            Log.d("SaveSettingsActivity", "自动保存系统设置到: $savedUri")
+            textView.text = "配对与设置备份成功"
+            android.widget.Toast.makeText(this, "备份已保存到 Download/Moonlight", android.widget.Toast.LENGTH_SHORT).show()
+            finish()
+            return
+        }
+
         filePicker.pickFile(
             mimeType = "application/json",
             callback = object : FilePickerUtils.FilePickerCallback {
                 override fun onCallBack(fileName: String, content: String, uri: Uri) {
                     try {
-                        val backupData = SystemSettingsBackupHelper.exportSystemBackup(this@SaveSystemSettingsActivity)
-                        if (backupData != null) {
-                            filePicker.saveToUri(uri, backupData)
-                            textView.text = "配对与设置备份成功"
-                            android.widget.Toast.makeText(this@SaveSystemSettingsActivity, "配对与设置备份成功", android.widget.Toast.LENGTH_SHORT).show()
-                        } else {
-                            textView.text = "备份失败：导出生成为空"
-                            android.widget.Toast.makeText(this@SaveSystemSettingsActivity, "备份失败，配置生成为空", android.widget.Toast.LENGTH_SHORT).show()
-                        }
+                        filePicker.saveToUri(uri, backupData)
+                        textView.text = "配对与设置备份成功"
+                        android.widget.Toast.makeText(this@SaveSystemSettingsActivity, "配对与设置备份成功", android.widget.Toast.LENGTH_SHORT).show()
                     } catch (e: Exception) {
                         Log.e("SaveSettingsActivity", "备份发生异常", e)
                         textView.text = "备份失败"

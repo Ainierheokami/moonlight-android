@@ -1,20 +1,29 @@
 package com.limelight.heokami
 
 import android.app.Activity
+import android.content.ContentValues
 import android.content.Intent
+import android.media.MediaScannerConnection
 import android.net.Uri
+import android.os.Environment
 import android.provider.OpenableColumns
 import android.util.Log
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import java.io.BufferedReader
+import java.io.File
+import java.io.FileOutputStream
 import java.io.InputStreamReader
 import java.io.OutputStream
 
 import android.os.Build
 import android.provider.DocumentsContract
+import android.provider.MediaStore
 
 class FilePickerUtils(private val activity: AppCompatActivity) {
+    companion object {
+        const val DEFAULT_DOWNLOADS_FOLDER = "Moonlight"
+    }
 
     // 回调接口
     interface FilePickerCallback {
@@ -55,10 +64,10 @@ class FilePickerUtils(private val activity: AppCompatActivity) {
                     type = mimeType
                     putExtra(Intent.EXTRA_TITLE, defaultFileName)
                     
-                    // 🌟 首席架构师特调：自动指引初始选择器定位到系统的 Download (下载) 目录，方便查找和归类
+                    // Point SAF to the app's backup folder when the provider supports it.
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                         try {
-                            val initialUri = Uri.parse("content://com.android.externalstorage.documents/document/primary%3ADownload")
+                            val initialUri = getDownloadsFolderInitialUri()
                             putExtra(DocumentsContract.EXTRA_INITIAL_URI, initialUri)
                         } catch (e: Exception) {
                             Log.w("FilePickerUtils", "设置初始SAF路径失败: ${e.message}")
@@ -74,10 +83,10 @@ class FilePickerUtils(private val activity: AppCompatActivity) {
                         putExtra(Intent.EXTRA_MIME_TYPES, it)
                     }
                     
-                    // 🌟 导入时同样自动指引定位到系统的 Download 目录
+                    // Point SAF to the app's backup folder when the provider supports it.
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                         try {
-                            val initialUri = Uri.parse("content://com.android.externalstorage.documents/document/primary%3ADownload")
+                            val initialUri = getDownloadsFolderInitialUri()
                             putExtra(DocumentsContract.EXTRA_INITIAL_URI, initialUri)
                         } catch (e: Exception) {
                             Log.w("FilePickerUtils", "设置初始SAF路径失败: ${e.message}")
@@ -88,6 +97,11 @@ class FilePickerUtils(private val activity: AppCompatActivity) {
             }
             Log.i("pickFile", "intent created")
         }
+    }
+
+    private fun getDownloadsFolderInitialUri(): Uri {
+        val encodedPath = "primary%3ADownload%2F$DEFAULT_DOWNLOADS_FOLDER"
+        return Uri.parse("content://com.android.externalstorage.documents/document/$encodedPath")
     }
 
     // 处理选中的文件
@@ -149,5 +163,77 @@ class FilePickerUtils(private val activity: AppCompatActivity) {
         } finally {
             outputStream?.close()
         }
+    }
+
+    fun saveTextToDownloadsFolder(
+        fileName: String,
+        content: String,
+        mimeType: String = "application/json",
+        folderName: String = DEFAULT_DOWNLOADS_FOLDER
+    ): Uri? {
+        return try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                saveTextToMediaStoreDownloads(fileName, content, mimeType, folderName)
+            } else {
+                saveTextToLegacyDownloads(fileName, content, mimeType, folderName)
+            }
+        } catch (e: Exception) {
+            Log.e("FilePickerUtils", "自动保存到下载目录失败: ${e.message}", e)
+            null
+        }
+    }
+
+    private fun saveTextToMediaStoreDownloads(
+        fileName: String,
+        content: String,
+        mimeType: String,
+        folderName: String
+    ): Uri? {
+        val resolver = activity.contentResolver
+        val values = ContentValues().apply {
+            put(MediaStore.Downloads.DISPLAY_NAME, fileName)
+            put(MediaStore.Downloads.MIME_TYPE, mimeType)
+            put(MediaStore.Downloads.RELATIVE_PATH, "${Environment.DIRECTORY_DOWNLOADS}/$folderName")
+            put(MediaStore.Downloads.IS_PENDING, 1)
+        }
+
+        val uri = resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values) ?: return null
+        return try {
+            resolver.openOutputStream(uri)?.use { outputStream ->
+                outputStream.write(content.toByteArray())
+                outputStream.flush()
+            } ?: return null
+
+            values.clear()
+            values.put(MediaStore.Downloads.IS_PENDING, 0)
+            resolver.update(uri, values, null, null)
+            uri
+        } catch (e: Exception) {
+            resolver.delete(uri, null, null)
+            throw e
+        }
+    }
+
+    private fun saveTextToLegacyDownloads(
+        fileName: String,
+        content: String,
+        mimeType: String,
+        folderName: String
+    ): Uri? {
+        val directory = File(
+            Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),
+            folderName
+        )
+        if (!directory.exists() && !directory.mkdirs()) {
+            return null
+        }
+
+        val file = File(directory, fileName)
+        FileOutputStream(file).use { outputStream ->
+            outputStream.write(content.toByteArray())
+            outputStream.flush()
+        }
+        MediaScannerConnection.scanFile(activity, arrayOf(file.absolutePath), arrayOf(mimeType), null)
+        return Uri.fromFile(file)
     }
 }
