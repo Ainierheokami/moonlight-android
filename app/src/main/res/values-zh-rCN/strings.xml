@@ -517,6 +517,8 @@
     <string name="stream_enhance_mode_default_hint">使用 Moonlight 默认启动方式，不改变主机显示器。</string>
     <string name="stream_enhance_mode_secondary_channel_hint">下次连接时让 Sunshine 走 VDD 副屏通道。</string>
     <string name="stream_enhance_mode_custom_display_hint">下次连接时选择要串流的 Sunshine 主机显示器。</string>
+    <string name="stream_enhance_mode_physical_only">仅串流物理屏</string>
+    <string name="stream_enhance_mode_physical_only_hint">强制 Sunshine 仅串流物理屏幕（智能识别第一物理屏，无则使用 DISPLAY1 兜底），用于清洗主机端被污染的虚拟显示器状态。</string>
     <string name="title_stream_enhance_rotation_sync">旋转同步</string>
     <string name="summary_stream_enhance_rotation_sync">将设备旋转同步到 Sunshine 显示器旋转。</string>
     <string name="title_force_resume_current_session">切换应用不断开串流</string>

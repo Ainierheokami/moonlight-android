@@ -26,6 +26,7 @@ import android.widget.TextView;
 import com.limelight.Game;
 import com.limelight.R;
 import com.limelight.nvstream.NvConnection;
+import com.limelight.nvstream.http.NvHTTP;
 import com.limelight.binding.input.virtual_keyboard.VirtualKeyboard;
 import com.limelight.nvstream.input.KeyboardPacket;
 import com.limelight.heokami.FloatingVirtualKeyboardFragment;
@@ -867,7 +868,7 @@ public class GameMenuFragment extends Fragment {
         Toast.makeText(game, "正在获取屏幕列表...", Toast.LENGTH_SHORT).show();
         new Thread(() -> {
             try {
-                List<String> displays = conn.getDisplayNames();
+                final List<NvHTTP.DisplayInfo> displays = conn.getDisplays();
                 new Handler(Looper.getMainLooper()).post(() -> {
                     if (displays == null || displays.isEmpty()) {
                         showFallbackSwitchDisplayDialog();
@@ -875,11 +876,22 @@ public class GameMenuFragment extends Fragment {
                     }
                     android.app.AlertDialog.Builder builder = new android.app.AlertDialog.Builder(game);
                     builder.setTitle("切换显示器");
-                    String[] items = displays.toArray(new String[0]);
+                    final String[] items = new String[displays.size()];
+                    for (int i = 0; i < displays.size(); i++) {
+                        items[i] = displays.get(i).toString();
+                    }
                     builder.setItems(items, (dialog, which) -> {
-                        String selectedDisplay = items[which];
-                        Toast.makeText(game, "正在切换到: " + selectedDisplay + "，请稍候...", Toast.LENGTH_SHORT).show();
-                        game.recreateConnectionWithDisplay(selectedDisplay);
+                        NvHTTP.DisplayInfo selected = displays.get(which);
+                        String targetValue = (selected.deviceId != null && !selected.deviceId.trim().isEmpty()) 
+                                ? selected.deviceId : selected.displayName;
+                        
+                        boolean isVirtual = selected.displayName.toLowerCase(java.util.Locale.ROOT).contains("zako")
+                                || selected.displayName.toLowerCase(java.util.Locale.ROOT).contains("virtual")
+                                || selected.friendlyName.toLowerCase(java.util.Locale.ROOT).contains("zako")
+                                || selected.friendlyName.toLowerCase(java.util.Locale.ROOT).contains("virtual");
+                        
+                        Toast.makeText(game, "正在切换到: " + targetValue + "，请稍候...", Toast.LENGTH_SHORT).show();
+                        game.recreateConnectionWithDisplay(targetValue, isVirtual);
                     });
                     builder.setNegativeButton(android.R.string.cancel, null);
                     builder.show();

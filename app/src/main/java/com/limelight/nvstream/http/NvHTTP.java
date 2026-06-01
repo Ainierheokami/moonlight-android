@@ -575,6 +575,63 @@ public class NvHTTP {
         return sortedNames;
     }
 
+    public static class DisplayInfo {
+        public final String displayName;
+        public final String friendlyName;
+        public final String deviceId;
+
+        public DisplayInfo(String displayName, String friendlyName, String deviceId) {
+            this.displayName = displayName;
+            this.friendlyName = friendlyName;
+            this.deviceId = deviceId;
+        }
+
+        @Override
+        public String toString() {
+            if (friendlyName != null && !friendlyName.isEmpty() && !friendlyName.equals(displayName)) {
+                return displayName + " (" + friendlyName + ")";
+            }
+            return displayName;
+        }
+    }
+
+    public List<DisplayInfo> getDisplays() throws IOException, XmlPullParserException {
+        try {
+            String jsonStr = openHttpConnectionToString(httpClientLongConnectTimeout, getHttpsUrl(true), "displays");
+            JSONObject json = new JSONObject(jsonStr);
+            if (json.optInt("status_code", 200) != 200) {
+                throw new IOException("Failed to get displays: " + json.optString("status_message"));
+            }
+
+            JSONArray displaysArray = json.optJSONArray("displays");
+            if (displaysArray == null) {
+                return new ArrayList<DisplayInfo>();
+            }
+
+            ArrayList<DisplayInfo> list = new ArrayList<DisplayInfo>();
+            for (int i = 0; i < displaysArray.length(); i++) {
+                JSONObject display = displaysArray.getJSONObject(i);
+                String displayName = display.optString("display_name", "");
+                String friendlyName = display.optString("friendly_name", "");
+                String deviceId = display.optString("device_id", "");
+                if (displayName.isEmpty()) {
+                    displayName = "Display " + (i + 1);
+                }
+                list.add(new DisplayInfo(displayName, friendlyName, deviceId));
+            }
+            return list;
+        } catch (JSONException e) {
+            throw new IOException("Failed to parse displays response: " + e.getMessage(), e);
+        } catch (FileNotFoundException e) {
+            List<String> names = getDisplayNames(getServerInfo(true));
+            ArrayList<DisplayInfo> list = new ArrayList<DisplayInfo>();
+            for (String name : names) {
+                list.add(new DisplayInfo(name, "", ""));
+            }
+            return list;
+        }
+    }
+
     public List<String> getDisplayNames() throws IOException, XmlPullParserException {
         try {
             String jsonStr = openHttpConnectionToString(httpClientLongConnectTimeout, getHttpsUrl(true), "displays");

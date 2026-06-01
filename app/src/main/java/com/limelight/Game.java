@@ -2724,6 +2724,10 @@ public class Game extends Activity implements SurfaceHolder.Callback,
     }
 
     public void recreateConnectionWithDisplay(final String displayName) {
+        recreateConnectionWithDisplay(displayName, null);
+    }
+
+    public void recreateConnectionWithDisplay(final String displayName, final Boolean overrideUseVdd) {
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
@@ -2738,10 +2742,15 @@ public class Game extends Activity implements SurfaceHolder.Callback,
                 // 1. 赋值给内存覆盖变量，绝对不读写改动全局 SharedPreferences，实现物理隔离
                 tempOverrideDisplayName = targetDisplay;
                 
-                // 智能判定 useVdd 设定：只有当目标显示器的原始全名中包含 "Zako" 或者是 "Virtual"（说明是虚拟屏幕）时，才可能/需要启用 VDD
-                // 对于其他任何物理屏幕（无论物理主屏 DISPLAY1 还是物理副屏 DISPLAY2 等其他物理副屏），均强制禁用 VDD，防止被虚拟屏幕抢占锁死
-                String displayNameLower = displayName.toLowerCase(java.util.Locale.ROOT);
-                boolean isVirtualDisplay = displayNameLower.contains("zako") || displayNameLower.contains("virtual");
+                // 智能判定 useVdd 设定：优先使用传入的 overrideUseVdd 强控制。
+                // 如果没有提供 overrideUseVdd，才根据目标显示器的原始全名中是否包含 "zako" 或 "virtual" 判定
+                boolean isVirtualDisplay;
+                if (overrideUseVdd != null) {
+                    isVirtualDisplay = overrideUseVdd;
+                } else {
+                    String displayNameLower = displayName.toLowerCase(java.util.Locale.ROOT);
+                    isVirtualDisplay = displayNameLower.contains("zako") || displayNameLower.contains("virtual");
+                }
                 tempOverrideUseVdd = isVirtualDisplay;
 
                 PreferenceManager.getDefaultSharedPreferences(Game.this).edit()

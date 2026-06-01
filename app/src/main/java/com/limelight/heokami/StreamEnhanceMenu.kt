@@ -16,6 +16,7 @@ import android.view.View
 import com.limelight.Game
 import com.limelight.R
 import com.limelight.nvstream.NvConnection
+import com.limelight.nvstream.http.NvHTTP
 
 object StreamEnhanceMenu {
     private const val USE_VDD = "checkbox_stream_enhance_use_vdd"
@@ -26,6 +27,7 @@ object StreamEnhanceMenu {
     private const val FORCE_RESUME = "checkbox_force_resume_current_session"
     private const val LAST_STREAM_DISPLAY_NAME = "last_stream_display_name"
     private const val LAST_STREAM_DISPLAY_USE_VDD = "last_stream_display_use_vdd"
+    private const val PHYSICAL_ONLY = "checkbox_stream_enhance_physical_only"
 
     private val modeValues = listOf("-1", "0", "1")
 
@@ -66,8 +68,10 @@ object StreamEnhanceMenu {
 
         val currentUseVdd = prefs.getBoolean(USE_VDD, false)
         val currentDisplayName = prefs.getString(DISPLAY_NAME, "").orEmpty()
+        val currentPhysicalOnly = prefs.getBoolean(PHYSICAL_ONLY, false)
         modeGroup.check(
             when {
+                currentPhysicalOnly -> R.id.stream_enhance_mode_physical_only
                 currentUseVdd -> R.id.stream_enhance_mode_secondary_channel
                 currentDisplayName.isNotBlank() -> R.id.stream_enhance_mode_custom
                 else -> R.id.stream_enhance_mode_default
@@ -78,6 +82,7 @@ object StreamEnhanceMenu {
             val custom = modeId == R.id.stream_enhance_mode_custom
             modeHint.setText(
                 when (modeId) {
+                    R.id.stream_enhance_mode_physical_only -> R.string.stream_enhance_mode_physical_only_hint
                     R.id.stream_enhance_mode_secondary_channel -> R.string.stream_enhance_mode_secondary_channel_hint
                     R.id.stream_enhance_mode_custom -> R.string.stream_enhance_mode_custom_display_hint
                     else -> R.string.stream_enhance_mode_default_hint
@@ -94,23 +99,34 @@ object StreamEnhanceMenu {
         modeGroup.setOnCheckedChangeListener { _, checkedId -> setHostControlVisibility(checkedId) }
         setHostControlVisibility(modeGroup.checkedRadioButtonId)
 
+        val displays = mutableListOf<NvHTTP.DisplayInfo>()
         val displayNames = mutableListOf(game.getString(R.string.stream_enhance_display_manual))
         val spinnerAdapter = ArrayAdapter(game, android.R.layout.simple_spinner_dropdown_item, displayNames)
         displaySpinner.adapter = spinnerAdapter
         Thread {
             val fetched = try {
-                conn.displayNames
+                conn.displays
             } catch (_: Exception) {
-                emptyList<String>()
+                emptyList<NvHTTP.DisplayInfo>()
             }
             Handler(Looper.getMainLooper()).post {
+                displays.clear()
+                displays.addAll(fetched)
                 displayNames.clear()
                 displayNames.add(game.getString(R.string.stream_enhance_display_manual))
-                displayNames.addAll(fetched)
+                displayNames.addAll(fetched.map { it.toString() })
                 spinnerAdapter.notifyDataSetChanged()
-                val index = displayNames.indexOf(currentDisplayName)
-                if (index > 0) {
-                    displaySpinner.setSelection(index)
+                
+                var selectIndex = 0
+                for (i in fetched.indices) {
+                    val info = fetched[i]
+                    if ((info.deviceId.isNotBlank() && info.deviceId == currentDisplayName) || info.displayName == currentDisplayName) {
+                        selectIndex = i + 1
+                        break
+                    }
+                }
+                if (selectIndex > 0) {
+                    displaySpinner.setSelection(selectIndex)
                 }
             }
         }.start()
@@ -124,10 +140,12 @@ object StreamEnhanceMenu {
             }
             .setNegativeButton(android.R.string.cancel, null)
             .setPositiveButton(android.R.string.ok) { _, _ ->
-                val selectedDisplay = displayNames.getOrNull(displaySpinner.selectedItemPosition).orEmpty()
+                val selectedIndex = displaySpinner.selectedItemPosition
+                val selectedInfo = if (selectedIndex > 0) displays.getOrNull(selectedIndex - 1) else null
                 val manualDisplay = displayName.text.toString().trim()
-                val finalDisplayName = if (selectedDisplay != game.getString(R.string.stream_enhance_display_manual)) {
-                    selectedDisplay
+                
+                val finalDisplayName = if (selectedIndex > 0 && selectedInfo != null) {
+                    if (selectedInfo.deviceId.isNotBlank()) selectedInfo.deviceId else selectedInfo.displayName
                 } else {
                     manualDisplay
                 }
@@ -137,18 +155,53 @@ object StreamEnhanceMenu {
                     .putBoolean(FORCE_RESUME, forceResume.isChecked)
                     .remove(LAST_STREAM_DISPLAY_NAME)
                     .remove(LAST_STREAM_DISPLAY_USE_VDD)
+                    .putBoolean(PHYSICAL_ONLY, false)
 
                 when (modeGroup.checkedRadioButtonId) {
+                    R.id.stream_enhance_mode_physical_only -> {
+                        editor.putBoolean(PHYSICAL_ONLY, true)
+                        editor.putBoolean(USE_VDD, false)
+                        editor.putString(SCREEN_MODE, "-1")
+                        editor.putString(VDD_MODE, "-1")
+                        
+                        val physicalDisplayInfo = displays.firstOrNull {
+                            val lowerName = it.displayName.lowercase()
+                            val lowerFriendly = it.friendlyName.lowercase()
+                            !lowerName.contains("zako") && !lowerName.contains("virtual") &&
+                            !lowerFriendly.contains("zako") && !lowerFriendly.contains("virtual")
+                        }
+                        val physicalDisplay = physicalDisplayInfo?.let {
+                            if (it.deviceId.isNotBlank()) it.deviceId else it.displayName
+                        } ?: "\\\\.\\DISPLAY1"
+                        
+                        editor.putString(DISPLAY_NAME, physicalDisplay)
+                    }
                     R.id.stream_enhance_mode_secondary_channel -> editor
                         .putBoolean(USE_VDD, true)
                         .putString(SCREEN_MODE, "-1")
                         .putString(VDD_MODE, "1")
                         .putString(DISPLAY_NAME, "")
-                    R.id.stream_enhance_mode_custom -> editor
-                        .putBoolean(USE_VDD, false)
-                        .putString(SCREEN_MODE, modeValues[screenMode.selectedItemPosition])
-                        .putString(VDD_MODE, modeValues[vddMode.selectedItemPosition])
-                        .putString(DISPLAY_NAME, finalDisplayName)
+                    R.id.stream_enhance_mode_custom -> {
+                        val finalDisplayToSave = if (finalDisplayName.trim().isEmpty()) {
+                            val physicalDisplayInfo = displays.firstOrNull {
+                                val lowerName = it.displayName.lowercase()
+                                val lowerFriendly = it.friendlyName.lowercase()
+                                !lowerName.contains("zako") && !lowerName.contains("virtual") &&
+                                !lowerFriendly.contains("zako") && !lowerFriendly.contains("virtual")
+                            }
+                            val physicalDisplay = physicalDisplayInfo?.let {
+                                if (it.deviceId.isNotBlank()) it.deviceId else it.displayName
+                            } ?: "\\\\.\\DISPLAY1"
+                            physicalDisplay
+                        } else {
+                            finalDisplayName
+                        }
+                        editor
+                            .putBoolean(USE_VDD, false)
+                            .putString(SCREEN_MODE, modeValues[screenMode.selectedItemPosition])
+                            .putString(VDD_MODE, modeValues[vddMode.selectedItemPosition])
+                            .putString(DISPLAY_NAME, finalDisplayToSave)
+                    }
                     else -> editor
                         .putBoolean(USE_VDD, false)
                         .putString(SCREEN_MODE, "-1")

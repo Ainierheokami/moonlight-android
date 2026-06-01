@@ -548,6 +548,11 @@ public class NvConnection {
         return context.isNvidiaServerSoftware;
     }
 
+    public List<NvHTTP.DisplayInfo> getDisplays() throws IOException, XmlPullParserException {
+        NvHTTP h = new NvHTTP(context.serverAddress, context.httpsPort, uniqueId, context.serverCert, cryptoProvider);
+        return h.getDisplays();
+    }
+
     public List<String> getDisplayNames() throws IOException, XmlPullParserException {
         NvHTTP h = new NvHTTP(context.serverAddress, context.httpsPort, uniqueId, context.serverCert, cryptoProvider);
         return h.getDisplayNames();
