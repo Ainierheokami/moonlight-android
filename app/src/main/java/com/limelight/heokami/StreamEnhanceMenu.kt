@@ -27,7 +27,6 @@ object StreamEnhanceMenu {
     private const val FORCE_RESUME = "checkbox_force_resume_current_session"
     private const val LAST_STREAM_DISPLAY_NAME = "last_stream_display_name"
     private const val LAST_STREAM_DISPLAY_USE_VDD = "last_stream_display_use_vdd"
-    private const val PHYSICAL_ONLY = "checkbox_stream_enhance_physical_only"
     private const val CACHED_PHYSICAL_GUID = "cached_physical_display_guid"
 
     private val modeValues = listOf("-1", "0", "1")
@@ -69,11 +68,9 @@ object StreamEnhanceMenu {
 
         val currentUseVdd = prefs.getBoolean(USE_VDD, false)
         val currentDisplayName = prefs.getString(DISPLAY_NAME, "").orEmpty()
-        val currentPhysicalOnly = prefs.getBoolean(PHYSICAL_ONLY, false)
         modeGroup.check(
             when {
-                currentPhysicalOnly -> R.id.stream_enhance_mode_physical_only
-                currentUseVdd -> R.id.stream_enhance_mode_secondary_channel
+                currentUseVdd && currentDisplayName.isBlank() -> R.id.stream_enhance_mode_secondary_channel
                 currentDisplayName.isNotBlank() -> R.id.stream_enhance_mode_custom
                 else -> R.id.stream_enhance_mode_default
             }
@@ -83,7 +80,6 @@ object StreamEnhanceMenu {
             val custom = modeId == R.id.stream_enhance_mode_custom
             modeHint.setText(
                 when (modeId) {
-                    R.id.stream_enhance_mode_physical_only -> R.string.stream_enhance_mode_physical_only_hint
                     R.id.stream_enhance_mode_secondary_channel -> R.string.stream_enhance_mode_secondary_channel_hint
                     R.id.stream_enhance_mode_custom -> R.string.stream_enhance_mode_custom_display_hint
                     else -> R.string.stream_enhance_mode_default_hint
@@ -169,29 +165,11 @@ object StreamEnhanceMenu {
                     .putBoolean(FORCE_RESUME, forceResume.isChecked)
                     .remove(LAST_STREAM_DISPLAY_NAME)
                     .remove(LAST_STREAM_DISPLAY_USE_VDD)
-                    .putBoolean(PHYSICAL_ONLY, false)
+                    .remove("checkbox_stream_enhance_physical_only")
 
                 val cachedGuid = prefs.getString(CACHED_PHYSICAL_GUID, "")
 
                 when (modeGroup.checkedRadioButtonId) {
-                    R.id.stream_enhance_mode_physical_only -> {
-                        editor.putBoolean(PHYSICAL_ONLY, true)
-                        editor.putBoolean(USE_VDD, false)
-                        editor.putString(SCREEN_MODE, "-1")
-                        editor.putString(VDD_MODE, "-1")
-                        
-                        val physicalDisplayInfo = displays.firstOrNull {
-                            val lowerName = it.displayName.lowercase()
-                            val lowerFriendly = it.friendlyName.lowercase()
-                            !lowerName.contains("zako") && !lowerName.contains("virtual") &&
-                            !lowerFriendly.contains("zako") && !lowerFriendly.contains("virtual")
-                        }
-                        val physicalDisplay = physicalDisplayInfo?.let {
-                            if (it.deviceId.isNotBlank()) it.deviceId else it.displayName
-                        } ?: cachedGuid?.takeIf { it.isNotBlank() } ?: "\\\\.\\DISPLAY1"
-                        
-                        editor.putString(DISPLAY_NAME, physicalDisplay)
-                    }
                     R.id.stream_enhance_mode_secondary_channel -> editor
                         .putBoolean(USE_VDD, true)
                         .putString(SCREEN_MODE, "-1")
@@ -212,8 +190,19 @@ object StreamEnhanceMenu {
                         } else {
                             finalDisplayName
                         }
+
+                        val isVirtualDisplay = if (selectedIndex > 0 && selectedInfo != null) {
+                            val lowerName = selectedInfo.displayName.lowercase()
+                            val lowerFriendly = selectedInfo.friendlyName.lowercase()
+                            lowerName.contains("zako") || lowerName.contains("virtual") ||
+                            lowerFriendly.contains("zako") || lowerFriendly.contains("virtual")
+                        } else {
+                            val lowerSave = finalDisplayToSave.lowercase()
+                            lowerSave.contains("zako") || lowerSave.contains("virtual")
+                        }
+
                         editor
-                            .putBoolean(USE_VDD, false)
+                            .putBoolean(USE_VDD, isVirtualDisplay)
                             .putString(SCREEN_MODE, modeValues[screenMode.selectedItemPosition])
                             .putString(VDD_MODE, modeValues[vddMode.selectedItemPosition])
                             .putString(DISPLAY_NAME, finalDisplayToSave)

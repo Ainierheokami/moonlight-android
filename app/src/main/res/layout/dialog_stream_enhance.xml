@@ -31,12 +31,6 @@
                 android:text="@string/stream_enhance_mode_secondary_channel" />
 
             <RadioButton
-                android:id="@+id/stream_enhance_mode_physical_only"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="@string/stream_enhance_mode_physical_only" />
-
-            <RadioButton
                 android:id="@+id/stream_enhance_mode_custom"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"

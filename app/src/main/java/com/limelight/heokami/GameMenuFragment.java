@@ -876,19 +876,24 @@ public class GameMenuFragment extends Fragment {
                     }
                     final List<NvHTTP.DisplayInfo> displays = new ArrayList<>(rawDisplays);
                     boolean hasPhysical = false;
+                    boolean hasVirtual = false;
                     for (NvHTTP.DisplayInfo info : displays) {
                         String lowerName = info.displayName.toLowerCase(java.util.Locale.ROOT);
                         String lowerFriendly = info.friendlyName.toLowerCase(java.util.Locale.ROOT);
                         if (!lowerName.contains("zako") && !lowerName.contains("virtual") &&
                             !lowerFriendly.contains("zako") && !lowerFriendly.contains("virtual")) {
                             hasPhysical = true;
-                            break;
+                        } else {
+                            hasVirtual = true;
                         }
                     }
                     if (!hasPhysical) {
                         String cachedGuid = android.preference.PreferenceManager.getDefaultSharedPreferences(game)
                                 .getString("cached_physical_display_guid", "");
                         displays.add(0, new NvHTTP.DisplayInfo("\\\\.\\DISPLAY1", "物理主显示器", cachedGuid));
+                    }
+                    if (!hasVirtual) {
+                        displays.add(new NvHTTP.DisplayInfo("virtual_fallback", "虚拟显示器 (强制激活)", ""));
                     }
                     android.app.AlertDialog.Builder builder = new android.app.AlertDialog.Builder(game);
                     builder.setTitle("切换显示器");
@@ -904,9 +909,15 @@ public class GameMenuFragment extends Fragment {
                         boolean isVirtual = selected.displayName.toLowerCase(java.util.Locale.ROOT).contains("zako")
                                 || selected.displayName.toLowerCase(java.util.Locale.ROOT).contains("virtual")
                                 || selected.friendlyName.toLowerCase(java.util.Locale.ROOT).contains("zako")
-                                || selected.friendlyName.toLowerCase(java.util.Locale.ROOT).contains("virtual");
+                                || selected.friendlyName.toLowerCase(java.util.Locale.ROOT).contains("virtual")
+                                || "virtual_fallback".equals(selected.displayName);
                         
-                        Toast.makeText(game, "正在切换到: " + targetValue + "，请稍候...", Toast.LENGTH_SHORT).show();
+                        if ("virtual_fallback".equals(selected.displayName)) {
+                            targetValue = "";
+                        }
+                        
+                        String toastText = targetValue.isEmpty() ? "虚拟显示器" : targetValue;
+                        Toast.makeText(game, "正在切换到: " + toastText + "，请稍候...", Toast.LENGTH_SHORT).show();
                         game.recreateConnectionWithDisplay(targetValue, isVirtual);
                     });
                     builder.setNegativeButton(android.R.string.cancel, null);
@@ -922,10 +933,18 @@ public class GameMenuFragment extends Fragment {
         android.app.AlertDialog.Builder builder = new android.app.AlertDialog.Builder(game);
         builder.setTitle("切换显示器 (未能自动获取列表，请选择常用项)");
         
-        final String[] items = new String[]{"\\\\.\\DISPLAY1", "\\\\.\\DISPLAY2", "\\\\.\\DISPLAY3", "\\\\.\\DISPLAY4", "手动输入名称..."};
+        final String[] items = new String[]{"物理主屏幕 (\\\\.\\DISPLAY1)", "虚拟显示器 (强制激活)", "手动输入名称..."};
         builder.setItems(items, (dialog, which) -> {
-            if (which == items.length - 1) {
-                // 弹出手动输入框
+            if (which == 0) {
+                String cachedGuid = android.preference.PreferenceManager.getDefaultSharedPreferences(game)
+                        .getString("cached_physical_display_guid", "");
+                String targetDisplay = (cachedGuid != null && !cachedGuid.trim().isEmpty()) ? cachedGuid : "\\\\.\\DISPLAY1";
+                Toast.makeText(game, "正在切换到: " + targetDisplay + "，请稍候...", Toast.LENGTH_SHORT).show();
+                game.recreateConnectionWithDisplay(targetDisplay, false);
+            } else if (which == 1) {
+                Toast.makeText(game, "正在激活并切换到虚拟显示器，请稍候...", Toast.LENGTH_SHORT).show();
+                game.recreateConnectionWithDisplay("", true);
+            } else {
                 android.app.AlertDialog.Builder inputBuilder = new android.app.AlertDialog.Builder(game);
                 inputBuilder.setTitle("输入显示器名称");
                 final android.widget.EditText input = new android.widget.EditText(game);
@@ -934,16 +953,14 @@ public class GameMenuFragment extends Fragment {
                 inputBuilder.setPositiveButton("确定", (dialog1, which1) -> {
                     String customDisplay = input.getText().toString().trim();
                     if (!customDisplay.isEmpty()) {
+                        boolean isVirtual = customDisplay.toLowerCase(java.util.Locale.ROOT).contains("zako")
+                                || customDisplay.toLowerCase(java.util.Locale.ROOT).contains("virtual");
                         Toast.makeText(game, "正在切换到: " + customDisplay + "，请稍候...", Toast.LENGTH_SHORT).show();
-                        game.recreateConnectionWithDisplay(customDisplay);
+                        game.recreateConnectionWithDisplay(customDisplay, isVirtual);
                     }
                 });
                 inputBuilder.setNegativeButton(android.R.string.cancel, null);
                 inputBuilder.show();
-            } else {
-                String selectedDisplay = items[which];
-                Toast.makeText(game, "正在切换到: " + selectedDisplay + "，请稍候...", Toast.LENGTH_SHORT).show();
-                game.recreateConnectionWithDisplay(selectedDisplay);
             }
         });
         builder.setNegativeButton(android.R.string.cancel, null);
