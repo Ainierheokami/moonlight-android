@@ -48,6 +48,23 @@ jobs:
           sed -i '/^systemProp\.https\.proxy/d' gradle.properties
           sed -i 's/^org\.gradle\.jvmargs=.*/org.gradle.jvmargs=-Xmx3g -Dfile.encoding=UTF-8/' gradle.properties
 
+      - name: Restore release signing keystore
+        if: ${{ secrets.MOONLIGHT_RELEASE_KEYSTORE_BASE64 != '' }}
+        env:
+          MOONLIGHT_RELEASE_KEYSTORE_BASE64: ${{ secrets.MOONLIGHT_RELEASE_KEYSTORE_BASE64 }}
+          MOONLIGHT_RELEASE_STORE_PASSWORD: ${{ secrets.MOONLIGHT_RELEASE_STORE_PASSWORD }}
+          MOONLIGHT_RELEASE_KEY_ALIAS: ${{ secrets.MOONLIGHT_RELEASE_KEY_ALIAS }}
+          MOONLIGHT_RELEASE_KEY_PASSWORD: ${{ secrets.MOONLIGHT_RELEASE_KEY_PASSWORD }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/signing"
+          printf '%s' "$MOONLIGHT_RELEASE_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/signing/moonlight-release.jks"
+          {
+            echo "MOONLIGHT_RELEASE_STORE_FILE=$RUNNER_TEMP/signing/moonlight-release.jks"
+            echo "MOONLIGHT_RELEASE_STORE_PASSWORD=$MOONLIGHT_RELEASE_STORE_PASSWORD"
+            echo "MOONLIGHT_RELEASE_KEY_ALIAS=$MOONLIGHT_RELEASE_KEY_ALIAS"
+            echo "MOONLIGHT_RELEASE_KEY_PASSWORD=$MOONLIGHT_RELEASE_KEY_PASSWORD"
+          } >> "$GITHUB_ENV"
+
       - name: Make Gradle wrapper executable
         run: chmod +x ./gradlew
 

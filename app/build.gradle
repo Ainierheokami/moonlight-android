@@ -20,6 +20,12 @@ if (shouldIncrementBuildSeq) {
     buildSeqFile.withOutputStream { buildSeqProps.store(it, "Auto-incremented APK build sequence") }
 }
 
+def releaseStoreFile = System.getenv("MOONLIGHT_RELEASE_STORE_FILE")
+def releaseStorePassword = System.getenv("MOONLIGHT_RELEASE_STORE_PASSWORD")
+def releaseKeyAlias = System.getenv("MOONLIGHT_RELEASE_KEY_ALIAS")
+def releaseKeyPassword = System.getenv("MOONLIGHT_RELEASE_KEY_PASSWORD")
+def hasReleaseSigning = releaseStoreFile && releaseStorePassword && releaseKeyAlias && releaseKeyPassword
+
 android {
     ndkVersion "27.0.12077973"
 
@@ -117,6 +123,17 @@ android {
         }
     }
 
+    signingConfigs {
+        heokamiRelease {
+            if (hasReleaseSigning) {
+                storeFile file(releaseStoreFile)
+                storePassword releaseStorePassword
+                keyAlias releaseKeyAlias
+                keyPassword releaseKeyPassword
+            }
+        }
+    }
+
     buildTypes {
         debug {
             applicationIdSuffix ".debug"
@@ -125,6 +142,7 @@ android {
 
             minifyEnabled true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            signingConfig hasReleaseSigning ? signingConfigs.heokamiRelease : signingConfigs.debug
         }
         release {
             // To whomever is releasing/using an APK in release mode with
@@ -163,7 +181,7 @@ android {
 
             minifyEnabled true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
-            signingConfig signingConfigs.debug
+            signingConfig hasReleaseSigning ? signingConfigs.heokamiRelease : signingConfigs.debug
         }
     }
 
