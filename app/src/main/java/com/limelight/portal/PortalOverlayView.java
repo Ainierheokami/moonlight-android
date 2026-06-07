@@ -23,6 +23,7 @@ import com.limelight.nvstream.input.MouseButtonPacket;
  */
 public class PortalOverlayView extends View {
     private static final String TAG = "PortalOverlayView";
+    private static final boolean DEBUG_DRAW = false;
 
     private PortalConfig config;
     private Game game;
@@ -122,7 +123,7 @@ public class PortalOverlayView extends View {
             float bitmapHeight = portalBitmap.getHeight();
             float dstWidth = dstRectView.width();
             float dstHeight = dstRectView.height();
-            Log.d(TAG, String.format("onDraw: bitmap=%dx%d dstView=%dx%d stretch to dstRectView",
+            logDraw(String.format("onDraw: bitmap=%dx%d dstView=%dx%d stretch to dstRectView",
                     (int)bitmapWidth, (int)bitmapHeight, (int)dstWidth, (int)dstHeight));
             // 直接使用目标矩形进行绘制（拉伸填充）
             canvas.drawBitmap(portalBitmap, null, dstRectView, bitmapPaint);
@@ -159,27 +160,20 @@ public class PortalOverlayView extends View {
      */
     private RectF getEditRectScreen() {
         if (config.editMode == 1) {
-            // 编辑源区域：将归一化的 srcRect 转换为屏幕坐标
-            View streamView = game.getStreamView();
-            if (streamView == null) return config.dstRect; // 回退
-            int streamWidth = streamView.getWidth();
-            int streamHeight = streamView.getHeight();
-            // 获取 StreamView 在屏幕上的位置（相对于本 View 的坐标？）
-            // 由于 PortalOverlayView 位于叠加层，其坐标与屏幕一致，可以直接使用 StreamView 的全局位置
-            int[] location = new int[2];
-            streamView.getLocationOnScreen(location);
-            float left = config.srcRect.left * streamWidth + location[0];
-            float top = config.srcRect.top * streamHeight + location[1];
-            float right = config.srcRect.right * streamWidth + location[0];
-            float bottom = config.srcRect.bottom * streamHeight + location[1];
-            Log.d(TAG, String.format("getEditRectScreen src: stream=%dx%d loc=(%d,%d) srcRect=(%.3f,%.3f,%.3f,%.3f) screenRect=(%.1f,%.1f,%.1f,%.1f)",
-                    streamWidth, streamHeight, location[0], location[1],
+            RectF videoRectScreen = getVideoContentRectScreen();
+            if (videoRectScreen == null) return config.dstRect;
+            float left = videoRectScreen.left + config.srcRect.left * videoRectScreen.width();
+            float top = videoRectScreen.top + config.srcRect.top * videoRectScreen.height();
+            float right = videoRectScreen.left + config.srcRect.right * videoRectScreen.width();
+            float bottom = videoRectScreen.top + config.srcRect.bottom * videoRectScreen.height();
+            logDraw(String.format("getEditRectScreen src: videoRect=(%.1f,%.1f,%.1f,%.1f) srcRect=(%.3f,%.3f,%.3f,%.3f) screenRect=(%.1f,%.1f,%.1f,%.1f)",
+                    videoRectScreen.left, videoRectScreen.top, videoRectScreen.right, videoRectScreen.bottom,
                     config.srcRect.left, config.srcRect.top, config.srcRect.right, config.srcRect.bottom,
                     left, top, right, bottom));
             return new RectF(left, top, right, bottom);
         } else {
             // editMode == 2 或默认：目标区域（已经是屏幕坐标）
-            Log.d(TAG, String.format("getEditRectScreen dst: dstRect=(%.1f,%.1f,%.1f,%.1f)",
+            logDraw(String.format("getEditRectScreen dst: dstRect=(%.1f,%.1f,%.1f,%.1f)",
                     config.dstRect.left, config.dstRect.top, config.dstRect.right, config.dstRect.bottom));
             return config.dstRect;
         }
@@ -195,7 +189,7 @@ public class PortalOverlayView extends View {
         float viewTop = screenRect.top - location[1];
         float viewRight = screenRect.right - location[0];
         float viewBottom = screenRect.bottom - location[1];
-        Log.d(TAG, String.format("screenToViewRect: screen=(%.1f,%.1f,%.1f,%.1f) viewLoc=(%d,%d) viewRect=(%.1f,%.1f,%.1f,%.1f)",
+        logDraw(String.format("screenToViewRect: screen=(%.1f,%.1f,%.1f,%.1f) viewLoc=(%d,%d) viewRect=(%.1f,%.1f,%.1f,%.1f)",
                 screenRect.left, screenRect.top, screenRect.right, screenRect.bottom,
                 location[0], location[1], viewLeft, viewTop, viewRight, viewBottom));
         return new RectF(viewLeft, viewTop, viewRight, viewBottom);
@@ -208,7 +202,7 @@ public class PortalOverlayView extends View {
         float bottom = rect.bottom;
         float halfHandle = HANDLE_SIZE / 2;
 
-        Log.d(TAG, String.format("drawHandles: rect=(%.1f,%.1f,%.1f,%.1f) view size=%dx%d",
+        logDraw(String.format("drawHandles: rect=(%.1f,%.1f,%.1f,%.1f) view size=%dx%d",
                 left, top, right, bottom, getWidth(), getHeight()));
 
         // 四个角的手柄
@@ -216,6 +210,12 @@ public class PortalOverlayView extends View {
         canvas.drawCircle(right, top, halfHandle, handlePaint);
         canvas.drawCircle(left, bottom, halfHandle, handlePaint);
         canvas.drawCircle(right, bottom, halfHandle, handlePaint);
+    }
+
+    private void logDraw(String message) {
+        if (DEBUG_DRAW) {
+            Log.d(TAG, message);
+        }
     }
 
     @Override
@@ -291,9 +291,11 @@ public class PortalOverlayView extends View {
             return super.onTouchEvent(event);
         } else {
             // 非编辑模式：输入映射
+            float screenX = viewToScreenX(x);
+            float screenY = viewToScreenY(y);
             switch (action) {
                 case MotionEvent.ACTION_DOWN:
-                    if (config.dstRect.contains(x, y)) {
+                    if (config.dstRect.contains(screenX, screenY)) {
                         isPortalTouchActive = true;
                         return handlePortalTouch(event);
                     }
@@ -329,22 +331,28 @@ public class PortalOverlayView extends View {
         return -1;
     }
 
+    private float viewToScreenX(float x) {
+        int[] location = new int[2];
+        getLocationOnScreen(location);
+        return x + location[0];
+    }
+
+    private float viewToScreenY(float y) {
+        int[] location = new int[2];
+        getLocationOnScreen(location);
+        return y + location[1];
+    }
+
     private void updateRect(float dx, float dy, RectF editRectScreen) {
         if (config.editMode == 1) {
-            // 编辑源区域：更新 srcRect（归一化坐标）
-            View streamView = game.getStreamView();
-            if (streamView == null) return;
-            int streamWidth = streamView.getWidth();
-            int streamHeight = streamView.getHeight();
-            int[] location = new int[2];
-            streamView.getLocationOnScreen(location);
-            float streamLeft = location[0];
-            float streamTop = location[1];
+            RectF videoBounds = getVideoContentRectScreen();
+            if (videoBounds == null || videoBounds.width() <= 0 || videoBounds.height() <= 0) return;
 
             // 计算屏幕坐标中的新矩形
             RectF newScreenRect = new RectF(editRectScreen);
             if (isDragging) {
                 newScreenRect.offset(dx, dy);
+                clampRectInside(newScreenRect, videoBounds);
             } else if (isResizing) {
                 switch (dragHandle) {
                     case 0: // 左上
@@ -379,25 +387,28 @@ public class PortalOverlayView extends View {
                         newScreenRect.bottom = newScreenRect.top + HANDLE_SIZE * 2;
                     }
                 }
+                clampRectInside(newScreenRect, videoBounds);
             }
 
             // 将屏幕坐标转换回归一化坐标
-            float left = (newScreenRect.left - streamLeft) / streamWidth;
-            float top = (newScreenRect.top - streamTop) / streamHeight;
-            float right = (newScreenRect.right - streamLeft) / streamWidth;
-            float bottom = (newScreenRect.bottom - streamTop) / streamHeight;
+            float left = (newScreenRect.left - videoBounds.left) / videoBounds.width();
+            float top = (newScreenRect.top - videoBounds.top) / videoBounds.height();
+            float right = (newScreenRect.right - videoBounds.left) / videoBounds.width();
+            float bottom = (newScreenRect.bottom - videoBounds.top) / videoBounds.height();
             // 限制在 0-1 范围内
             left = Math.max(0, Math.min(1, left));
             top = Math.max(0, Math.min(1, top));
             right = Math.max(0, Math.min(1, right));
             bottom = Math.max(0, Math.min(1, bottom));
-            if (right < left) right = left + 0.01f;
-            if (bottom < top) bottom = top + 0.01f;
+            if (right <= left) right = Math.min(1f, left + 0.01f);
+            if (bottom <= top) bottom = Math.min(1f, top + 0.01f);
             config.srcRect.set(left, top, right, bottom);
         } else {
+            RectF viewBounds = getScreenBounds();
             // 编辑目标区域：更新 dstRect（屏幕坐标）
             if (isDragging) {
                 config.dstRect.offset(dx, dy);
+                clampRectInside(config.dstRect, viewBounds);
             } else if (isResizing) {
                 switch (dragHandle) {
                     case 0: // 左上
@@ -432,7 +443,45 @@ public class PortalOverlayView extends View {
                         config.dstRect.bottom = config.dstRect.top + HANDLE_SIZE * 2;
                     }
                 }
+                clampRectInside(config.dstRect, viewBounds);
             }
+        }
+    }
+
+    private RectF getScreenBounds() {
+        int[] location = new int[2];
+        getLocationOnScreen(location);
+        return new RectF(location[0], location[1], location[0] + getWidth(), location[1] + getHeight());
+    }
+
+    private void clampRectInside(RectF rect, RectF bounds) {
+        if (bounds.width() <= 0 || bounds.height() <= 0) {
+            return;
+        }
+
+        float minWidth = Math.min(HANDLE_SIZE * 2, bounds.width());
+        float minHeight = Math.min(HANDLE_SIZE * 2, bounds.height());
+        if (rect.width() < minWidth) {
+            rect.right = rect.left + minWidth;
+        }
+        if (rect.height() < minHeight) {
+            rect.bottom = rect.top + minHeight;
+        }
+
+        if (rect.width() >= bounds.width()) {
+            rect.left = bounds.left;
+            rect.right = bounds.right;
+        } else {
+            if (rect.left < bounds.left) rect.offset(bounds.left - rect.left, 0);
+            if (rect.right > bounds.right) rect.offset(bounds.right - rect.right, 0);
+        }
+
+        if (rect.height() >= bounds.height()) {
+            rect.top = bounds.top;
+            rect.bottom = bounds.bottom;
+        } else {
+            if (rect.top < bounds.top) rect.offset(0, bounds.top - rect.top);
+            if (rect.bottom > bounds.bottom) rect.offset(0, bounds.bottom - rect.bottom);
         }
     }
 
@@ -447,16 +496,12 @@ public class PortalOverlayView extends View {
      * 获取源区域在屏幕上的矩形（像素坐标）
      */
     private RectF getSrcRectScreen() {
-        View streamView = game.getStreamView();
-        if (streamView == null) return new RectF();
-        int streamWidth = streamView.getWidth();
-        int streamHeight = streamView.getHeight();
-        int[] location = new int[2];
-        streamView.getLocationOnScreen(location);
-        float left = config.srcRect.left * streamWidth + location[0];
-        float top = config.srcRect.top * streamHeight + location[1];
-        float right = config.srcRect.right * streamWidth + location[0];
-        float bottom = config.srcRect.bottom * streamHeight + location[1];
+        RectF videoRectScreen = getVideoContentRectScreen();
+        if (videoRectScreen == null) return new RectF();
+        float left = videoRectScreen.left + config.srcRect.left * videoRectScreen.width();
+        float top = videoRectScreen.top + config.srcRect.top * videoRectScreen.height();
+        float right = videoRectScreen.left + config.srcRect.right * videoRectScreen.width();
+        float bottom = videoRectScreen.top + config.srcRect.bottom * videoRectScreen.height();
         return new RectF(left, top, right, bottom);
     }
 
@@ -496,9 +541,9 @@ public class PortalOverlayView extends View {
      */
     private void showPortalSettingsDialog() {
         android.app.AlertDialog.Builder builder = new android.app.AlertDialog.Builder(getContext());
-        builder.setTitle("传送门设置 - " + config.name);
+        builder.setTitle("画面映射设置 - " + config.name);
         String[] items = {
-                "删除传送门",
+                "删除画面映射",
                 "设置帧率限制",
                 "设置缩放比例",
                 "设置宽高比",
@@ -550,102 +595,122 @@ public class PortalOverlayView extends View {
         Log.d(TAG, "切换编辑模式: editing=" + config.editing + ", editMode=" + config.editMode);
     }
 
-    /**
-     * 将目标区域的触摸坐标映射回源区域，并发送输入事件
-     */
-    /**
-     * 将目标区域的触摸坐标映射回源区域，并发送输入事件
-     */
     public boolean handlePortalTouch(MotionEvent event) {
         if (game == null || game.getConnection() == null) {
             return false;
         }
 
-        // 1. Calculate srcX/srcY relative to the StreamView (0.0 - 1.0)
-        // config.srcRect is defined relative to the full StreamView (including black bars)
-        float srcX = mapCoordinate(event.getX(), config.dstRect, config.srcRect, true);
-        float srcY = mapCoordinate(event.getY(), config.dstRect, config.srcRect, false);
-
-        // 2. Adjust for aspect ratio (black bars)
-        // host expects coordinates relative to the active video content, not the full stream view
-        // We need to map from "StreamView Normalized" -> "Video Content Normalized"
-        
-        View streamView = game.getStreamView();
-        if (streamView == null || streamView.getWidth() == 0 || streamView.getHeight() == 0) {
-             return false;
+        if (config.dstRect.width() <= 0 || config.dstRect.height() <= 0) {
+            return false;
         }
 
-        // Get video content rect (in pixels relative to streamView)
-        // We replicate the logic from PortalManagerView.getVideoContentRect here or access it if possible.
-        // Since we can't easily access private method, we assume standard "fit to center" logic used in Game.
-        
-        float viewWidth = streamView.getWidth();
-        float viewHeight = streamView.getHeight();
-        com.limelight.preferences.PreferenceConfiguration prefConfig = game.getPrefConfig();
-        
-        float contentLeft = 0, contentTop = 0, contentWidth = viewWidth, contentHeight = viewHeight;
+        float touchRatioX = (viewToScreenX(event.getX()) - config.dstRect.left) / config.dstRect.width();
+        float touchRatioY = (viewToScreenY(event.getY()) - config.dstRect.top) / config.dstRect.height();
+        touchRatioX = clamp01(touchRatioX);
+        touchRatioY = clamp01(touchRatioY);
 
-        if (prefConfig != null && !prefConfig.stretchVideo) {
-            float viewAspect = viewWidth / viewHeight;
-            float videoAspect = (float) prefConfig.width / prefConfig.height;
+        float sourceX = config.srcRect.left + touchRatioX * config.srcRect.width();
+        float sourceY = config.srcRect.top + touchRatioY * config.srcRect.height();
+        sourceX = clamp01(sourceX);
+        sourceY = clamp01(sourceY);
 
-            if (viewAspect > videoAspect) {
-                // View is wider than video (pillarbox)
-                contentHeight = viewHeight;
-                contentWidth = contentHeight * videoAspect;
-                contentLeft = (viewWidth - contentWidth) / 2;
-            } else {
-                // View is taller than video (letterbox)
-                contentWidth = viewWidth;
-                contentHeight = contentWidth / videoAspect;
-                contentTop = (viewHeight - contentHeight) / 2;
-            }
+        int referenceWidth = getHostReferenceWidth();
+        int referenceHeight = getHostReferenceHeight();
+        if (referenceWidth <= 1 || referenceHeight <= 1) {
+            return false;
         }
-        
-        // Convert normalized srcX/srcY back to pixels in StreamView
-        float pixelX = srcX * viewWidth;
-        float pixelY = srcY * viewHeight;
 
-        // Map pixel coordinates to normalized Video Content coordinates
-        // normalizedVideoX = (pixelX - contentLeft) / contentWidth
-        float normalizedVideoX = (pixelX - contentLeft) / contentWidth;
-        float normalizedVideoY = (pixelY - contentTop) / contentHeight;
-
-        // 3. Clamp to valid 0.0 - 1.0 range
-        // If the portal shows a black bar area, this will clamp it to the edge of the video
-        normalizedVideoX = Math.max(0f, Math.min(1f, normalizedVideoX));
-        normalizedVideoY = Math.max(0f, Math.min(1f, normalizedVideoY));
+        short eventX = (short) Math.round(sourceX * (referenceWidth - 1));
+        short eventY = (short) Math.round(sourceY * (referenceHeight - 1));
+        short refWidth = (short) referenceWidth;
+        short refHeight = (short) referenceHeight;
 
         // 发送输入事件（简化版，仅处理鼠标左键）
         switch (event.getActionMasked()) {
             case MotionEvent.ACTION_DOWN:
-                game.getConnection().sendMousePosition(
-                    (short)(normalizedVideoX * 65535),
-                    (short)(normalizedVideoY * 65535),
-                    (short)game.getStreamView().getWidth(),
-                    (short)game.getStreamView().getHeight());
+                game.getConnection().sendMousePosition(eventX, eventY, refWidth, refHeight);
                 game.getConnection().sendMouseButtonDown(MouseButtonPacket.BUTTON_LEFT);
                 break;
             case MotionEvent.ACTION_UP:
+                game.getConnection().sendMousePosition(eventX, eventY, refWidth, refHeight);
+                game.getConnection().sendMouseButtonUp(MouseButtonPacket.BUTTON_LEFT);
+                break;
+            case MotionEvent.ACTION_CANCEL:
                 game.getConnection().sendMouseButtonUp(MouseButtonPacket.BUTTON_LEFT);
                 break;
             case MotionEvent.ACTION_MOVE:
-                game.getConnection().sendMousePosition(
-                    (short)(normalizedVideoX * 65535),
-                    (short)(normalizedVideoY * 65535),
-                    (short)game.getStreamView().getWidth(),
-                    (short)game.getStreamView().getHeight());
+                game.getConnection().sendMousePosition(eventX, eventY, refWidth, refHeight);
                 break;
         }
         return true;
     }
 
-    private float mapCoordinate(float coord, RectF from, RectF to, boolean isX) {
-        if (isX) {
-            return (coord - from.left) / from.width() * to.width() + to.left;
-        } else {
-            return (coord - from.top) / from.height() * to.height() + to.top;
+    private RectF getVideoContentRectScreen() {
+        View streamView = game != null ? game.getStreamView() : null;
+        RectF rectInView = getVideoContentRectInView();
+        if (streamView == null || rectInView == null) {
+            return null;
         }
+        int[] location = new int[2];
+        streamView.getLocationOnScreen(location);
+        return new RectF(
+                location[0] + rectInView.left,
+                location[1] + rectInView.top,
+                location[0] + rectInView.right,
+                location[1] + rectInView.bottom);
+    }
+
+    private RectF getVideoContentRectInView() {
+        View streamView = game != null ? game.getStreamView() : null;
+        if (streamView == null || streamView.getWidth() <= 0 || streamView.getHeight() <= 0) {
+            return null;
+        }
+
+        float viewWidth = streamView.getWidth();
+        float viewHeight = streamView.getHeight();
+        com.limelight.preferences.PreferenceConfiguration prefConfig = game.getPrefConfig();
+        if (prefConfig == null || prefConfig.stretchVideo || prefConfig.width <= 0 || prefConfig.height <= 0) {
+            return new RectF(0, 0, viewWidth, viewHeight);
+        }
+
+        float viewAspect = viewWidth / viewHeight;
+        float videoAspect = (float) prefConfig.width / prefConfig.height;
+        float contentWidth;
+        float contentHeight;
+        float contentLeft = 0;
+        float contentTop = 0;
+        if (viewAspect > videoAspect) {
+            contentHeight = viewHeight;
+            contentWidth = contentHeight * videoAspect;
+            contentLeft = (viewWidth - contentWidth) / 2f;
+        } else {
+            contentWidth = viewWidth;
+            contentHeight = contentWidth / videoAspect;
+            contentTop = (viewHeight - contentHeight) / 2f;
+        }
+        return new RectF(contentLeft, contentTop, contentLeft + contentWidth, contentTop + contentHeight);
+    }
+
+    private int getHostReferenceWidth() {
+        com.limelight.preferences.PreferenceConfiguration prefConfig = game.getPrefConfig();
+        if (prefConfig != null && prefConfig.width > 1) {
+            return Math.min(prefConfig.width, Short.MAX_VALUE);
+        }
+        RectF videoRect = getVideoContentRectInView();
+        return videoRect != null ? Math.min(Math.max(2, Math.round(videoRect.width())), Short.MAX_VALUE) : 0;
+    }
+
+    private int getHostReferenceHeight() {
+        com.limelight.preferences.PreferenceConfiguration prefConfig = game.getPrefConfig();
+        if (prefConfig != null && prefConfig.height > 1) {
+            return Math.min(prefConfig.height, Short.MAX_VALUE);
+        }
+        RectF videoRect = getVideoContentRectInView();
+        return videoRect != null ? Math.min(Math.max(2, Math.round(videoRect.height())), Short.MAX_VALUE) : 0;
+    }
+
+    private float clamp01(float value) {
+        return Math.max(0f, Math.min(1f, value));
     }
 
     @Override

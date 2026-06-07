@@ -69,16 +69,8 @@ public class PortalManagerView extends FrameLayout {
         SharedPreferences prefs = game.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
         portalsEnabled = prefs.getBoolean(KEY_PORTALS_ENABLED, true); // Load portalsEnabled state
         String json = prefs.getString(KEY_CONFIGS, null);
-        if (json == null || json.isEmpty() || json.equals("[]")) { // Check for empty array string too
-            // 没有保存的配置，创建一个默认传送门用于测试
-            PortalConfig config = new PortalConfig();
-            config.id = generateNewId();
-            config.srcRect = new RectF(0.1f, 0.1f, 0.3f, 0.3f); // 归一化坐标
-            config.dstRect = new RectF(800, 100, 1000, 300); // 像素坐标
-            config.enabled = true;
-            config.name = "传送门1";
-            portalConfigs.add(config);
-            saveConfigs(); // 保存默认配置
+        if (json == null || json.isEmpty() || json.equals("[]")) {
+            portalConfigs.clear();
         } else {
             // 使用Gson反序列化
             Type type = new TypeToken<List<PortalConfig>>(){}.getType();
@@ -155,6 +147,108 @@ public class PortalManagerView extends FrameLayout {
         saveConfigs();
     }
 
+    public List<PortalConfig> getPortalConfigsSnapshot() {
+        List<PortalConfig> snapshot = new ArrayList<>();
+        synchronized (portalLock) {
+            for (PortalConfig config : portalConfigs) {
+                snapshot.add(copyConfig(config));
+            }
+        }
+        return snapshot;
+    }
+
+    public int getPortalCount() {
+        synchronized (portalLock) {
+            return portalConfigs.size();
+        }
+    }
+
+    public boolean setPortalEnabled(int id, boolean enabled) {
+        boolean changed = false;
+        synchronized (portalLock) {
+            PortalConfig config = findConfigLocked(id);
+            if (config == null || config.enabled == enabled) {
+                return false;
+            }
+
+            config.enabled = enabled;
+            if (enabled) {
+                PortalOverlayView view = portalViews.get(id);
+                if (view == null) {
+                    view = new PortalOverlayView(getContext());
+                    view.setConfig(config);
+                    view.setGame(game);
+                    portalViews.put(id, view);
+                    addView(view);
+                }
+                view.setVisibility(shouldShowPortalViews() ? View.VISIBLE : View.GONE);
+            } else {
+                PortalOverlayView view = portalViews.remove(id);
+                if (view != null) {
+                    view.clearPortalBitmap();
+                    removeView(view);
+                }
+            }
+            changed = true;
+        }
+
+        if (changed) {
+            saveConfigs();
+            if (shouldCapture()) {
+                startCaptureThread();
+            } else {
+                stopCaptureThread();
+            }
+        }
+        return changed;
+    }
+
+    public boolean setPortalEditingMode(int id, int mode) {
+        boolean found = false;
+        synchronized (portalLock) {
+            for (PortalConfig config : portalConfigs) {
+                boolean selected = config.id == id;
+                config.editing = selected && mode != 0;
+                config.editMode = selected ? mode : 0;
+                found |= selected;
+            }
+        }
+        if (found) {
+            invalidatePortalViews();
+        }
+        return found;
+    }
+
+    public PortalConfig duplicatePortal(int id) {
+        PortalConfig duplicate;
+        boolean visible = shouldShowPortalViews();
+        synchronized (portalLock) {
+            PortalConfig source = findConfigLocked(id);
+            if (source == null) {
+                return null;
+            }
+
+            duplicate = copyConfig(source);
+            duplicate.id = generateNewIdLocked();
+            duplicate.name = source.name + " 副本";
+            duplicate.editing = false;
+            duplicate.editMode = 0;
+            duplicate.dstRect.offset(32, 32);
+            portalConfigs.add(duplicate);
+
+            if (duplicate.enabled) {
+                PortalOverlayView view = new PortalOverlayView(getContext());
+                view.setConfig(duplicate);
+                view.setGame(game);
+                view.setVisibility(visible ? View.VISIBLE : View.GONE);
+                portalViews.put(duplicate.id, view);
+                addView(view);
+            }
+        }
+        saveConfigs();
+        return copyConfig(duplicate);
+    }
+
     public void removePortal(int id) {
         synchronized (portalLock) {
             PortalOverlayView view = portalViews.remove(id);
@@ -174,6 +268,40 @@ public class PortalManagerView extends FrameLayout {
             }
         }
         saveConfigs();
+    }
+
+    private PortalConfig findConfigLocked(int id) {
+        for (PortalConfig config : portalConfigs) {
+            if (config.id == id) {
+                return config;
+            }
+        }
+        return null;
+    }
+
+    private int generateNewIdLocked() {
+        int maxId = 0;
+        for (PortalConfig config : portalConfigs) {
+            if (config.id > maxId) {
+                maxId = config.id;
+            }
+        }
+        return maxId + 1;
+    }
+
+    private PortalConfig copyConfig(PortalConfig source) {
+        PortalConfig copy = new PortalConfig();
+        copy.id = source.id;
+        copy.srcRect = new RectF(source.srcRect);
+        copy.dstRect = new RectF(source.dstRect);
+        copy.enabled = source.enabled;
+        copy.name = source.name;
+        copy.scale = source.scale;
+        copy.borderColor = source.borderColor;
+        copy.borderWidth = source.borderWidth;
+        copy.editing = source.editing;
+        copy.editMode = source.editMode;
+        return copy;
     }
 
     public void updatePortalBitmap(int id, Bitmap bitmap) {
@@ -585,11 +713,7 @@ public class PortalManagerView extends FrameLayout {
             }
         }
         // 通知视图更新
-        synchronized (portalLock) {
-            for (PortalOverlayView view : portalViews.values()) {
-                view.invalidate();
-            }
-        }
+        invalidatePortalViews();
         Log.d(TAG, "切换编辑模式: editing=" + newEditingState + ", editMode=" + newEditMode);
     }
 
@@ -623,12 +747,16 @@ public class PortalManagerView extends FrameLayout {
             }
         }
         // 通知视图更新
+        invalidatePortalViews();
+        Log.d(TAG, "setEditingMode: mode=" + mode);
+    }
+
+    private void invalidatePortalViews() {
         synchronized (portalLock) {
             for (PortalOverlayView view : portalViews.values()) {
                 view.invalidate();
             }
         }
-        Log.d(TAG, "setEditingMode: mode=" + mode);
     }
 
     /**

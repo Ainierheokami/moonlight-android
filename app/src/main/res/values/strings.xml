@@ -377,16 +377,16 @@
     <string name="game_menu_floating_keyboard">悬浮键盘</string>
     <string name="game_menu_full_keyboard">全屏键盘</string>
     <string name="game_menu_section_screen_overlay">屏幕叠加</string>
-    <string name="game_menu_section_portals">Portals</string>
-    <string name="game_menu_portal_enable">Enable portals</string>
-    <string name="game_menu_portal_disable">Disable portals</string>
-    <string name="game_menu_portal_add">Add portal</string>
-    <string name="game_menu_portal_manage">Manage portals</string>
+    <string name="game_menu_section_portals">Screen mapping</string>
+    <string name="game_menu_portal_enable">Enable screen mapping</string>
+    <string name="game_menu_portal_disable">Disable screen mapping</string>
+    <string name="game_menu_portal_add">Add screen mapping</string>
+    <string name="game_menu_portal_manage">Manage screen mapping</string>
     <string name="game_menu_portal_toggle_edit">Switch edit mode</string>
     <string name="game_menu_portal_edit_source">Edit source area</string>
     <string name="game_menu_portal_edit_target">Edit target area</string>
     <string name="game_menu_portal_exit_edit">Exit edit mode</string>
-    <string name="game_menu_portal_manage_pending">Portal management is not ready yet</string>
+    <string name="game_menu_portal_manage_pending">Screen mapping management is not ready yet</string>
     <string name="game_menu_status_ready">Ready</string>
     <string name="game_menu_status_unavailable">Unavailable</string>
     <string name="game_menu_status_quick">Quick</string>
@@ -469,13 +469,13 @@
     <string name="macro_type_touch_toggle">Touch Toggle</string>
     <string name="macro_type_floating_keyboard_toggle">Floating Keyboard Toggle</string>
     <string name="macro_type_touchpad_toggle">Touchpad Switch</string>
-    <string name="macro_type_portal_toggle">Portal Toggle</string>
+    <string name="macro_type_portal_toggle">Screen Mapping Toggle</string>
     <string name="macro_type_touch_toggle_hint">Data: 0=multi‑touch,1=trackpad,2=mouse (default cycle)</string>
     <string name="macro_type_touchpad_toggle_hint">Data: 1=on,2=off (default toggle)</string>
     <string name="macro_type_portal_toggle_hint">Data: 0=toggle,1=on,2=off</string>
-    <string name="macro_portal_toggle_on">Enable portals</string>
-    <string name="macro_portal_toggle_off">Disable portals</string>
-    <string name="macro_portal_toggle_toggle">Toggle portals</string>
+    <string name="macro_portal_toggle_on">Enable screen mapping</string>
+    <string name="macro_portal_toggle_off">Disable screen mapping</string>
+    <string name="macro_portal_toggle_toggle">Toggle screen mapping</string>
     <string name="button_type_button">Button</string>
     <string name="button_type_hot_keys">Macros/hotkeys</string>
     <string name="button_type_joystick">Joystick</string>

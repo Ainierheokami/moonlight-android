@@ -429,16 +429,16 @@
     <string name="virtual_keyboard_state_normal">常态</string>
     <string name="virtual_keyboard_state_pressed">按下</string>
     <string name="virtual_keyboard_section_background_color">背景颜色</string>
-    <string name="game_menu_section_portals">传送门管理</string>
-    <string name="game_menu_portal_enable">开启传送门</string>
-    <string name="game_menu_portal_disable">关闭传送门</string>
-    <string name="game_menu_portal_add">添加传送门</string>
-    <string name="game_menu_portal_manage">管理传送门</string>
+    <string name="game_menu_section_portals">画面映射</string>
+    <string name="game_menu_portal_enable">开启画面映射</string>
+    <string name="game_menu_portal_disable">关闭画面映射</string>
+    <string name="game_menu_portal_add">添加画面映射</string>
+    <string name="game_menu_portal_manage">管理画面映射</string>
     <string name="game_menu_portal_toggle_edit">切换编辑模式</string>
     <string name="game_menu_portal_edit_source">编辑源区域</string>
     <string name="game_menu_portal_edit_target">编辑目标区域</string>
     <string name="game_menu_portal_exit_edit">退出编辑模式</string>
-    <string name="game_menu_portal_manage_pending">传送门管理功能待实现</string>
+    <string name="game_menu_portal_manage_pending">画面映射管理功能待实现</string>
     <string name="game_menu_status_ready">就绪</string>
     <string name="game_menu_status_unavailable">不可用</string>
     <string name="game_menu_status_quick">快捷</string>
@@ -460,13 +460,13 @@
     <string name="back_button">返回</string>
     <string name="macro_type_floating_keyboard_toggle">悬浮键盘切换</string>
     <string name="macro_type_touchpad_toggle">触摸板开关</string>
-    <string name="macro_type_portal_toggle">传送门开关</string>
+    <string name="macro_type_portal_toggle">画面映射开关</string>
     <string name="macro_type_touch_toggle_hint">Data: 0=多点,1=触控板,2=鼠标 (默认循环)</string>
     <string name="macro_type_touchpad_toggle_hint">Data: 1=开启,2=关闭 (默认循环开关)</string>
     <string name="macro_type_portal_toggle_hint">Data: 0=切换,1=开启,2=关闭</string>
-    <string name="macro_portal_toggle_on">开启传送门</string>
-    <string name="macro_portal_toggle_off">关闭传送门</string>
-    <string name="macro_portal_toggle_toggle">切换传送门</string>
+    <string name="macro_portal_toggle_on">开启画面映射</string>
+    <string name="macro_portal_toggle_off">关闭画面映射</string>
+    <string name="macro_portal_toggle_toggle">切换画面映射</string>
     <string name="floating_keyboard_hidden">悬浮键盘已隐藏</string>
     <string name="floating_keyboard_shown">悬浮键盘已显示</string>
     <string name="touchpad_disabled">触摸板已禁用（仅虚拟键盘触摸）</string>

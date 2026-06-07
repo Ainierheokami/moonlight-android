@@ -338,7 +338,7 @@ public class GameMenuFragment extends Fragment {
         actions.add(new MenuAction("portal_toggle", game.arePortalsEnabled() ? R.string.game_menu_portal_disable : R.string.game_menu_portal_enable, 0, MenuSection.PORTALS, 10, false, true, game.getPortalManagerView() != null, v -> togglePortals()));
         actions.add(new MenuAction("portal_add", R.string.game_menu_portal_add, 0, MenuSection.PORTALS, 20, false, true, game.getPortalManagerView() != null, v -> addPortal()));
         actions.add(new MenuAction("portal_edit", R.string.game_menu_portal_toggle_edit, 0, MenuSection.PORTALS, 30, false, true, game.getPortalManagerView() != null, v -> togglePortalEditMode()));
-        actions.add(new MenuAction("portal_manage", R.string.game_menu_portal_manage, 0, MenuSection.PORTALS, 40, false, true, true, v -> Toast.makeText(game, R.string.game_menu_portal_manage_pending, Toast.LENGTH_SHORT).show()));
+        actions.add(new MenuAction("portal_manage", R.string.game_menu_portal_manage, 0, MenuSection.PORTALS, 40, false, true, game.getPortalManagerView() != null, v -> showPortalManagerDialog()));
 
         actions.add(new MenuAction("edit_hotkeys", R.string.game_menu_edit_hotkeys, 0, MenuSection.CUSTOM, 10, false, true, true, v -> openCustomHotkeyManager()));
         List<CustomHotkeysManager.CustomHotkey> customItems = CustomHotkeysManager.load(game);
@@ -706,18 +706,41 @@ public class GameMenuFragment extends Fragment {
         PortalConfig config = new PortalConfig();
         config.id = portalManager.generateNewId();
         config.srcRect = new RectF(0.2f, 0.2f, 0.4f, 0.4f);
-        config.dstRect = new RectF(100, 100, 300, 300);
+        config.dstRect = createDefaultPortalTargetRect();
         config.enabled = true;
-        config.name = "传送门" + config.id;
+        config.name = "画面映射 " + config.id;
+        if (!portalManager.arePortalsEnabled()) {
+            portalManager.setPortalsEnabled(true);
+        }
         portalManager.addPortal(config);
-        portalManager.setEditingMode(1);
-        game.postNotification("已添加传送门，请调整源区域", 2000);
+        portalManager.setPortalEditingMode(config.id, 1);
+        game.postNotification("已添加画面映射，请调整源区域", 2000);
+    }
+
+    private RectF createDefaultPortalTargetRect() {
+        View streamView = game.getStreamView();
+        int width = streamView != null && streamView.getWidth() > 0 ? streamView.getWidth() : game.getResources().getDisplayMetrics().widthPixels;
+        int height = streamView != null && streamView.getHeight() > 0 ? streamView.getHeight() : game.getResources().getDisplayMetrics().heightPixels;
+        int[] location = new int[2];
+        if (streamView != null) {
+            streamView.getLocationOnScreen(location);
+        }
+
+        float size = Math.max(160f, Math.min(width, height) * 0.22f);
+        float margin = Math.max(24f, Math.min(width, height) * 0.04f);
+        float left = location[0] + width - size - margin;
+        float top = location[1] + margin;
+        return new RectF(left, top, left + size, top + size);
     }
 
     private void togglePortalEditMode() {
         hideMenuWithAnimation();
         PortalManagerView portalManager = game.getPortalManagerView();
         if (portalManager == null) return;
+        if (portalManager.getPortalCount() == 0) {
+            game.postNotification("请先添加画面映射", 2000);
+            return;
+        }
         int currentMode = portalManager.getCurrentEditMode();
         int nextMode = currentMode == 0 ? 1 : currentMode == 1 ? 2 : 0;
         portalManager.setEditingMode(nextMode);
@@ -727,6 +750,118 @@ public class GameMenuFragment extends Fragment {
                 ? getString(R.string.game_menu_portal_edit_target)
                 : getString(R.string.game_menu_portal_exit_edit);
         game.postNotification(notificationText, 2000);
+    }
+
+    private void showPortalManagerDialog() {
+        hideMenuWithAnimation();
+        PortalManagerView portalManager = game.getPortalManagerView();
+        if (portalManager == null) {
+            Toast.makeText(game, "portalManager 为空", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        List<PortalConfig> portals = portalManager.getPortalConfigsSnapshot();
+        if (portals.isEmpty()) {
+            new android.app.AlertDialog.Builder(game)
+                    .setTitle("管理画面映射")
+                    .setMessage("还没有画面映射。请先添加一个画面映射，再调整源区域和显示位置。")
+                    .setPositiveButton("添加画面映射", (dialog, which) -> addPortal())
+                    .setNegativeButton(android.R.string.cancel, null)
+                    .show();
+            return;
+        }
+
+        String[] items = new String[portals.size()];
+        for (int i = 0; i < portals.size(); i++) {
+            PortalConfig config = portals.get(i);
+            String mode = config.editing
+                    ? (config.editMode == 1 ? "编辑源区域" : "编辑目标区域")
+                    : "未编辑";
+            items[i] = config.name + " · " + (config.enabled ? "开启" : "关闭") + " · " + mode;
+        }
+
+        new android.app.AlertDialog.Builder(game)
+                .setTitle("管理画面映射")
+                .setItems(items, (dialog, which) -> showPortalActionsDialog(portals.get(which).id))
+                .setPositiveButton("添加", (dialog, which) -> addPortal())
+                .setNegativeButton(android.R.string.cancel, null)
+                .show();
+    }
+
+    private void showPortalActionsDialog(int portalId) {
+        PortalManagerView portalManager = game.getPortalManagerView();
+        if (portalManager == null) {
+            return;
+        }
+
+        PortalConfig selected = null;
+        for (PortalConfig config : portalManager.getPortalConfigsSnapshot()) {
+            if (config.id == portalId) {
+                selected = config;
+                break;
+            }
+        }
+        if (selected == null) {
+            game.postNotification("画面映射已不存在", 2000);
+            return;
+        }
+
+        String[] actions = new String[] {
+                "编辑源区域",
+                "编辑目标区域",
+                selected.enabled ? "关闭画面映射" : "开启画面映射",
+                "复制画面映射",
+                "删除画面映射"
+        };
+
+        PortalConfig finalSelected = selected;
+        new android.app.AlertDialog.Builder(game)
+                .setTitle(finalSelected.name)
+                .setItems(actions, (dialog, which) -> {
+                    switch (which) {
+                        case 0:
+                            portalManager.setPortalEditingMode(portalId, 1);
+                            game.postNotification("正在编辑源区域", 2000);
+                            break;
+                        case 1:
+                            portalManager.setPortalEditingMode(portalId, 2);
+                            game.postNotification("正在编辑目标区域", 2000);
+                            break;
+                        case 2:
+                            portalManager.setPortalEnabled(portalId, !finalSelected.enabled);
+                            game.postNotification(finalSelected.enabled ? "已关闭画面映射" : "已开启画面映射", 2000);
+                            break;
+                        case 3:
+                            PortalConfig duplicate = portalManager.duplicatePortal(portalId);
+                            if (duplicate != null) {
+                                portalManager.setPortalEditingMode(duplicate.id, 2);
+                                game.postNotification("已复制画面映射，请调整目标区域", 2000);
+                            }
+                            break;
+                        case 4:
+                            confirmDeletePortal(portalId, finalSelected.name);
+                            break;
+                    }
+                })
+                .setNegativeButton(android.R.string.cancel, null)
+                .show();
+    }
+
+    private void confirmDeletePortal(int portalId, String portalName) {
+        PortalManagerView portalManager = game.getPortalManagerView();
+        if (portalManager == null) {
+            return;
+        }
+
+        new android.app.AlertDialog.Builder(game)
+                .setTitle("删除画面映射")
+                .setMessage("确定删除 " + portalName + "？")
+                .setPositiveButton("删除", (dialog, which) -> {
+                    portalManager.removePortal(portalId);
+                    game.postNotification("已删除画面映射", 2000);
+                })
+                .setNegativeButton(android.R.string.cancel, null)
+                .show();
     }
 
     /**
