@@ -350,6 +350,33 @@ public abstract class VirtualKeyboardElement extends View {
         }
 
         if (virtualKeyboard.getControllerMode() == VirtualKeyboard.ControllerMode.Active) {
+            if (virtualKeyboard.shouldHandleEdgeHideGesture(this)) {
+                switch (event.getActionMasked()) {
+                    case MotionEvent.ACTION_DOWN:
+                        virtualKeyboard.handleEdgeHideGestureDown(
+                                (int) (getX() + event.getX()),
+                                (int) (getY() + event.getY()));
+                        break;
+                    case MotionEvent.ACTION_MOVE:
+                        if (virtualKeyboard.handleEdgeHideGestureMove(
+                                (int) (getX() + event.getX()),
+                                (int) (getY() + event.getY()))) {
+                            MotionEvent cancelEvent = MotionEvent.obtain(event);
+                            cancelEvent.setAction(MotionEvent.ACTION_CANCEL);
+                            onElementTouchEvent(cancelEvent);
+                            cancelEvent.recycle();
+                            virtualKeyboard.handleEdgeHideGestureEnd();
+                            return true;
+                        }
+                        break;
+                    case MotionEvent.ACTION_UP:
+                    case MotionEvent.ACTION_CANCEL:
+                        virtualKeyboard.handleEdgeHideGestureEnd();
+                        break;
+                    default:
+                        break;
+                }
+            }
             return onElementTouchEvent(event);
         }
         else if (virtualKeyboard.getControllerMode() == VirtualKeyboard.ControllerMode.NewSettingButtons) {

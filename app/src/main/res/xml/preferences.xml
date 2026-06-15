@@ -169,12 +169,6 @@
             android:summary="@string/summary_checkbox_vibrate_osc"
             android:defaultValue="true" />
         <CheckBoxPreference
-            android:key="checkbox_onscreen_controls_edge_hide"
-            android:dependency="checkbox_show_onscreen_controls"
-            android:title="@string/title_checkbox_onscreen_controls_edge_hide"
-            android:summary="@string/summary_checkbox_onscreen_controls_edge_hide"
-            android:defaultValue="false" />
-        <CheckBoxPreference
             android:defaultValue="false"
             android:dependency="checkbox_show_onscreen_controls"
             android:key="checkbox_only_show_L3R3"
@@ -244,6 +238,14 @@
             android:key="checkbox_enable_new_setting_button"
             android:summary="@string/summary_enable_new_setting_button"
             android:title="@string/title_enable_new_setting_button" />
+        <CheckBoxPreference
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:defaultValue="false"
+            android:key="checkbox_virtual_keyboard_edge_hide"
+            android:dependency="checkbox_show_onscreen_keyboard"
+            android:summary="@string/summary_checkbox_virtual_keyboard_edge_hide"
+            android:title="@string/title_checkbox_virtual_keyboard_edge_hide" />
         <com.limelight.heokami.pref.SaveFilePreference
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"

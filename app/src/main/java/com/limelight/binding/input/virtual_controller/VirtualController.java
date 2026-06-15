@@ -9,7 +9,6 @@ import android.os.Handler;
 import android.os.Looper;
 import android.util.DisplayMetrics;
 import android.view.View;
-import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.FrameLayout;
 import android.widget.Toast;
@@ -17,12 +16,9 @@ import android.widget.Toast;
 import com.limelight.LimeLog;
 import com.limelight.R;
 import com.limelight.binding.input.ControllerHandler;
-import com.limelight.preferences.PreferenceConfiguration;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 public class VirtualController {
     public static class ControllerInputContext {
@@ -55,18 +51,6 @@ public class VirtualController {
     };
 
     private FrameLayout frame_layout = null;
-    private View edgeHandleView = null;
-    private boolean edgeHideEnabled = false;
-    private boolean isCollapsed = false;
-    private int lastTouchDownX = -1;
-    private int lastTouchDownY = -1;
-    private int lastActiveEdge = EDGE_NONE;
-    private int pendingEdgeReveal = EDGE_NONE;
-    private final Map<VirtualControllerElement, FrameLayout.LayoutParams> expandedLayoutParams = new HashMap<>();
-
-    private static final int EDGE_NONE = 0;
-    private static final int EDGE_LEFT = 1;
-    private static final int EDGE_RIGHT = 2;
 
     ControllerMode currentMode = ControllerMode.Active;
     ControllerInputContext inputContext = new ControllerInputContext();
@@ -114,206 +98,6 @@ public class VirtualController {
 
     }
 
-    private void ensureEdgeHandle() {
-        if (edgeHandleView != null) {
-            return;
-        }
-
-        edgeHandleView = new View(context);
-        edgeHandleView.setBackgroundColor(0xFFFFFFFF);
-        edgeHandleView.setAlpha(0.85f);
-        edgeHandleView.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
-        edgeHandleView.setFocusable(false);
-        edgeHandleView.setClickable(false);
-    }
-
-    private void updateEdgeHandleVisibility() {
-        ensureEdgeHandle();
-        if (edgeHandleView == null) {
-            return;
-        }
-        edgeHandleView.setVisibility(edgeHideEnabled && isCollapsed ? View.VISIBLE : View.GONE);
-    }
-
-    private void updateEdgeHandleLayout() {
-        ensureEdgeHandle();
-        if (edgeHandleView == null || frame_layout == null) {
-            return;
-        }
-
-        ViewGroup.LayoutParams existing = edgeHandleView.getLayoutParams();
-        FrameLayout.LayoutParams params = existing instanceof FrameLayout.LayoutParams
-                ? (FrameLayout.LayoutParams) existing
-                : new FrameLayout.LayoutParams(10, ViewGroup.LayoutParams.MATCH_PARENT);
-        params.width = Math.max(4, Math.min(10, frame_layout.getWidth() / 120));
-        params.height = ViewGroup.LayoutParams.MATCH_PARENT;
-        params.leftMargin = lastActiveEdge == EDGE_RIGHT
-                ? Math.max(0, frame_layout.getWidth() - params.width)
-                : 0;
-        params.topMargin = 0;
-        params.rightMargin = 0;
-        params.bottomMargin = 0;
-        edgeHandleView.setLayoutParams(params);
-    }
-
-    private void attachEdgeHandle() {
-        ensureEdgeHandle();
-        if (edgeHandleView == null || frame_layout == null) {
-            return;
-        }
-
-        if (edgeHandleView.getParent() == frame_layout) {
-            updateEdgeHandleLayout();
-            return;
-        }
-
-        if (edgeHandleView.getParent() instanceof ViewGroup) {
-            ((ViewGroup) edgeHandleView.getParent()).removeView(edgeHandleView);
-        }
-
-        frame_layout.addView(edgeHandleView);
-        updateEdgeHandleLayout();
-        updateEdgeHandleVisibility();
-    }
-
-    private void refreshEdgeStateFromPreferences() {
-        PreferenceConfiguration prefConfig = PreferenceConfiguration.readPreferences(context);
-        edgeHideEnabled = prefConfig != null && prefConfig.onscreenControllerEdgeHide;
-        if (!edgeHideEnabled) {
-            isCollapsed = false;
-            expandedLayoutParams.clear();
-        }
-        updateEdgeHandleVisibility();
-    }
-
-    private void collapseToEdge(int edge) {
-        if (!edgeHideEnabled || frame_layout == null) {
-            return;
-        }
-
-        isCollapsed = true;
-        lastActiveEdge = edge;
-        pendingEdgeReveal = edge;
-        expandedLayoutParams.clear();
-
-        int offset = Math.max(20, Math.min(frame_layout.getWidth(), frame_layout.getHeight()) / 18);
-        for (VirtualControllerElement element : elements) {
-            FrameLayout.LayoutParams params = (FrameLayout.LayoutParams) element.getLayoutParams();
-            if (params == null) {
-                continue;
-            }
-            expandedLayoutParams.put(element, new FrameLayout.LayoutParams(params));
-            if (edge == EDGE_LEFT) {
-                params.leftMargin = -Math.max(1, params.width - offset);
-            } else if (edge == EDGE_RIGHT) {
-                params.leftMargin = frame_layout.getWidth() - offset;
-            }
-            element.requestLayout();
-        }
-        updateEdgeHandleVisibility();
-        updateEdgeHandleLayout();
-    }
-
-    private void expandFromEdge() {
-        if (!edgeHideEnabled || !isCollapsed) {
-            return;
-        }
-
-        isCollapsed = false;
-        pendingEdgeReveal = EDGE_NONE;
-        for (VirtualControllerElement element : elements) {
-            FrameLayout.LayoutParams savedParams = expandedLayoutParams.get(element);
-            if (savedParams != null) {
-                FrameLayout.LayoutParams currentParams = (FrameLayout.LayoutParams) element.getLayoutParams();
-                currentParams.leftMargin = savedParams.leftMargin;
-                currentParams.topMargin = savedParams.topMargin;
-                currentParams.rightMargin = savedParams.rightMargin;
-                currentParams.bottomMargin = savedParams.bottomMargin;
-                currentParams.width = savedParams.width;
-                currentParams.height = savedParams.height;
-                element.requestLayout();
-            }
-        }
-        expandedLayoutParams.clear();
-        updateEdgeHandleVisibility();
-    }
-
-    private boolean isNearEdge(int x, int y) {
-        if (frame_layout == null) {
-            return false;
-        }
-
-        int edgeZone = Math.max(40, frame_layout.getWidth() / 20);
-        return x <= edgeZone || x >= frame_layout.getWidth() - edgeZone;
-    }
-
-    public boolean handleEdgeGestureDown(int x, int y) {
-        lastTouchDownX = x;
-        lastTouchDownY = y;
-        if (!edgeHideEnabled) {
-            return false;
-        }
-
-        if (isCollapsed) {
-            int edgeZone = Math.max(20, frame_layout.getWidth() / 30);
-            if (pendingEdgeReveal == EDGE_LEFT && x <= edgeZone) {
-                return true;
-            }
-            if (pendingEdgeReveal == EDGE_RIGHT && x >= frame_layout.getWidth() - edgeZone) {
-                return true;
-            }
-        }
-
-        if (!isCollapsed && isNearEdge(x, y)) {
-            lastActiveEdge = x < frame_layout.getWidth() / 2 ? EDGE_LEFT : EDGE_RIGHT;
-        }
-
-        return false;
-    }
-
-    public boolean handleEdgeGestureMove(int x, int y) {
-        if (!edgeHideEnabled) {
-            return false;
-        }
-
-        if (isCollapsed) {
-            int revealDistance = Math.max(24, frame_layout.getWidth() / 25);
-            if (pendingEdgeReveal == EDGE_LEFT && x - lastTouchDownX > revealDistance) {
-                expandFromEdge();
-                return true;
-            }
-            if (pendingEdgeReveal == EDGE_RIGHT && lastTouchDownX - x > revealDistance) {
-                expandFromEdge();
-                return true;
-            }
-            return true;
-        }
-
-        int threshold = Math.max(48, frame_layout.getWidth() / 12);
-        int edgeZone = Math.max(40, frame_layout.getWidth() / 20);
-        int travelX = x - lastTouchDownX;
-        int travelY = y - lastTouchDownY;
-        if ((lastActiveEdge == EDGE_LEFT || x <= edgeZone) && travelX < -threshold && Math.abs(travelX) > Math.abs(travelY)) {
-            collapseToEdge(EDGE_LEFT);
-            return true;
-        }
-        if ((lastActiveEdge == EDGE_RIGHT || x >= frame_layout.getWidth() - edgeZone) && travelX > threshold && Math.abs(travelX) > Math.abs(travelY)) {
-            collapseToEdge(EDGE_RIGHT);
-            return true;
-        }
-        return false;
-    }
-
-    public boolean handleEdgeGestureUp() {
-        lastTouchDownX = -1;
-        lastTouchDownY = -1;
-        if (isCollapsed) {
-            return true;
-        }
-        lastActiveEdge = EDGE_NONE;
-        return false;
-    }
-
     Handler getHandler() {
         return handler;
     }
@@ -325,9 +109,6 @@ public class VirtualController {
         }
 
         buttonConfigure.setVisibility(View.INVISIBLE);
-        if (edgeHandleView != null) {
-            edgeHandleView.setVisibility(View.GONE);
-        }
     }
 
     public void show() {
@@ -337,8 +118,6 @@ public class VirtualController {
         }
 
         buttonConfigure.setVisibility(View.VISIBLE);
-        attachEdgeHandle();
-        refreshEdgeStateFromPreferences();
     }
 
     public void removeElements() {
@@ -348,9 +127,6 @@ public class VirtualController {
         elements.clear();
 
         frame_layout.removeView(buttonConfigure);
-        if (edgeHandleView != null && edgeHandleView.getParent() instanceof ViewGroup) {
-            ((ViewGroup) edgeHandleView.getParent()).removeView(edgeHandleView);
-        }
     }
 
     public void setOpacity(int opacity) {
@@ -394,9 +170,6 @@ public class VirtualController {
 
         // Apply user preferences onto the default layout
         VirtualControllerConfigurationLoader.loadFromPreferences(this, context);
-        refreshEdgeStateFromPreferences();
-        attachEdgeHandle();
-        updateEdgeHandleVisibility();
     }
 
     public ControllerMode getControllerMode() {

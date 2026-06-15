@@ -46,7 +46,6 @@ public class PreferenceConfiguration {
     private static final String USB_DRIVER_PREF_SRING = "checkbox_usb_driver";
     private static final String VIDEO_FORMAT_PREF_STRING = "video_format";
     private static final String ONSCREEN_CONTROLLER_PREF_STRING = "checkbox_show_onscreen_controls";
-    private static final String ONSCREEN_CONTROLLER_EDGE_HIDE_PREF_STRING = "checkbox_onscreen_controls_edge_hide";
     private static final String ONSCREEN_KEYBOARD_PREF_STRING = "checkbox_show_onscreen_keyboard";
     private static final String ONLY_L3_R3_PREF_STRING = "checkbox_only_show_L3R3";
     private static final String SHOW_GUIDE_BUTTON_PREF_STRING = "checkbox_show_guide_button";
@@ -104,7 +103,6 @@ public class PreferenceConfiguration {
     private static final String DEFAULT_VIDEO_FORMAT = "auto";
 
     private static final boolean ONSCREEN_CONTROLLER_DEFAULT = false;
-    private static final boolean ONSCREEN_CONTROLLER_EDGE_HIDE_DEFAULT = false;
     private static final boolean ONSCREEN_KEYBOARD_DEFAULT = false;
     private static final boolean ONLY_L3_R3_DEFAULT = false;
     private static final boolean SHOW_GUIDE_BUTTON_DEFAULT = true;
@@ -168,7 +166,6 @@ public class PreferenceConfiguration {
     public String language;
     public boolean smallIconMode, multiController, usbDriver, flipFaceButtons;
     public boolean onscreenController;
-    public boolean onscreenControllerEdgeHide;
     public boolean onscreenKeyboard;
     public boolean onlyL3R3;
     public boolean showGuideButton;
@@ -234,6 +231,10 @@ public class PreferenceConfiguration {
     public static final String ENABLE_SAFE_SETTINGS_BUTTON_PREF_STRING = "checkbox_virtual_keyboard_safe_settings_button";
     public static final boolean DEFAULT_ENABLE_SAFE_SETTINGS_BUTTON = false;
     public boolean enableSafeSettingsButton;
+
+    public static final String VIRTUAL_KEYBOARD_EDGE_HIDE_PREF_STRING = "checkbox_virtual_keyboard_edge_hide";
+    public static final boolean DEFAULT_VIRTUAL_KEYBOARD_EDGE_HIDE = false;
+    public boolean virtualKeyboardEdgeHide;
 
     public static boolean isNativeResolution(int width, int height) {
         // It's not a native resolution if it matches an existing resolution option
@@ -686,7 +687,6 @@ public class PreferenceConfiguration {
         config.multiController = prefs.getBoolean(MULTI_CONTROLLER_PREF_STRING, DEFAULT_MULTI_CONTROLLER);
         config.usbDriver = prefs.getBoolean(USB_DRIVER_PREF_SRING, DEFAULT_USB_DRIVER);
         config.onscreenController = prefs.getBoolean(ONSCREEN_CONTROLLER_PREF_STRING, ONSCREEN_CONTROLLER_DEFAULT);
-        config.onscreenControllerEdgeHide = prefs.getBoolean(ONSCREEN_CONTROLLER_EDGE_HIDE_PREF_STRING, ONSCREEN_CONTROLLER_EDGE_HIDE_DEFAULT);
         config.onscreenKeyboard = prefs.getBoolean(ONSCREEN_KEYBOARD_PREF_STRING, ONSCREEN_KEYBOARD_DEFAULT);
         config.onlyL3R3 = prefs.getBoolean(ONLY_L3_R3_PREF_STRING, ONLY_L3_R3_DEFAULT);
         config.showGuideButton = prefs.getBoolean(SHOW_GUIDE_BUTTON_PREF_STRING, SHOW_GUIDE_BUTTON_DEFAULT);
@@ -733,6 +733,7 @@ public class PreferenceConfiguration {
         config.enableGroupMove = prefs.getBoolean(ENABLE_GROUP_MOVE_PREF_STRING, DEFAULT_ENABLE_GROUP_MOVE);
         config.enableNewSettingButton = prefs.getBoolean(ENABLE_NEW_SETTING_BUTTON_PREF_STRING, DEFAULT_ENABLE_NEW_SETTING_BUTTON);
         config.enableSafeSettingsButton = prefs.getBoolean(ENABLE_SAFE_SETTINGS_BUTTON_PREF_STRING, DEFAULT_ENABLE_SAFE_SETTINGS_BUTTON);
+        config.virtualKeyboardEdgeHide = prefs.getBoolean(VIRTUAL_KEYBOARD_EDGE_HIDE_PREF_STRING, DEFAULT_VIRTUAL_KEYBOARD_EDGE_HIDE);
         
         // 读取后台切回自动重连设置
         config.backgroundReconnectEnabled = prefs.getBoolean(BACKGROUND_RECONNECT_ENABLED_PREF_STRING, DEFAULT_BACKGROUND_RECONNECT_ENABLED);

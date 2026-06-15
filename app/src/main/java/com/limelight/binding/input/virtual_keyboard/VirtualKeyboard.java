@@ -11,6 +11,7 @@ import android.os.Looper;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.FrameLayout;
 import android.widget.TextView;
@@ -57,6 +58,15 @@ public class VirtualKeyboard {
     private View editingOverlay = null;
     private View editingContainer = null;
     private TextView editingTip = null;
+    private View edgeHandleView = null;
+    private boolean edgeCollapsed = false;
+    private int edgeCollapsedSide = EDGE_NONE;
+    private int edgeTouchDownX = -1;
+    private int edgeTouchDownY = -1;
+
+    private static final int EDGE_NONE = 0;
+    private static final int EDGE_LEFT = 1;
+    private static final int EDGE_RIGHT = 2;
 
     ControllerMode currentMode = ControllerMode.Active;
     KeyboardInputContext keyboardInputContext = new KeyboardInputContext();
@@ -171,6 +181,7 @@ public class VirtualKeyboard {
                 });
             }
         }
+        ensureEdgeHandle();
     }
 
     Handler getHandler() {
@@ -193,6 +204,161 @@ public class VirtualKeyboard {
         return context.handleVirtualKeyboardPassthroughTouch(action, x, y, eventTime);
     }
 
+    private boolean isEdgeHideEnabled() {
+        PreferenceConfiguration pref = context.getPrefConfig();
+        return pref != null && pref.virtualKeyboardEdgeHide;
+    }
+
+    private void ensureEdgeHandle() {
+        if (edgeHandleView != null || frame_layout == null) {
+            return;
+        }
+
+        edgeHandleView = new View(context);
+        edgeHandleView.setBackgroundColor(0xFFFFFFFF);
+        edgeHandleView.setAlpha(0.85f);
+        edgeHandleView.setFocusable(false);
+        edgeHandleView.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+        edgeHandleView.setVisibility(View.GONE);
+        edgeHandleView.setOnTouchListener((view, event) -> {
+            switch (event.getActionMasked()) {
+                case android.view.MotionEvent.ACTION_DOWN:
+                    edgeTouchDownX = (int) event.getX();
+                    edgeTouchDownY = (int) event.getY();
+                    return true;
+                case android.view.MotionEvent.ACTION_MOVE:
+                    int travelX = (int) event.getX() - edgeTouchDownX;
+                    int travelY = (int) event.getY() - edgeTouchDownY;
+                    int threshold = Math.max(24, frame_layout.getWidth() / 25);
+                    boolean revealFromLeft = edgeCollapsedSide == EDGE_LEFT && travelX > threshold;
+                    boolean revealFromRight = edgeCollapsedSide == EDGE_RIGHT && travelX < -threshold;
+                    if ((revealFromLeft || revealFromRight) && Math.abs(travelX) > Math.abs(travelY)) {
+                        expandFromEdge();
+                    }
+                    return true;
+                case android.view.MotionEvent.ACTION_UP:
+                case android.view.MotionEvent.ACTION_CANCEL:
+                    edgeTouchDownX = -1;
+                    edgeTouchDownY = -1;
+                    return true;
+                default:
+                    return true;
+            }
+        });
+        frame_layout.addView(edgeHandleView);
+        updateEdgeHandleLayout();
+    }
+
+    private void updateEdgeHandleLayout() {
+        if (edgeHandleView == null || frame_layout == null) {
+            return;
+        }
+
+        int width = Math.max(8, (int) (context.getResources().getDisplayMetrics().density * 8));
+        FrameLayout.LayoutParams params = edgeHandleView.getLayoutParams() instanceof FrameLayout.LayoutParams
+                ? (FrameLayout.LayoutParams) edgeHandleView.getLayoutParams()
+                : new FrameLayout.LayoutParams(width, FrameLayout.LayoutParams.MATCH_PARENT);
+        params.width = width;
+        params.height = FrameLayout.LayoutParams.MATCH_PARENT;
+        params.topMargin = 0;
+        params.leftMargin = edgeCollapsedSide == EDGE_RIGHT
+                ? Math.max(0, frame_layout.getWidth() - width)
+                : 0;
+        params.rightMargin = 0;
+        params.bottomMargin = 0;
+        edgeHandleView.setLayoutParams(params);
+        edgeHandleView.bringToFront();
+    }
+
+    private void updateEdgeHandleVisibility() {
+        ensureEdgeHandle();
+        if (edgeHandleView == null) {
+            return;
+        }
+        edgeHandleView.setVisibility(edgeCollapsed && isEdgeHideEnabled() ? View.VISIBLE : View.GONE);
+        if (edgeHandleView.getVisibility() == View.VISIBLE) {
+            updateEdgeHandleLayout();
+        }
+    }
+
+    private void setKeyboardElementsVisible(boolean visible) {
+        for (VirtualKeyboardElement element : elements) {
+            if (visible) {
+                element.setHide(element.isHide);
+            } else {
+                element.setVisibility(View.INVISIBLE);
+            }
+        }
+
+        PreferenceConfiguration pref = context.getPrefConfig();
+        if (buttonConfigure != null) {
+            if (visible && pref != null && pref.enableNewSettingButton) {
+                buttonConfigure.setVisibility(View.VISIBLE);
+            } else {
+                buttonConfigure.setVisibility(View.INVISIBLE);
+            }
+        }
+    }
+
+    private void collapseToEdge(int edge) {
+        if (!isEdgeHideEnabled() || frame_layout == null || edgeCollapsed) {
+            return;
+        }
+
+        edgeCollapsed = true;
+        edgeCollapsedSide = edge;
+        setKeyboardElementsVisible(false);
+        updateEdgeHandleVisibility();
+    }
+
+    private void expandFromEdge() {
+        if (!edgeCollapsed) {
+            return;
+        }
+
+        edgeCollapsed = false;
+        edgeCollapsedSide = EDGE_NONE;
+        setKeyboardElementsVisible(true);
+        updateEdgeHandleVisibility();
+    }
+
+    public boolean shouldHandleEdgeHideGesture(VirtualKeyboardElement element) {
+        return isEdgeHideEnabled()
+                && !edgeCollapsed
+                && currentMode == ControllerMode.Active
+                && element.buttonType != VirtualKeyboardElement.ButtonType.TouchPad
+                && element.buttonType != VirtualKeyboardElement.ButtonType.MouseWheel
+                && element.buttonType != VirtualKeyboardElement.ButtonType.RightClickModifier;
+    }
+
+    public void handleEdgeHideGestureDown(int x, int y) {
+        edgeTouchDownX = x;
+        edgeTouchDownY = y;
+    }
+
+    public boolean handleEdgeHideGestureMove(int x, int y) {
+        if (!isEdgeHideEnabled() || edgeCollapsed || frame_layout == null || edgeTouchDownX < 0) {
+            return false;
+        }
+
+        int travelX = x - edgeTouchDownX;
+        int travelY = y - edgeTouchDownY;
+        int threshold = Math.max(48, frame_layout.getWidth() / 12);
+        int edgeZone = Math.max(40, frame_layout.getWidth() / 20);
+        boolean hideToLeft = x <= edgeZone && travelX < -threshold;
+        boolean hideToRight = x >= frame_layout.getWidth() - edgeZone && travelX > threshold;
+        if ((hideToLeft || hideToRight) && Math.abs(travelX) > Math.abs(travelY)) {
+            collapseToEdge(hideToLeft ? EDGE_LEFT : EDGE_RIGHT);
+            return true;
+        }
+        return false;
+    }
+
+    public void handleEdgeHideGestureEnd() {
+        edgeTouchDownX = -1;
+        edgeTouchDownY = -1;
+    }
+
     public void hide() {
         // 强制退回到非编辑态，确保遮罩与提示在任何“隐藏”路径都被移除
         currentMode = ControllerMode.Active;
@@ -200,6 +366,9 @@ public class VirtualKeyboard {
             element.setVisibility(View.INVISIBLE);
         }
         buttonConfigure.setVisibility(View.INVISIBLE);
+        if (edgeHandleView != null) {
+            edgeHandleView.setVisibility(View.GONE);
+        }
         // 同步隐藏编辑提示叠加层与网格线，防止异常切到后台后遮罩残留
         try {
             hideEditingOverlay();
@@ -212,16 +381,13 @@ public class VirtualKeyboard {
 
     public void show() {
         currentMode = ControllerMode.Active;
-        for (VirtualKeyboardElement element : elements) {
-            element.setVisibility(View.VISIBLE);
-            element.setHide(element.isHide);
-        }
-        // 只在开关打开时显示设置按钮
-        PreferenceConfiguration pref = context.getPrefConfig();
-        if (pref.enableNewSettingButton) {
-            buttonConfigure.setVisibility(View.VISIBLE);
+        if (edgeCollapsed && isEdgeHideEnabled()) {
+            setKeyboardElementsVisible(false);
+            updateEdgeHandleVisibility();
         } else {
-            buttonConfigure.setVisibility(View.GONE);
+            edgeCollapsed = false;
+            setKeyboardElementsVisible(true);
+            updateEdgeHandleVisibility();
         }
         // 不主动隐藏编辑遮罩，只有真正退出编辑模式时隐藏
     }
@@ -261,6 +427,13 @@ public class VirtualKeyboard {
                 ((FrameLayout) buttonParent).removeView(buttonConfigure);
             }
         }
+        if (edgeHandleView != null) {
+            ViewParent handleParent = edgeHandleView.getParent();
+            if (handleParent instanceof ViewGroup) {
+                ((ViewGroup) handleParent).removeView(edgeHandleView);
+            }
+            edgeHandleView = null;
+        }
         hideEditingOverlay();
     }
 
@@ -287,6 +460,7 @@ public class VirtualKeyboard {
             handler.removeCallbacksAndMessages(null);
         }
         buttonConfigure = null;
+        edgeHandleView = null;
         editingOverlay = null;
         editingContainer = null;
         editingTip = null;
@@ -390,6 +564,15 @@ public class VirtualKeyboard {
 
         // Apply user preferences onto the default layout
         VirtualKeyboardConfigurationLoader.loadFromPreferences(this, context);
+        ensureEdgeHandle();
+        if (edgeCollapsed && isEdgeHideEnabled()) {
+            setKeyboardElementsVisible(false);
+        } else if (edgeCollapsed) {
+            edgeCollapsed = false;
+            edgeCollapsedSide = EDGE_NONE;
+            setKeyboardElementsVisible(true);
+        }
+        updateEdgeHandleVisibility();
 
         // 若仍处于编辑模式，则在重建元素后恢复编辑遮罩，避免用户保存后遮罩消失
         if (shouldRestoreEditingOverlay) {

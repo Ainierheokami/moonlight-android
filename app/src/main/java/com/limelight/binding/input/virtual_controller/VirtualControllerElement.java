@@ -233,18 +233,6 @@ public abstract class VirtualControllerElement extends View {
             return true;
         }
 
-        if (event.getActionMasked() == MotionEvent.ACTION_DOWN) {
-            if (virtualController.handleEdgeGestureDown((int) (getX() + event.getX()), (int) (getY() + event.getY()))) {
-                return true;
-            }
-        }
-
-        if (event.getActionMasked() == MotionEvent.ACTION_MOVE) {
-            if (virtualController.handleEdgeGestureMove((int) (getX() + event.getX()), (int) (getY() + event.getY()))) {
-                return true;
-            }
-        }
-
         if (virtualController.getControllerMode() == VirtualController.ControllerMode.Active) {
             return onElementTouchEvent(event);
         }
@@ -290,7 +278,6 @@ public abstract class VirtualControllerElement extends View {
             case MotionEvent.ACTION_CANCEL:
             case MotionEvent.ACTION_UP: {
                 actionCancel();
-                virtualController.handleEdgeGestureUp();
                 return true;
             }
             default: {

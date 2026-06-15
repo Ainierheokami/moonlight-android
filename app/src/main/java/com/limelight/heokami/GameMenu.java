@@ -8,14 +8,9 @@ import com.limelight.nvstream.NvConnection;
  * 使用新的侧边菜单Fragment替代原来的AlertDialog
  */
 public class GameMenu {
-    public enum Side {
-        LEFT,
-        RIGHT
-    }
 
     private final Game game;
     private final NvConnection conn;
-    private final Side side;
     
     // 静态变量跟踪菜单是否已显示
     private static boolean isMenuShowing = false;
@@ -26,13 +21,8 @@ public class GameMenu {
      * @param conn 网络连接实例
      */
     public GameMenu(Game game, NvConnection conn) {
-        this(game, conn, Side.RIGHT);
-    }
-
-    public GameMenu(Game game, NvConnection conn, Side side) {
         this.game = game;
         this.conn = conn;
-        this.side = side == null ? Side.RIGHT : side;
 
         showMenu();
     }
@@ -59,7 +49,7 @@ public class GameMenu {
         android.util.Log.d("GameMenu", "Setting isMenuShowing to true");
         
         // 创建并显示新的侧边菜单Fragment
-        GameMenuFragment fragment = GameMenuFragment.newInstance(game, conn, side);
+        GameMenuFragment fragment = GameMenuFragment.newInstance(game, conn);
         game.getFragmentManager()
             .beginTransaction()
             // 将游戏菜单添加到专用的菜单容器，确保高于虚拟输入层

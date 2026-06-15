@@ -219,8 +219,6 @@
     <string name="summary_checkbox_show_onscreen_controls">Show virtual controller overlay on touchscreen</string>
     <string name="title_checkbox_vibrate_osc">Enable vibration</string>
     <string name="summary_checkbox_vibrate_osc">Vibrates your device to emulate rumble for the on-screen controls</string>
-    <string name="title_checkbox_onscreen_controls_edge_hide">Enable edge hiding</string>
-    <string name="summary_checkbox_onscreen_controls_edge_hide">Swipe the on-screen controls toward an edge to tuck them away. Swipe inward from the white edge line to show them again.</string>
     <string name="title_only_l3r3">Only show L3 and R3</string>
     <string name="summary_only_l3r3">Hide all virtual buttons except L3 and R3</string>
     <string name="title_show_guide_button">Show Guide Button</string>
@@ -354,6 +352,8 @@
     <string name="category_on_screen_keyboard_settings" >Virtual keyboard settings</string>
     <string name="summary_checkbox_show_onscreen_keyboard" >Whether or not to display a virtual keyboard on the screen</string>
     <string name="title_checkbox_show_onscreen_keyboard" >Virtual keyboard</string>
+    <string name="title_checkbox_virtual_keyboard_edge_hide">Enable edge hiding</string>
+    <string name="summary_checkbox_virtual_keyboard_edge_hide">Swipe a virtual keyboard button toward the screen edge to hide it as a white edge line. Swipe inward from the line to show it again.</string>
     <string name="game_menu_toggle_virtual_keyboard">Toggle the on-screen virtual keyboard</string>
     <string name="controller_mode_move_buttons">Entering configuration mode (Move buttons)</string>
     <string name="controller_mode_resize_buttons">Entering configuration mode (Resize buttons)</string>

@@ -210,9 +210,6 @@ public class Game extends Activity implements SurfaceHolder.Callback,
     // 新增：分层容器
     private FrameLayout controlsOverlayContainer; // 虚拟输入（键盘/手柄）容器
     private FrameLayout menuOverlayContainer;     // 菜单（编辑/游戏）容器
-    private int controlsEdgeGestureStartX = -1;
-    private int controlsEdgeGestureStartY = -1;
-    private int controlsEdgeGestureSide = 0;
     private PortalManagerView portalManagerView; // 传送门管理器
     private OrientationEventListener streamRotationListener;
     private final Handler streamRotationHandler = new Handler();
@@ -421,51 +418,6 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         // 初始化传送门管理器
         portalManagerView = new PortalManagerView(this, this);
         controlsOverlayContainer.addView(portalManagerView);
-        controlsOverlayContainer.setOnTouchListener((v, event) -> {
-            if (virtualController != null && virtualController.getControllerMode() == VirtualController.ControllerMode.Active) {
-                int x = (int) event.getX();
-                int y = (int) event.getY();
-                switch (event.getActionMasked()) {
-                    case MotionEvent.ACTION_DOWN:
-                        controlsEdgeGestureStartX = x;
-                        controlsEdgeGestureStartY = y;
-                        int edgeZone = Math.max(40, controlsOverlayContainer.getWidth() / 20);
-                        controlsEdgeGestureSide = x <= edgeZone ? -1 :
-                                (x >= controlsOverlayContainer.getWidth() - edgeZone ? 1 : 0);
-                        if (virtualController.handleEdgeGestureDown(x, y)) {
-                            return true;
-                        }
-                        break;
-                    case MotionEvent.ACTION_MOVE:
-                        if (virtualController.handleEdgeGestureMove(x, y)) {
-                            return true;
-                        }
-                        if (prefConfig != null && prefConfig.onscreenControllerEdgeHide && controlsEdgeGestureSide != 0) {
-                            int travelX = x - controlsEdgeGestureStartX;
-                            int travelY = y - controlsEdgeGestureStartY;
-                            int threshold = Math.max(48, controlsOverlayContainer.getWidth() / 12);
-                            boolean inwardFromLeft = controlsEdgeGestureSide < 0 && travelX > threshold;
-                            boolean inwardFromRight = controlsEdgeGestureSide > 0 && travelX < -threshold;
-                            if ((inwardFromLeft || inwardFromRight) && Math.abs(travelX) > Math.abs(travelY)) {
-                                showMenu(controlsEdgeGestureSide < 0 ? GameMenu.Side.LEFT : GameMenu.Side.RIGHT);
-                                controlsEdgeGestureSide = 0;
-                                return true;
-                            }
-                        }
-                        break;
-                    case MotionEvent.ACTION_UP:
-                    case MotionEvent.ACTION_CANCEL:
-                        if (virtualController.handleEdgeGestureUp()) {
-                            return true;
-                        }
-                        controlsEdgeGestureStartX = -1;
-                        controlsEdgeGestureStartY = -1;
-                        controlsEdgeGestureSide = 0;
-                        break;
-                }
-            }
-            return false;
-        });
 
         inputCaptureProvider = InputCaptureManager.getInputCaptureProvider(this, this);
 
@@ -3925,10 +3877,6 @@ public class Game extends Activity implements SurfaceHolder.Callback,
     }
 
     public void showMenu() {
-        showMenu(GameMenu.Side.RIGHT);
-    }
-
-    public void showMenu(GameMenu.Side side) {
         // 修复：每次显示菜单时刷新prefConfig，确保设置项立即生效
         this.prefConfig = com.limelight.preferences.PreferenceConfiguration.readPreferences(this);
 
@@ -3940,7 +3888,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         if (virtualKeyboard != null && virtualKeyboard.getControllerMode() != VirtualKeyboard.ControllerMode.Active){
             new com.limelight.heokami.EditMenu(this, virtualKeyboard);
         }else {
-            new GameMenu(this,conn, side);
+            new GameMenu(this,conn);
         }
     }
 
