@@ -47,6 +47,7 @@ public class GameMenuFragment extends Fragment {
 
     private Game game;
     private NvConnection conn;
+    private GameMenu.Side side = GameMenu.Side.RIGHT;
     private View menuPanel;
     private View backgroundView;
     // 主列表与二级面板
@@ -70,9 +71,14 @@ public class GameMenuFragment extends Fragment {
      * @return GameMenuFragment实例
      */
     public static GameMenuFragment newInstance(Game game, NvConnection conn) {
+        return newInstance(game, conn, GameMenu.Side.RIGHT);
+    }
+
+    public static GameMenuFragment newInstance(Game game, NvConnection conn, GameMenu.Side side) {
         GameMenuFragment fragment = new GameMenuFragment();
         fragment.game = game;
         fragment.conn = conn;
+        fragment.side = side == null ? GameMenu.Side.RIGHT : side;
         return fragment;
     }
 
@@ -140,9 +146,30 @@ public class GameMenuFragment extends Fragment {
         ViewGroup.LayoutParams params = menuPanel.getLayoutParams();
         params.width = menuWidth;
         menuPanel.setLayoutParams(params);
+
+        if (menuPanel.getLayoutParams() instanceof android.widget.RelativeLayout.LayoutParams) {
+            android.widget.RelativeLayout.LayoutParams relativeParams =
+                    (android.widget.RelativeLayout.LayoutParams) menuPanel.getLayoutParams();
+            relativeParams.removeRule(android.widget.RelativeLayout.ALIGN_PARENT_START);
+            relativeParams.removeRule(android.widget.RelativeLayout.ALIGN_PARENT_LEFT);
+            relativeParams.removeRule(android.widget.RelativeLayout.ALIGN_PARENT_END);
+            relativeParams.removeRule(android.widget.RelativeLayout.ALIGN_PARENT_RIGHT);
+            if (side == GameMenu.Side.LEFT) {
+                relativeParams.addRule(android.widget.RelativeLayout.ALIGN_PARENT_START);
+                relativeParams.addRule(android.widget.RelativeLayout.ALIGN_PARENT_LEFT);
+                relativeParams.setMarginEnd(0);
+                relativeParams.setMargins(dp(12), dp(12), 0, dp(12));
+            } else {
+                relativeParams.addRule(android.widget.RelativeLayout.ALIGN_PARENT_END);
+                relativeParams.addRule(android.widget.RelativeLayout.ALIGN_PARENT_RIGHT);
+                relativeParams.setMarginStart(0);
+                relativeParams.setMargins(0, dp(12), dp(12), dp(12));
+            }
+            menuPanel.setLayoutParams(relativeParams);
+        }
         
-        // 设置初始位置在屏幕右侧外
-        menuPanel.setTranslationX(menuWidth);
+        // 设置初始位置在屏幕外侧
+        menuPanel.setTranslationX(side == GameMenu.Side.LEFT ? -menuWidth : menuWidth);
         
         // 确保菜单面板不可见，直到动画开始
         menuPanel.setVisibility(View.INVISIBLE);
@@ -876,7 +903,8 @@ public class GameMenuFragment extends Fragment {
         menuPanel.setVisibility(View.VISIBLE);
         
         // 立即开始动画，避免任何延迟导致的闪烁
-        ObjectAnimator animator = ObjectAnimator.ofFloat(menuPanel, "translationX", menuPanel.getWidth(), 0);
+        float start = side == GameMenu.Side.LEFT ? -menuPanel.getWidth() : menuPanel.getWidth();
+        ObjectAnimator animator = ObjectAnimator.ofFloat(menuPanel, "translationX", start, 0);
         animator.setDuration(ANIMATION_DURATION);
         animator.setInterpolator(new AccelerateDecelerateInterpolator());
         animator.start();
@@ -897,7 +925,8 @@ public class GameMenuFragment extends Fragment {
         }
         
         isMenuVisible = false;
-        ObjectAnimator animator = ObjectAnimator.ofFloat(menuPanel, "translationX", 0, menuPanel.getWidth());
+        float end = side == GameMenu.Side.LEFT ? -menuPanel.getWidth() : menuPanel.getWidth();
+        ObjectAnimator animator = ObjectAnimator.ofFloat(menuPanel, "translationX", 0, end);
         animator.setDuration(ANIMATION_DURATION);
         animator.setInterpolator(new AccelerateDecelerateInterpolator());
         animator.addListener(new AnimatorListenerAdapter() {

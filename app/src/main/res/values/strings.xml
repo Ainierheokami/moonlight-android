@@ -219,6 +219,8 @@
     <string name="summary_checkbox_show_onscreen_controls">Show virtual controller overlay on touchscreen</string>
     <string name="title_checkbox_vibrate_osc">Enable vibration</string>
     <string name="summary_checkbox_vibrate_osc">Vibrates your device to emulate rumble for the on-screen controls</string>
+    <string name="title_checkbox_onscreen_controls_edge_hide">Enable edge hiding</string>
+    <string name="summary_checkbox_onscreen_controls_edge_hide">Swipe the on-screen controls toward an edge to tuck them away. Swipe inward from the white edge line to show them again.</string>
     <string name="title_only_l3r3">Only show L3 and R3</string>
     <string name="summary_only_l3r3">Hide all virtual buttons except L3 and R3</string>
     <string name="title_show_guide_button">Show Guide Button</string>
