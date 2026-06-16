@@ -39,6 +39,9 @@ public abstract class VirtualKeyboardElement extends View {
     public JSONObject buttonData;
     public Boolean isHide = false;
     public int group = -1;
+    private boolean edgeCollapsed = false;
+    private int edgeCollapsedSide = VirtualKeyboard.EDGE_NONE;
+    private int visibilityBeforeEdgeCollapse = VISIBLE;
 
 
 
@@ -302,6 +305,10 @@ public abstract class VirtualKeyboardElement extends View {
         invalidate();
     }
 
+    public boolean shouldHandleEdgeHideGestureEvent(MotionEvent event) {
+        return virtualKeyboard.handleEdgeHideGesture(this, (int) (getX() + event.getX()), (int) (getY() + event.getY()));
+    }
+
     protected int getDefaultColor() {
         // 编辑模式不改变按钮本身颜色，由遮罩与提示承担视觉反馈
         if (virtualKeyboard.getControllerMode() == VirtualKeyboard.ControllerMode.NewSettingButtons) {
@@ -358,9 +365,7 @@ public abstract class VirtualKeyboardElement extends View {
                                 (int) (getY() + event.getY()));
                         break;
                     case MotionEvent.ACTION_MOVE:
-                        if (virtualKeyboard.handleEdgeHideGestureMove(
-                                (int) (getX() + event.getX()),
-                                (int) (getY() + event.getY()))) {
+                        if (shouldHandleEdgeHideGestureEvent(event)) {
                             MotionEvent cancelEvent = MotionEvent.obtain(event);
                             cancelEvent.setAction(MotionEvent.ACTION_CANCEL);
                             onElementTouchEvent(cancelEvent);
@@ -494,8 +499,59 @@ public abstract class VirtualKeyboardElement extends View {
         this.buttonData = button_data;
     }
 
+    public boolean isEdgeHideEnabled() {
+        try {
+            return buttonData != null
+                    && buttonData.has("EDGE_HIDE_ENABLED")
+                    && buttonData.getBoolean("EDGE_HIDE_ENABLED");
+        } catch (JSONException e) {
+            return false;
+        }
+    }
+
+    public int getEdgeHideThresholdDp() {
+        return getButtonDataInt("EDGE_HIDE_THRESHOLD_DP", 48, 8, 240);
+    }
+
+    public int getEdgeRevealHotZoneDp() {
+        return getButtonDataInt("EDGE_REVEAL_HOT_ZONE_DP", 32, 8, 160);
+    }
+
+    private int getButtonDataInt(String key, int defaultValue, int minValue, int maxValue) {
+        try {
+            if (buttonData != null && buttonData.has(key)) {
+                return Math.max(minValue, Math.min(maxValue, buttonData.getInt(key)));
+            }
+        } catch (JSONException ignored) {}
+        return defaultValue;
+    }
+
+    public boolean isEdgeCollapsed() {
+        return edgeCollapsed;
+    }
+
+    public int getEdgeCollapsedSide() {
+        return edgeCollapsedSide;
+    }
+
+    public void setEdgeCollapsed(int edge) {
+        edgeCollapsed = true;
+        edgeCollapsedSide = edge;
+        visibilityBeforeEdgeCollapse = getVisibility();
+    }
+
+    public void clearEdgeCollapsed() {
+        edgeCollapsed = false;
+        edgeCollapsedSide = VirtualKeyboard.EDGE_NONE;
+        setVisibility(isHide ? GONE : visibilityBeforeEdgeCollapse);
+        invalidate();
+    }
+
     public void setHide(Boolean isHide) {
         this.isHide = isHide;
+        if (edgeCollapsed) {
+            return;
+        }
         if (isHide) {
             this.setVisibility(GONE);
         }else {
@@ -558,6 +614,8 @@ public abstract class VirtualKeyboardElement extends View {
         setColors(configuration.getInt("NORMAL_COLOR"), configuration.getInt("PRESSED_COLOR"));
         setType(ButtonType.valueOf(configuration.getString("TYPE")));
         setButtonData(configuration.getJSONObject("BUTTON_DATA"));
+        edgeCollapsed = false;
+        edgeCollapsedSide = VirtualKeyboard.EDGE_NONE;
 
         try {
             setHide(configuration.getBoolean("IS_HIDE"));

@@ -74,7 +74,13 @@ public class EditMenuFragment extends Fragment {
             // 菜单项
             VirtualKeyboardMenu vkm = new VirtualKeyboardMenu(getActivity(), activeVk);
             vkm.setGameView(game);
+            content.addView(makeMenuButton(getString(R.string.menu_title_grid_lines), () -> {
+                vkm.showGridLinesDialog();
+            }));
             for (java.util.Map.Entry<String, Function0<Unit>> e : vkm.createActionMap().entrySet()){
+                if (getString(R.string.menu_title_grid_lines).equals(e.getKey())) {
+                    continue;
+                }
                 content.addView(makeMenuButton(e.getKey(), () -> { e.getValue().invoke(); }));
             }
             // 移除列表中的“撤回/重做”重复项，保留底部固定区域的操作
@@ -160,6 +166,9 @@ public class EditMenuFragment extends Fragment {
                     getFragmentManager().beginTransaction().remove(EditMenuFragment.this).commitAllowingStateLoss();
                 }
                 EditMenu.setMenuShowing(false);
+                if (game != null) {
+                    game.updateSystemGestureExclusion(true);
+                }
             }
         });
     }
@@ -168,5 +177,8 @@ public class EditMenuFragment extends Fragment {
     public void onDestroyView(){
         super.onDestroyView();
         EditMenu.setMenuShowing(false);
+        if (game != null) {
+            game.updateSystemGestureExclusion(true);
+        }
     }
 }

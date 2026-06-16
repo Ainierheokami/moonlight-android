@@ -865,7 +865,7 @@ public class VirtualKeyboardConfigurationLoader {
                     element.vk_code,
                     element.text,
                     element.buttonType,
-                    element.buttonData,
+                    new JSONObject(element.buttonData.toString()),
                     element.getLeftMargin() + 10,
                     element.getTopMargin(),
                     element.getWidth(),

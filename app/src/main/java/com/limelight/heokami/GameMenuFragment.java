@@ -22,6 +22,7 @@ import android.app.Fragment;
 import android.widget.Button;
 import android.widget.GridLayout;
 import android.widget.LinearLayout;
+import android.widget.RelativeLayout;
 import android.widget.TextView;
 import com.limelight.Game;
 import com.limelight.R;
@@ -57,6 +58,7 @@ public class GameMenuFragment extends Fragment {
     private LinearLayout dashboardContainer;
     private LinearLayout touchModeOptions;
     private boolean isMenuVisible = false;
+    private boolean showFromLeft = false;
     private long lastDisconnectTapMs = 0;
     private android.animation.ValueAnimator holdAnimator = null;
 
@@ -70,9 +72,14 @@ public class GameMenuFragment extends Fragment {
      * @return GameMenuFragment实例
      */
     public static GameMenuFragment newInstance(Game game, NvConnection conn) {
+        return newInstance(game, conn, false);
+    }
+
+    public static GameMenuFragment newInstance(Game game, NvConnection conn, boolean showFromLeft) {
         GameMenuFragment fragment = new GameMenuFragment();
         fragment.game = game;
         fragment.conn = conn;
+        fragment.showFromLeft = showFromLeft;
         return fragment;
     }
 
@@ -141,8 +148,32 @@ public class GameMenuFragment extends Fragment {
         params.width = menuWidth;
         menuPanel.setLayoutParams(params);
         
-        // 设置初始位置在屏幕右侧外
-        menuPanel.setTranslationX(menuWidth);
+        RelativeLayout.LayoutParams relativeParams = menuPanel.getLayoutParams() instanceof RelativeLayout.LayoutParams
+                ? (RelativeLayout.LayoutParams) menuPanel.getLayoutParams()
+                : new RelativeLayout.LayoutParams(menuWidth, ViewGroup.LayoutParams.MATCH_PARENT);
+        relativeParams.width = menuWidth;
+        relativeParams.removeRule(RelativeLayout.ALIGN_PARENT_START);
+        relativeParams.removeRule(RelativeLayout.ALIGN_PARENT_LEFT);
+        relativeParams.removeRule(RelativeLayout.ALIGN_PARENT_END);
+        relativeParams.removeRule(RelativeLayout.ALIGN_PARENT_RIGHT);
+        if (showFromLeft) {
+            relativeParams.addRule(RelativeLayout.ALIGN_PARENT_START);
+            relativeParams.addRule(RelativeLayout.ALIGN_PARENT_LEFT);
+            relativeParams.setMarginStart(dp(12));
+            relativeParams.setMarginEnd(0);
+            relativeParams.leftMargin = dp(12);
+            relativeParams.rightMargin = 0;
+            menuPanel.setTranslationX(-menuWidth);
+        } else {
+            relativeParams.addRule(RelativeLayout.ALIGN_PARENT_END);
+            relativeParams.addRule(RelativeLayout.ALIGN_PARENT_RIGHT);
+            relativeParams.setMarginStart(0);
+            relativeParams.setMarginEnd(dp(12));
+            relativeParams.leftMargin = 0;
+            relativeParams.rightMargin = dp(12);
+            menuPanel.setTranslationX(menuWidth);
+        }
+        menuPanel.setLayoutParams(relativeParams);
         
         // 确保菜单面板不可见，直到动画开始
         menuPanel.setVisibility(View.INVISIBLE);
@@ -876,7 +907,8 @@ public class GameMenuFragment extends Fragment {
         menuPanel.setVisibility(View.VISIBLE);
         
         // 立即开始动画，避免任何延迟导致的闪烁
-        ObjectAnimator animator = ObjectAnimator.ofFloat(menuPanel, "translationX", menuPanel.getWidth(), 0);
+        float start = showFromLeft ? -menuPanel.getWidth() : menuPanel.getWidth();
+        ObjectAnimator animator = ObjectAnimator.ofFloat(menuPanel, "translationX", start, 0);
         animator.setDuration(ANIMATION_DURATION);
         animator.setInterpolator(new AccelerateDecelerateInterpolator());
         animator.start();
@@ -897,7 +929,8 @@ public class GameMenuFragment extends Fragment {
         }
         
         isMenuVisible = false;
-        ObjectAnimator animator = ObjectAnimator.ofFloat(menuPanel, "translationX", 0, menuPanel.getWidth());
+        float end = showFromLeft ? -menuPanel.getWidth() : menuPanel.getWidth();
+        ObjectAnimator animator = ObjectAnimator.ofFloat(menuPanel, "translationX", 0, end);
         animator.setDuration(ANIMATION_DURATION);
         animator.setInterpolator(new AccelerateDecelerateInterpolator());
         animator.addListener(new AnimatorListenerAdapter() {
@@ -906,7 +939,10 @@ public class GameMenuFragment extends Fragment {
                 android.util.Log.d("GameMenu", "Animation ended, removing fragment");
                 // 更新菜单显示状态
                 GameMenu.setMenuShowing(false);
-                
+                if (game != null) {
+                    game.updateSystemGestureExclusion(true);
+                }
+
                 if (getFragmentManager() != null) {
                     getFragmentManager().beginTransaction().remove(GameMenuFragment.this).commitAllowingStateLoss();
                 }
@@ -919,6 +955,9 @@ public class GameMenuFragment extends Fragment {
     public void onDestroyView() {
         super.onDestroyView();
         GameMenu.setMenuShowing(false);
+        if (game != null) {
+            game.updateSystemGestureExclusion(true);
+        }
     }
 
     /**

@@ -95,7 +95,7 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
     }
 
     @SuppressLint("SetTextI18n")
-    private fun showGridLinesDialog() {
+    fun showGridLinesDialog() {
         val gridLines = game?.gameGridLines
         val scrollView = ScrollView(context)
         val scrollParams = LinearLayout.LayoutParams(
@@ -573,6 +573,21 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
         fun addSpacerTo(parent: LinearLayout, heightDp: Int) {
             parent.addView(View(context).apply { layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(heightDp)) })
         }
+        fun addLabeledNumberFieldTo(parent: LinearLayout, title: String, summary: String, editText: EditText) {
+            parent.addView(TextView(context).apply {
+                text = title
+                setTextColor(Color.parseColor("#FFE6E6E6"))
+                setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
+                setPadding(0, dp(6), 0, 0)
+            })
+            parent.addView(TextView(context).apply {
+                text = summary
+                setTextColor(Color.parseColor("#FF9CA3AF"))
+                setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
+                setPadding(0, dp(2), 0, dp(2))
+            })
+            parent.addView(editText)
+        }
         fun addCollapsibleSectionTo(parent: LinearLayout, title: String, defaultExpanded: Boolean = true): LinearLayout {
             val container = LinearLayout(context).apply { orientation = LinearLayout.VERTICAL }
             val header = LinearLayout(context).apply { orientation = LinearLayout.HORIZONTAL; setPadding(0, dp(6), 0, dp(6)) }
@@ -654,6 +669,9 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
         val touchpadSensitivityText = TextView(context).apply { text = "100"; visibility = View.GONE }
         val touchpadSensitivity = SeekBar(context).apply { max = 300; progress = 100; visibility = View.GONE }
         val rightClickNextTouchCheck = CheckBox(context).apply { text = context.getString(R.string.virtual_keyboard_right_click_next_touch); visibility = View.GONE }
+        val edgeHideCheck = CheckBox(context).apply { text = context.getString(R.string.virtual_keyboard_menu_edge_hide_enabled) }
+        val edgeHideThresholdEdit = EditText(context).apply { inputType = InputType.TYPE_CLASS_NUMBER; hint = context.getString(R.string.virtual_keyboard_menu_edge_hide_threshold); setText("48") }
+        val edgeRevealHotZoneEdit = EditText(context).apply { inputType = InputType.TYPE_CLASS_NUMBER; hint = context.getString(R.string.virtual_keyboard_menu_edge_reveal_hot_zone); setText("32") }
         touchpadSensitivity.setOnSeekBarChangeListener(object: SeekBar.OnSeekBarChangeListener{ override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) { touchpadSensitivityText.text = progress.toString() }; override fun onStartTrackingTouch(seekBar: SeekBar?) {}; override fun onStopTrackingTouch(seekBar: SeekBar?) {} })
 
         fun addTypeTab(text: String) { typeTabLayout.addTab(typeTabLayout.newTab().setText(text)) }
@@ -680,7 +698,10 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
             override fun onTabUnselected(tab: TabLayout.Tab?) {}; override fun onTabReselected(tab: TabLayout.Tab?) {}
         })
         if (element != null) { selectedButtonType = element!!.buttonType; typeTabLayout.getTabAt(selectedButtonType.ordinal)?.select() }
-        behaviorSection.addView(typeTabLayout); behaviorSection.addView(vkLayout); addSpacerTo(behaviorSection, 6); behaviorSection.addView(touchpadSectionTitle); behaviorSection.addView(touchpadSensitivity); behaviorSection.addView(touchpadSensitivityText); behaviorSection.addView(rightClickNextTouchCheck)
+        behaviorSection.addView(typeTabLayout); behaviorSection.addView(vkLayout); addSpacerTo(behaviorSection, 6); behaviorSection.addView(edgeHideCheck)
+        addLabeledNumberFieldTo(behaviorSection, context.getString(R.string.virtual_keyboard_menu_edge_hide_threshold), context.getString(R.string.virtual_keyboard_menu_edge_hide_threshold_summary), edgeHideThresholdEdit)
+        addLabeledNumberFieldTo(behaviorSection, context.getString(R.string.virtual_keyboard_menu_edge_reveal_hot_zone), context.getString(R.string.virtual_keyboard_menu_edge_reveal_hot_zone_summary), edgeRevealHotZoneEdit)
+        behaviorSection.addView(touchpadSectionTitle); behaviorSection.addView(touchpadSensitivity); behaviorSection.addView(touchpadSensitivityText); behaviorSection.addView(rightClickNextTouchCheck)
 
         // --- 外观页签内容 ---
         addSpacerTo(appearanceTabContent, 6)
@@ -946,6 +967,9 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
                     if (data.has("BORDER_ALPHA")) borderAlphaSeek.progress = data.getInt("BORDER_ALPHA").coerceIn(0, 100)
                     if (data.has("TOUCHPAD_SENSITIVITY")) { val v = data.getInt("TOUCHPAD_SENSITIVITY"); touchpadSensitivity.progress = v; touchpadSensitivityText.text = v.toString() }
                     if (data.has("RIGHT_CLICK_NEXT_TOUCH")) rightClickNextTouchCheck.isChecked = data.getBoolean("RIGHT_CLICK_NEXT_TOUCH")
+                    if (data.has("EDGE_HIDE_ENABLED")) edgeHideCheck.isChecked = data.getBoolean("EDGE_HIDE_ENABLED")
+                    edgeHideThresholdEdit.setText((if (data.has("EDGE_HIDE_THRESHOLD_DP")) data.getInt("EDGE_HIDE_THRESHOLD_DP") else 48).toString())
+                    edgeRevealHotZoneEdit.setText((if (data.has("EDGE_REVEAL_HOT_ZONE_DP")) data.getInt("EDGE_REVEAL_HOT_ZONE_DP") else 32).toString())
                     if (data.has("TEXT_COLOR")) { val c = data.getInt("TEXT_COLOR"); textColorEdit.setText(String.format("%08X", c)) }
                     if (data.has("TEXT_ALPHA")) textAlphaSeek.progress = data.getInt("TEXT_ALPHA").coerceIn(0, 100)
                     if (data.has("BG_COLOR")) { val c = data.getInt("BG_COLOR"); bgColorEdit.setText(String.format("%08X", c)) }
@@ -1055,6 +1079,9 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
                     put("BG_ALPHA", bgAlphaSeek.progress)
                     put("BG_COLOR_PRESSED", parseColorSafely(bgPressedColorEdit.text.toString(), 0xF00000FF.toInt()))
                     put("BG_ALPHA_PRESSED", bgPressedAlphaSeek.progress)
+                    put("EDGE_HIDE_ENABLED", edgeHideCheck.isChecked)
+                    put("EDGE_HIDE_THRESHOLD_DP", (edgeHideThresholdEdit.text.toString().toIntOrNull() ?: 48).coerceIn(8, 240))
+                    put("EDGE_REVEAL_HOT_ZONE_DP", (edgeRevealHotZoneEdit.text.toString().toIntOrNull() ?: 32).coerceIn(8, 160))
                     if (selectedButtonType == VirtualKeyboardElement.ButtonType.TouchPad) put("TOUCHPAD_SENSITIVITY", touchpadSensitivity.progress)
                     if (selectedButtonType == VirtualKeyboardElement.ButtonType.RightClickModifier) put("RIGHT_CLICK_NEXT_TOUCH", rightClickNextTouchCheck.isChecked)
                 }

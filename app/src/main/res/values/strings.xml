@@ -352,8 +352,11 @@
     <string name="category_on_screen_keyboard_settings" >Virtual keyboard settings</string>
     <string name="summary_checkbox_show_onscreen_keyboard" >Whether or not to display a virtual keyboard on the screen</string>
     <string name="title_checkbox_show_onscreen_keyboard" >Virtual keyboard</string>
-    <string name="title_checkbox_virtual_keyboard_edge_hide">Enable edge hiding</string>
-    <string name="summary_checkbox_virtual_keyboard_edge_hide">Swipe a virtual keyboard button toward the screen edge to hide it as a white edge line. Swipe inward from the line to show it again.</string>
+    <string name="virtual_keyboard_menu_edge_hide_enabled">Enable edge hiding for this button</string>
+    <string name="virtual_keyboard_menu_edge_hide_threshold">Hide swipe threshold (dp)</string>
+    <string name="virtual_keyboard_menu_edge_reveal_hot_zone">Reveal hot zone width (dp)</string>
+    <string name="virtual_keyboard_menu_edge_hide_threshold_summary">How far you must drag this button toward the screen edge before it collapses.</string>
+    <string name="virtual_keyboard_menu_edge_reveal_hot_zone_summary">How wide the white line hit area is when expanding the button.</string>
     <string name="game_menu_toggle_virtual_keyboard">Toggle the on-screen virtual keyboard</string>
     <string name="controller_mode_move_buttons">Entering configuration mode (Move buttons)</string>
     <string name="controller_mode_resize_buttons">Entering configuration mode (Resize buttons)</string>

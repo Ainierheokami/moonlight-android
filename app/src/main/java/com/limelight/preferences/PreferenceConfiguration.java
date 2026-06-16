@@ -232,10 +232,6 @@ public class PreferenceConfiguration {
     public static final boolean DEFAULT_ENABLE_SAFE_SETTINGS_BUTTON = false;
     public boolean enableSafeSettingsButton;
 
-    public static final String VIRTUAL_KEYBOARD_EDGE_HIDE_PREF_STRING = "checkbox_virtual_keyboard_edge_hide";
-    public static final boolean DEFAULT_VIRTUAL_KEYBOARD_EDGE_HIDE = false;
-    public boolean virtualKeyboardEdgeHide;
-
     public static boolean isNativeResolution(int width, int height) {
         // It's not a native resolution if it matches an existing resolution option
         if (width == 640 && height == 360) {
@@ -733,7 +729,6 @@ public class PreferenceConfiguration {
         config.enableGroupMove = prefs.getBoolean(ENABLE_GROUP_MOVE_PREF_STRING, DEFAULT_ENABLE_GROUP_MOVE);
         config.enableNewSettingButton = prefs.getBoolean(ENABLE_NEW_SETTING_BUTTON_PREF_STRING, DEFAULT_ENABLE_NEW_SETTING_BUTTON);
         config.enableSafeSettingsButton = prefs.getBoolean(ENABLE_SAFE_SETTINGS_BUTTON_PREF_STRING, DEFAULT_ENABLE_SAFE_SETTINGS_BUTTON);
-        config.virtualKeyboardEdgeHide = prefs.getBoolean(VIRTUAL_KEYBOARD_EDGE_HIDE_PREF_STRING, DEFAULT_VIRTUAL_KEYBOARD_EDGE_HIDE);
         
         // 读取后台切回自动重连设置
         config.backgroundReconnectEnabled = prefs.getBoolean(BACKGROUND_RECONNECT_ENABLED_PREF_STRING, DEFAULT_BACKGROUND_RECONNECT_ENABLED);

@@ -24,6 +24,7 @@ public class EditMenu {
             isMenuShowing = false;
         }
         isMenuShowing = true;
+        game.updateSystemGestureExclusion(false);
         EditMenuFragment fragment = EditMenuFragment.newInstance(game, vk);
         game.getFragmentManager()
             .beginTransaction()

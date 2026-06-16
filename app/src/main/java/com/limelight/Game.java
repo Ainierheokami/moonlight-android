@@ -210,6 +210,11 @@ public class Game extends Activity implements SurfaceHolder.Callback,
     // 新增：分层容器
     private FrameLayout controlsOverlayContainer; // 虚拟输入（键盘/手柄）容器
     private FrameLayout menuOverlayContainer;     // 菜单（编辑/游戏）容器
+    private View backgroundTouchView;
+    private float edgeMenuDownX = -1;
+    private float edgeMenuDownY = -1;
+    private boolean edgeMenuCandidate = false;
+    private static final int EDGE_MENU_EXCLUSION_WIDTH_DP = 32;
     private PortalManagerView portalManagerView; // 传送门管理器
     private OrientationEventListener streamRotationListener;
     private final Handler streamRotationHandler = new Handler();
@@ -381,8 +386,9 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         // to work on areas outside of the StreamView itself. We use a separate View
         // for this rather than just handling it at the Activity level, because that
         // allows proper touch splitting, which the OSC relies upon.
-        View backgroundTouchView = findViewById(R.id.backgroundTouchView);
+        backgroundTouchView = findViewById(R.id.backgroundTouchView);
         backgroundTouchView.setOnTouchListener(this);
+        updateSystemGestureExclusion(true);
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             // Request unbuffered input event dispatching for all input classes we handle here.
@@ -2655,7 +2661,56 @@ public class Game extends Activity implements SurfaceHolder.Callback,
             view.requestUnbufferedDispatch(event);
         }
 
+        if (handleEdgeMenuGesture(view, event)) {
+            return true;
+        }
+
         return handleMotionEvent(view, event);
+    }
+
+    private boolean handleEdgeMenuGesture(View view, MotionEvent event) {
+        if (view != backgroundTouchView || event.getPointerCount() != 1 || GameMenu.isMenuShowing()) {
+            return false;
+        }
+
+        int action = event.getActionMasked();
+        int width = view.getWidth();
+        if (width <= 0) {
+            return false;
+        }
+
+        int edgeZone = Math.max((int) (24 * getResources().getDisplayMetrics().density), width / 30);
+        int threshold = Math.max((int) (48 * getResources().getDisplayMetrics().density), width / 12);
+
+        switch (action) {
+            case MotionEvent.ACTION_DOWN:
+                edgeMenuDownX = event.getX();
+                edgeMenuDownY = event.getY();
+                edgeMenuCandidate = edgeMenuDownX <= edgeZone || edgeMenuDownX >= width - edgeZone;
+                return false;
+            case MotionEvent.ACTION_MOVE:
+                if (!edgeMenuCandidate) {
+                    return false;
+                }
+                float travelX = event.getX() - edgeMenuDownX;
+                float travelY = event.getY() - edgeMenuDownY;
+                boolean fromLeft = edgeMenuDownX <= edgeZone && travelX > threshold;
+                boolean fromRight = edgeMenuDownX >= width - edgeZone && travelX < -threshold;
+                if ((fromLeft || fromRight) && Math.abs(travelX) > Math.abs(travelY)) {
+                    edgeMenuCandidate = false;
+                    showMenu(fromLeft ? GameMenu.Side.LEFT : GameMenu.Side.RIGHT);
+                    return true;
+                }
+                return false;
+            case MotionEvent.ACTION_UP:
+            case MotionEvent.ACTION_CANCEL:
+                edgeMenuCandidate = false;
+                edgeMenuDownX = -1;
+                edgeMenuDownY = -1;
+                return false;
+            default:
+                return false;
+        }
     }
 
     @Override
@@ -3877,6 +3932,10 @@ public class Game extends Activity implements SurfaceHolder.Callback,
     }
 
     public void showMenu() {
+        showMenu(com.limelight.heokami.GameMenu.Side.RIGHT);
+    }
+
+    public void showMenu(com.limelight.heokami.GameMenu.Side side) {
         // 修复：每次显示菜单时刷新prefConfig，确保设置项立即生效
         this.prefConfig = com.limelight.preferences.PreferenceConfiguration.readPreferences(this);
 
@@ -3888,8 +3947,34 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         if (virtualKeyboard != null && virtualKeyboard.getControllerMode() != VirtualKeyboard.ControllerMode.Active){
             new com.limelight.heokami.EditMenu(this, virtualKeyboard);
         }else {
-            new GameMenu(this,conn);
+            updateSystemGestureExclusion(false);
+            new GameMenu(this, conn, side);
         }
+    }
+
+    public void updateSystemGestureExclusion(boolean excludeEdges) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q || backgroundTouchView == null) {
+            return;
+        }
+
+        if (!excludeEdges) {
+            backgroundTouchView.setSystemGestureExclusionRects(java.util.Collections.emptyList());
+            return;
+        }
+
+        backgroundTouchView.post(() -> {
+            int width = backgroundTouchView.getWidth();
+            int height = backgroundTouchView.getHeight();
+            if (width <= 0 || height <= 0) {
+                return;
+            }
+
+            int edgeWidth = Math.max(1, (int) (EDGE_MENU_EXCLUSION_WIDTH_DP * getResources().getDisplayMetrics().density + 0.5f));
+            java.util.ArrayList<Rect> exclusionRects = new java.util.ArrayList<>(2);
+            exclusionRects.add(new Rect(0, 0, Math.min(edgeWidth, width), height));
+            exclusionRects.add(new Rect(Math.max(0, width - edgeWidth), 0, width, height));
+            backgroundTouchView.setSystemGestureExclusionRects(exclusionRects);
+        });
     }
 
     @Override
@@ -3915,11 +4000,11 @@ public class Game extends Activity implements SurfaceHolder.Callback,
                 return;
             }
             com.limelight.heokami.GameMenu.setMenuShowing(false);
+            updateSystemGestureExclusion(true);
         }
         
-        // 如果菜单没有显示，则显示菜单
-        android.util.Log.d("GameMenu", "Showing menu");
-        showMenu();
+        // 返回键只负责关闭已有菜单；游戏菜单现在由空白边缘手势唤出。
+        android.util.Log.d("GameMenu", "Back pressed with no menu showing; ignoring");
     }
 
     private void destroyVirtualControllerInstance() {
