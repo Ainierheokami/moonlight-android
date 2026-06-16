@@ -671,7 +671,11 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
         val rightClickNextTouchCheck = CheckBox(context).apply { text = context.getString(R.string.virtual_keyboard_right_click_next_touch); visibility = View.GONE }
         val edgeHideCheck = CheckBox(context).apply { text = context.getString(R.string.virtual_keyboard_menu_edge_hide_enabled) }
         val edgeHideThresholdEdit = EditText(context).apply { inputType = InputType.TYPE_CLASS_NUMBER; hint = context.getString(R.string.virtual_keyboard_menu_edge_hide_threshold); setText("48") }
+        val edgeHideEdgeZoneEdit = EditText(context).apply { inputType = InputType.TYPE_CLASS_NUMBER; hint = context.getString(R.string.virtual_keyboard_menu_edge_hide_edge_zone); setText("48") }
         val edgeRevealHotZoneEdit = EditText(context).apply { inputType = InputType.TYPE_CLASS_NUMBER; hint = context.getString(R.string.virtual_keyboard_menu_edge_reveal_hot_zone); setText("32") }
+        val edgeRevealSwipeEdit = EditText(context).apply { inputType = InputType.TYPE_CLASS_NUMBER; hint = context.getString(R.string.virtual_keyboard_menu_edge_reveal_swipe_threshold); setText("16") }
+        val edgeRevealTouchSizeEdit = EditText(context).apply { inputType = InputType.TYPE_CLASS_NUMBER; hint = context.getString(R.string.virtual_keyboard_menu_edge_reveal_touch_size); setText("56") }
+        val edgeHotZonePreviewCheck = CheckBox(context).apply { text = context.getString(R.string.virtual_keyboard_menu_edge_hot_zone_preview) }
         touchpadSensitivity.setOnSeekBarChangeListener(object: SeekBar.OnSeekBarChangeListener{ override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) { touchpadSensitivityText.text = progress.toString() }; override fun onStartTrackingTouch(seekBar: SeekBar?) {}; override fun onStopTrackingTouch(seekBar: SeekBar?) {} })
 
         fun addTypeTab(text: String) { typeTabLayout.addTab(typeTabLayout.newTab().setText(text)) }
@@ -700,7 +704,17 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
         if (element != null) { selectedButtonType = element!!.buttonType; typeTabLayout.getTabAt(selectedButtonType.ordinal)?.select() }
         behaviorSection.addView(typeTabLayout); behaviorSection.addView(vkLayout); addSpacerTo(behaviorSection, 6); behaviorSection.addView(edgeHideCheck)
         addLabeledNumberFieldTo(behaviorSection, context.getString(R.string.virtual_keyboard_menu_edge_hide_threshold), context.getString(R.string.virtual_keyboard_menu_edge_hide_threshold_summary), edgeHideThresholdEdit)
+        addLabeledNumberFieldTo(behaviorSection, context.getString(R.string.virtual_keyboard_menu_edge_hide_edge_zone), context.getString(R.string.virtual_keyboard_menu_edge_hide_edge_zone_summary), edgeHideEdgeZoneEdit)
         addLabeledNumberFieldTo(behaviorSection, context.getString(R.string.virtual_keyboard_menu_edge_reveal_hot_zone), context.getString(R.string.virtual_keyboard_menu_edge_reveal_hot_zone_summary), edgeRevealHotZoneEdit)
+        addLabeledNumberFieldTo(behaviorSection, context.getString(R.string.virtual_keyboard_menu_edge_reveal_swipe_threshold), context.getString(R.string.virtual_keyboard_menu_edge_reveal_swipe_threshold_summary), edgeRevealSwipeEdit)
+        addLabeledNumberFieldTo(behaviorSection, context.getString(R.string.virtual_keyboard_menu_edge_reveal_touch_size), context.getString(R.string.virtual_keyboard_menu_edge_reveal_touch_size_summary), edgeRevealTouchSizeEdit)
+        behaviorSection.addView(TextView(context).apply {
+            text = context.getString(R.string.virtual_keyboard_menu_edge_hot_zone_preview_summary)
+            setTextColor(Color.parseColor("#FF9CA3AF"))
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
+            setPadding(0, dp(6), 0, 0)
+        })
+        behaviorSection.addView(edgeHotZonePreviewCheck)
         behaviorSection.addView(touchpadSectionTitle); behaviorSection.addView(touchpadSensitivity); behaviorSection.addView(touchpadSensitivityText); behaviorSection.addView(rightClickNextTouchCheck)
 
         // --- 外观页签内容 ---
@@ -913,9 +927,25 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
             textColorSwatchPressed.setBackgroundColor(parseColorSafely(textColorEditPressed.text.toString(), Color.WHITE))
         }
 
+        val updateEdgeHotZonePreview = {
+            if (element != null && edgeHideCheck.isChecked && edgeHotZonePreviewCheck.isChecked) {
+                virtualKeyboard.showEdgeHotZonePreview(
+                    element!!,
+                    (edgeRevealHotZoneEdit.text.toString().toIntOrNull() ?: 32).coerceIn(8, 160),
+                    (edgeRevealTouchSizeEdit.text.toString().toIntOrNull() ?: 56).coerceIn(24, 240)
+                )
+            } else {
+                virtualKeyboard.hideEdgeHotZonePreview()
+            }
+        }
+
         // 绑定监听器
         val watchers = listOf(bgColorEdit, bgPressedColorEdit, buttonTextEditText, textColorEdit, borderColorEditText, borderColorEditTextPressed, textColorEditPressed)
         watchers.forEach { it.addTextChangedListener(object : TextWatcher { override fun afterTextChanged(s: Editable?) {}; override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}; override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) { updatePreview() } }) }
+        val edgeWatchers = listOf(edgeRevealHotZoneEdit, edgeRevealTouchSizeEdit)
+        edgeWatchers.forEach { it.addTextChangedListener(object : TextWatcher { override fun afterTextChanged(s: Editable?) {}; override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}; override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) { updateEdgeHotZonePreview() } }) }
+        edgeHotZonePreviewCheck.setOnCheckedChangeListener { _, _ -> updateEdgeHotZonePreview() }
+        edgeHideCheck.setOnCheckedChangeListener { _, _ -> updateEdgeHotZonePreview() }
 
         radiusSeekBar.setOnSeekBarChangeListener(object: SeekBar.OnSeekBarChangeListener{ override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) { radiusTextView.text = context.getString(R.string.virtual_keyboard_menu_radius_hint) + " $progress"; updatePreview() }; override fun onStartTrackingTouch(seekBar: SeekBar?) {}; override fun onStopTrackingTouch(seekBar: SeekBar?) {} })
         borderWidthSeek.setOnSeekBarChangeListener(object: SeekBar.OnSeekBarChangeListener{ override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) { updatePreview() }; override fun onStartTrackingTouch(seekBar: SeekBar?) {}; override fun onStopTrackingTouch(seekBar: SeekBar?) {} })
@@ -969,7 +999,11 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
                     if (data.has("RIGHT_CLICK_NEXT_TOUCH")) rightClickNextTouchCheck.isChecked = data.getBoolean("RIGHT_CLICK_NEXT_TOUCH")
                     if (data.has("EDGE_HIDE_ENABLED")) edgeHideCheck.isChecked = data.getBoolean("EDGE_HIDE_ENABLED")
                     edgeHideThresholdEdit.setText((if (data.has("EDGE_HIDE_THRESHOLD_DP")) data.getInt("EDGE_HIDE_THRESHOLD_DP") else 48).toString())
+                    edgeHideEdgeZoneEdit.setText((if (data.has("EDGE_HIDE_EDGE_ZONE_DP")) data.getInt("EDGE_HIDE_EDGE_ZONE_DP") else 48).toString())
                     edgeRevealHotZoneEdit.setText((if (data.has("EDGE_REVEAL_HOT_ZONE_DP")) data.getInt("EDGE_REVEAL_HOT_ZONE_DP") else 32).toString())
+                    edgeRevealSwipeEdit.setText((if (data.has("EDGE_REVEAL_SWIPE_THRESHOLD_DP")) data.getInt("EDGE_REVEAL_SWIPE_THRESHOLD_DP") else 16).toString())
+                    edgeRevealTouchSizeEdit.setText((if (data.has("EDGE_REVEAL_TOUCH_SIZE_DP")) data.getInt("EDGE_REVEAL_TOUCH_SIZE_DP") else 56).toString())
+                    if (data.has("EDGE_HOT_ZONE_PREVIEW_ENABLED")) edgeHotZonePreviewCheck.isChecked = data.getBoolean("EDGE_HOT_ZONE_PREVIEW_ENABLED")
                     if (data.has("TEXT_COLOR")) { val c = data.getInt("TEXT_COLOR"); textColorEdit.setText(String.format("%08X", c)) }
                     if (data.has("TEXT_ALPHA")) textAlphaSeek.progress = data.getInt("TEXT_ALPHA").coerceIn(0, 100)
                     if (data.has("BG_COLOR")) { val c = data.getInt("BG_COLOR"); bgColorEdit.setText(String.format("%08X", c)) }
@@ -979,6 +1013,7 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
                 }
             } catch (_: Exception) {}
             updatePreview()
+            updateEdgeHotZonePreview()
 
             val moreSection = addCollapsibleSectionTo(baseTabContent, context.getString(R.string.virtual_keyboard_section_more), false)
             val actionsContainer = LinearLayout(context).apply { orientation = LinearLayout.VERTICAL }
@@ -1047,6 +1082,7 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
             requestWindowFeature(Window.FEATURE_NO_TITLE)
             setContentView(rootLayout)
             setCancelable(element == null)
+            setOnDismissListener { virtualKeyboard.hideEdgeHotZonePreview() }
         }
         dialog.setCanceledOnTouchOutside(false)
         dialog.show()
@@ -1081,7 +1117,11 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
                     put("BG_ALPHA_PRESSED", bgPressedAlphaSeek.progress)
                     put("EDGE_HIDE_ENABLED", edgeHideCheck.isChecked)
                     put("EDGE_HIDE_THRESHOLD_DP", (edgeHideThresholdEdit.text.toString().toIntOrNull() ?: 48).coerceIn(8, 240))
+                    put("EDGE_HIDE_EDGE_ZONE_DP", (edgeHideEdgeZoneEdit.text.toString().toIntOrNull() ?: 48).coerceIn(8, 240))
                     put("EDGE_REVEAL_HOT_ZONE_DP", (edgeRevealHotZoneEdit.text.toString().toIntOrNull() ?: 32).coerceIn(8, 160))
+                    put("EDGE_REVEAL_SWIPE_THRESHOLD_DP", (edgeRevealSwipeEdit.text.toString().toIntOrNull() ?: 16).coerceIn(4, 160))
+                    put("EDGE_REVEAL_TOUCH_SIZE_DP", (edgeRevealTouchSizeEdit.text.toString().toIntOrNull() ?: 56).coerceIn(24, 240))
+                    put("EDGE_HOT_ZONE_PREVIEW_ENABLED", edgeHotZonePreviewCheck.isChecked)
                     if (selectedButtonType == VirtualKeyboardElement.ButtonType.TouchPad) put("TOUCHPAD_SENSITIVITY", touchpadSensitivity.progress)
                     if (selectedButtonType == VirtualKeyboardElement.ButtonType.RightClickModifier) put("RIGHT_CLICK_NEXT_TOUCH", rightClickNextTouchCheck.isChecked)
                 }

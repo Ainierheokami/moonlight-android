@@ -8,6 +8,10 @@ import android.annotation.SuppressLint;
 import android.content.Context;
 import android.os.Handler;
 import android.os.Looper;
+import android.graphics.Canvas;
+import android.graphics.Color;
+import android.graphics.Paint;
+import android.graphics.RectF;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.View;
@@ -61,13 +65,18 @@ public class VirtualKeyboard {
     private View editingOverlay = null;
     private View editingContainer = null;
     private TextView editingTip = null;
+    private EdgeHotZonePreviewView edgeHotZonePreviewView = null;
+    private VirtualKeyboardElement edgePreviewElement = null;
+    private int edgePreviewRevealHotZoneDp = 32;
+    private int edgePreviewTouchSizeDp = 56;
     private int edgeTouchDownX = -1;
     private int edgeTouchDownY = -1;
 
     public static final int EDGE_NONE = 0;
-    private static final int EDGE_LEFT = 1;
-    private static final int EDGE_RIGHT = 2;
-    private static final int EDGE_HANDLE_MIN_HEIGHT_DP = 36;
+    public static final int EDGE_LEFT = 1;
+    public static final int EDGE_RIGHT = 2;
+    public static final int EDGE_TOP = 3;
+    public static final int EDGE_BOTTOM = 4;
     private static final int EDGE_HANDLE_LINE_WIDTH_DP = 3;
 
     private final Map<VirtualKeyboardElement, View> edgeHandleViews = new HashMap<>();
@@ -211,6 +220,14 @@ public class VirtualKeyboard {
         return (int) (context.getResources().getDisplayMetrics().density * value + 0.5f);
     }
 
+    private static int clamp(int value, int minValue, int maxValue) {
+        return Math.max(minValue, Math.min(maxValue, value));
+    }
+
+    private boolean isHorizontalEdge(int edge) {
+        return edge == EDGE_LEFT || edge == EDGE_RIGHT;
+    }
+
     private void setConfigureButtonVisible(boolean visible) {
         PreferenceConfiguration pref = context.getPrefConfig();
         if (buttonConfigure != null) {
@@ -240,10 +257,14 @@ public class VirtualKeyboard {
                 case MotionEvent.ACTION_MOVE:
                     int travelX = (int) event.getRawX() - edgeTouchDownX;
                     int travelY = (int) event.getRawY() - edgeTouchDownY;
-                    int threshold = Math.max(dp(12), dp(element.getEdgeRevealHotZoneDp()) / 2);
+                    int threshold = dp(element.getEdgeRevealSwipeThresholdDp());
                     boolean revealFromLeft = element.getEdgeCollapsedSide() == EDGE_LEFT && travelX > threshold;
                     boolean revealFromRight = element.getEdgeCollapsedSide() == EDGE_RIGHT && travelX < -threshold;
-                    if ((revealFromLeft || revealFromRight) && Math.abs(travelX) > Math.abs(travelY)) {
+                    boolean revealFromTop = element.getEdgeCollapsedSide() == EDGE_TOP && travelY > threshold;
+                    boolean revealFromBottom = element.getEdgeCollapsedSide() == EDGE_BOTTOM && travelY < -threshold;
+                    boolean horizontalReveal = (revealFromLeft || revealFromRight) && Math.abs(travelX) > Math.abs(travelY) * 1.2f;
+                    boolean verticalReveal = (revealFromTop || revealFromBottom) && Math.abs(travelY) > Math.abs(travelX) * 1.2f;
+                    if (horizontalReveal || verticalReveal) {
                         expandElementFromEdge(element);
                     }
                     return true;
@@ -264,11 +285,25 @@ public class VirtualKeyboard {
             return;
         }
 
-        int width = dp(element.getEdgeRevealHotZoneDp());
-        int height = Math.max(dp(EDGE_HANDLE_MIN_HEIGHT_DP), element.getHeight());
-        int top = Math.max(0, element.getTopMargin() + (element.getHeight() - height) / 2);
+        int hotZoneDepth = dp(element.getEdgeRevealHotZoneDp());
+        int touchSize = dp(element.getEdgeRevealTouchSizeDp());
+        int edge = element.getEdgeCollapsedSide();
+        int elementCenterX = element.getLeftMargin() + element.getWidth() / 2;
+        int elementCenterY = element.getTopMargin() + element.getHeight() / 2;
+        int width = isHorizontalEdge(edge) ? hotZoneDepth : Math.max(touchSize, element.getWidth());
+        int height = isHorizontalEdge(edge) ? Math.max(touchSize, element.getHeight()) : hotZoneDepth;
+        int left = isHorizontalEdge(edge) ? 0 : elementCenterX - width / 2;
+        int top = isHorizontalEdge(edge) ? elementCenterY - height / 2 : 0;
+        if (edge == EDGE_RIGHT && frame_layout.getWidth() > 0) {
+            left = frame_layout.getWidth() - width;
+        } else if (edge == EDGE_BOTTOM && frame_layout.getHeight() > 0) {
+            top = frame_layout.getHeight() - height;
+        }
+        if (frame_layout.getWidth() > 0) {
+            left = clamp(left, 0, Math.max(0, frame_layout.getWidth() - width));
+        }
         if (frame_layout.getHeight() > 0) {
-            top = Math.min(top, Math.max(0, frame_layout.getHeight() - height));
+            top = clamp(top, 0, Math.max(0, frame_layout.getHeight() - height));
         }
 
         FrameLayout.LayoutParams params = handle.getLayoutParams() instanceof FrameLayout.LayoutParams
@@ -277,9 +312,7 @@ public class VirtualKeyboard {
         params.width = width;
         params.height = height;
         params.topMargin = top;
-        params.leftMargin = element.getEdgeCollapsedSide() == EDGE_RIGHT && frame_layout.getWidth() > 0
-                ? Math.max(0, frame_layout.getWidth() - width)
-                : 0;
+        params.leftMargin = left;
         params.rightMargin = 0;
         params.bottomMargin = 0;
         handle.setLayoutParams(params);
@@ -288,9 +321,15 @@ public class VirtualKeyboard {
             FrameLayout.LayoutParams lineParams = line.getLayoutParams() instanceof FrameLayout.LayoutParams
                     ? (FrameLayout.LayoutParams) line.getLayoutParams()
                     : new FrameLayout.LayoutParams(dp(EDGE_HANDLE_LINE_WIDTH_DP), FrameLayout.LayoutParams.MATCH_PARENT);
-            lineParams.width = dp(EDGE_HANDLE_LINE_WIDTH_DP);
-            lineParams.height = FrameLayout.LayoutParams.MATCH_PARENT;
-            lineParams.gravity = element.getEdgeCollapsedSide() == EDGE_RIGHT ? Gravity.RIGHT : Gravity.LEFT;
+            if (isHorizontalEdge(edge)) {
+                lineParams.width = dp(EDGE_HANDLE_LINE_WIDTH_DP);
+                lineParams.height = Math.max(1, element.getHeight());
+                lineParams.gravity = (edge == EDGE_RIGHT ? Gravity.RIGHT : Gravity.LEFT) | Gravity.CENTER_VERTICAL;
+            } else {
+                lineParams.width = Math.max(1, element.getWidth());
+                lineParams.height = dp(EDGE_HANDLE_LINE_WIDTH_DP);
+                lineParams.gravity = (edge == EDGE_BOTTOM ? Gravity.BOTTOM : Gravity.TOP) | Gravity.CENTER_HORIZONTAL;
+            }
             line.setLayoutParams(lineParams);
         }
         handle.bringToFront();
@@ -350,17 +389,21 @@ public class VirtualKeyboard {
         int travelX = x - edgeTouchDownX;
         int travelY = y - edgeTouchDownY;
         int threshold = dp(element.getEdgeHideThresholdDp());
-        int edgeZone = Math.max(dp(24), frame_layout.getWidth() / 20);
+        int edgeZone = dp(element.getEdgeHideEdgeZoneDp());
         boolean startsInsideElement =
                 edgeTouchDownX >= element.getLeftMargin()
                         && edgeTouchDownX <= element.getLeftMargin() + element.getWidth()
                         && edgeTouchDownY >= element.getTopMargin()
                         && edgeTouchDownY <= element.getTopMargin() + element.getHeight();
         boolean horizontalIntent = Math.abs(travelX) > threshold && Math.abs(travelX) > Math.abs(travelY) * 1.4f;
+        boolean verticalIntent = Math.abs(travelY) > threshold && Math.abs(travelY) > Math.abs(travelX) * 1.4f;
         boolean hideToLeft = startsInsideElement && horizontalIntent && x <= edgeZone && travelX < 0;
         boolean hideToRight = startsInsideElement && horizontalIntent && x >= frame_layout.getWidth() - edgeZone && travelX > 0;
-        if ((hideToLeft || hideToRight) && Math.abs(travelX) > Math.abs(travelY)) {
-            collapseElementToEdge(element, hideToLeft ? EDGE_LEFT : EDGE_RIGHT);
+        boolean hideToTop = startsInsideElement && verticalIntent && y <= edgeZone && travelY < 0;
+        boolean hideToBottom = startsInsideElement && verticalIntent && y >= frame_layout.getHeight() - edgeZone && travelY > 0;
+        if (hideToLeft || hideToRight || hideToTop || hideToBottom) {
+            int edge = hideToLeft ? EDGE_LEFT : hideToRight ? EDGE_RIGHT : hideToTop ? EDGE_TOP : EDGE_BOTTOM;
+            collapseElementToEdge(element, edge);
             return true;
         }
         return false;
@@ -369,6 +412,99 @@ public class VirtualKeyboard {
     public void handleEdgeHideGestureEnd() {
         edgeTouchDownX = -1;
         edgeTouchDownY = -1;
+    }
+
+    public void showEdgeHotZonePreview(VirtualKeyboardElement element, int revealHotZoneDp, int touchSizeDp) {
+        if (frame_layout == null || element == null) {
+            return;
+        }
+
+        edgePreviewElement = element;
+        edgePreviewRevealHotZoneDp = clamp(revealHotZoneDp, 8, 160);
+        edgePreviewTouchSizeDp = clamp(touchSizeDp, 24, 240);
+        if (edgeHotZonePreviewView == null) {
+            edgeHotZonePreviewView = new EdgeHotZonePreviewView(context);
+            edgeHotZonePreviewView.setFocusable(false);
+            edgeHotZonePreviewView.setClickable(false);
+            edgeHotZonePreviewView.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+            frame_layout.addView(edgeHotZonePreviewView, new FrameLayout.LayoutParams(
+                    FrameLayout.LayoutParams.MATCH_PARENT,
+                    FrameLayout.LayoutParams.MATCH_PARENT));
+        }
+        edgeHotZonePreviewView.setVisibility(View.VISIBLE);
+        edgeHotZonePreviewView.bringToFront();
+        edgeHotZonePreviewView.invalidate();
+    }
+
+    public void hideEdgeHotZonePreview() {
+        edgePreviewElement = null;
+        if (edgeHotZonePreviewView != null) {
+            edgeHotZonePreviewView.setVisibility(View.GONE);
+        }
+    }
+
+    private class EdgeHotZonePreviewView extends View {
+        private final Paint fillPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final Paint strokePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final Paint linePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final RectF rect = new RectF();
+
+        EdgeHotZonePreviewView(Context context) {
+            super(context);
+            setWillNotDraw(false);
+            fillPaint.setStyle(Paint.Style.FILL);
+            fillPaint.setColor(Color.argb(48, 255, 255, 255));
+            strokePaint.setStyle(Paint.Style.STROKE);
+            strokePaint.setStrokeWidth(dp(1));
+            strokePaint.setColor(Color.argb(190, 255, 255, 255));
+            linePaint.setStyle(Paint.Style.FILL);
+            linePaint.setColor(Color.argb(230, 255, 255, 255));
+        }
+
+        @Override
+        protected void onDraw(Canvas canvas) {
+            super.onDraw(canvas);
+            VirtualKeyboardElement element = edgePreviewElement;
+            if (element == null || element.getParent() == null || getWidth() <= 0 || getHeight() <= 0) {
+                return;
+            }
+
+            int hotZoneDepth = dp(edgePreviewRevealHotZoneDp);
+            int touchSize = dp(edgePreviewTouchSizeDp);
+            int centerX = element.getLeftMargin() + element.getWidth() / 2;
+            int centerY = element.getTopMargin() + element.getHeight() / 2;
+            int verticalLength = Math.max(touchSize, element.getHeight());
+            int horizontalLength = Math.max(touchSize, element.getWidth());
+
+            drawZone(canvas, 0, centerY - verticalLength / 2, hotZoneDepth, verticalLength, EDGE_LEFT, element);
+            drawZone(canvas, getWidth() - hotZoneDepth, centerY - verticalLength / 2, hotZoneDepth, verticalLength, EDGE_RIGHT, element);
+            drawZone(canvas, centerX - horizontalLength / 2, 0, horizontalLength, hotZoneDepth, EDGE_TOP, element);
+            drawZone(canvas, centerX - horizontalLength / 2, getHeight() - hotZoneDepth, horizontalLength, hotZoneDepth, EDGE_BOTTOM, element);
+        }
+
+        private void drawZone(Canvas canvas, int left, int top, int width, int height, int edge, VirtualKeyboardElement element) {
+            if (width <= 0 || height <= 0) {
+                return;
+            }
+            left = clamp(left, 0, Math.max(0, getWidth() - width));
+            top = clamp(top, 0, Math.max(0, getHeight() - height));
+            rect.set(left, top, left + width, top + height);
+            canvas.drawRect(rect, fillPaint);
+            canvas.drawRect(rect, strokePaint);
+
+            int lineWidth = dp(EDGE_HANDLE_LINE_WIDTH_DP);
+            if (isHorizontalEdge(edge)) {
+                int lineHeight = Math.max(1, element.getHeight());
+                int lineTop = clamp(element.getTopMargin(), top, Math.max(top, top + height - lineHeight));
+                int lineLeft = edge == EDGE_RIGHT ? left + width - lineWidth : left;
+                canvas.drawRect(lineLeft, lineTop, lineLeft + lineWidth, lineTop + lineHeight, linePaint);
+            } else {
+                int lineLength = Math.max(1, element.getWidth());
+                int lineLeft = clamp(element.getLeftMargin(), left, Math.max(left, left + width - lineLength));
+                int lineTop = edge == EDGE_BOTTOM ? top + height - lineWidth : top;
+                canvas.drawRect(lineLeft, lineTop, lineLeft + lineLength, lineTop + lineWidth, linePaint);
+            }
+        }
     }
 
     public void hide() {
@@ -388,6 +524,7 @@ public class VirtualKeyboard {
             if (gridLines != null) {
                 gridLines.hide();
             }
+            hideEdgeHotZonePreview();
         } catch (Exception ignored) {}
     }
 
@@ -451,6 +588,14 @@ public class VirtualKeyboard {
             }
         }
         edgeHandleViews.clear();
+        if (edgeHotZonePreviewView != null) {
+            ViewParent previewParent = edgeHotZonePreviewView.getParent();
+            if (previewParent instanceof ViewGroup) {
+                ((ViewGroup) previewParent).removeView(edgeHotZonePreviewView);
+            }
+            edgeHotZonePreviewView = null;
+        }
+        edgePreviewElement = null;
         hideEditingOverlay();
     }
 
@@ -482,6 +627,8 @@ public class VirtualKeyboard {
         editingOverlay = null;
         editingContainer = null;
         editingTip = null;
+        edgeHotZonePreviewView = null;
+        edgePreviewElement = null;
         frame_layout = null;
     }
 
@@ -690,6 +837,7 @@ public class VirtualKeyboard {
             VirtualKeyboardConfigurationLoader.saveProfile(VirtualKeyboard.this, context);
             GameGridLines gameGridLines = context.getGameGridLines();
             if (gameGridLines != null) gameGridLines.hide();
+            hideEdgeHotZonePreview();
             hideEditingOverlay();
             context.postNotification(context.getString(R.string.controller_mode_active_buttons), 2000);
             for (VirtualKeyboardElement element : elements) {

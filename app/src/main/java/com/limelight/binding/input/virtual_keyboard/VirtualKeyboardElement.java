@@ -513,8 +513,30 @@ public abstract class VirtualKeyboardElement extends View {
         return getButtonDataInt("EDGE_HIDE_THRESHOLD_DP", 48, 8, 240);
     }
 
+    public int getEdgeHideEdgeZoneDp() {
+        return getButtonDataInt("EDGE_HIDE_EDGE_ZONE_DP", 48, 8, 240);
+    }
+
     public int getEdgeRevealHotZoneDp() {
         return getButtonDataInt("EDGE_REVEAL_HOT_ZONE_DP", 32, 8, 160);
+    }
+
+    public int getEdgeRevealSwipeThresholdDp() {
+        return getButtonDataInt("EDGE_REVEAL_SWIPE_THRESHOLD_DP", 16, 4, 160);
+    }
+
+    public int getEdgeRevealTouchSizeDp() {
+        return getButtonDataInt("EDGE_REVEAL_TOUCH_SIZE_DP", 56, 24, 240);
+    }
+
+    public boolean isEdgeHotZonePreviewEnabled() {
+        try {
+            return buttonData != null
+                    && buttonData.has("EDGE_HOT_ZONE_PREVIEW_ENABLED")
+                    && buttonData.getBoolean("EDGE_HOT_ZONE_PREVIEW_ENABLED");
+        } catch (JSONException e) {
+            return false;
+        }
     }
 
     private int getButtonDataInt(String key, int defaultValue, int minValue, int maxValue) {

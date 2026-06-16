@@ -214,7 +214,10 @@ public class Game extends Activity implements SurfaceHolder.Callback,
     private float edgeMenuDownX = -1;
     private float edgeMenuDownY = -1;
     private boolean edgeMenuCandidate = false;
-    private static final int EDGE_MENU_EXCLUSION_WIDTH_DP = 32;
+    private static final int EDGE_MENU_ZONE_WIDTH_DP = 24;
+    private static final int EDGE_MENU_SWIPE_THRESHOLD_DP = 72;
+    private static final int EDGE_MENU_EXCLUSION_WIDTH_DP = 24;
+    private static final float EDGE_MENU_EXCLUSION_HEIGHT_RATIO = 0.58f;
     private PortalManagerView portalManagerView; // 传送门管理器
     private OrientationEventListener streamRotationListener;
     private final Handler streamRotationHandler = new Handler();
@@ -2679,8 +2682,8 @@ public class Game extends Activity implements SurfaceHolder.Callback,
             return false;
         }
 
-        int edgeZone = Math.max((int) (24 * getResources().getDisplayMetrics().density), width / 30);
-        int threshold = Math.max((int) (48 * getResources().getDisplayMetrics().density), width / 12);
+        int edgeZone = (int) (EDGE_MENU_ZONE_WIDTH_DP * getResources().getDisplayMetrics().density + 0.5f);
+        int threshold = (int) (EDGE_MENU_SWIPE_THRESHOLD_DP * getResources().getDisplayMetrics().density + 0.5f);
 
         switch (action) {
             case MotionEvent.ACTION_DOWN:
@@ -2696,7 +2699,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
                 float travelY = event.getY() - edgeMenuDownY;
                 boolean fromLeft = edgeMenuDownX <= edgeZone && travelX > threshold;
                 boolean fromRight = edgeMenuDownX >= width - edgeZone && travelX < -threshold;
-                if ((fromLeft || fromRight) && Math.abs(travelX) > Math.abs(travelY)) {
+                if ((fromLeft || fromRight) && Math.abs(travelX) > Math.abs(travelY) * 1.35f) {
                     edgeMenuCandidate = false;
                     showMenu(fromLeft ? GameMenu.Side.LEFT : GameMenu.Side.RIGHT);
                     return true;
@@ -3970,9 +3973,12 @@ public class Game extends Activity implements SurfaceHolder.Callback,
             }
 
             int edgeWidth = Math.max(1, (int) (EDGE_MENU_EXCLUSION_WIDTH_DP * getResources().getDisplayMetrics().density + 0.5f));
+            int exclusionHeight = Math.max(1, (int) (height * EDGE_MENU_EXCLUSION_HEIGHT_RATIO));
+            int top = Math.max(0, (height - exclusionHeight) / 2);
+            int bottom = Math.min(height, top + exclusionHeight);
             java.util.ArrayList<Rect> exclusionRects = new java.util.ArrayList<>(2);
-            exclusionRects.add(new Rect(0, 0, Math.min(edgeWidth, width), height));
-            exclusionRects.add(new Rect(Math.max(0, width - edgeWidth), 0, width, height));
+            exclusionRects.add(new Rect(0, top, Math.min(edgeWidth, width), bottom));
+            exclusionRects.add(new Rect(Math.max(0, width - edgeWidth), top, width, bottom));
             backgroundTouchView.setSystemGestureExclusionRects(exclusionRects);
         });
     }
