@@ -154,6 +154,29 @@
             android:title="@string/title_checkbox_absolute_mouse_mode"
             android:summary="@string/summary_checkbox_absolute_mouse_mode"
             android:defaultValue="false" />
+        <com.limelight.preferences.SeekBarPreference
+            android:key="seekbar_edge_menu_hot_zone"
+            android:dialogMessage="@string/summary_seekbar_edge_menu_hot_zone"
+            seekbar:min="8"
+            seekbar:step="1"
+            android:max="160"
+            android:defaultValue="36"
+            android:summary="@string/summary_seekbar_edge_menu_hot_zone"
+            android:text="@string/suffix_seekbar_dp"
+            android:title="@string/title_seekbar_edge_menu_hot_zone" />
+        <com.limelight.preferences.SeekBarPreference
+            android:key="seekbar_edge_menu_swipe_threshold"
+            android:dialogMessage="@string/summary_seekbar_edge_menu_swipe_threshold"
+            seekbar:min="4"
+            seekbar:step="1"
+            android:max="240"
+            android:defaultValue="56"
+            android:summary="@string/summary_seekbar_edge_menu_swipe_threshold"
+            android:text="@string/suffix_seekbar_dp"
+            android:title="@string/title_seekbar_edge_menu_swipe_threshold" />
+        <com.limelight.heokami.pref.EdgeMenuPreviewPreference
+            android:title="@string/title_edge_menu_preview"
+            android:summary="@string/summary_edge_menu_preview" />
     </PreferenceCategory>
     <PreferenceCategory android:title="@string/category_on_screen_controls_settings"
         android:key="category_onscreen_controls">

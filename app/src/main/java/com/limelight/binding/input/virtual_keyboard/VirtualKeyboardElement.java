@@ -510,15 +510,15 @@ public abstract class VirtualKeyboardElement extends View {
     }
 
     public int getEdgeHideThresholdDp() {
-        return getButtonDataInt("EDGE_HIDE_THRESHOLD_DP", 48, 8, 240);
+        return getButtonDataInt("EDGE_HIDE_THRESHOLD_DP", 5, 4, 240);
     }
 
     public int getEdgeHideEdgeZoneDp() {
-        return getButtonDataInt("EDGE_HIDE_EDGE_ZONE_DP", 48, 8, 240);
+        return getButtonDataInt("EDGE_HIDE_EDGE_ZONE_DP", 100, 8, 240);
     }
 
     public int getEdgeRevealHotZoneDp() {
-        return getButtonDataInt("EDGE_REVEAL_HOT_ZONE_DP", 32, 8, 160);
+        return getButtonDataInt("EDGE_REVEAL_HOT_ZONE_DP", 100, 8, 160);
     }
 
     public int getEdgeRevealSwipeThresholdDp() {
@@ -526,7 +526,7 @@ public abstract class VirtualKeyboardElement extends View {
     }
 
     public int getEdgeRevealTouchSizeDp() {
-        return getButtonDataInt("EDGE_REVEAL_TOUCH_SIZE_DP", 56, 24, 240);
+        return getButtonDataInt("EDGE_REVEAL_TOUCH_SIZE_DP", 100, 24, 240);
     }
 
     public boolean isEdgeHotZonePreviewEnabled() {

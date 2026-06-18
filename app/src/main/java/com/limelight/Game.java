@@ -214,9 +214,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
     private float edgeMenuDownX = -1;
     private float edgeMenuDownY = -1;
     private boolean edgeMenuCandidate = false;
-    private static final int EDGE_MENU_ZONE_WIDTH_DP = 24;
-    private static final int EDGE_MENU_SWIPE_THRESHOLD_DP = 72;
-    private static final int EDGE_MENU_EXCLUSION_WIDTH_DP = 24;
+    private static final int EDGE_MENU_EXCLUSION_MIN_WIDTH_DP = 16;
     private static final float EDGE_MENU_EXCLUSION_HEIGHT_RATIO = 0.58f;
     private PortalManagerView portalManagerView; // 传送门管理器
     private OrientationEventListener streamRotationListener;
@@ -268,6 +266,10 @@ public class Game extends Activity implements SurfaceHolder.Callback,
     private int lastAppId;
     private boolean lastAppWasHdr;
     private byte[] lastServCert;
+
+    private int dp(int value) {
+        return (int) (value * getResources().getDisplayMetrics().density + 0.5f);
+    }
     
     // 保存这些参数，以便在重新连接时使用
     private void saveConnectionParams() {
@@ -2682,8 +2684,11 @@ public class Game extends Activity implements SurfaceHolder.Callback,
             return false;
         }
 
-        int edgeZone = (int) (EDGE_MENU_ZONE_WIDTH_DP * getResources().getDisplayMetrics().density + 0.5f);
-        int threshold = (int) (EDGE_MENU_SWIPE_THRESHOLD_DP * getResources().getDisplayMetrics().density + 0.5f);
+        if (prefConfig == null) {
+            prefConfig = PreferenceConfiguration.readPreferences(this);
+        }
+        int edgeZone = dp(prefConfig.edgeMenuHotZoneDp);
+        int threshold = dp(prefConfig.edgeMenuSwipeThresholdDp);
 
         switch (action) {
             case MotionEvent.ACTION_DOWN:
@@ -3972,7 +3977,10 @@ public class Game extends Activity implements SurfaceHolder.Callback,
                 return;
             }
 
-            int edgeWidth = Math.max(1, (int) (EDGE_MENU_EXCLUSION_WIDTH_DP * getResources().getDisplayMetrics().density + 0.5f));
+            if (prefConfig == null) {
+                prefConfig = PreferenceConfiguration.readPreferences(this);
+            }
+            int edgeWidth = Math.max(dp(EDGE_MENU_EXCLUSION_MIN_WIDTH_DP), dp(prefConfig.edgeMenuHotZoneDp));
             int exclusionHeight = Math.max(1, (int) (height * EDGE_MENU_EXCLUSION_HEIGHT_RATIO));
             int top = Math.max(0, (height - exclusionHeight) / 2);
             int bottom = Math.min(height, top + exclusionHeight);

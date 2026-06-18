@@ -348,6 +348,14 @@
     <string name="virtual_keyboard_menu_edge_reveal_touch_size_summary">白线方向上的最小可触摸长度，小按钮建议调大。</string>
     <string name="virtual_keyboard_menu_edge_hot_zone_preview">编辑时显示热区预览</string>
     <string name="virtual_keyboard_menu_edge_hot_zone_preview_summary">用透明色块/描边显示实际可操作展开区域。</string>
+    <string name="suffix_seekbar_dp">dp</string>
+    <string name="title_seekbar_edge_menu_hot_zone">滑动菜单响应热区</string>
+    <string name="summary_seekbar_edge_menu_hot_zone">从屏幕左/右边缘向内计算，手指可从多宽的区域开始滑动。</string>
+    <string name="title_seekbar_edge_menu_swipe_threshold">滑动菜单触发距离</string>
+    <string name="summary_seekbar_edge_menu_swipe_threshold">从边缘向内滑动多远后唤出游戏菜单。</string>
+    <string name="title_edge_menu_preview">预览滑动菜单手势</string>
+    <string name="summary_edge_menu_preview">用图示查看边缘响应热区和需要滑动的距离。</string>
+    <string name="edge_menu_preview_message">从左/右边缘的透明色块内按下，再向屏幕内滑过箭头距离即可打开游戏菜单。\n\n当前响应热区：%1$d dp\n当前触发距离：%2$d dp</string>
     <string name="game_menu_toggle_virtual_keyboard">切换屏幕虚拟键盘</string>
     <string name="controller_mode_move_buttons">进入配置模式（移动按钮）</string>
     <string name="controller_mode_resize_buttons">进入配置模式（调整大小按钮）</string>

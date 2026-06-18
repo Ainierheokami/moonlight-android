@@ -365,6 +365,14 @@
     <string name="virtual_keyboard_menu_edge_reveal_touch_size_summary">How long the white line touch target should be along the button edge.</string>
     <string name="virtual_keyboard_menu_edge_hot_zone_preview">Show hot zone preview in editor</string>
     <string name="virtual_keyboard_menu_edge_hot_zone_preview_summary">Overlay the actual expand area as a translucent strip while editing the button.</string>
+    <string name="suffix_seekbar_dp">dp</string>
+    <string name="title_seekbar_edge_menu_hot_zone">Slide menu edge hot zone</string>
+    <string name="summary_seekbar_edge_menu_hot_zone">How far inward from the left/right screen edge a swipe can start.</string>
+    <string name="title_seekbar_edge_menu_swipe_threshold">Slide menu swipe distance</string>
+    <string name="summary_seekbar_edge_menu_swipe_threshold">How far you must drag inward before the game menu opens.</string>
+    <string name="title_edge_menu_preview">Preview slide menu gesture</string>
+    <string name="summary_edge_menu_preview">Show a visual guide for the edge hot zone and required swipe distance.</string>
+    <string name="edge_menu_preview_message">Start inside the translucent strips on the left or right edge, then drag inward past the arrow distance to open the game menu.\n\nCurrent hot zone: %1$d dp\nCurrent swipe distance: %2$d dp</string>
     <string name="game_menu_toggle_virtual_keyboard">Toggle the on-screen virtual keyboard</string>
     <string name="controller_mode_move_buttons">Entering configuration mode (Move buttons)</string>
     <string name="controller_mode_resize_buttons">Entering configuration mode (Resize buttons)</string>
