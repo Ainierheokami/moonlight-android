@@ -2674,7 +2674,18 @@ public class Game extends Activity implements SurfaceHolder.Callback,
     }
 
     private boolean handleEdgeMenuGesture(View view, MotionEvent event) {
-        if (view != backgroundTouchView || event.getPointerCount() != 1 || GameMenu.isMenuShowing()) {
+        if (view != backgroundTouchView || GameMenu.isMenuShowing()) {
+            return false;
+        }
+
+        if (edgeMenuCandidate && event.getPointerCount() != 1) {
+            edgeMenuCandidate = false;
+            edgeMenuDownX = -1;
+            edgeMenuDownY = -1;
+            return true;
+        }
+
+        if (event.getPointerCount() != 1) {
             return false;
         }
 
@@ -2695,7 +2706,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
                 edgeMenuDownX = event.getX();
                 edgeMenuDownY = event.getY();
                 edgeMenuCandidate = edgeMenuDownX <= edgeZone || edgeMenuDownX >= width - edgeZone;
-                return false;
+                return edgeMenuCandidate;
             case MotionEvent.ACTION_MOVE:
                 if (!edgeMenuCandidate) {
                     return false;
@@ -2709,13 +2720,14 @@ public class Game extends Activity implements SurfaceHolder.Callback,
                     showMenu(fromLeft ? GameMenu.Side.LEFT : GameMenu.Side.RIGHT);
                     return true;
                 }
-                return false;
+                return true;
             case MotionEvent.ACTION_UP:
             case MotionEvent.ACTION_CANCEL:
+                boolean wasEdgeMenuCandidate = edgeMenuCandidate;
                 edgeMenuCandidate = false;
                 edgeMenuDownX = -1;
                 edgeMenuDownY = -1;
-                return false;
+                return wasEdgeMenuCandidate;
             default:
                 return false;
         }
