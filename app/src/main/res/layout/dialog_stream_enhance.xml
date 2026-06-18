@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="wrap_content">
+    android:layout_height="wrap_content"
+    android:background="@drawable/modern_dialog_background">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -22,6 +23,7 @@
                 android:id="@+id/stream_enhance_mode_default"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:textColor="#DCE6F1"
                 android:text="@string/stream_enhance_mode_default" />
 
             <RadioButton
@@ -29,12 +31,14 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:visibility="gone"
+                android:textColor="#DCE6F1"
                 android:text="@string/stream_enhance_mode_secondary_channel" />
 
             <RadioButton
                 android:id="@+id/stream_enhance_mode_custom"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:textColor="#DCE6F1"
                 android:text="@string/stream_enhance_mode_custom_display" />
         </RadioGroup>
 
@@ -44,6 +48,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
             android:text="@string/stream_enhance_mode_default_hint"
+            android:textColor="#9DAEC0"
             android:textSize="13sp" />
 
         <TextView
@@ -71,6 +76,7 @@
             android:layout_marginTop="18dp"
             android:visibility="gone"
             android:text="@string/stream_enhance_section_host"
+            android:textColor="#F5F8FC"
             android:textStyle="bold" />
 
         <TextView
@@ -79,6 +85,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="12dp"
             android:visibility="gone"
+            android:textColor="#DCE6F1"
             android:text="@string/title_stream_enhance_screen_mode" />
 
         <Spinner
@@ -93,6 +100,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="12dp"
             android:visibility="gone"
+            android:textColor="#DCE6F1"
             android:text="@string/title_stream_enhance_vdd_mode" />
 
         <Spinner
@@ -107,6 +115,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="12dp"
             android:visibility="gone"
+            android:textColor="#DCE6F1"
             android:text="@string/title_stream_enhance_display_name" />
 
         <Spinner
@@ -120,7 +129,9 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:visibility="gone"
+            android:background="@drawable/add_pc_input_background"
             android:hint="@string/title_stream_enhance_display_name"
+            android:padding="10dp"
             android:singleLine="true" />
 
         <TextView
@@ -129,6 +140,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="18dp"
             android:text="@string/stream_enhance_section_client"
+            android:textColor="#F5F8FC"
             android:textStyle="bold" />
 
         <CheckBox
@@ -136,12 +148,14 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="12dp"
+            android:textColor="#DCE6F1"
             android:text="@string/title_stream_enhance_rotation_sync" />
 
         <CheckBox
             android:id="@+id/stream_enhance_suppress_video"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:textColor="#DCE6F1"
             android:text="@string/title_stream_enhance_suppress_video" />
 
         <TextView
@@ -149,12 +163,14 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="@string/summary_stream_enhance_suppress_video"
+            android:textColor="#9DAEC0"
             android:textSize="12sp" />
 
         <CheckBox
             android:id="@+id/stream_enhance_force_resume"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:textColor="#DCE6F1"
             android:text="@string/title_force_resume_current_session" />
     </LinearLayout>
 </ScrollView>

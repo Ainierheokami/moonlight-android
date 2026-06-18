@@ -6,7 +6,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
-import android.widget.EditText
+import android.widget.TextView
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
@@ -20,7 +20,7 @@ class MacroAdapter(private val actions: MutableList<MacroAction>, private val di
     ListAdapter<MacroAction, MacroAdapter.MacroViewHolder>(MacroDiffCallback()) {
 
     inner class MacroViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
-        val editText: EditText = itemView.findViewById(R.id.item_edit_text)
+        val editText: TextView = itemView.findViewById(R.id.item_edit_text)
         val editButton: Button = itemView.findViewById(R.id.item_edit_button)
         val deleteButton: Button = itemView.findViewById(R.id.item_delete_button)
     }
@@ -57,8 +57,6 @@ class MacroAdapter(private val actions: MutableList<MacroAction>, private val di
         }
 
         holder.editText.setText("Index: $position, Type: ${typeText}, Data: $dataText")
-        holder.editText.isFocusable = false
-
         holder.deleteButton.setOnClickListener {
             val adapterPosition = holder.adapterPosition
             if (adapterPosition != RecyclerView.NO_POSITION) { // 检查位置是否有效

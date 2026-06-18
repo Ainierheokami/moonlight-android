@@ -2,25 +2,49 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:orientation="horizontal">
+    android:layout_marginBottom="8dp"
+    android:background="@drawable/macro_item_background"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:padding="8dp">
 
-    <EditText
+    <TextView
         android:id="@+id/item_edit_text"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_weight="1"
-        android:focusable="false" />
+        android:ellipsize="end"
+        android:maxLines="2"
+        android:paddingStart="8dp"
+        android:paddingEnd="12dp"
+        android:textColor="#DCE6F1"
+        android:textSize="14sp" />
 
     <Button
         android:id="@+id/item_edit_button"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="@string/edit_button" />
+        android:layout_width="72dp"
+        android:layout_height="40dp"
+        android:background="@drawable/modern_dialog_secondary_button_background"
+        android:minWidth="0dp"
+        android:minHeight="0dp"
+        android:stateListAnimator="@null"
+        android:text="@string/edit_button"
+        android:textAllCaps="false"
+        android:textColor="#DCE6F1"
+        android:textSize="13sp" />
 
     <Button
         android:id="@+id/item_delete_button"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="@string/del_button" />
+        android:layout_width="72dp"
+        android:layout_height="40dp"
+        android:layout_marginStart="8dp"
+        android:background="@drawable/button_background_red_dark"
+        android:minWidth="0dp"
+        android:minHeight="0dp"
+        android:stateListAnimator="@null"
+        android:text="@string/del_button"
+        android:textAllCaps="false"
+        android:textColor="#FFFFFF"
+        android:textSize="13sp" />
 
 </LinearLayout>

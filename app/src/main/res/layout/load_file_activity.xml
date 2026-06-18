@@ -2,23 +2,40 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="#0B1016"
+    android:gravity="center"
     android:orientation="vertical"
-    android:padding="16dp">
+    android:padding="24dp">
 
-    <TextView
-        android:id="@+id/message_text"
+    <LinearLayout
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="加载配置成功"
-        android:textSize="18sp"
-        android:layout_gravity="center_horizontal"
-        android:padding="16dp" />
+        android:background="@drawable/modern_dialog_background"
+        android:gravity="center_horizontal"
+        android:orientation="vertical"
+        android:padding="24dp">
 
-    <Button
-        android:id="@+id/ok_button"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="确定"
-        android:layout_gravity="center_horizontal"
-        android:padding="16dp" />
+        <TextView
+            android:id="@+id/message_text"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:maxWidth="320dp"
+            android:paddingBottom="20dp"
+            android:text="加载配置成功"
+            android:textColor="#F5F8FC"
+            android:textSize="18sp" />
+
+        <Button
+            android:id="@+id/ok_button"
+            android:layout_width="160dp"
+            android:layout_height="48dp"
+            android:background="@drawable/modern_dialog_primary_button_background"
+            android:minHeight="0dp"
+            android:minWidth="0dp"
+            android:stateListAnimator="@null"
+            android:text="确定"
+            android:textAllCaps="false"
+            android:textColor="#FFFFFF" />
+    </LinearLayout>
 </LinearLayout>
