@@ -11,8 +11,13 @@ import android.util.AttributeSet;
 import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
+import android.widget.LinearLayout;
+import android.widget.SeekBar;
+import android.widget.TextView;
 import com.limelight.Game;
 import com.limelight.nvstream.input.MouseButtonPacket;
+
+import java.util.Locale;
 
 /**
  * 单个传送门的叠加视图
@@ -114,6 +119,8 @@ public class PortalOverlayView extends View {
         // 将目标矩形从屏幕坐标转换为视图坐标
         RectF dstRectView = screenToViewRect(config.dstRect);
 
+        RectF displayRectView = getDisplayRectView(dstRectView);
+
         // 绘制目标区域背景（半透明黑色）
         canvas.drawRect(dstRectView, new Paint(Color.argb(128, 0, 0, 0)));
 
@@ -121,19 +128,18 @@ public class PortalOverlayView extends View {
         if (portalBitmap != null && !portalBitmap.isRecycled()) {
             float bitmapWidth = portalBitmap.getWidth();
             float bitmapHeight = portalBitmap.getHeight();
-            float dstWidth = dstRectView.width();
-            float dstHeight = dstRectView.height();
+            float dstWidth = displayRectView.width();
+            float dstHeight = displayRectView.height();
             logDraw(String.format("onDraw: bitmap=%dx%d dstView=%dx%d stretch to dstRectView",
                     (int)bitmapWidth, (int)bitmapHeight, (int)dstWidth, (int)dstHeight));
-            // 直接使用目标矩形进行绘制（拉伸填充）
-            canvas.drawBitmap(portalBitmap, null, dstRectView, bitmapPaint);
+            canvas.drawBitmap(portalBitmap, null, displayRectView, bitmapPaint);
         }
 
         // 绘制目标区域边框（如果边框宽度>0）
         if (config.borderWidth > 0) {
             borderPaint.setColor(config.borderColor);
             borderPaint.setStrokeWidth(config.borderWidth);
-            canvas.drawRect(dstRectView, borderPaint);
+            canvas.drawRect(displayRectView, borderPaint);
         }
 
         // 如果当前是编辑模式，绘制编辑矩形边框和拖拽手柄
@@ -210,6 +216,34 @@ public class PortalOverlayView extends View {
         canvas.drawCircle(right, top, halfHandle, handlePaint);
         canvas.drawCircle(left, bottom, halfHandle, handlePaint);
         canvas.drawCircle(right, bottom, halfHandle, handlePaint);
+    }
+
+    private RectF getDisplayRectView(RectF dstRectView) {
+        if (config == null) {
+            return dstRectView;
+        }
+
+        float scale = Math.max(0.25f, Math.min(2.0f, config.scale));
+        float width = dstRectView.width() * scale;
+        float height = dstRectView.height() * scale;
+
+        if (config.aspectRatioMode == 1 && portalBitmap != null && !portalBitmap.isRecycled() && portalBitmap.getHeight() > 0) {
+            float bitmapAspect = (float) portalBitmap.getWidth() / portalBitmap.getHeight();
+            float targetAspect = width / height;
+            if (targetAspect > bitmapAspect) {
+                width = height * bitmapAspect;
+            } else {
+                height = width / bitmapAspect;
+            }
+        } else if (config.aspectRatioMode == 2) {
+            float side = Math.min(width, height);
+            width = side;
+            height = side;
+        }
+
+        float centerX = dstRectView.centerX();
+        float centerY = dstRectView.centerY();
+        return new RectF(centerX - width / 2f, centerY - height / 2f, centerX + width / 2f, centerY + height / 2f);
     }
 
     private void logDraw(String message) {
@@ -558,14 +592,13 @@ public class PortalOverlayView extends View {
                     }
                     break;
                 case 1: // 设置帧率限制
-                    // 暂未实现
-                    showNotImplementedToast();
+                    showFrameRateLimitDialog();
                     break;
                 case 2: // 设置缩放比例
-                    showNotImplementedToast();
+                    showScaleDialog();
                     break;
                 case 3: // 设置宽高比
-                    showNotImplementedToast();
+                    showAspectRatioDialog();
                     break;
                 case 4: // 切换编辑模式
                     toggleEditingMode();
@@ -579,10 +612,6 @@ public class PortalOverlayView extends View {
         builder.show();
     }
 
-    private void showNotImplementedToast() {
-        android.widget.Toast.makeText(getContext(), "功能尚未实现", android.widget.Toast.LENGTH_SHORT).show();
-    }
-
     private void toggleEditingMode() {
         if (config.editing) {
             config.editMode = (config.editMode == 1) ? 2 : 1;
@@ -593,6 +622,102 @@ public class PortalOverlayView extends View {
         saveConfig();
         invalidate();
         Log.d(TAG, "切换编辑模式: editing=" + config.editing + ", editMode=" + config.editMode);
+    }
+
+    private void showFrameRateLimitDialog() {
+        final int[] fpsValues = new int[]{5, 10, 15, 20, 30, 60};
+        String[] labels = new String[fpsValues.length];
+        int checked = 4;
+        int current = config.frameRateLimit <= 0 ? 30 : config.frameRateLimit;
+        for (int i = 0; i < fpsValues.length; i++) {
+            labels[i] = fpsValues[i] + " FPS";
+            if (fpsValues[i] == current) {
+                checked = i;
+            }
+        }
+
+        new android.app.AlertDialog.Builder(getContext())
+                .setTitle("设置帧率限制")
+                .setSingleChoiceItems(labels, checked, (dialog, which) -> {
+                    config.frameRateLimit = fpsValues[which];
+                    saveConfig();
+                    dialog.dismiss();
+                })
+                .setNegativeButton(android.R.string.cancel, null)
+                .show();
+    }
+
+    private void showScaleDialog() {
+        LinearLayout content = new LinearLayout(getContext());
+        content.setOrientation(LinearLayout.VERTICAL);
+        int padding = dp(24);
+        content.setPadding(padding, dp(18), padding, dp(6));
+
+        TextView valueText = new TextView(getContext());
+        valueText.setGravity(android.view.Gravity.CENTER_HORIZONTAL);
+        valueText.setTextSize(20);
+        content.addView(valueText, new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT));
+
+        SeekBar seekBar = new SeekBar(getContext());
+        seekBar.setMax(175);
+        seekBar.setProgress(Math.round((Math.max(0.25f, Math.min(2.0f, config.scale)) - 0.25f) * 100f));
+        content.addView(seekBar, new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT));
+
+        Runnable updateText = () -> valueText.setText(String.format(Locale.getDefault(), "%.0f%%", (0.25f + seekBar.getProgress() / 100f) * 100f));
+        updateText.run();
+        seekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                updateText.run();
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {
+            }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+            }
+        });
+
+        new android.app.AlertDialog.Builder(getContext())
+                .setTitle("设置缩放比例")
+                .setView(content)
+                .setPositiveButton(android.R.string.ok, (dialog, which) -> {
+                    config.scale = 0.25f + seekBar.getProgress() / 100f;
+                    saveConfig();
+                    invalidate();
+                })
+                .setNeutralButton("重置", (dialog, which) -> {
+                    config.scale = 1.0f;
+                    saveConfig();
+                    invalidate();
+                })
+                .setNegativeButton(android.R.string.cancel, null)
+                .show();
+    }
+
+    private void showAspectRatioDialog() {
+        String[] labels = new String[]{"拉伸填充", "保持源比例", "正方形"};
+        int checked = Math.max(0, Math.min(labels.length - 1, config.aspectRatioMode));
+        new android.app.AlertDialog.Builder(getContext())
+                .setTitle("设置宽高比")
+                .setSingleChoiceItems(labels, checked, (dialog, which) -> {
+                    config.aspectRatioMode = which;
+                    saveConfig();
+                    invalidate();
+                    dialog.dismiss();
+                })
+                .setNegativeButton(android.R.string.cancel, null)
+                .show();
+    }
+
+    private int dp(int value) {
+        return Math.round(value * getResources().getDisplayMetrics().density);
     }
 
     public boolean handlePortalTouch(MotionEvent event) {

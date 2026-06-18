@@ -45,6 +45,7 @@ public class PortalManagerView extends FrameLayout {
 
     private List<PortalConfig> portalConfigs = new ArrayList<>();
     private Map<Integer, PortalOverlayView> portalViews = new HashMap<>();
+    private Map<Integer, Long> lastCaptureTimes = new HashMap<>();
     private final Object portalLock = new Object();
     private Game game;
     private StreamView streamView;
@@ -297,6 +298,8 @@ public class PortalManagerView extends FrameLayout {
         copy.enabled = source.enabled;
         copy.name = source.name;
         copy.scale = source.scale;
+        copy.frameRateLimit = source.frameRateLimit;
+        copy.aspectRatioMode = source.aspectRatioMode;
         copy.borderColor = source.borderColor;
         copy.borderWidth = source.borderWidth;
         copy.editing = source.editing;
@@ -512,13 +515,20 @@ public class PortalManagerView extends FrameLayout {
                         synchronized (portalLock) {
                             configsSnapshot = new ArrayList<>(portalConfigs);
                         }
+                        long now = System.currentTimeMillis();
                         for (PortalConfig config : configsSnapshot) {
                             if (!config.enabled) continue;
                             if (!shouldShowPortalViews()) {
                                 break;
                             }
+                            if (!shouldCapturePortalFrame(config, now)) {
+                                continue;
+                            }
                             Bitmap bitmap = cropBitmapFromFullFrame(fullBitmap, config.srcRect);
                             if (bitmap != null) {
+                                synchronized (portalLock) {
+                                    lastCaptureTimes.put(config.id, now);
+                                }
                                 updatePortalBitmap(config.id, bitmap);
                             }
                         }
@@ -785,6 +795,15 @@ public class PortalManagerView extends FrameLayout {
         super.onAttachedToWindow();
         if (shouldCapture()) {
             startCaptureThread();
+        }
+    }
+
+    private boolean shouldCapturePortalFrame(PortalConfig config, long now) {
+        int fpsLimit = config.frameRateLimit <= 0 ? 30 : config.frameRateLimit;
+        long minInterval = Math.max(1, 1000L / fpsLimit);
+        synchronized (portalLock) {
+            Long lastCaptureTime = lastCaptureTimes.get(config.id);
+            return lastCaptureTime == null || now - lastCaptureTime >= minInterval;
         }
     }
 }

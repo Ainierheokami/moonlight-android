@@ -13,6 +13,8 @@ public class PortalConfig {
     public String name;
     // 其他配置：缩放模式、透明度、边框颜色等
     public float scale = 1.0f;
+    public int frameRateLimit = 30; // 画面映射采集帧率上限
+    public int aspectRatioMode = 0; // 0=拉伸填充，1=保持源比例，2=正方形
     public int borderColor = 0xFF00FF00; // 绿色边框（默认，但宽度为0故不显示）
     public int borderWidth = 0; // 默认无边框
     public boolean editing = false; // 是否处于编辑模式（显示手柄，可拖拽调整）
