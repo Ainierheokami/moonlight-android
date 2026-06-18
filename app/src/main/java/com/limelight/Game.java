@@ -2658,6 +2658,15 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         return handleMotionEvent(view, event);
     }
 
+    @Override
+    public boolean dispatchTouchEvent(MotionEvent event) {
+        if (handleEdgeMenuGesture(event)) {
+            return true;
+        }
+
+        return super.dispatchTouchEvent(event);
+    }
+
     @SuppressLint("ClickableViewAccessibility")
     @Override
     public boolean onTouch(View view, MotionEvent event) {
@@ -2668,15 +2677,12 @@ public class Game extends Activity implements SurfaceHolder.Callback,
             view.requestUnbufferedDispatch(event);
         }
 
-        if (handleEdgeMenuGesture(view, event)) {
-            return true;
-        }
-
         return handleMotionEvent(view, event);
     }
 
-    private boolean handleEdgeMenuGesture(View view, MotionEvent event) {
-        if (view != backgroundTouchView || GameMenu.isMenuShowing()) {
+    private boolean handleEdgeMenuGesture(MotionEvent event) {
+        View gestureView = getEdgeMenuGestureView();
+        if (gestureView == null || GameMenu.isMenuShowing() || com.limelight.heokami.EditMenu.isMenuShowing()) {
             boolean wasConsuming = edgeMenuConsuming;
             resetEdgeMenuGesture();
             return wasConsuming;
@@ -2693,7 +2699,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         }
 
         int action = event.getActionMasked();
-        int width = view.getWidth();
+        int width = gestureView.getWidth();
         if (width <= 0) {
             resetEdgeMenuGesture();
             return false;
@@ -2730,7 +2736,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
 
                 if (!edgeMenuConsuming && (fromLeftIntent || fromRightIntent) && horizontalIntent) {
                     edgeMenuConsuming = true;
-                    cancelStreamTouchesForEdgeMenu(view);
+                    cancelStreamTouchesForEdgeMenu();
                 }
 
                 if (!edgeMenuConsuming) {
@@ -2761,7 +2767,12 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         edgeMenuDownY = -1;
     }
 
-    private void cancelStreamTouchesForEdgeMenu(View view) {
+    private View getEdgeMenuGestureView() {
+        View decorView = getWindow() != null ? getWindow().getDecorView() : null;
+        return decorView != null ? decorView : backgroundTouchView;
+    }
+
+    private void cancelStreamTouchesForEdgeMenu() {
         for (TouchContext touchContext : touchContextMap) {
             if (touchContext != null) {
                 touchContext.cancelTouch();
@@ -4016,18 +4027,19 @@ public class Game extends Activity implements SurfaceHolder.Callback,
     }
 
     public void updateSystemGestureExclusion(boolean excludeEdges) {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q || backgroundTouchView == null) {
+        View exclusionView = getEdgeMenuGestureView();
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q || exclusionView == null) {
             return;
         }
 
         if (!excludeEdges) {
-            backgroundTouchView.setSystemGestureExclusionRects(java.util.Collections.emptyList());
+            clearSystemGestureExclusionRects();
             return;
         }
 
-        backgroundTouchView.post(() -> {
-            int width = backgroundTouchView.getWidth();
-            int height = backgroundTouchView.getHeight();
+        exclusionView.post(() -> {
+            int width = exclusionView.getWidth();
+            int height = exclusionView.getHeight();
             if (width <= 0 || height <= 0) {
                 return;
             }
@@ -4036,8 +4048,23 @@ public class Game extends Activity implements SurfaceHolder.Callback,
             java.util.ArrayList<Rect> exclusionRects = new java.util.ArrayList<>(2);
             exclusionRects.add(new Rect(0, 0, Math.min(edgeWidth, width), height));
             exclusionRects.add(new Rect(Math.max(0, width - edgeWidth), 0, width, height));
-            backgroundTouchView.setSystemGestureExclusionRects(exclusionRects);
+            exclusionView.setSystemGestureExclusionRects(exclusionRects);
         });
+    }
+
+    private void clearSystemGestureExclusionRects() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
+            return;
+        }
+
+        java.util.List<Rect> emptyRects = java.util.Collections.emptyList();
+        View decorView = getWindow() != null ? getWindow().getDecorView() : null;
+        if (decorView != null) {
+            decorView.setSystemGestureExclusionRects(emptyRects);
+        }
+        if (backgroundTouchView != null && backgroundTouchView != decorView) {
+            backgroundTouchView.setSystemGestureExclusionRects(emptyRects);
+        }
     }
 
     @Override
