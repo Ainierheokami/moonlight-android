@@ -2740,7 +2740,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
                 boolean fromLeft = startedLeft && travelX > threshold;
                 boolean fromRight = startedRight && travelX < -threshold;
                 if ((fromLeft || fromRight) && horizontalIntent) {
-                    resetEdgeMenuGesture();
+                    edgeMenuCandidate = false;
                     showMenu(fromLeft ? GameMenu.Side.LEFT : GameMenu.Side.RIGHT);
                 }
                 return true;
