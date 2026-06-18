@@ -267,8 +267,11 @@ public class GameMenuFragment extends Fragment {
             bitrate = String.format(java.util.Locale.getDefault(), "%.1f Mbps", game.getPrefConfig().bitrate / 1000f);
         }
         addStatusChip("视频码率", bitrate);
+
+        // 4. 串流音量（客户端播放增益，按主机保存）
+        addStatusChip(getString(R.string.game_menu_audio_volume_short), game.getStreamAudioGainLabel());
         
-        // 4. 当前时间
+        // 5. 当前时间
         String currentTime = new java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault()).format(new java.util.Date());
         addStatusChip("当前时间", currentTime);
     }
@@ -310,15 +313,19 @@ public class GameMenuFragment extends Fragment {
             hideMenuWithAnimation();
             StreamBitrateMenu.show(game, conn);
         }));
-        actions.add(new MenuAction("presets", R.string.game_menu_stream_presets_short, 0, MenuSection.STREAM, 20, false, true, true, v -> {
+        actions.add(new MenuAction("audio_volume", R.string.game_menu_audio_volume_short, 0, MenuSection.STREAM, 20, false, true, true, v -> {
+            hideMenuWithAnimation();
+            StreamAudioVolumeMenu.show(game);
+        }));
+        actions.add(new MenuAction("presets", R.string.game_menu_stream_presets_short, 0, MenuSection.STREAM, 30, false, true, true, v -> {
             hideMenuWithAnimation();
             StreamPresetMenu.show(game, conn);
         }));
-        actions.add(new MenuAction("stream_enhance", R.string.game_menu_stream_enhance, 0, MenuSection.STREAM, 30, false, true, true, v -> {
+        actions.add(new MenuAction("stream_enhance", R.string.game_menu_stream_enhance, 0, MenuSection.STREAM, 40, false, true, true, v -> {
             hideMenuWithAnimation();
             StreamEnhanceMenu.show(game, conn);
         }));
-        actions.add(new MenuAction("switch_display", 0, 0, MenuSection.STREAM, 40, false, true, true, v -> {
+        actions.add(new MenuAction("switch_display", 0, 0, MenuSection.STREAM, 50, false, true, true, v -> {
             hideMenuWithAnimation();
             showSwitchDisplayDialog();
         }, "实时切换屏幕"));

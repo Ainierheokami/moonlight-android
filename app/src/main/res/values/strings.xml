@@ -567,6 +567,14 @@
     <string name="game_menu_bitrate_applied">Bitrate applied</string>
     <string name="game_menu_bitrate_failed">Failed to apply bitrate. Sunshine is required.</string>
     <string name="game_menu_bitrate_apply_now">Apply</string>
+    <string name="game_menu_audio_volume">Stream volume</string>
+    <string name="game_menu_audio_volume_short">Volume</string>
+    <string name="game_menu_current_audio_volume_percent">%1$d%%</string>
+    <string name="game_menu_audio_volume_hint">Client-side playback gain for this host. Values above 100% can make quiet streams louder, but may distort if set too high.</string>
+    <string name="game_menu_audio_volume_applied">Stream volume updated</string>
+    <string name="game_menu_audio_volume_100">100%</string>
+    <string name="game_menu_audio_volume_150">150%</string>
+    <string name="game_menu_audio_volume_200">200%</string>
     <string name="game_menu_stream_presets">Stream presets</string>
     <string name="game_menu_stream_presets_short">Presets</string>
     <string name="game_menu_stream_enhance">Enhance</string>

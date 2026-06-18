@@ -21,6 +21,8 @@ public class AndroidAudioRenderer implements AudioRenderer {
     private final boolean enableAudioFx;
 
     private AudioTrack track;
+    private volatile int volumeGainPercent = 100;
+    private short[] gainBuffer;
 
     // 音频流量统计
     private long totalAudioInputBytes = 0;  // 累计输入音频流量（字节）
@@ -34,6 +36,10 @@ public class AndroidAudioRenderer implements AudioRenderer {
     public AndroidAudioRenderer(Context context, boolean enableAudioFx) {
         this.context = context;
         this.enableAudioFx = enableAudioFx;
+    }
+
+    public void setVolumeGainPercent(int volumeGainPercent) {
+        this.volumeGainPercent = Math.max(50, Math.min(300, volumeGainPercent));
     }
 
     private void updateAudioBitrateStats(Context context) {
@@ -229,6 +235,7 @@ public class AndroidAudioRenderer implements AudioRenderer {
     public void playDecodedAudio(short[] audioData) {
         // 累加输入流量
         totalAudioInputBytes += audioData.length * 2; // short 为 2 字节
+        short[] outputAudioData = applyVolumeGain(audioData);
 
         // Only queue up to 40 ms of pending audio data in addition to what AudioTrack is buffering for us.
         if (MoonBridge.getPendingAudioDuration() < 40) {
@@ -236,13 +243,37 @@ public class AndroidAudioRenderer implements AudioRenderer {
             // of pending audio data, so we do the above check to be able to bound
             // latency at 40 ms in that situation.
 //            track.write(audioData, 0, audioData.length);
-            int bytesWritten = track.write(audioData, 0, audioData.length);
+            int bytesWritten = track.write(outputAudioData, 0, audioData.length);
             totalAudioOutputBytes += bytesWritten * 2; // short 为 2 字节
         }
         else {
             LimeLog.info("Too much pending audio data: " + MoonBridge.getPendingAudioDuration() +" ms");
         }
         updateAudioBitrateStats(context);
+    }
+
+    private short[] applyVolumeGain(short[] audioData) {
+        int gainPercent = volumeGainPercent;
+        if (gainPercent == 100) {
+            return audioData;
+        }
+
+        if (gainBuffer == null || gainBuffer.length < audioData.length) {
+            gainBuffer = new short[audioData.length];
+        }
+
+        for (int i = 0; i < audioData.length; i++) {
+            int sample = audioData[i] * gainPercent / 100;
+            if (sample > Short.MAX_VALUE) {
+                sample = Short.MAX_VALUE;
+            }
+            else if (sample < Short.MIN_VALUE) {
+                sample = Short.MIN_VALUE;
+            }
+            gainBuffer[i] = (short) sample;
+        }
+
+        return gainBuffer;
     }
 
     @Override

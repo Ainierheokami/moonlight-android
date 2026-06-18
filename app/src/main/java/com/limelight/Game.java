@@ -153,6 +153,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
     private SharedPreferences tombstonePrefs;
 
     private NvConnection conn;
+    private AndroidAudioRenderer audioRenderer;
     private SpinnerDialog spinner;
     private boolean displayedFailureDialog = false;
     private boolean connecting = false;
@@ -167,6 +168,11 @@ public class Game extends Activity implements SurfaceHolder.Callback,
     private boolean tempDisableForceResume = false;
     private static final String PREF_LAST_STREAM_DISPLAY_NAME = "last_stream_display_name";
     private static final String PREF_LAST_STREAM_DISPLAY_USE_VDD = "last_stream_display_use_vdd";
+    private static final String PREF_STREAM_AUDIO_GAIN_PREFIX = "stream_audio_gain_";
+    private static final String PREF_STREAM_AUDIO_GAIN_GLOBAL = "stream_audio_gain_global";
+    public static final int STREAM_AUDIO_GAIN_MIN_PERCENT = 50;
+    public static final int STREAM_AUDIO_GAIN_MAX_PERCENT = 300;
+    public static final int STREAM_AUDIO_GAIN_DEFAULT_PERCENT = 100;
     // 新增：内存覆盖变量，隔离竞态条件，保证实时切换显示器时不污染 SharedPreferences 且 100% 成功切换
     private String tempOverrideDisplayName = null;
     private Boolean tempOverrideUseVdd = null;
@@ -3467,8 +3473,9 @@ public class Game extends Activity implements SurfaceHolder.Callback,
             UiHelper.notifyStreamConnecting(Game.this);
 
             decoderRenderer.setRenderTarget(holder);
-            conn.start(new AndroidAudioRenderer(Game.this, prefConfig.enableAudioFx),
-                    decoderRenderer, Game.this);
+            audioRenderer = new AndroidAudioRenderer(Game.this, prefConfig.enableAudioFx);
+            audioRenderer.setVolumeGainPercent(getStreamAudioGainPercent());
+            conn.start(audioRenderer, decoderRenderer, Game.this);
         }
     }
 
@@ -3705,6 +3712,35 @@ public class Game extends Activity implements SurfaceHolder.Callback,
 
     public PreferenceConfiguration getPrefConfig(){
         return prefConfig;
+    }
+
+    private String getStreamAudioGainPrefKey() {
+        String uuid = getIntent() != null ? getIntent().getStringExtra(EXTRA_PC_UUID) : null;
+        if (uuid == null || uuid.trim().isEmpty()) {
+            return PREF_STREAM_AUDIO_GAIN_GLOBAL;
+        }
+        return PREF_STREAM_AUDIO_GAIN_PREFIX + uuid;
+    }
+
+    public int getStreamAudioGainPercent() {
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
+        int gain = prefs.getInt(getStreamAudioGainPrefKey(), STREAM_AUDIO_GAIN_DEFAULT_PERCENT);
+        return Math.max(STREAM_AUDIO_GAIN_MIN_PERCENT, Math.min(STREAM_AUDIO_GAIN_MAX_PERCENT, gain));
+    }
+
+    public void setStreamAudioGainPercent(int gainPercent) {
+        int clampedGain = Math.max(STREAM_AUDIO_GAIN_MIN_PERCENT, Math.min(STREAM_AUDIO_GAIN_MAX_PERCENT, gainPercent));
+        PreferenceManager.getDefaultSharedPreferences(this)
+                .edit()
+                .putInt(getStreamAudioGainPrefKey(), clampedGain)
+                .apply();
+        if (audioRenderer != null) {
+            audioRenderer.setVolumeGainPercent(clampedGain);
+        }
+    }
+
+    public String getStreamAudioGainLabel() {
+        return getStreamAudioGainPercent() + "%";
     }
 
     public VirtualKeyboard getVirtualKeyboard(){
@@ -4324,7 +4360,9 @@ public class Game extends Activity implements SurfaceHolder.Callback,
 
         // 启动连接
         Log.i("MoonReconnect", "[Game] startConnection: conn.start");
-        conn.start(new AndroidAudioRenderer(Game.this, prefConfig.enableAudioFx), decoderRenderer, Game.this);
+        audioRenderer = new AndroidAudioRenderer(Game.this, prefConfig.enableAudioFx);
+        audioRenderer.setVolumeGainPercent(getStreamAudioGainPercent());
+        conn.start(audioRenderer, decoderRenderer, Game.this);
     }
 
     // 静态变量和方法，供VirtualKeyboardActivity获取当前连接

@@ -502,6 +502,14 @@
     <string name="game_menu_bitrate_applied">码率已应用</string>
     <string name="game_menu_bitrate_failed">码率应用失败，需要 Sunshine 支持。</string>
     <string name="game_menu_bitrate_apply_now">应用</string>
+    <string name="game_menu_audio_volume">串流音量</string>
+    <string name="game_menu_audio_volume_short">音量</string>
+    <string name="game_menu_current_audio_volume_percent">%1$d%%</string>
+    <string name="game_menu_audio_volume_hint">当前主机的客户端播放增益。高于 100% 可以放大偏小的串流声音，但过高可能破音。</string>
+    <string name="game_menu_audio_volume_applied">串流音量已更新</string>
+    <string name="game_menu_audio_volume_100">100%</string>
+    <string name="game_menu_audio_volume_150">150%</string>
+    <string name="game_menu_audio_volume_200">200%</string>
     <string name="game_menu_stream_presets">多场景预设</string>
     <string name="game_menu_stream_presets_short">预设</string>
     <string name="game_menu_stream_enhance">增强</string>
