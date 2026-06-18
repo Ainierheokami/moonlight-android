@@ -23,9 +23,11 @@ import android.widget.Button;
 import android.widget.GridLayout;
 import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
+import android.widget.SeekBar;
 import android.widget.TextView;
 import com.limelight.Game;
 import com.limelight.R;
+import com.limelight.preferences.PreferenceConfiguration;
 import com.limelight.nvstream.NvConnection;
 import com.limelight.nvstream.http.NvHTTP;
 import com.limelight.binding.input.virtual_keyboard.VirtualKeyboard;
@@ -240,6 +242,31 @@ public class GameMenuFragment extends Fragment {
         }
     }
 
+    private interface SliderApplyCallback {
+        void apply(int value);
+    }
+
+    private static final class MenuSlider {
+        final int titleRes;
+        final int min;
+        final int max;
+        final int step;
+        final int defaultValue;
+        final int currentValue;
+        final SliderApplyCallback applyCallback;
+
+        MenuSlider(int titleRes, int min, int max, int step, int defaultValue,
+                   int currentValue, SliderApplyCallback applyCallback) {
+            this.titleRes = titleRes;
+            this.min = min;
+            this.max = max;
+            this.step = step;
+            this.defaultValue = defaultValue;
+            this.currentValue = currentValue;
+            this.applyCallback = applyCallback;
+        }
+    }
+
     private int dp(int value) {
         android.content.res.Resources resources = game != null ? game.getResources() : getResources();
         return (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, value, resources.getDisplayMetrics());
@@ -307,15 +334,42 @@ public class GameMenuFragment extends Fragment {
         }
     }
 
+    private List<MenuSlider> buildMenuSliders(MenuSection section) {
+        List<MenuSlider> sliders = new ArrayList<>();
+        if (section == MenuSection.STREAM) {
+            sliders.add(new MenuSlider(
+                    R.string.game_menu_audio_volume,
+                    Game.STREAM_AUDIO_GAIN_MIN_PERCENT,
+                    Game.STREAM_AUDIO_GAIN_MAX_PERCENT,
+                    5,
+                    Game.STREAM_AUDIO_GAIN_DEFAULT_PERCENT,
+                    game.getStreamAudioGainPercent(),
+                    value -> {
+                        game.setStreamAudioGainPercent(value);
+                        renderStatusBar();
+                    }));
+        }
+        else if (section == MenuSection.INPUT) {
+            sliders.add(new MenuSlider(
+                    R.string.game_menu_touchpad_sensitivity,
+                    10,
+                    300,
+                    5,
+                    PreferenceConfiguration.DEFAULT_TOUCHPAD_SENSITIVITY,
+                    game.getTouchpadSensitivityPercent(),
+                    value -> {
+                        game.setTouchpadSensitivityPercent(value);
+                        renderStatusBar();
+                    }));
+        }
+        return sliders;
+    }
+
     private List<MenuAction> buildMenuActions() {
         List<MenuAction> actions = new ArrayList<>();
         actions.add(new MenuAction("bitrate", R.string.game_menu_adjust_bitrate_short, 0, MenuSection.STREAM, 10, false, true, true, v -> {
             hideMenuWithAnimation();
             StreamBitrateMenu.show(game, conn);
-        }));
-        actions.add(new MenuAction("audio_volume", R.string.game_menu_audio_volume_short, 0, MenuSection.STREAM, 20, false, true, true, v -> {
-            hideMenuWithAnimation();
-            StreamAudioVolumeMenu.show(game);
         }));
         actions.add(new MenuAction("presets", R.string.game_menu_stream_presets_short, 0, MenuSection.STREAM, 30, false, true, true, v -> {
             hideMenuWithAnimation();
@@ -396,6 +450,10 @@ public class GameMenuFragment extends Fragment {
         title.setPadding(dp(4), dp(8), dp(4), dp(4));
         dashboardContainer.addView(title);
 
+        for (MenuSlider slider : buildMenuSliders(section)) {
+            dashboardContainer.addView(createSliderRow(slider));
+        }
+
         GridLayout grid = new GridLayout(game);
         grid.setColumnCount(2);
         dashboardContainer.addView(grid, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
@@ -403,6 +461,82 @@ public class GameMenuFragment extends Fragment {
         for (MenuAction action : actions) {
             grid.addView(createActionButton(action));
         }
+    }
+
+    private View createSliderRow(MenuSlider slider) {
+        LinearLayout row = new LinearLayout(game);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        row.setGravity(android.view.Gravity.CENTER_VERTICAL);
+        row.setPadding(dp(10), dp(6), dp(8), dp(6));
+        row.setBackgroundResource(R.drawable.button_background_dark);
+        LinearLayout.LayoutParams rowParams = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, dp(54));
+        rowParams.setMargins(dp(4), dp(4), dp(4), dp(4));
+        row.setLayoutParams(rowParams);
+
+        TextView label = new TextView(game);
+        label.setTextColor(0xFFFFFFFF);
+        label.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
+        label.setGravity(android.view.Gravity.CENTER_VERTICAL);
+        label.setSingleLine(false);
+        LinearLayout.LayoutParams labelParams = new LinearLayout.LayoutParams(dp(82), ViewGroup.LayoutParams.MATCH_PARENT);
+        row.addView(label, labelParams);
+
+        SeekBar seekBar = new SeekBar(game);
+        seekBar.setMax((slider.max - slider.min) / slider.step);
+        seekBar.setProgress(valueToProgress(slider, slider.currentValue));
+        LinearLayout.LayoutParams seekParams = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
+        row.addView(seekBar, seekParams);
+
+        Button resetButton = new Button(game);
+        resetButton.setAllCaps(false);
+        resetButton.setText(R.string.game_menu_slider_reset);
+        resetButton.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11);
+        resetButton.setTextColor(0xFFEAF2FF);
+        resetButton.setPadding(0, 0, 0, 0);
+        resetButton.setBackgroundResource(R.drawable.button_background_dark);
+        LinearLayout.LayoutParams resetParams = new LinearLayout.LayoutParams(dp(42), dp(34));
+        resetParams.setMargins(dp(6), 0, 0, 0);
+        row.addView(resetButton, resetParams);
+
+        final int[] currentValue = new int[]{progressToValue(slider, seekBar.getProgress())};
+        updateSliderLabel(label, slider, currentValue[0]);
+        seekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                currentValue[0] = progressToValue(slider, progress);
+                updateSliderLabel(label, slider, currentValue[0]);
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {}
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+                slider.applyCallback.apply(currentValue[0]);
+            }
+        });
+        resetButton.setOnClickListener(v -> {
+            seekBar.setProgress(valueToProgress(slider, slider.defaultValue));
+            currentValue[0] = slider.defaultValue;
+            updateSliderLabel(label, slider, currentValue[0]);
+            slider.applyCallback.apply(slider.defaultValue);
+        });
+
+        return row;
+    }
+
+    private int valueToProgress(MenuSlider slider, int value) {
+        int clampedValue = Math.max(slider.min, Math.min(slider.max, value));
+        return (clampedValue - slider.min) / slider.step;
+    }
+
+    private int progressToValue(MenuSlider slider, int progress) {
+        return Math.max(slider.min, Math.min(slider.max, slider.min + progress * slider.step));
+    }
+
+    private void updateSliderLabel(TextView label, MenuSlider slider, int value) {
+        label.setText(getString(slider.titleRes) + "\n" + value + "%");
     }
 
     private Button createActionButton(MenuAction action) {

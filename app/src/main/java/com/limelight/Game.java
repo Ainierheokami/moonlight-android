@@ -3743,6 +3743,33 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         return getStreamAudioGainPercent() + "%";
     }
 
+    public int getTouchpadSensitivityPercent() {
+        if (prefConfig == null) {
+            prefConfig = PreferenceConfiguration.readPreferences(this);
+        }
+        return Math.max(10, Math.min(300, prefConfig.defaultTouchpadSensitivity));
+    }
+
+    public void setTouchpadSensitivityPercent(int sensitivityPercent) {
+        int clampedSensitivity = Math.max(10, Math.min(300, sensitivityPercent));
+        PreferenceManager.getDefaultSharedPreferences(this)
+                .edit()
+                .putInt(PreferenceConfiguration.DEFAULT_TOUCHPAD_SENSITIVITY_PREF_STRING, clampedSensitivity)
+                .apply();
+        if (prefConfig != null) {
+            prefConfig.defaultTouchpadSensitivity = clampedSensitivity;
+        }
+        for (TouchContext touchContext : touchContextMap) {
+            if (touchContext instanceof RelativeTouchContext) {
+                ((RelativeTouchContext) touchContext).setSensitivityPercent(clampedSensitivity);
+            }
+        }
+    }
+
+    public String getTouchpadSensitivityLabel() {
+        return getTouchpadSensitivityPercent() + "%";
+    }
+
     public VirtualKeyboard getVirtualKeyboard(){
         // 懒加载：确保悬浮键盘/全屏键盘在未开启“虚拟键盘”开关时也能使用
         if (virtualKeyboard == null) {

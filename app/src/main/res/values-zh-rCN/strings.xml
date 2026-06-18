@@ -510,6 +510,8 @@
     <string name="game_menu_audio_volume_100">100%</string>
     <string name="game_menu_audio_volume_150">150%</string>
     <string name="game_menu_audio_volume_200">200%</string>
+    <string name="game_menu_slider_reset">复位</string>
+    <string name="game_menu_touchpad_sensitivity">触摸灵敏度</string>
     <string name="game_menu_stream_presets">多场景预设</string>
     <string name="game_menu_stream_presets_short">预设</string>
     <string name="game_menu_stream_enhance">增强</string>

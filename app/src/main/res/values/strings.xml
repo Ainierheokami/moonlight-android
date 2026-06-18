@@ -575,6 +575,8 @@
     <string name="game_menu_audio_volume_100">100%</string>
     <string name="game_menu_audio_volume_150">150%</string>
     <string name="game_menu_audio_volume_200">200%</string>
+    <string name="game_menu_slider_reset">Reset</string>
+    <string name="game_menu_touchpad_sensitivity">Touch sensitivity</string>
     <string name="game_menu_stream_presets">Stream presets</string>
     <string name="game_menu_stream_presets_short">Presets</string>
     <string name="game_menu_stream_enhance">Enhance</string>
