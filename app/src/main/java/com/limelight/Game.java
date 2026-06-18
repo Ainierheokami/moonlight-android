@@ -214,6 +214,8 @@ public class Game extends Activity implements SurfaceHolder.Callback,
     private float edgeMenuDownX = -1;
     private float edgeMenuDownY = -1;
     private boolean edgeMenuCandidate = false;
+    private boolean edgeMenuConsuming = false;
+    private static final int EDGE_MENU_INTENT_THRESHOLD_DP = 10;
     private static final int EDGE_MENU_EXCLUSION_MIN_WIDTH_DP = 16;
     private static final float EDGE_MENU_EXCLUSION_HEIGHT_RATIO = 0.58f;
     private PortalManagerView portalManagerView; // 传送门管理器
@@ -2675,14 +2677,15 @@ public class Game extends Activity implements SurfaceHolder.Callback,
 
     private boolean handleEdgeMenuGesture(View view, MotionEvent event) {
         if (view != backgroundTouchView || GameMenu.isMenuShowing()) {
-            return false;
+            boolean wasConsuming = edgeMenuConsuming;
+            resetEdgeMenuGesture();
+            return wasConsuming;
         }
 
-        if (edgeMenuCandidate && event.getPointerCount() != 1) {
-            edgeMenuCandidate = false;
-            edgeMenuDownX = -1;
-            edgeMenuDownY = -1;
-            return true;
+        if ((edgeMenuCandidate || edgeMenuConsuming) && event.getPointerCount() != 1) {
+            boolean wasConsuming = edgeMenuConsuming;
+            resetEdgeMenuGesture();
+            return wasConsuming;
         }
 
         if (event.getPointerCount() != 1) {
@@ -2692,6 +2695,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         int action = event.getActionMasked();
         int width = view.getWidth();
         if (width <= 0) {
+            resetEdgeMenuGesture();
             return false;
         }
 
@@ -2700,36 +2704,75 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         }
         int edgeZone = dp(prefConfig.edgeMenuHotZoneDp);
         int threshold = dp(prefConfig.edgeMenuSwipeThresholdDp);
+        int intentThreshold = Math.min(threshold, dp(EDGE_MENU_INTENT_THRESHOLD_DP));
 
         switch (action) {
             case MotionEvent.ACTION_DOWN:
                 edgeMenuDownX = event.getX();
                 edgeMenuDownY = event.getY();
                 edgeMenuCandidate = edgeMenuDownX <= edgeZone || edgeMenuDownX >= width - edgeZone;
-                return edgeMenuCandidate;
+                edgeMenuConsuming = false;
+                return false;
             case MotionEvent.ACTION_MOVE:
-                if (!edgeMenuCandidate) {
+                if (!edgeMenuCandidate && !edgeMenuConsuming) {
                     return false;
                 }
+
                 float travelX = event.getX() - edgeMenuDownX;
                 float travelY = event.getY() - edgeMenuDownY;
-                boolean fromLeft = edgeMenuDownX <= edgeZone && travelX > threshold;
-                boolean fromRight = edgeMenuDownX >= width - edgeZone && travelX < -threshold;
-                if ((fromLeft || fromRight) && Math.abs(travelX) > Math.abs(travelY) * 1.35f) {
-                    edgeMenuCandidate = false;
+                float absTravelX = Math.abs(travelX);
+                float absTravelY = Math.abs(travelY);
+                boolean startedLeft = edgeMenuDownX <= edgeZone;
+                boolean startedRight = edgeMenuDownX >= width - edgeZone;
+                boolean fromLeftIntent = startedLeft && travelX > intentThreshold;
+                boolean fromRightIntent = startedRight && travelX < -intentThreshold;
+                boolean horizontalIntent = absTravelX > absTravelY * 1.2f;
+
+                if (!edgeMenuConsuming && (fromLeftIntent || fromRightIntent) && horizontalIntent) {
+                    edgeMenuConsuming = true;
+                    cancelStreamTouchesForEdgeMenu(view);
+                }
+
+                if (!edgeMenuConsuming) {
+                    return false;
+                }
+
+                boolean fromLeft = startedLeft && travelX > threshold;
+                boolean fromRight = startedRight && travelX < -threshold;
+                if ((fromLeft || fromRight) && horizontalIntent) {
+                    resetEdgeMenuGesture();
                     showMenu(fromLeft ? GameMenu.Side.LEFT : GameMenu.Side.RIGHT);
-                    return true;
                 }
                 return true;
             case MotionEvent.ACTION_UP:
             case MotionEvent.ACTION_CANCEL:
-                boolean wasEdgeMenuCandidate = edgeMenuCandidate;
-                edgeMenuCandidate = false;
-                edgeMenuDownX = -1;
-                edgeMenuDownY = -1;
-                return wasEdgeMenuCandidate;
+                boolean wasConsuming = edgeMenuConsuming;
+                resetEdgeMenuGesture();
+                return wasConsuming;
             default:
-                return false;
+                return edgeMenuConsuming;
+        }
+    }
+
+    private void resetEdgeMenuGesture() {
+        edgeMenuCandidate = false;
+        edgeMenuConsuming = false;
+        edgeMenuDownX = -1;
+        edgeMenuDownY = -1;
+    }
+
+    private void cancelStreamTouchesForEdgeMenu(View view) {
+        for (TouchContext touchContext : touchContextMap) {
+            if (touchContext != null) {
+                touchContext.cancelTouch();
+                touchContext.setPointerCount(0);
+            }
+        }
+
+        if (prefConfig != null && prefConfig.multiTouchScreen && !prefConfig.touchscreenTrackpad && conn != null) {
+            conn.sendTouchEvent(MoonBridge.LI_TOUCH_EVENT_CANCEL_ALL, 0,
+                    0, 0, 0, 0, 0,
+                    MoonBridge.LI_ROT_UNKNOWN);
         }
     }
 
