@@ -157,10 +157,10 @@
         <com.limelight.preferences.SeekBarPreference
             android:key="seekbar_edge_menu_hot_zone"
             android:dialogMessage="@string/summary_seekbar_edge_menu_hot_zone"
-            seekbar:min="8"
+            seekbar:min="1"
             seekbar:step="1"
             android:max="160"
-            android:defaultValue="36"
+            android:defaultValue="16"
             android:summary="@string/summary_seekbar_edge_menu_hot_zone"
             android:text="@string/suffix_seekbar_dp"
             android:title="@string/title_seekbar_edge_menu_hot_zone" />

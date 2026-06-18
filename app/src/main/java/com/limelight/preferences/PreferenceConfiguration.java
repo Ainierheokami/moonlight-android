@@ -140,7 +140,7 @@ public class PreferenceConfiguration {
     private static final boolean DEFAULT_STREAM_ENHANCE_SUPPRESS_VIDEO = false;
     private static final boolean DEFAULT_FORCE_RESUME_CURRENT_SESSION = false;
     private static final String DEFAULT_STREAM_ENHANCE_MODE = "-1";
-    public static final int DEFAULT_EDGE_MENU_HOT_ZONE_DP = 36;
+    public static final int DEFAULT_EDGE_MENU_HOT_ZONE_DP = 16;
     public static final int DEFAULT_EDGE_MENU_SWIPE_THRESHOLD_DP = 56;
 
     // 后台切回自动重连默认值
@@ -721,7 +721,7 @@ public class PreferenceConfiguration {
         config.streamEnhanceRotationSync = prefs.getBoolean(STREAM_ENHANCE_ROTATION_SYNC_PREF_STRING, DEFAULT_STREAM_ENHANCE_ROTATION_SYNC);
         config.streamEnhanceSuppressVideo = prefs.getBoolean(STREAM_ENHANCE_SUPPRESS_VIDEO_PREF_STRING, DEFAULT_STREAM_ENHANCE_SUPPRESS_VIDEO);
         config.forceResumeCurrentSession = prefs.getBoolean(FORCE_RESUME_CURRENT_SESSION_PREF_STRING, DEFAULT_FORCE_RESUME_CURRENT_SESSION);
-        config.edgeMenuHotZoneDp = Math.max(8, Math.min(160, prefs.getInt(EDGE_MENU_HOT_ZONE_PREF_STRING, DEFAULT_EDGE_MENU_HOT_ZONE_DP)));
+        config.edgeMenuHotZoneDp = Math.max(1, Math.min(160, prefs.getInt(EDGE_MENU_HOT_ZONE_PREF_STRING, DEFAULT_EDGE_MENU_HOT_ZONE_DP)));
         config.edgeMenuSwipeThresholdDp = Math.max(4, Math.min(240, prefs.getInt(EDGE_MENU_SWIPE_THRESHOLD_PREF_STRING, DEFAULT_EDGE_MENU_SWIPE_THRESHOLD_DP)));
         if (config.streamEnhanceSuppressVideo) {
             config.width = 640;

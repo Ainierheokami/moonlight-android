@@ -22,7 +22,7 @@ class EdgeMenuPreviewPreference(context: Context, attrs: AttributeSet?) : Prefer
         val hotZone = prefs.getInt(
             PreferenceConfiguration.EDGE_MENU_HOT_ZONE_PREF_STRING,
             PreferenceConfiguration.DEFAULT_EDGE_MENU_HOT_ZONE_DP
-        ).coerceIn(8, 160)
+        ).coerceIn(1, 160)
         val swipeThreshold = prefs.getInt(
             PreferenceConfiguration.EDGE_MENU_SWIPE_THRESHOLD_PREF_STRING,
             PreferenceConfiguration.DEFAULT_EDGE_MENU_SWIPE_THRESHOLD_DP

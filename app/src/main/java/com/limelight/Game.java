@@ -216,8 +216,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
     private boolean edgeMenuCandidate = false;
     private boolean edgeMenuConsuming = false;
     private static final int EDGE_MENU_INTENT_THRESHOLD_DP = 10;
-    private static final int EDGE_MENU_EXCLUSION_MIN_WIDTH_DP = 16;
-    private static final float EDGE_MENU_EXCLUSION_HEIGHT_RATIO = 0.58f;
+    private static final int EDGE_MENU_SYSTEM_GESTURE_EXCLUSION_WIDTH_DP = 16;
     private PortalManagerView portalManagerView; // 传送门管理器
     private OrientationEventListener streamRotationListener;
     private final Handler streamRotationHandler = new Handler();
@@ -1019,6 +1018,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         // With Android native pointer capture, capture is lost when focus is lost,
         // so it must be requested again when focus is regained.
         inputCaptureProvider.onWindowFocusChanged(hasFocus);
+        updateSystemGestureExclusion(hasFocus && !GameMenu.isMenuShowing());
     }
 
     private boolean isRefreshRateEqualMatch(float refreshRate) {
@@ -4032,16 +4032,10 @@ public class Game extends Activity implements SurfaceHolder.Callback,
                 return;
             }
 
-            if (prefConfig == null) {
-                prefConfig = PreferenceConfiguration.readPreferences(this);
-            }
-            int edgeWidth = Math.max(dp(EDGE_MENU_EXCLUSION_MIN_WIDTH_DP), dp(prefConfig.edgeMenuHotZoneDp));
-            int exclusionHeight = Math.max(1, (int) (height * EDGE_MENU_EXCLUSION_HEIGHT_RATIO));
-            int top = Math.max(0, (height - exclusionHeight) / 2);
-            int bottom = Math.min(height, top + exclusionHeight);
+            int edgeWidth = Math.min(dp(EDGE_MENU_SYSTEM_GESTURE_EXCLUSION_WIDTH_DP), Math.max(1, width / 3));
             java.util.ArrayList<Rect> exclusionRects = new java.util.ArrayList<>(2);
-            exclusionRects.add(new Rect(0, top, Math.min(edgeWidth, width), bottom));
-            exclusionRects.add(new Rect(Math.max(0, width - edgeWidth), top, width, bottom));
+            exclusionRects.add(new Rect(0, 0, Math.min(edgeWidth, width), height));
+            exclusionRects.add(new Rect(Math.max(0, width - edgeWidth), 0, width, height));
             backgroundTouchView.setSystemGestureExclusionRects(exclusionRects);
         });
     }
