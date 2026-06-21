@@ -1043,6 +1043,9 @@ public class GameMenuFragment extends Fragment {
         if (isMenuVisible) return;
         
         isMenuVisible = true;
+        if (game != null) {
+            game.updateSystemGestureExclusion(false);
+        }
         
         // 确保菜单面板可见并开始动画
         menuPanel.setVisibility(View.VISIBLE);

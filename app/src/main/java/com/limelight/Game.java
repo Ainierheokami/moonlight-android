@@ -228,7 +228,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
     private boolean edgeMenuCandidate = false;
     private boolean edgeMenuConsuming = false;
     private static final int EDGE_MENU_INTENT_THRESHOLD_DP = 10;
-    private static final int EDGE_MENU_SYSTEM_GESTURE_EXCLUSION_WIDTH_DP = 16;
+    private static final int EDGE_MENU_SYSTEM_GESTURE_EXCLUSION_WIDTH_DP = 32;
     private static final long EDGE_MENU_TRAIL_HIDE_DELAY_MS = 650;
     private static final long EDGE_MENU_TRAIL_FADE_MS = 900;
     private static final int EDGE_MENU_TRAIL_MAX_POINTS = 32;
@@ -4376,7 +4376,9 @@ public class Game extends Activity implements SurfaceHolder.Callback,
                 return;
             }
 
-            int edgeWidth = Math.min(dp(EDGE_MENU_SYSTEM_GESTURE_EXCLUSION_WIDTH_DP), Math.max(1, width / 3));
+            int edgeWidth = Math.min(
+                    Math.max(dp(EDGE_MENU_SYSTEM_GESTURE_EXCLUSION_WIDTH_DP), dp(prefConfig != null ? prefConfig.edgeMenuHotZoneDp : EDGE_MENU_SYSTEM_GESTURE_EXCLUSION_WIDTH_DP)),
+                    Math.max(1, width / 3));
             java.util.ArrayList<Rect> exclusionRects = new java.util.ArrayList<>(2);
             exclusionRects.add(new Rect(0, 0, Math.min(edgeWidth, width), height));
             exclusionRects.add(new Rect(Math.max(0, width - edgeWidth), 0, width, height));
