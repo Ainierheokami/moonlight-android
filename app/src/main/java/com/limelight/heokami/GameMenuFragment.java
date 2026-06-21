@@ -1044,7 +1044,7 @@ public class GameMenuFragment extends Fragment {
         
         isMenuVisible = true;
         if (game != null) {
-            game.updateSystemGestureExclusion(false);
+            game.onGameMenuShown();
         }
         
         // 确保菜单面板可见并开始动画
@@ -1084,7 +1084,7 @@ public class GameMenuFragment extends Fragment {
                 // 更新菜单显示状态
                 GameMenu.setMenuShowing(false);
                 if (game != null) {
-                    game.updateSystemGestureExclusion(true);
+                    game.onGameMenuHidden();
                 }
 
                 if (getFragmentManager() != null) {
@@ -1100,7 +1100,7 @@ public class GameMenuFragment extends Fragment {
         super.onDestroyView();
         GameMenu.setMenuShowing(false);
         if (game != null) {
-            game.updateSystemGestureExclusion(true);
+            game.onGameMenuHidden();
         }
     }
 

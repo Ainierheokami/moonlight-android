@@ -92,6 +92,9 @@ import android.view.Window;
 import android.view.WindowManager;
 import android.widget.FrameLayout;
 import android.view.inputmethod.InputMethodManager;
+import android.window.OnBackInvokedDispatcher;
+import java.lang.reflect.InvocationHandler;
+import java.lang.reflect.Proxy;
 
 import android.widget.GridLayout;
 import android.widget.TextView;
@@ -227,6 +230,9 @@ public class Game extends Activity implements SurfaceHolder.Callback,
     private float edgeMenuDownY = -1;
     private boolean edgeMenuCandidate = false;
     private boolean edgeMenuConsuming = false;
+    private Object gameMenuBackCallback;
+    private boolean gameMenuBackCallbackRegistered = false;
+    private boolean pendingGameMenuWake = false;
     private static final int EDGE_MENU_INTENT_THRESHOLD_DP = 10;
     private static final int EDGE_MENU_SYSTEM_GESTURE_EXCLUSION_WIDTH_DP = 32;
     private static final long EDGE_MENU_TRAIL_HIDE_DELAY_MS = 650;
@@ -315,6 +321,97 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         performanceOverlayView.setBackground(roundedBackground);
         // 2024-11-22 10:10:00 调整字体大小
         performanceOverlayView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 10);
+    }
+
+    private boolean isGameMenuGestureWakeEnabled() {
+        return prefConfig != null && prefConfig.enableGameMenuGestureWake;
+    }
+
+    private int getSwipeEdgeFromBackEvent(Object backEvent) {
+        try {
+            Method method = backEvent.getClass().getMethod("getSwipeEdge");
+            Object value = method.invoke(backEvent);
+            if (value instanceof Integer) {
+                return (Integer) value;
+            }
+        } catch (Exception ignored) {
+        }
+        return -1;
+    }
+
+    private void registerGameMenuBackCallback() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU || gameMenuBackCallbackRegistered) {
+            return;
+        }
+        try {
+            Class<?> backInvokedCallbackClass = Class.forName("android.window.OnBackInvokedCallback");
+            Class<?> backInvokedDispatcherClass = Class.forName("android.window.OnBackInvokedDispatcher");
+            boolean supportsBackAnimation = Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE;
+            Class<?> backAnimationCallbackClass = supportsBackAnimation
+                    ? Class.forName("android.window.OnBackAnimationCallback")
+                    : null;
+            Class<?>[] interfaces = supportsBackAnimation
+                    ? new Class<?>[]{
+                        backAnimationCallbackClass,
+                        backInvokedCallbackClass
+                    }
+                    : new Class<?>[]{backInvokedCallbackClass};
+            InvocationHandler handler = (proxy, method, args) -> {
+                String name = method.getName();
+                if (supportsBackAnimation && "onBackStarted".equals(name) && args != null && args.length == 1) {
+                    if (!isGameMenuGestureWakeEnabled() || GameMenu.isMenuShowing() || EditMenu.isMenuShowing()) {
+                        return null;
+                    }
+                    int edge = getSwipeEdgeFromBackEvent(args[0]);
+                    pendingGameMenuWake = true;
+                    showMenu(edge == 0 ? GameMenu.Side.LEFT : GameMenu.Side.RIGHT);
+                    return null;
+                }
+                if (supportsBackAnimation && "onBackCancelled".equals(name)) {
+                    pendingGameMenuWake = false;
+                    return null;
+                }
+                if ("onBackInvoked".equals(name)) {
+                    if (pendingGameMenuWake) {
+                        pendingGameMenuWake = false;
+                        return null;
+                    }
+                    if (GameMenu.isMenuShowing() || EditMenu.isMenuShowing()) {
+                        onBackPressed();
+                    } else if (isGameMenuGestureWakeEnabled()) {
+                        showMenu(GameMenu.Side.RIGHT);
+                    }
+                    return null;
+                }
+                return null;
+            };
+            gameMenuBackCallback = Proxy.newProxyInstance(Game.class.getClassLoader(), interfaces, handler);
+            Object dispatcher = getOnBackInvokedDispatcher();
+            Method registerMethod = backInvokedDispatcherClass.getMethod(
+                    "registerOnBackInvokedCallback", int.class, backInvokedCallbackClass);
+            registerMethod.invoke(dispatcher, OnBackInvokedDispatcher.PRIORITY_DEFAULT, gameMenuBackCallback);
+            gameMenuBackCallbackRegistered = true;
+        } catch (Exception e) {
+            Log.w("GameMenu", "Unable to register predictive back callback", e);
+        }
+    }
+
+    private void unregisterGameMenuBackCallback() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU || !gameMenuBackCallbackRegistered || gameMenuBackCallback == null) {
+            return;
+        }
+        try {
+            Class<?> backInvokedCallbackClass = Class.forName("android.window.OnBackInvokedCallback");
+            Method unregisterMethod = getOnBackInvokedDispatcher().getClass().getMethod(
+                    "unregisterOnBackInvokedCallback", backInvokedCallbackClass);
+            unregisterMethod.invoke(getOnBackInvokedDispatcher(), gameMenuBackCallback);
+        } catch (Exception e) {
+            Log.w("GameMenu", "Unable to unregister predictive back callback", e);
+        } finally {
+            gameMenuBackCallbackRegistered = false;
+            gameMenuBackCallback = null;
+            pendingGameMenuWake = false;
+        }
     }
 
     @Override
@@ -430,6 +527,8 @@ public class Game extends Activity implements SurfaceHolder.Callback,
                     InputDevice.SOURCE_CLASS_TRACKBALL // Mice (pointer capture)
             );
         }
+
+        registerGameMenuBackCallback();
 
         notificationOverlayView = findViewById(R.id.notificationOverlay);
 
@@ -1350,6 +1449,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
 
     @Override
     protected void onDestroy() {
+        unregisterGameMenuBackCallback();
         super.onDestroy();
         stopScreenshotPrecache();
 
@@ -1559,6 +1659,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
     @Override
     protected void onResume() {
         super.onResume();
+        registerGameMenuBackCallback();
         setupStreamRotationSync();
         
         // 停止之前的挂起计划
@@ -4352,9 +4453,16 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         if (virtualKeyboard != null && virtualKeyboard.getControllerMode() != VirtualKeyboard.ControllerMode.Active){
             new com.limelight.heokami.EditMenu(this, virtualKeyboard);
         }else {
-            updateSystemGestureExclusion(false);
             new GameMenu(this, conn, side);
         }
+    }
+
+    public void onGameMenuShown() {
+        updateSystemGestureExclusion(false);
+    }
+
+    public void onGameMenuHidden() {
+        updateSystemGestureExclusion(true);
     }
 
     public void updateSystemGestureExclusion(boolean excludeEdges) {

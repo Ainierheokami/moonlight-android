@@ -154,6 +154,11 @@
             android:title="@string/title_checkbox_absolute_mouse_mode"
             android:summary="@string/summary_checkbox_absolute_mouse_mode"
             android:defaultValue="false" />
+        <CheckBoxPreference
+            android:key="checkbox_enable_game_menu_gesture_wake"
+            android:title="@string/title_checkbox_enable_game_menu_gesture_wake"
+            android:summary="@string/summary_checkbox_enable_game_menu_gesture_wake"
+            android:defaultValue="true" />
         <com.limelight.preferences.SeekBarPreference
             android:key="seekbar_edge_menu_hot_zone"
             android:dialogMessage="@string/summary_seekbar_edge_menu_hot_zone"

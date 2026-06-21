@@ -5,9 +5,7 @@ import android.content.Context;
 import android.os.Bundle;
 import android.preference.DialogPreference;
 import android.util.AttributeSet;
-import android.util.Log;
 import android.view.Gravity;
-import android.view.MotionEvent;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.Button;
@@ -88,7 +86,7 @@ public class SeekBarPreference extends DialogPreference
         valueText.setGravity(Gravity.CENTER_HORIZONTAL);
         valueText.setTextSize(32);
         // Default text for value; hides bug where OnSeekBarChangeListener isn't called when opacity is 0%
-        valueText.setText("0%");
+        updateValueText(currentValue);
         params = new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT);
@@ -98,32 +96,14 @@ public class SeekBarPreference extends DialogPreference
         seekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int value, boolean b) {
-                if (value < minValue) {
-                    seekBar.setProgress(minValue);
+                int clampedValue = clampAndRoundValue(progressToValue(value));
+                int clampedProgress = valueToProgress(clampedValue);
+                if (clampedProgress != value) {
+                    seekBar.setProgress(clampedProgress);
                     return;
                 }
-
-                int roundedValue = ((value + (stepSize - 1))/stepSize)*stepSize;
-                if (roundedValue != value) {
-                    seekBar.setProgress(roundedValue);
-                    return;
-                }
-
-                String t;
-                // 特殊处理：后台重连超时时间，当值为0时显示"永不超时"
-                if (getKey() != null && getKey().equals("seekbar_background_reconnect_timeout") && roundedValue == 0) {
-                    t = "永不超时";
-                    valueText.setText(t);
-                } else {
-                    if (divisor != 1) {
-                        float floatValue = roundedValue / (float)divisor;
-                        t = String.format((Locale)null, "%.1f", floatValue);
-                    }
-                    else {
-                        t = String.valueOf(value);
-                    }
-                    valueText.setText(suffix == null ? t : t.concat(suffix.length() > 1 ? " "+suffix : suffix));
-                }
+                currentValue = clampedValue;
+                updateValueText(currentValue);
             }
 
             @Override
@@ -135,28 +115,17 @@ public class SeekBarPreference extends DialogPreference
 
         layout.addView(seekBar, new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
 
-        valueText.setOnClickListener(view -> {
-            AlertDialog.Builder dialog = new AlertDialog.Builder(context);
-            EditText valueEditText = new EditText(context);
-            valueEditText.setText(String.valueOf(currentValue));
-            dialog.setView(valueEditText);
-            dialog.setPositiveButton(android.R.string.ok, (dialogInterface, i) -> {
-                currentValue = Integer.parseInt(valueEditText.getText().toString());
-                seekBar.setProgress(currentValue);
-            });
-            dialog.setNegativeButton(android.R.string.cancel, null);
-            dialog.show();
-        });
+        valueText.setOnClickListener(view -> showValueInputDialog());
 
         if (shouldPersist()) {
             currentValue = getPersistedInt(defaultValue);
         }
 
-        seekBar.setMax(maxValue);
+        seekBar.setMax(valueToProgress(maxValue));
         if (keyStepSize != 0) {
             seekBar.setKeyProgressIncrement(keyStepSize);
         }
-        seekBar.setProgress(currentValue);
+        seekBar.setProgress(valueToProgress(currentValue));
 
         return layout;
     }
@@ -164,11 +133,11 @@ public class SeekBarPreference extends DialogPreference
     @Override
     protected void onBindDialogView(View v) {
         super.onBindDialogView(v);
-        seekBar.setMax(maxValue);
+        seekBar.setMax(valueToProgress(maxValue));
         if (keyStepSize != 0) {
             seekBar.setKeyProgressIncrement(keyStepSize);
         }
-        seekBar.setProgress(currentValue);
+        seekBar.setProgress(valueToProgress(currentValue));
     }
 
     @Override
@@ -184,10 +153,11 @@ public class SeekBarPreference extends DialogPreference
     }
 
     public void setProgress(int progress) {
-        this.currentValue = progress;
+        this.currentValue = clampAndRoundValue(progress);
         if (seekBar != null) {
-            seekBar.setProgress(progress);
+            seekBar.setProgress(valueToProgress(this.currentValue));
         }
+        updateValueText(this.currentValue);
     }
     public int getProgress() {
         return currentValue;
@@ -202,13 +172,63 @@ public class SeekBarPreference extends DialogPreference
             @Override
             public void onClick(View view) {
                 if (shouldPersist()) {
-                    currentValue = seekBar.getProgress();
-                    persistInt(seekBar.getProgress());
-                    callChangeListener(seekBar.getProgress());
+                    currentValue = progressToValue(seekBar.getProgress());
+                    persistInt(currentValue);
+                    callChangeListener(currentValue);
                 }
 
                 getDialog().dismiss();
             }
         });
+    }
+
+    private int valueToProgress(int value) {
+        return Math.max(0, (clampAndRoundValue(value) - minValue) / stepSize);
+    }
+
+    private int progressToValue(int progress) {
+        return clampAndRoundValue(minValue + progress * stepSize);
+    }
+
+    private int clampAndRoundValue(int value) {
+        int clamped = Math.max(minValue, Math.min(maxValue, value));
+        int rounded = ((clamped + (stepSize - 1)) / stepSize) * stepSize;
+        return Math.max(minValue, Math.min(maxValue, rounded));
+    }
+
+    private void updateValueText(int value) {
+        if (valueText == null) {
+            return;
+        }
+        String t;
+        if (getKey() != null && getKey().equals("seekbar_background_reconnect_timeout") && value == 0) {
+            t = "永不超时";
+        } else if (divisor != 1) {
+            float floatValue = value / (float) divisor;
+            t = String.format(Locale.getDefault(), "%.1f", floatValue);
+        } else {
+            t = String.valueOf(value);
+        }
+        valueText.setText(suffix == null ? t : t.concat(suffix.length() > 1 ? " " + suffix : suffix));
+    }
+
+    private void showValueInputDialog() {
+        AlertDialog.Builder dialog = new AlertDialog.Builder(context);
+        EditText valueEditText = new EditText(context);
+        valueEditText.setInputType(android.text.InputType.TYPE_CLASS_NUMBER | android.text.InputType.TYPE_NUMBER_FLAG_SIGNED);
+        valueEditText.setText(String.valueOf(currentValue));
+        valueEditText.setSelection(valueEditText.getText().length());
+        dialog.setTitle(getTitle());
+        dialog.setMessage("输入数值，范围 " + minValue + " - " + maxValue);
+        dialog.setView(valueEditText);
+        dialog.setPositiveButton(android.R.string.ok, (dialogInterface, i) -> {
+            try {
+                setProgress(Integer.parseInt(valueEditText.getText().toString().trim()));
+            } catch (NumberFormatException e) {
+                valueEditText.setError("请输入数字");
+            }
+        });
+        dialog.setNegativeButton(android.R.string.cancel, null);
+        dialog.show();
     }
 }

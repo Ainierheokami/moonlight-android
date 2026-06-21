@@ -85,6 +85,7 @@ public class PreferenceConfiguration {
     private static final String FORCE_RESUME_CURRENT_SESSION_PREF_STRING = "checkbox_force_resume_current_session";
     public static final String EDGE_MENU_HOT_ZONE_PREF_STRING = "seekbar_edge_menu_hot_zone";
     public static final String EDGE_MENU_SWIPE_THRESHOLD_PREF_STRING = "seekbar_edge_menu_swipe_threshold";
+    private static final String ENABLE_GAME_MENU_GESTURE_WAKE_PREF_STRING = "checkbox_enable_game_menu_gesture_wake";
 
     // 后台切回自动重连相关设置
     private static final String BACKGROUND_RECONNECT_ENABLED_PREF_STRING = "checkbox_background_reconnect_enabled";
@@ -139,6 +140,7 @@ public class PreferenceConfiguration {
     private static final boolean DEFAULT_STREAM_ENHANCE_ROTATION_SYNC = false;
     private static final boolean DEFAULT_STREAM_ENHANCE_SUPPRESS_VIDEO = false;
     private static final boolean DEFAULT_FORCE_RESUME_CURRENT_SESSION = false;
+    private static final boolean DEFAULT_ENABLE_GAME_MENU_GESTURE_WAKE = true;
     private static final String DEFAULT_STREAM_ENHANCE_MODE = "-1";
     public static final int DEFAULT_EDGE_MENU_HOT_ZONE_DP = 16;
     public static final int DEFAULT_EDGE_MENU_SWIPE_THRESHOLD_DP = 56;
@@ -205,6 +207,7 @@ public class PreferenceConfiguration {
     public boolean forceResumeCurrentSession;
     public int edgeMenuHotZoneDp;
     public int edgeMenuSwipeThresholdDp;
+    public boolean enableGameMenuGestureWake;
     // 默认触摸板灵敏度（应用于全局相对触摸）
     public int defaultTouchpadSensitivity;
     
@@ -723,6 +726,7 @@ public class PreferenceConfiguration {
         config.forceResumeCurrentSession = prefs.getBoolean(FORCE_RESUME_CURRENT_SESSION_PREF_STRING, DEFAULT_FORCE_RESUME_CURRENT_SESSION);
         config.edgeMenuHotZoneDp = Math.max(1, Math.min(160, prefs.getInt(EDGE_MENU_HOT_ZONE_PREF_STRING, DEFAULT_EDGE_MENU_HOT_ZONE_DP)));
         config.edgeMenuSwipeThresholdDp = Math.max(4, Math.min(240, prefs.getInt(EDGE_MENU_SWIPE_THRESHOLD_PREF_STRING, DEFAULT_EDGE_MENU_SWIPE_THRESHOLD_DP)));
+        config.enableGameMenuGestureWake = prefs.getBoolean(ENABLE_GAME_MENU_GESTURE_WAKE_PREF_STRING, DEFAULT_ENABLE_GAME_MENU_GESTURE_WAKE);
         if (config.streamEnhanceSuppressVideo) {
             config.width = 640;
             config.height = 360;
