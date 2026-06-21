@@ -60,6 +60,8 @@ import android.content.pm.PackageManager;
 import android.content.res.Configuration;
 import android.graphics.Point;
 import android.graphics.Rect;
+import android.graphics.Canvas;
+import android.graphics.Paint;
 import android.hardware.input.InputManager;
 import android.media.AudioManager;
 import android.net.ConnectivityManager;
@@ -68,6 +70,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
+import android.os.SystemClock;
 import android.preference.PreferenceManager;
 import android.util.Log;
 import android.util.Rational;
@@ -101,6 +104,7 @@ import java.lang.reflect.Method;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
+import java.util.ArrayList;
 import java.util.Locale;
 
 // 2024-11-20 14:37:38 添加全屏居中
@@ -218,12 +222,16 @@ public class Game extends Activity implements SurfaceHolder.Callback,
     private FrameLayout menuOverlayContainer;     // 菜单（编辑/游戏）容器
     private View backgroundTouchView;
     private TextView edgeMenuDebugOverlay;
+    private EdgeMenuTrailOverlay edgeMenuTrailOverlay;
     private float edgeMenuDownX = -1;
     private float edgeMenuDownY = -1;
     private boolean edgeMenuCandidate = false;
     private boolean edgeMenuConsuming = false;
     private static final int EDGE_MENU_INTENT_THRESHOLD_DP = 10;
     private static final int EDGE_MENU_SYSTEM_GESTURE_EXCLUSION_WIDTH_DP = 16;
+    private static final long EDGE_MENU_TRAIL_HIDE_DELAY_MS = 650;
+    private static final long EDGE_MENU_TRAIL_FADE_MS = 900;
+    private static final int EDGE_MENU_TRAIL_MAX_POINTS = 32;
     private PortalManagerView portalManagerView; // 传送门管理器
     private OrientationEventListener streamRotationListener;
     private final Handler streamRotationHandler = new Handler();
@@ -427,6 +435,16 @@ public class Game extends Activity implements SurfaceHolder.Callback,
 
         performanceOverlayView = findViewById(R.id.performanceOverlay);
         if (BuildConfig.DEBUG) {
+            edgeMenuTrailOverlay = new EdgeMenuTrailOverlay(this);
+            edgeMenuTrailOverlay.setVisibility(View.GONE);
+            edgeMenuTrailOverlay.setClickable(false);
+            edgeMenuTrailOverlay.setFocusable(false);
+            edgeMenuTrailOverlay.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+            FrameLayout.LayoutParams edgeTrailParams = new FrameLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.MATCH_PARENT);
+            ((ViewGroup) findViewById(android.R.id.content)).addView(edgeMenuTrailOverlay, edgeTrailParams);
+
             edgeMenuDebugOverlay = new TextView(this);
             edgeMenuDebugOverlay.setTextColor(0xFFFFFFFF);
             edgeMenuDebugOverlay.setTextSize(TypedValue.COMPLEX_UNIT_SP, 10);
@@ -1042,6 +1060,9 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         inputCaptureProvider.onWindowFocusChanged(hasFocus);
         if (BuildConfig.DEBUG && edgeMenuDebugOverlay != null && !hasFocus) {
             edgeMenuDebugOverlay.setVisibility(View.GONE);
+            if (edgeMenuTrailOverlay != null) {
+                edgeMenuTrailOverlay.hideNow();
+            }
         }
         updateSystemGestureExclusion(hasFocus && !GameMenu.isMenuShowing());
     }
@@ -2747,6 +2768,10 @@ public class Game extends Activity implements SurfaceHolder.Callback,
                 edgeMenuDownY = event.getY();
                 edgeMenuCandidate = edgeMenuDownX <= edgeZone || edgeMenuDownX >= width - edgeZone;
                 edgeMenuConsuming = false;
+                if (BuildConfig.DEBUG && edgeMenuTrailOverlay != null) {
+                    edgeMenuTrailOverlay.beginGesture(event.getX(), event.getY(), width, gestureView.getHeight(),
+                            edgeZone, threshold, edgeMenuCandidate);
+                }
                 setEdgeMenuDebugText(String.format(java.util.Locale.US,
                         "DOWN x=%.1f y=%.1f raw=%.1f,%.1f w=%d zone=%d thr=%d cand=%s",
                         edgeMenuDownX, edgeMenuDownY, event.getRawX(), event.getRawY(),
@@ -2754,6 +2779,9 @@ public class Game extends Activity implements SurfaceHolder.Callback,
                 return false;
             case MotionEvent.ACTION_MOVE:
                 if (!edgeMenuCandidate && !edgeMenuConsuming) {
+                    if (BuildConfig.DEBUG && edgeMenuTrailOverlay != null) {
+                        edgeMenuTrailOverlay.addPoint(event.getX(), event.getY(), false, false);
+                    }
                     setEdgeMenuDebugText(String.format(java.util.Locale.US,
                             "MOVE ignored x=%.1f y=%.1f raw=%.1f,%.1f",
                             event.getX(), event.getY(), event.getRawX(), event.getRawY()));
@@ -2769,6 +2797,10 @@ public class Game extends Activity implements SurfaceHolder.Callback,
                 boolean fromLeftIntent = startedLeft && travelX > intentThreshold;
                 boolean fromRightIntent = startedRight && travelX < -intentThreshold;
                 boolean horizontalIntent = absTravelX > absTravelY * 1.2f;
+                if (BuildConfig.DEBUG && edgeMenuTrailOverlay != null) {
+                    edgeMenuTrailOverlay.addPoint(event.getX(), event.getY(), edgeMenuCandidate, edgeMenuConsuming);
+                    edgeMenuTrailOverlay.setGestureState(edgeMenuCandidate, edgeMenuConsuming, startedLeft, edgeZone, threshold);
+                }
                 setEdgeMenuDebugText(String.format(java.util.Locale.US,
                         "MOVE dx=%.1f dy=%.1f raw=%.1f,%.1f absdx=%.1f absdy=%.1f cand=%s cons=%s left=%s right=%s intent=%s horiz=%s",
                         travelX, travelY, event.getRawX(), event.getRawY(), absTravelX, absTravelY, edgeMenuCandidate, edgeMenuConsuming,
@@ -2795,8 +2827,11 @@ public class Game extends Activity implements SurfaceHolder.Callback,
             case MotionEvent.ACTION_UP:
             case MotionEvent.ACTION_CANCEL:
                 boolean wasConsuming = edgeMenuConsuming;
+                if (BuildConfig.DEBUG && edgeMenuTrailOverlay != null) {
+                    edgeMenuTrailOverlay.finishGesture(event.getX(), event.getY(), wasConsuming);
+                }
                 setEdgeMenuDebugText("END action=" + action + " consuming=" + wasConsuming);
-                resetEdgeMenuGesture();
+                resetEdgeMenuGesture(true);
                 return wasConsuming;
             default:
                 setEdgeMenuDebugText("DEFAULT action=" + action + " consuming=" + edgeMenuConsuming);
@@ -2805,10 +2840,17 @@ public class Game extends Activity implements SurfaceHolder.Callback,
     }
 
     private void resetEdgeMenuGesture() {
+        resetEdgeMenuGesture(false);
+    }
+
+    private void resetEdgeMenuGesture(boolean preserveTrail) {
         edgeMenuCandidate = false;
         edgeMenuConsuming = false;
         edgeMenuDownX = -1;
         edgeMenuDownY = -1;
+        if (!preserveTrail && BuildConfig.DEBUG && edgeMenuTrailOverlay != null) {
+            edgeMenuTrailOverlay.hideSoon();
+        }
         setEdgeMenuDebugText("reset");
     }
 
@@ -2841,6 +2883,181 @@ public class Game extends Activity implements SurfaceHolder.Callback,
             conn.sendTouchEvent(MoonBridge.LI_TOUCH_EVENT_CANCEL_ALL, 0,
                     0, 0, 0, 0, 0,
                     MoonBridge.LI_ROT_UNKNOWN);
+        }
+    }
+
+    private static class EdgeMenuTrailOverlay extends View {
+        private final ArrayList<TrailPoint> trailPoints = new ArrayList<>();
+        private final Paint zoneFillPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final Paint zoneStrokePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final Paint trailPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final Paint trailPointPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final Paint currentPointPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final Paint textPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final Runnable hideRunnable = new Runnable() {
+            @Override
+            public void run() {
+                trailPoints.clear();
+                setVisibility(View.GONE);
+                invalidate();
+            }
+        };
+        private int viewWidth;
+        private int viewHeight;
+        private int edgeZonePx;
+        private int thresholdPx;
+        private boolean candidate;
+        private boolean consuming;
+        private boolean startedLeft;
+
+        EdgeMenuTrailOverlay(Context context) {
+            super(context);
+            setWillNotDraw(false);
+
+            zoneFillPaint.setStyle(Paint.Style.FILL);
+            zoneFillPaint.setColor(0x2244AAFF);
+
+            zoneStrokePaint.setStyle(Paint.Style.STROKE);
+            zoneStrokePaint.setStrokeWidth(Math.max(1f, dp(context, 1)));
+            zoneStrokePaint.setColor(0x8844AAFF);
+
+            trailPaint.setStyle(Paint.Style.STROKE);
+            trailPaint.setStrokeWidth(Math.max(2f, dp(context, 2)));
+            trailPaint.setColor(0xFF66FFCC);
+
+            trailPointPaint.setStyle(Paint.Style.FILL);
+            trailPointPaint.setColor(0xCC66FFCC);
+
+            currentPointPaint.setStyle(Paint.Style.FILL);
+            currentPointPaint.setColor(0xFFFFFFFF);
+
+            textPaint.setColor(0xDDFFFFFF);
+            textPaint.setTextSize(dp(context, 10));
+            textPaint.setShadowLayer(2f, 0f, 0f, 0xAA000000);
+        }
+
+        void beginGesture(float x, float y, int width, int height, int edgeZone, int threshold, boolean candidate) {
+            removeCallbacks(hideRunnable);
+            trailPoints.clear();
+            this.viewWidth = width;
+            this.viewHeight = height;
+            this.edgeZonePx = edgeZone;
+            this.thresholdPx = threshold;
+            this.candidate = candidate;
+            this.consuming = false;
+            this.startedLeft = x <= edgeZone;
+            addPointInternal(x, y);
+            setVisibility(View.VISIBLE);
+            invalidate();
+        }
+
+        void addPoint(float x, float y, boolean candidate, boolean consuming) {
+            if (getVisibility() != View.VISIBLE && trailPoints.isEmpty()) {
+                return;
+            }
+
+            this.candidate = candidate;
+            this.consuming = consuming;
+            addPointInternal(x, y);
+            postInvalidateOnAnimation();
+        }
+
+        void setGestureState(boolean candidate, boolean consuming, boolean startedLeft, int edgeZone, int threshold) {
+            this.candidate = candidate;
+            this.consuming = consuming;
+            this.startedLeft = startedLeft;
+            this.edgeZonePx = edgeZone;
+            this.thresholdPx = threshold;
+        }
+
+        void finishGesture(float x, float y, boolean consuming) {
+            this.consuming = consuming;
+            addPointInternal(x, y);
+            removeCallbacks(hideRunnable);
+            postDelayed(hideRunnable, EDGE_MENU_TRAIL_HIDE_DELAY_MS);
+            postInvalidateOnAnimation();
+        }
+
+        void hideSoon() {
+            removeCallbacks(hideRunnable);
+            postDelayed(hideRunnable, EDGE_MENU_TRAIL_HIDE_DELAY_MS);
+        }
+
+        void hideNow() {
+            removeCallbacks(hideRunnable);
+            trailPoints.clear();
+            setVisibility(View.GONE);
+            invalidate();
+        }
+
+        private void addPointInternal(float x, float y) {
+            trailPoints.add(new TrailPoint(x, y, SystemClock.uptimeMillis()));
+            while (trailPoints.size() > EDGE_MENU_TRAIL_MAX_POINTS) {
+                trailPoints.remove(0);
+            }
+        }
+
+        @Override
+        protected void onDraw(Canvas canvas) {
+            super.onDraw(canvas);
+            if (trailPoints.isEmpty()) {
+                return;
+            }
+
+            int width = viewWidth > 0 ? viewWidth : getWidth();
+            int height = viewHeight > 0 ? viewHeight : getHeight();
+            if (width <= 0 || height <= 0) {
+                return;
+            }
+
+            int edgeWidth = Math.min(edgeZonePx, Math.max(1, width / 3));
+            canvas.drawRect(0, 0, edgeWidth, height, zoneFillPaint);
+            canvas.drawRect(width - edgeWidth, 0, width, height, zoneFillPaint);
+            canvas.drawLine(edgeWidth, 0, edgeWidth, height, zoneStrokePaint);
+            canvas.drawLine(width - edgeWidth, 0, width - edgeWidth, height, zoneStrokePaint);
+
+            long now = SystemClock.uptimeMillis();
+            TrailPoint previous = null;
+            for (int i = 0; i < trailPoints.size(); i++) {
+                TrailPoint point = trailPoints.get(i);
+                float age = Math.min(1f, (now - point.timeMs) / (float) EDGE_MENU_TRAIL_FADE_MS);
+                int alpha = (int) (255f * (1f - age));
+                trailPaint.setAlpha(Math.max(40, alpha));
+                trailPointPaint.setAlpha(Math.max(50, alpha));
+
+                if (previous != null) {
+                    canvas.drawLine(previous.x, previous.y, point.x, point.y, trailPaint);
+                }
+
+                float radius = i == trailPoints.size() - 1 ? dp(getContext(), 5) : dp(getContext(), 3);
+                canvas.drawCircle(point.x, point.y, radius, i == trailPoints.size() - 1 ? currentPointPaint : trailPointPaint);
+                previous = point;
+            }
+
+            TrailPoint head = trailPoints.get(trailPoints.size() - 1);
+            String side = startedLeft ? "LEFT" : "RIGHT";
+            String state = (candidate ? "cand" : "free") + "/" + (consuming ? "cons" : "pass");
+            canvas.drawText("side=" + side + " " + state + " edge=" + edgeZonePx + " thr=" + thresholdPx,
+                    dp(getContext(), 10), dp(getContext(), 18), textPaint);
+            canvas.drawText(String.format(Locale.US, "x=%.1f y=%.1f", head.x, head.y),
+                    dp(getContext(), 10), dp(getContext(), 34), textPaint);
+        }
+
+        private static float dp(Context context, float value) {
+            return TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, value,
+                    context.getResources().getDisplayMetrics());
+        }
+
+        private static class TrailPoint {
+            final float x;
+            final float y;
+            final long timeMs;
+
+            TrailPoint(float x, float y, long timeMs) {
+                this.x = x;
+                this.y = y;
+                this.timeMs = timeMs;
+            }
         }
     }
 
