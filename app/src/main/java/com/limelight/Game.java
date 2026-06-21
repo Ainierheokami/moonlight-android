@@ -217,6 +217,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
     private FrameLayout controlsOverlayContainer; // 虚拟输入（键盘/手柄）容器
     private FrameLayout menuOverlayContainer;     // 菜单（编辑/游戏）容器
     private View backgroundTouchView;
+    private TextView edgeMenuDebugOverlay;
     private float edgeMenuDownX = -1;
     private float edgeMenuDownY = -1;
     private boolean edgeMenuCandidate = false;
@@ -425,6 +426,21 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         notificationOverlayView = findViewById(R.id.notificationOverlay);
 
         performanceOverlayView = findViewById(R.id.performanceOverlay);
+        if (BuildConfig.DEBUG) {
+            edgeMenuDebugOverlay = new TextView(this);
+            edgeMenuDebugOverlay.setTextColor(0xFFFFFFFF);
+            edgeMenuDebugOverlay.setTextSize(TypedValue.COMPLEX_UNIT_SP, 10);
+            edgeMenuDebugOverlay.setBackgroundColor(0xAA000000);
+            edgeMenuDebugOverlay.setPadding(dp(6), dp(4), dp(6), dp(4));
+            edgeMenuDebugOverlay.setVisibility(View.GONE);
+            FrameLayout.LayoutParams edgeDebugParams = new FrameLayout.LayoutParams(
+                    ViewGroup.LayoutParams.WRAP_CONTENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT);
+            edgeDebugParams.gravity = Gravity.TOP | Gravity.END;
+            edgeDebugParams.topMargin = dp(12);
+            edgeDebugParams.rightMargin = dp(12);
+            ((ViewGroup) findViewById(android.R.id.content)).addView(edgeMenuDebugOverlay, edgeDebugParams);
+        }
 
         // 新增：获取专用容器引用
         controlsOverlayContainer = findViewById(R.id.controlsOverlayContainer);
@@ -1024,6 +1040,9 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         // With Android native pointer capture, capture is lost when focus is lost,
         // so it must be requested again when focus is regained.
         inputCaptureProvider.onWindowFocusChanged(hasFocus);
+        if (BuildConfig.DEBUG && edgeMenuDebugOverlay != null && !hasFocus) {
+            edgeMenuDebugOverlay.setVisibility(View.GONE);
+        }
         updateSystemGestureExclusion(hasFocus && !GameMenu.isMenuShowing());
     }
 
@@ -2690,23 +2709,27 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         View gestureView = getEdgeMenuGestureView();
         if (gestureView == null || GameMenu.isMenuShowing() || com.limelight.heokami.EditMenu.isMenuShowing()) {
             boolean wasConsuming = edgeMenuConsuming;
+            setEdgeMenuDebugText("blocked view/menu action=" + event.getActionMasked());
             resetEdgeMenuGesture();
             return wasConsuming;
         }
 
         if ((edgeMenuCandidate || edgeMenuConsuming) && event.getPointerCount() != 1) {
             boolean wasConsuming = edgeMenuConsuming;
+            setEdgeMenuDebugText("blocked pointers=" + event.getPointerCount() + " action=" + event.getActionMasked());
             resetEdgeMenuGesture();
             return wasConsuming;
         }
 
         if (event.getPointerCount() != 1) {
+            setEdgeMenuDebugText("ignore pointers=" + event.getPointerCount() + " action=" + event.getActionMasked());
             return false;
         }
 
         int action = event.getActionMasked();
         int width = gestureView.getWidth();
         if (width <= 0) {
+            setEdgeMenuDebugText("invalid width=0 action=" + action);
             resetEdgeMenuGesture();
             return false;
         }
@@ -2724,9 +2747,16 @@ public class Game extends Activity implements SurfaceHolder.Callback,
                 edgeMenuDownY = event.getY();
                 edgeMenuCandidate = edgeMenuDownX <= edgeZone || edgeMenuDownX >= width - edgeZone;
                 edgeMenuConsuming = false;
+                setEdgeMenuDebugText(String.format(java.util.Locale.US,
+                        "DOWN x=%.1f y=%.1f raw=%.1f,%.1f w=%d zone=%d thr=%d cand=%s",
+                        edgeMenuDownX, edgeMenuDownY, event.getRawX(), event.getRawY(),
+                        width, edgeZone, threshold, edgeMenuCandidate));
                 return false;
             case MotionEvent.ACTION_MOVE:
                 if (!edgeMenuCandidate && !edgeMenuConsuming) {
+                    setEdgeMenuDebugText(String.format(java.util.Locale.US,
+                            "MOVE ignored x=%.1f y=%.1f raw=%.1f,%.1f",
+                            event.getX(), event.getY(), event.getRawX(), event.getRawY()));
                     return false;
                 }
 
@@ -2739,9 +2769,14 @@ public class Game extends Activity implements SurfaceHolder.Callback,
                 boolean fromLeftIntent = startedLeft && travelX > intentThreshold;
                 boolean fromRightIntent = startedRight && travelX < -intentThreshold;
                 boolean horizontalIntent = absTravelX > absTravelY * 1.2f;
+                setEdgeMenuDebugText(String.format(java.util.Locale.US,
+                        "MOVE dx=%.1f dy=%.1f raw=%.1f,%.1f absdx=%.1f absdy=%.1f cand=%s cons=%s left=%s right=%s intent=%s horiz=%s",
+                        travelX, travelY, event.getRawX(), event.getRawY(), absTravelX, absTravelY, edgeMenuCandidate, edgeMenuConsuming,
+                        fromLeftIntent, fromRightIntent, (fromLeftIntent || fromRightIntent), horizontalIntent));
 
                 if (!edgeMenuConsuming && (fromLeftIntent || fromRightIntent) && horizontalIntent) {
                     edgeMenuConsuming = true;
+                    setEdgeMenuDebugText("TAKEOVER");
                     cancelStreamTouchesForEdgeMenu();
                 }
 
@@ -2753,15 +2788,18 @@ public class Game extends Activity implements SurfaceHolder.Callback,
                 boolean fromRight = startedRight && travelX < -threshold;
                 if ((fromLeft || fromRight) && horizontalIntent) {
                     edgeMenuCandidate = false;
+                    setEdgeMenuDebugText("OPEN side=" + (fromLeft ? "LEFT" : "RIGHT"));
                     showMenu(fromLeft ? GameMenu.Side.LEFT : GameMenu.Side.RIGHT);
                 }
                 return true;
             case MotionEvent.ACTION_UP:
             case MotionEvent.ACTION_CANCEL:
                 boolean wasConsuming = edgeMenuConsuming;
+                setEdgeMenuDebugText("END action=" + action + " consuming=" + wasConsuming);
                 resetEdgeMenuGesture();
                 return wasConsuming;
             default:
+                setEdgeMenuDebugText("DEFAULT action=" + action + " consuming=" + edgeMenuConsuming);
                 return edgeMenuConsuming;
         }
     }
@@ -2771,6 +2809,19 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         edgeMenuConsuming = false;
         edgeMenuDownX = -1;
         edgeMenuDownY = -1;
+        setEdgeMenuDebugText("reset");
+    }
+
+    private void setEdgeMenuDebugText(String text) {
+        if (!BuildConfig.DEBUG) {
+            return;
+        }
+
+        Log.d("EdgeMenuDebug", text);
+        if (edgeMenuDebugOverlay != null) {
+            edgeMenuDebugOverlay.setText(text);
+            edgeMenuDebugOverlay.setVisibility(View.VISIBLE);
+        }
     }
 
     private View getEdgeMenuGestureView() {
@@ -4096,6 +4147,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         }
 
         if (!excludeEdges) {
+            setEdgeMenuDebugText("gesture exclusion OFF");
             clearSystemGestureExclusionRects();
             return;
         }
@@ -4112,6 +4164,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
             exclusionRects.add(new Rect(0, 0, Math.min(edgeWidth, width), height));
             exclusionRects.add(new Rect(Math.max(0, width - edgeWidth), 0, width, height));
             exclusionView.setSystemGestureExclusionRects(exclusionRects);
+            setEdgeMenuDebugText("gesture exclusion ON w=" + edgeWidth + " h=" + height);
         });
     }
 
