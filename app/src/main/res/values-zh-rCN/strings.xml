@@ -505,7 +505,7 @@
     <string name="game_menu_audio_volume">串流音量</string>
     <string name="game_menu_audio_volume_short">音量</string>
     <string name="game_menu_current_audio_volume_percent">%1$d%%</string>
-    <string name="game_menu_audio_volume_hint">当前主机的客户端播放增益。高于 100% 可以放大偏小的串流声音，但过高可能破音。</string>
+    <string name="game_menu_audio_volume_hint">当前主机的客户端播放增益。可用更高数值补偿偏小的捕获音量，但过大的增益仍可能削波，请酌情调整。</string>
     <string name="game_menu_audio_volume_applied">串流音量已更新</string>
     <string name="game_menu_audio_volume_100">100%</string>
     <string name="game_menu_audio_volume_150">150%</string>

@@ -11,6 +11,7 @@ import android.media.audiofx.AudioEffect;
 import android.os.Build;
 import android.preference.PreferenceManager;
 
+import com.limelight.Game;
 import com.limelight.LimeLog;
 import com.limelight.nvstream.av.audio.AudioRenderer;
 import com.limelight.nvstream.jni.MoonBridge;
@@ -39,7 +40,8 @@ public class AndroidAudioRenderer implements AudioRenderer {
     }
 
     public void setVolumeGainPercent(int volumeGainPercent) {
-        this.volumeGainPercent = Math.max(50, Math.min(300, volumeGainPercent));
+        this.volumeGainPercent = Math.max(Game.STREAM_AUDIO_GAIN_MIN_PERCENT,
+                Math.min(Game.STREAM_AUDIO_GAIN_MAX_PERCENT, volumeGainPercent));
     }
 
     private void updateAudioBitrateStats(Context context) {

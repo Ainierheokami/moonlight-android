@@ -171,7 +171,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
     private static final String PREF_STREAM_AUDIO_GAIN_PREFIX = "stream_audio_gain_";
     private static final String PREF_STREAM_AUDIO_GAIN_GLOBAL = "stream_audio_gain_global";
     public static final int STREAM_AUDIO_GAIN_MIN_PERCENT = 50;
-    public static final int STREAM_AUDIO_GAIN_MAX_PERCENT = 300;
+    public static final int STREAM_AUDIO_GAIN_MAX_PERCENT = 2000;
     public static final int STREAM_AUDIO_GAIN_DEFAULT_PERCENT = 100;
     // 新增：内存覆盖变量，隔离竞态条件，保证实时切换显示器时不污染 SharedPreferences 且 100% 成功切换
     private String tempOverrideDisplayName = null;

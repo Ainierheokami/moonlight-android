@@ -341,7 +341,7 @@ public class GameMenuFragment extends Fragment {
                     R.string.game_menu_audio_volume,
                     Game.STREAM_AUDIO_GAIN_MIN_PERCENT,
                     Game.STREAM_AUDIO_GAIN_MAX_PERCENT,
-                    5,
+                    10,
                     Game.STREAM_AUDIO_GAIN_DEFAULT_PERCENT,
                     game.getStreamAudioGainPercent(),
                     value -> {
