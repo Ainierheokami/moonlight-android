@@ -81,13 +81,34 @@ class MacroAdapter(private val actions: MutableList<MacroAction>, private val di
 
     override fun onViewAttachedToWindow(holder: MacroViewHolder) {
         super.onViewAttachedToWindow(holder)
-        ensureFullWidth(holder)
+        if (!ensureFullWidth(holder)) {
+            holder.itemView.post { ensureFullWidth(holder) }
+        }
     }
 
-    private fun ensureFullWidth(holder: MacroViewHolder) {
-        val recyclerView = holder.itemView.parent as? RecyclerView ?: return
+    fun normalizeVisibleRows(recyclerView: RecyclerView) {
         val availableWidth = recyclerView.width - recyclerView.paddingLeft - recyclerView.paddingRight
         if (availableWidth <= 0) return
+        for (i in 0 until recyclerView.childCount) {
+            val child = recyclerView.getChildAt(i)
+            child.minimumWidth = availableWidth
+            val params = child.layoutParams ?: RecyclerView.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+            )
+            if (params.width != availableWidth) {
+                params.width = availableWidth
+                params.height = ViewGroup.LayoutParams.WRAP_CONTENT
+                child.layoutParams = params
+            }
+        }
+    }
+
+    private fun ensureFullWidth(holder: MacroViewHolder): Boolean {
+        val recyclerView = holder.itemView.parent as? RecyclerView ?: return false
+        val availableWidth = recyclerView.width - recyclerView.paddingLeft - recyclerView.paddingRight
+        if (availableWidth <= 0) return false
+        holder.itemView.minimumWidth = availableWidth
         val params = holder.itemView.layoutParams ?: RecyclerView.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT,
             ViewGroup.LayoutParams.WRAP_CONTENT
@@ -97,6 +118,7 @@ class MacroAdapter(private val actions: MutableList<MacroAction>, private val di
             params.height = ViewGroup.LayoutParams.WRAP_CONTENT
             holder.itemView.layoutParams = params
         }
+        return true
     }
 
     class MacroDiffCallback : DiffUtil.ItemCallback<MacroAction>() {

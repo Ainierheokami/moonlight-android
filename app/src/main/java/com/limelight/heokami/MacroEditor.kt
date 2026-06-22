@@ -284,7 +284,12 @@ class MacroEditor(private val context: Context, private var jsonData: JSONObject
         }).apply {
             attachToRecyclerView(recyclerView)
         }
-        macroAdapter.submitList(actions.toList())
+        macroAdapter.submitList(actions.toList()) {
+            recyclerView.post {
+                macroAdapter.normalizeVisibleRows(recyclerView)
+                recyclerView.requestLayout()
+            }
+        }
     }
 
     private fun hotKeyMacro() {
