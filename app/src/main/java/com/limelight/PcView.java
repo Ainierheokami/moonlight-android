@@ -97,7 +97,7 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
     private ShortcutHelper shortcutHelper;
     private ComputerManagerService.ComputerManagerBinder managerBinder;
     private boolean freezeUpdates, runningPolling, inForeground, completeOnCreateCalled;
-    private boolean debugSampleComputersAdded;
+    private boolean initialComputerDiscoveryComplete;
     private PreferenceConfiguration prefs;
     private Map<String, PairingTask> activePairingTasks = new HashMap<>();
     private Set<String> activeServicePairingTasks = new HashSet<>();
@@ -265,7 +265,8 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
 
         noPcFoundLayout = findViewById(R.id.no_pc_found_layout);
         pcRefreshOverlay = findViewById(R.id.pcRefreshOverlay);
-        if (pcGridAdapter != null && pcGridAdapter.getCount() == 0) {
+        initialComputerDiscoveryComplete = pcGridAdapter != null && pcGridAdapter.getCount() > 0;
+        if (!initialComputerDiscoveryComplete) {
             noPcFoundLayout.setVisibility(View.VISIBLE);
         }
         else {
@@ -276,7 +277,6 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
             pcGridAdapter.notifyDataSetChanged();
         }
 
-        addDebugSampleComputersIfNeeded();
     }
 
     @Override
@@ -430,11 +430,16 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
+                boolean isEmpty = pcGridAdapter == null || pcGridAdapter.getCount() == 0;
+                boolean showInitialRefresh = refreshing && isEmpty && !initialComputerDiscoveryComplete;
                 if (pcRefreshOverlay != null) {
-                    pcRefreshOverlay.setVisibility(refreshing ? View.VISIBLE : View.GONE);
+                    pcRefreshOverlay.setVisibility(showInitialRefresh ? View.VISIBLE : View.GONE);
+                    if (showInitialRefresh) {
+                        pcRefreshOverlay.bringToFront();
+                    }
                 }
-                if (noPcFoundLayout != null && (pcGridAdapter == null || pcGridAdapter.getCount() == 0)) {
-                    noPcFoundLayout.setVisibility(refreshing ? View.GONE : View.VISIBLE);
+                if (noPcFoundLayout != null) {
+                    noPcFoundLayout.setVisibility(isEmpty && !showInitialRefresh ? View.VISIBLE : View.INVISIBLE);
                 }
             }
         });
@@ -1725,6 +1730,7 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
         }
 
         if (pcGridAdapter.getCount() > 0) {
+            initialComputerDiscoveryComplete = true;
             // Hide the "Discovery in progress" view
             noPcFoundLayout.setVisibility(View.INVISIBLE);
         } else {
@@ -1737,84 +1743,7 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
 
         // Notify the view that the data has changed
         pcGridAdapter.notifyDataSetChanged();
-    }
-
-    private void addDebugSampleComputersIfNeeded() {
-        if (!BuildConfig.DEBUG || debugSampleComputersAdded || pcGridAdapter == null || pcRecyclerAdapter == null) {
-            return;
-        }
-
-        debugSampleComputersAdded = true;
-        ComputerScreenshotCache screenshotCache = new ComputerScreenshotCache(this);
-
-        saveDebugCoverIfMissing(screenshotCache, "demo-online", "#213547", "#38BDF8", "AURORA");
-        updateComputer(createDebugComputer(
-                "demo-online",
-                "Aurora Studio",
-                "192.168.31.28",
-                ComputerDetails.State.ONLINE,
-                PairState.PAIRED,
-                0,
-                true));
-
-        saveDebugCoverIfMissing(screenshotCache, "demo-running", "#1B2430", "#34D399", "SESSION");
-        updateComputer(createDebugComputer(
-                "demo-running",
-                "Neon Rig",
-                "10.0.0.42",
-                ComputerDetails.State.ONLINE,
-                PairState.PAIRED,
-                1,
-                true));
-
-        saveDebugCoverIfMissing(screenshotCache, "demo-unpaired", "#2A2336", "#FBBF24", "PAIR");
-        updateComputer(createDebugComputer(
-                "demo-unpaired",
-                "Pairing Lab",
-                "172.16.2.15",
-                ComputerDetails.State.ONLINE,
-                PairState.NOT_PAIRED,
-                0,
-                true));
-
-        saveDebugCoverIfMissing(screenshotCache, "demo-offline", "#242933", "#8A97A5", "OFFLINE");
-        updateComputer(createDebugComputer(
-                "demo-offline",
-                "Archive PC",
-                "192.168.31.77",
-                ComputerDetails.State.OFFLINE,
-                PairState.PAIRED,
-                0,
-                false));
-    }
-
-    private void saveDebugCoverIfMissing(ComputerScreenshotCache screenshotCache, String uuid,
-                                         String startColor, String endColor, String label) {
-        File coverFile = screenshotCache.getFile(uuid);
-        if (coverFile == null || coverFile.exists()) {
-            return;
-        }
-
-        screenshotCache.saveBitmap(uuid, createDebugCoverBitmap(startColor, endColor, label));
-    }
-
-    private ComputerDetails createDebugComputer(String uuid, String name, String address,
-                                                ComputerDetails.State state, PairState pairState,
-                                                int runningGameId, boolean reachable) {
-        ComputerDetails details = new ComputerDetails();
-        details.uuid = uuid;
-        details.name = name;
-        details.localAddress = new ComputerDetails.AddressTuple(address, NvHTTP.DEFAULT_HTTP_PORT);
-        details.activeAddress = details.localAddress;
-        details.httpsPort = 0;
-        details.state = state;
-        details.pairState = pairState;
-        details.runningGameId = runningGameId;
-        details.nvidiaServer = false;
-        if (reachable) {
-            details.reachableAddresses.add(details.localAddress);
-        }
-        return details;
+        updateRefreshOverlay(runningPolling);
     }
 
     private Bitmap createDebugCoverBitmap(String backgroundColor, String accentColor, String label) {
