@@ -51,10 +51,12 @@
     </LinearLayout>
 
     <ImageButton
+        android:id="@+id/sectionOrderHandle"
         android:layout_width="36dp"
         android:layout_height="36dp"
         android:layout_marginStart="8dp"
         android:background="@drawable/pc_toolbar_button_background"
+        android:contentDescription="@string/game_menu_section_order_drag_hint"
         android:padding="8dp"
         android:scaleType="centerInside"
         android:src="@drawable/ic_move" />

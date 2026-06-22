@@ -75,6 +75,7 @@ public class GameMenuFragment extends Fragment {
     private boolean showFromLeft = false;
     private long lastDisconnectTapMs = 0;
     private android.animation.ValueAnimator holdAnimator = null;
+    private ItemTouchHelper sectionOrderTouchHelper;
     // 动画持续时间
     private static final int ANIMATION_DURATION = 300;
 
@@ -684,10 +685,41 @@ public class GameMenuFragment extends Fragment {
 
         SectionOrderAdapter adapter = new SectionOrderAdapter(sections);
         recyclerView.setAdapter(adapter);
+        sectionOrderTouchHelper = new ItemTouchHelper(new ItemTouchHelper.SimpleCallback(
+                ItemTouchHelper.UP | ItemTouchHelper.DOWN,
+                0) {
+            @Override
+            public boolean isLongPressDragEnabled() {
+                return false;
+            }
+
+            @Override
+            public boolean isItemViewSwipeEnabled() {
+                return false;
+            }
+
+            @Override
+            public boolean onMove(RecyclerView recyclerView, RecyclerView.ViewHolder viewHolder,
+                                  RecyclerView.ViewHolder target) {
+                int from = viewHolder.getAdapterPosition();
+                int to = target.getAdapterPosition();
+                if (from == RecyclerView.NO_POSITION || to == RecyclerView.NO_POSITION) {
+                    return false;
+                }
+                adapter.moveSection(from, to);
+                return true;
+            }
+
+            @Override
+            public void onSwiped(RecyclerView.ViewHolder viewHolder, int direction) {
+            }
+        });
+        sectionOrderTouchHelper.attachToRecyclerView(recyclerView);
 
         final android.app.AlertDialog dialog = new android.app.AlertDialog.Builder(game)
                 .setView(dialogView)
                 .create();
+        dialog.setOnDismissListener(ignored -> sectionOrderTouchHelper = null);
 
         resetButton.setOnClickListener(v -> {
             resetSectionOrder();
@@ -733,7 +765,10 @@ public class GameMenuFragment extends Fragment {
                     ? getString(R.string.game_menu_section_order_first)
                     : getString(R.string.game_menu_section_order_drag_hint));
             holder.badgeView.setText(String.valueOf(position + 1));
-            holder.itemView.setOnLongClickListener(v -> {
+            holder.handleView.setOnTouchListener((v, event) -> {
+                if (event.getActionMasked() == MotionEvent.ACTION_DOWN && sectionOrderTouchHelper != null) {
+                    sectionOrderTouchHelper.startDrag(holder);
+                }
                 return true;
             });
         }
@@ -757,12 +792,14 @@ public class GameMenuFragment extends Fragment {
             final TextView badgeView;
             final TextView titleView;
             final TextView subtitleView;
+            final ImageView handleView;
 
             SectionViewHolder(View itemView) {
                 super(itemView);
                 badgeView = itemView.findViewById(R.id.sectionOrderBadge);
                 titleView = itemView.findViewById(R.id.sectionOrderTitleText);
                 subtitleView = itemView.findViewById(R.id.sectionOrderSubtitleText);
+                handleView = itemView.findViewById(R.id.sectionOrderHandle);
             }
         }
     }
