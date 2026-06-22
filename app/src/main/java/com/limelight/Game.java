@@ -358,6 +358,17 @@ public class Game extends Activity implements SurfaceHolder.Callback,
                     : new Class<?>[]{backInvokedCallbackClass};
             InvocationHandler handler = (proxy, method, args) -> {
                 String name = method.getName();
+                if (method.getDeclaringClass() == Object.class) {
+                    if ("hashCode".equals(name)) {
+                        return System.identityHashCode(proxy);
+                    }
+                    if ("equals".equals(name)) {
+                        return args != null && args.length == 1 && proxy == args[0];
+                    }
+                    if ("toString".equals(name)) {
+                        return "GameMenuBackCallback";
+                    }
+                }
                 if (supportsBackAnimation && "onBackStarted".equals(name) && args != null && args.length == 1) {
                     if (!isGameMenuGestureWakeEnabled() || GameMenu.isMenuShowing() || EditMenu.isMenuShowing()) {
                         return null;
