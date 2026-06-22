@@ -520,6 +520,9 @@
     <string name="game_menu_touchpad_sensitivity">触摸灵敏度</string>
     <string name="game_menu_section_order">分类顺序</string>
     <string name="game_menu_section_order_title">管理分类顺序</string>
+    <string name="game_menu_section_order_hint">拖住把手即可调整分类顺序，确认后生效。</string>
+    <string name="game_menu_section_order_first">这个分类会固定在最前面。</string>
+    <string name="game_menu_section_order_drag_hint">拖动即可移动这个分类。</string>
     <string name="game_menu_section_order_reset">恢复默认</string>
     <string name="game_menu_stream_presets">多场景预设</string>
     <string name="game_menu_stream_presets_short">预设</string>

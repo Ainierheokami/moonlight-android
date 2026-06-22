@@ -585,6 +585,9 @@
     <string name="game_menu_touchpad_sensitivity">Touch sensitivity</string>
     <string name="game_menu_section_order">Section order</string>
     <string name="game_menu_section_order_title">Manage section order</string>
+    <string name="game_menu_section_order_hint">Drag the handle to reorder sections. Changes take effect after you confirm.</string>
+    <string name="game_menu_section_order_first">This section stays at the top.</string>
+    <string name="game_menu_section_order_drag_hint">Drag to move this section.</string>
     <string name="game_menu_section_order_reset">Reset order</string>
     <string name="game_menu_stream_presets">Stream presets</string>
     <string name="game_menu_stream_presets_short">Presets</string>

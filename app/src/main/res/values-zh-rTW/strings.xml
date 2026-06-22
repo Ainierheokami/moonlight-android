@@ -305,5 +305,8 @@
     <string name="game_menu_slider_input_message">請輸入 %1$d 到 %2$d 之間的數值，步進為 %3$d。</string>
     <string name="game_menu_section_order">分類順序</string>
     <string name="game_menu_section_order_title">管理分類順序</string>
+    <string name="game_menu_section_order_hint">拖曳把手即可調整分類順序，確認後生效。</string>
+    <string name="game_menu_section_order_first">這個分類會固定在最前面。</string>
+    <string name="game_menu_section_order_drag_hint">拖曳即可移動這個分類。</string>
     <string name="game_menu_section_order_reset">恢復預設</string>
 </resources>
