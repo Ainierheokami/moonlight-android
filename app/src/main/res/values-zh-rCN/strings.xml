@@ -64,9 +64,9 @@
     <string name="conn_terminated_msg">连接已被终结.</string>
     <!-- General strings -->
     <string name="ip_hint">串流电脑的IP地址</string>
-    <string name="searching_pc">在你的本地网络中搜索串流主机PC...
-\n
-\n 确保Sunshine在主机上运行，或在GeForce Experience SHIELD设置中启用GameStream。</string>
+    <string name="searching_pc">在你的本地网络中搜索串流主机PC...\n\n确保 Sunshine 在主机上运行，或在 GeForce Experience SHIELD 设置中启用 GameStream。</string>
+    <string name="pc_refreshing_hosts">正在刷新主机列表</string>
+    <string name="pc_refreshing_hosts_subtitle">正在检查网络中可用的 PC…</string>
     <string name="yes"> 确定 </string>
     <string name="no"> 取消 </string>
     <string name="lost_connection"> 与电脑失去连接 </string>

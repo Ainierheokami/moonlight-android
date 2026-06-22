@@ -99,8 +99,9 @@
     <string name="ip_hint">IP address of host PC</string>
     <string name="title_stream_settings">Streaming Settings</string>
     <string name="subtitle_stream_settings">Video, input, audio, and host preferences</string>
-    <string name="searching_pc">Searching for host PCs on your local network…\n\n
-        Ensure Sunshine is running on your host PC or GameStream is enabled in the GeForce Experience SHIELD settings.</string>
+    <string name="searching_pc">Searching for host PCs on your local network…\n\nEnsure Sunshine is running on your host PC or GameStream is enabled in the GeForce Experience SHIELD settings.</string>
+    <string name="pc_refreshing_hosts">Refreshing host list</string>
+    <string name="pc_refreshing_hosts_subtitle">Checking the network for available PCs…</string>
     <string name="yes">Yes</string>
     <string name="no">No</string>
     <string name="lost_connection">Lost connection to PC</string>

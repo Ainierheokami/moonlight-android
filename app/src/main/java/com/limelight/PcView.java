@@ -91,6 +91,7 @@ import javax.microedition.khronos.opengles.GL10;
 
 public class PcView extends Activity implements AdapterFragmentCallbacks {
     private View noPcFoundLayout;
+    private View pcRefreshOverlay;
     private PcGridAdapter pcGridAdapter;
     private PcRecyclerAdapter pcRecyclerAdapter;
     private ShortcutHelper shortcutHelper;
@@ -263,12 +264,14 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
             .commitAllowingStateLoss();
 
         noPcFoundLayout = findViewById(R.id.no_pc_found_layout);
+        pcRefreshOverlay = findViewById(R.id.pcRefreshOverlay);
         if (pcGridAdapter != null && pcGridAdapter.getCount() == 0) {
             noPcFoundLayout.setVisibility(View.VISIBLE);
         }
         else {
             noPcFoundLayout.setVisibility(View.INVISIBLE);
         }
+        updateRefreshOverlay(false);
         if (pcGridAdapter != null) {
             pcGridAdapter.notifyDataSetChanged();
         }
@@ -355,6 +358,7 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
         // and our activity is in the foreground.
         if (managerBinder != null && !runningPolling && inForeground) {
             freezeUpdates = false;
+            updateRefreshOverlay(true);
             
             runOnUiThread(new Runnable() {
                 @Override
@@ -393,6 +397,7 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
     private void stopComputerUpdates(boolean wait) {
         if (managerBinder != null) {
             if (!runningPolling) {
+                updateRefreshOverlay(false);
                 return;
             }
 
@@ -417,7 +422,22 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
             }
 
             runningPolling = false;
+            updateRefreshOverlay(false);
         }
+    }
+
+    private void updateRefreshOverlay(final boolean refreshing) {
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                if (pcRefreshOverlay != null) {
+                    pcRefreshOverlay.setVisibility(refreshing ? View.VISIBLE : View.GONE);
+                }
+                if (noPcFoundLayout != null && (pcGridAdapter == null || pcGridAdapter.getCount() == 0)) {
+                    noPcFoundLayout.setVisibility(refreshing ? View.GONE : View.VISIBLE);
+                }
+            }
+        });
     }
 
     @Override
@@ -1649,6 +1669,9 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
         if (pcGridAdapter.getCount() == 0) {
             // Show the "Discovery in progress" view
             noPcFoundLayout.setVisibility(View.VISIBLE);
+            if (pcRefreshOverlay != null && pcRefreshOverlay.getVisibility() == View.VISIBLE) {
+                noPcFoundLayout.setVisibility(View.GONE);
+            }
         }
     }
     
@@ -1705,7 +1728,11 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
             // Hide the "Discovery in progress" view
             noPcFoundLayout.setVisibility(View.INVISIBLE);
         } else {
-            noPcFoundLayout.setVisibility(View.VISIBLE);
+            if (pcRefreshOverlay == null || pcRefreshOverlay.getVisibility() != View.VISIBLE) {
+                noPcFoundLayout.setVisibility(View.VISIBLE);
+            } else {
+                noPcFoundLayout.setVisibility(View.GONE);
+            }
         }
 
         // Notify the view that the data has changed
