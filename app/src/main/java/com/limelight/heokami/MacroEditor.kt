@@ -3,6 +3,7 @@ package com.limelight.heokami
 import android.annotation.SuppressLint
 import android.app.AlertDialog
 import android.content.Context
+import android.graphics.Color
 import android.os.Handler
 import android.os.Looper
 import android.text.InputType
@@ -12,10 +13,8 @@ import android.widget.Button
 import android.widget.CheckBox
 import android.widget.EditText
 import android.widget.LinearLayout
-import android.widget.ScrollView
 import android.widget.Toast
 import android.widget.TextView
-import androidx.core.content.ContextCompat
 import androidx.annotation.StringRes
 import androidx.appcompat.view.ContextThemeWrapper
 import androidx.recyclerview.widget.ItemTouchHelper
@@ -199,20 +198,15 @@ class MacroEditor(private val context: Context, private var jsonData: JSONObject
 
     @SuppressLint("SetTextI18n")
     fun showMacroEditor() {
-        val builder = AlertDialog.Builder(context)
+        val builder = HotkeyUi.dialogBuilder(context)
         builder.setTitle(context.getString(R.string.macro_editor_title))
 
         val layout = LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
+            setBackgroundResource(R.drawable.modern_dialog_background)
+            setPadding(dp(16), dp(4), dp(16), dp(4))
         }
-        val scrollView = ScrollView(context).apply {
-            layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-            )
-            addView(layout)
-        }
-        builder.setView(scrollView)
+        builder.setView(layout)
 
         builder.setPositiveButton(context.getString(R.string.macro_editor_add_button)) { _, _ ->
             showAddMacroDialog()
@@ -228,6 +222,7 @@ class MacroEditor(private val context: Context, private var jsonData: JSONObject
         val dialog = builder.create()
         updateMacroDisplay(layout, macroActions, dialog)
         dialog.show()
+        HotkeyUi.finishDialog(dialog)
     }
 
     private lateinit var recyclerView: RecyclerView
@@ -239,11 +234,29 @@ class MacroEditor(private val context: Context, private var jsonData: JSONObject
 
         Log.d("MacroEditor", "更新显示: $actions")
 
+        val summary = TextView(context).apply {
+            text = if (actions.isEmpty()) {
+                context.getString(R.string.macro_editor_empty)
+            } else {
+                context.getString(R.string.macro_editor_action_count, actions.size)
+            }
+            textSize = 13f
+            setTextColor(Color.parseColor(if (actions.isEmpty()) "#B8C4D2" else "#9DAEC0"))
+            gravity = if (actions.isEmpty()) android.view.Gravity.CENTER else android.view.Gravity.START
+            setPadding(dp(4), dp(if (actions.isEmpty()) 44 else 4), dp(4), dp(if (actions.isEmpty()) 44 else 12))
+        }
+        layout.addView(summary, LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT,
+            LinearLayout.LayoutParams.WRAP_CONTENT
+        ))
+
+        if (actions.isEmpty()) return
+
         recyclerView = RecyclerView(context).apply {
             layoutManager = LinearLayoutManager(context)
             layoutParams = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
+                minOf(dp(380), (context.resources.displayMetrics.heightPixels * 0.5f).toInt())
             )
             layout.addView(this)
         }
@@ -312,7 +325,7 @@ class MacroEditor(private val context: Context, private var jsonData: JSONObject
             val density = context.resources.displayMetrics.density
             return (dp * density).toInt()
         }
-        val builder = AlertDialog.Builder(context)
+        val builder = HotkeyUi.dialogBuilder(context)
         builder.setTitle(context.getString(R.string.macro_editor_add_title))
         var macroType = MacroType.KEY_UP
         lateinit var hintTextView: TextView
@@ -320,11 +333,13 @@ class MacroEditor(private val context: Context, private var jsonData: JSONObject
         val fastKeyDownUpCheckBox = CheckBox(context).apply {
             text = context.getString(R.string.macro_editor_fast_key_down_up)
             isChecked = fastKeyDownAndUp
+            setTextColor(Color.parseColor("#DCE6F1"))
         }
 
         val fastHotKeyCheckBox = CheckBox(context).apply {
             text = context.getString(R.string.macro_editor_fast_hot_key)
             isChecked = fastHotKey
+            setTextColor(Color.parseColor("#DCE6F1"))
         }
 
         fastKeyDownUpCheckBox.setOnClickListener {
@@ -358,6 +373,7 @@ class MacroEditor(private val context: Context, private var jsonData: JSONObject
         val macroData = EditText(context).apply{
             hint="Data(int)"
             inputType = InputType.TYPE_CLASS_NUMBER
+            HotkeyUi.styleInput(this)
             layoutParams = LinearLayout.LayoutParams(
                 0,
                 LinearLayout.LayoutParams.WRAP_CONTENT,
@@ -372,6 +388,7 @@ class MacroEditor(private val context: Context, private var jsonData: JSONObject
             setOnClickListener {
                 VirtualKeyboardMenu.showVKCodeDialog(context, null, macroData)
             }
+            HotkeyUi.styleButton(this, false)
         }
         val idButton = Button(context).apply {
             text = "已有按键"
@@ -380,6 +397,7 @@ class MacroEditor(private val context: Context, private var jsonData: JSONObject
                 LinearLayout.LayoutParams.WRAP_CONTENT
             )
             visibility = View.GONE
+            HotkeyUi.styleButton(this, false)
         }
         linearLayout.addView(macroData)
         linearLayout.addView(vkButton)
@@ -391,6 +409,9 @@ class MacroEditor(private val context: Context, private var jsonData: JSONObject
                 addTab(newTab().setText(type.getDisplayName(context)))
             }
             tabMode = TabLayout.MODE_SCROLLABLE
+            setTabTextColors(Color.parseColor("#9DAEC0"), Color.parseColor("#F5F8FC"))
+            setSelectedTabIndicatorColor(Color.parseColor("#6ACBFF"))
+            setBackgroundColor(Color.parseColor("#151C25"))
         }
         // 设置 TabLayout 的监听器
         tabLayout.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
@@ -487,7 +508,7 @@ class MacroEditor(private val context: Context, private var jsonData: JSONObject
 
         hintTextView = TextView(context).apply {
             textSize = 12f
-            setTextColor(ContextCompat.getColor(context, android.R.color.darker_gray))
+            setTextColor(Color.parseColor("#9DAEC0"))
             layoutParams = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
@@ -497,8 +518,13 @@ class MacroEditor(private val context: Context, private var jsonData: JSONObject
         }
         val layout = LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
+            setBackgroundResource(R.drawable.modern_dialog_background)
+            setPadding(dpToPx(16), dpToPx(4), dpToPx(16), dpToPx(8))
             addView(tabLayout)
-            addView(linearLayout)
+            addView(linearLayout, LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply { topMargin = dpToPx(12) })
             addView(hintTextView)
         }
         builder.setView(layout)
@@ -551,6 +577,7 @@ class MacroEditor(private val context: Context, private var jsonData: JSONObject
         builder.setCancelable(false)
         val dialog = builder.create()
         dialog.show()
+        HotkeyUi.finishDialog(dialog)
         if (index == -1) {
             val button = dialog.getButton(AlertDialog.BUTTON_NEUTRAL)
             button.isEnabled = false
@@ -558,6 +585,8 @@ class MacroEditor(private val context: Context, private var jsonData: JSONObject
     }
 
     private val handler = Handler(Looper.getMainLooper())
+
+    private fun dp(value: Int): Int = HotkeyUi.dp(context, value)
 
     fun runMacroAction(virtualKeyboard: VirtualKeyboard) {
         Log.d("MacroEditor", "开始执行宏操作，总共有 ${macroActions.size} 个操作") // 添加日志

@@ -114,4 +114,13 @@
         <item name="android:stateListAnimator">@null</item>
     </style>
 
+    <style name="ModernHotkeyDialogTheme" parent="android:style/Theme.Material.Dialog.Alert">
+        <item name="android:windowBackground">@drawable/modern_dialog_background</item>
+        <item name="android:colorAccent">#1AA7EC</item>
+        <item name="android:textColorPrimary">#F5F8FC</item>
+        <item name="android:textColorSecondary">#9DAEC0</item>
+        <item name="android:windowMinWidthMajor">82%</item>
+        <item name="android:windowMinWidthMinor">94%</item>
+    </style>
+
 </resources>

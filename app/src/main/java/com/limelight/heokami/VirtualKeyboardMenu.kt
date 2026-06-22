@@ -43,7 +43,6 @@ import org.json.JSONException
 import org.json.JSONObject
 import java.lang.Long.parseLong
 import android.widget.FrameLayout
-import android.view.WindowManager
 import android.graphics.drawable.GradientDrawable
 import android.graphics.Color
 import android.graphics.Bitmap
@@ -1222,7 +1221,8 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
             scrollView.layoutParams = scrollParams
             scrollView.isFillViewport = true
 
-            val builder = AlertDialog.Builder(context)
+            scrollView.setBackgroundResource(R.drawable.modern_dialog_background)
+            val builder = HotkeyUi.dialogBuilder(context)
             val dialog = builder.setTitle("VK_CODE")
                 .setView(scrollView)
                 .setNegativeButton(R.string.virtual_keyboard_menu_cancel_button, null)
@@ -1234,7 +1234,7 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
                 val dm = context.resources.displayMetrics
                 window?.setLayout((dm.widthPixels * 0.98f).toInt(),
                     (dm.heightPixels * 0.9f).toInt())
-                window?.clearFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND)
+                HotkeyUi.finishDialog(dialog)
             }
 
             val horizontalScroll = HorizontalScrollView(context).apply {
@@ -1252,6 +1252,8 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
                     LinearLayout.LayoutParams.MATCH_PARENT
                 )
                 isBaselineAligned = false
+                setPadding(HotkeyUi.dp(context, 8), HotkeyUi.dp(context, 8),
+                    HotkeyUi.dp(context, 8), HotkeyUi.dp(context, 8))
             }
 
             val qwertyRows = listOf(
@@ -1325,6 +1327,8 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
                     button.setSingleLine(true)
                     button.ellipsize = TextUtils.TruncateAt.END
                     button.setBackgroundResource(R.drawable.keyboard_key_bg_selector)
+                    button.setTextColor(Color.WHITE)
+                    button.stateListAnimator = null
                     button.setOnClickListener {
                         if (buttonTextEditText?.text.toString() == "") {
                             buttonTextEditText?.setText(vkMap[vkName]?.getVKName() ?: vkName)
@@ -1366,6 +1370,8 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
                 button.setSingleLine(true)
                 button.ellipsize = TextUtils.TruncateAt.END
                 button.setBackgroundResource(R.drawable.keyboard_key_bg_selector)
+                button.setTextColor(Color.WHITE)
+                button.stateListAnimator = null
                 button.setOnClickListener {
                     if (buttonTextEditText?.text.toString() == "") {
                         buttonTextEditText?.setText(vkMap[vkName]?.getVKName() ?: vkName)
@@ -1392,15 +1398,18 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
             scrollView.layoutParams = scrollParams
 
             val gridLayout = GridLayout(context).apply {
-                rowCount = (VirtualKeyboardVkCode.VKCode.entries.size + 3) / 4 // 计算行数，向上取整
-                columnCount = 4 // 每行 4 列
+                rowCount = (VirtualKeyboardVkCode.JoyCode.entries.size + 3) / 4
+                columnCount = 4
                 layoutParams = ViewGroup.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT,
                     ViewGroup.LayoutParams.WRAP_CONTENT
                 )
+                setPadding(HotkeyUi.dp(context, 12), HotkeyUi.dp(context, 8),
+                    HotkeyUi.dp(context, 12), HotkeyUi.dp(context, 8))
             }
 
-            val builder = AlertDialog.Builder(context)
+            scrollView.setBackgroundResource(R.drawable.modern_dialog_background)
+            val builder = HotkeyUi.dialogBuilder(context)
             val dialog = builder.setTitle("JOY_CODE")
                 .setView(scrollView)
                 .setNegativeButton(R.string.virtual_keyboard_menu_cancel_button, null)
@@ -1408,10 +1417,12 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
                 .create()
 
             dialog.show()
+            HotkeyUi.finishDialog(dialog)
 
             VirtualKeyboardVkCode.JoyCode.entries.forEach { code ->
                 val button = Button(context).apply {
                     text = code.name
+                    HotkeyUi.styleButton(this, false)
                     setOnClickListener {
                         if (buttonTextEditText?.text.toString() == ""){
                             buttonTextEditText?.setText(code.name)
@@ -1609,15 +1620,18 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
             scrollView.layoutParams = scrollParams
 
             val gridLayout = GridLayout(context).apply {
-                rowCount = (VirtualKeyboardVkCode.VKCode.entries.size + 3) / 4 // 计算行数，向上取整
-                columnCount = 4 // 每行 4 列
+                rowCount = elements.size.coerceAtLeast(1)
+                columnCount = 1
                 layoutParams = ViewGroup.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT,
                     ViewGroup.LayoutParams.WRAP_CONTENT
                 )
+                setPadding(HotkeyUi.dp(context, 12), HotkeyUi.dp(context, 8),
+                    HotkeyUi.dp(context, 12), HotkeyUi.dp(context, 8))
             }
 
-            val builder = AlertDialog.Builder(context)
+            scrollView.setBackgroundResource(R.drawable.modern_dialog_background)
+            val builder = HotkeyUi.dialogBuilder(context)
             val dialog = builder.setTitle("BUTTON_LIST")
                 .setView(scrollView)
                 .setNegativeButton(R.string.virtual_keyboard_menu_cancel_button, null)
@@ -1625,19 +1639,22 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
                 .create()
 
             dialog.show()
+            HotkeyUi.finishDialog(dialog)
             val groupList = arrayListOf<Int>()
             elements.forEach { element ->
                 if (elementIDEditText != null) {
                     gridLayout.addView(Button(context).apply {
                         text = "ID: ${element.elementId}  NAME: ${element.text}"
+                        HotkeyUi.styleButton(this, false)
                         setOnClickListener {
                             elementIDEditText.setText(element.elementId.toString())
                             dialog.dismiss()
                         }
                         layoutParams = GridLayout.LayoutParams().apply {
                             width = 0
-                            height = ViewGroup.LayoutParams.WRAP_CONTENT
-                            columnSpec = GridLayout.spec(GridLayout.UNDEFINED, 2f) // 每个按钮占1列，权重1
+                            height = HotkeyUi.dp(context, 44)
+                            setMargins(0, 0, 0, HotkeyUi.dp(context, 8))
+                            columnSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f)
                             rowSpec = GridLayout.spec(GridLayout.UNDEFINED)
                         }
                     })
@@ -1645,14 +1662,16 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
                     groupList.add(element.group)
                     gridLayout.addView(Button(context).apply {
                         text = "GROUP_ID: ${element.group}"
+                        HotkeyUi.styleButton(this, false)
                         setOnClickListener {
                             groupEditText.setText(element.group.toString())
                             dialog.dismiss()
                         }
                         layoutParams = GridLayout.LayoutParams().apply {
                             width = 0
-                            height = ViewGroup.LayoutParams.WRAP_CONTENT
-                            columnSpec = GridLayout.spec(GridLayout.UNDEFINED, 2f) // 每个按钮占1列，权重1
+                            height = HotkeyUi.dp(context, 44)
+                            setMargins(0, 0, 0, HotkeyUi.dp(context, 8))
+                            columnSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f)
                             rowSpec = GridLayout.spec(GridLayout.UNDEFINED)
                         }
                     })

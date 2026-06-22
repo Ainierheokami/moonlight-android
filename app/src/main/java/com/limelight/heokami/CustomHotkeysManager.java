@@ -5,9 +5,14 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.text.InputType;
 import android.util.Log;
+import android.view.Gravity;
+import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
 import android.widget.EditText;
 import android.widget.LinearLayout;
+import android.widget.ScrollView;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.google.gson.Gson;
@@ -196,24 +201,49 @@ public class CustomHotkeysManager {
      */
     public static void showManageDialog(Game game, VirtualKeyboard vk, Runnable onChanged) {
         List<CustomHotkey> items = new ArrayList<>(load(game));
-        CharSequence[] names;
+        LinearLayout content = new LinearLayout(game);
+        content.setOrientation(LinearLayout.VERTICAL);
+        content.setBackgroundResource(R.drawable.modern_dialog_background);
+        int padding = HotkeyUi.dp(game, 16);
+        content.setPadding(padding, HotkeyUi.dp(game, 8), padding, HotkeyUi.dp(game, 4));
+
+        TextView summary = new TextView(game);
+        summary.setText(game.getString(R.string.custom_hotkeys_summary, items.size()));
+        summary.setTextColor(0xFF9DAEC0);
+        summary.setTextSize(13);
+        summary.setPadding(HotkeyUi.dp(game, 4), 0, HotkeyUi.dp(game, 4), HotkeyUi.dp(game, 12));
+        content.addView(summary);
+
+        ScrollView scrollView = new ScrollView(game);
+        scrollView.setFillViewport(true);
+        LinearLayout list = new LinearLayout(game);
+        list.setOrientation(LinearLayout.VERTICAL);
+        scrollView.addView(list, new ScrollView.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        int listHeight = Math.min(HotkeyUi.dp(game, 360),
+                Math.round(game.getResources().getDisplayMetrics().heightPixels * 0.52f));
+        content.addView(scrollView, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, listHeight));
+
         if (items.isEmpty()) {
-            names = new CharSequence[]{ game.getString(R.string.custom_hotkeys_empty) };
+            TextView empty = new TextView(game);
+            empty.setText(R.string.custom_hotkeys_empty);
+            empty.setTextColor(0xFFB8C4D2);
+            empty.setTextSize(15);
+            empty.setGravity(Gravity.CENTER);
+            empty.setPadding(padding, HotkeyUi.dp(game, 48), padding, HotkeyUi.dp(game, 48));
+            list.addView(empty, new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
         } else {
-            names = new CharSequence[items.size()];
-            for (int i = 0; i < items.size(); i++) {
-                names[i] = items.get(i).name;
+            for (CustomHotkey item : items) {
+                list.addView(createHotkeyRow(game, item, () ->
+                        showItemActionsDialog(game, vk, items, item, onChanged)));
             }
         }
 
-        AlertDialog.Builder builder = new AlertDialog.Builder(game);
+        AlertDialog.Builder builder = HotkeyUi.dialogBuilder(game);
         builder.setTitle(game.getString(R.string.custom_hotkeys_manage_title));
-
-        builder.setItems(names, (dialog, which) -> {
-            if (items.isEmpty()) return; // 如果列表为空则不响应点击
-            CustomHotkey target = items.get(which);
-            showItemActionsDialog(game, vk, items, target, onChanged);
-        });
+        builder.setView(content);
 
         builder.setPositiveButton(game.getString(R.string.custom_hotkeys_add), (d, w) -> {
             promptForName(game, null, name -> {
@@ -232,7 +262,53 @@ public class CustomHotkeysManager {
         });
 
         builder.setNegativeButton(game.getString(R.string.cancel_button), null);
-        builder.show();
+        AlertDialog dialog = builder.show();
+        HotkeyUi.finishDialog(dialog);
+    }
+
+    private static View createHotkeyRow(Context context, CustomHotkey item, Runnable onClick) {
+        LinearLayout row = new LinearLayout(context);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        row.setGravity(Gravity.CENTER_VERTICAL);
+        row.setBackgroundResource(R.drawable.macro_item_background);
+        row.setClickable(true);
+        row.setFocusable(true);
+        row.setPadding(HotkeyUi.dp(context, 14), HotkeyUi.dp(context, 10),
+                HotkeyUi.dp(context, 8), HotkeyUi.dp(context, 10));
+        LinearLayout.LayoutParams rowParams = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        rowParams.bottomMargin = HotkeyUi.dp(context, 8);
+        row.setLayoutParams(rowParams);
+
+        LinearLayout labels = new LinearLayout(context);
+        labels.setOrientation(LinearLayout.VERTICAL);
+        TextView name = new TextView(context);
+        name.setText(item.name);
+        name.setTextColor(0xFFF5F8FC);
+        name.setTextSize(16);
+        name.setMaxLines(1);
+        name.setEllipsize(android.text.TextUtils.TruncateAt.END);
+        TextView count = new TextView(context);
+        count.setText(context.getString(R.string.custom_hotkeys_action_count,
+                item.actions == null ? 0 : item.actions.size()));
+        count.setTextColor(0xFF8FA0B2);
+        count.setTextSize(12);
+        count.setPadding(0, HotkeyUi.dp(context, 2), 0, 0);
+        labels.addView(name);
+        labels.addView(count);
+        row.addView(labels, new LinearLayout.LayoutParams(0,
+                ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+
+        Button edit = new Button(context);
+        edit.setText(R.string.edit_button);
+        HotkeyUi.styleButton(edit, false);
+        LinearLayout.LayoutParams buttonParams = new LinearLayout.LayoutParams(
+                HotkeyUi.dp(context, 72), HotkeyUi.dp(context, 40));
+        row.addView(edit, buttonParams);
+        View.OnClickListener listener = view -> onClick.run();
+        row.setOnClickListener(listener);
+        edit.setOnClickListener(listener);
+        return row;
     }
 
     private static void showItemActionsDialog(Game game, VirtualKeyboard vk, List<CustomHotkey> items, CustomHotkey target, Runnable onChanged) {
@@ -241,7 +317,7 @@ public class CustomHotkeysManager {
                 game.getString(R.string.custom_hotkeys_rename),
                 game.getString(R.string.custom_hotkeys_delete)
         };
-        new AlertDialog.Builder(game)
+        AlertDialog dialog = HotkeyUi.dialogBuilder(game)
                 .setTitle(target.name)
                 .setItems(options, (d, which) -> {
                     if (which == 0) { // 编辑宏
@@ -257,7 +333,7 @@ public class CustomHotkeysManager {
                             if (onChanged != null) onChanged.run();
                         });
                     } else if (which == 2) { // 删除
-                        new AlertDialog.Builder(game)
+                        AlertDialog confirmDialog = HotkeyUi.dialogBuilder(game)
                                 .setMessage(R.string.custom_hotkeys_confirm_delete)
                                 .setPositiveButton(R.string.confirm_button, (dd, ww) -> {
                                     items.remove(target);
@@ -266,10 +342,12 @@ public class CustomHotkeysManager {
                                 })
                                 .setNegativeButton(R.string.cancel_button, null)
                                 .show();
+                        HotkeyUi.finishDialog(confirmDialog);
                     }
                 })
                 .setNegativeButton(R.string.cancel_button, null)
                 .show();
+        HotkeyUi.finishDialog(dialog);
     }
 
     /**
@@ -369,13 +447,15 @@ public class CustomHotkeysManager {
         input.setHint(context.getString(R.string.custom_hotkeys_name_hint));
         input.setInputType(InputType.TYPE_CLASS_TEXT);
         if (defaultName != null) input.setText(defaultName);
+        input.setSelectAllOnFocus(defaultName != null);
+        HotkeyUi.styleInput(input);
         int pad = (int) (context.getResources().getDisplayMetrics().density * 16);
         LinearLayout wrapper = new LinearLayout(context);
         wrapper.setOrientation(LinearLayout.VERTICAL);
         wrapper.setPadding(pad, pad, pad, pad);
         wrapper.addView(input, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
 
-        new AlertDialog.Builder(context)
+        AlertDialog dialog = HotkeyUi.dialogBuilder(context)
                 .setTitle(R.string.custom_hotkeys_name_hint)
                 .setView(wrapper)
                 .setPositiveButton(R.string.confirm_button, (d, w) -> {
@@ -385,6 +465,7 @@ public class CustomHotkeysManager {
                 })
                 .setNegativeButton(R.string.cancel_button, null)
                 .show();
+        HotkeyUi.finishDialog(dialog);
     }
 
     interface NameCallback { void onName(String name); }

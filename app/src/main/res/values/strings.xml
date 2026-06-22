@@ -486,6 +486,8 @@
     <string name="virtual_keyboard_menu_set_the_handle_arrow_keys">Set the handle arrow keys</string>
     <string name="macro_editor_title">Macro editor</string>
     <string name="macro_editor_add_title">Edit macro actions</string>
+    <string name="macro_editor_empty">暂无宏动作，点击“新增宏”开始配置</string>
+    <string name="macro_editor_action_count">共 %1$d 个动作，可长按拖动排序</string>
     <string name="macro_editor_fast_key_down_up">Quickly add press release button</string>
     <string name="macro_editor_fast_hot_key">Quickly add HotKeys</string>
     <string name="macro_type_key_up">Key Up</string>
@@ -541,6 +543,8 @@
     <string name="custom_hotkeys_empty">暂无自定义热键，点击“新增热键”创建</string>
     <string name="custom_hotkeys_confirm_delete">确定删除该自定义热键吗？</string>
     <string name="custom_hotkeys_save_success">已保存自定义热键</string>
+    <string name="custom_hotkeys_summary">共 %1$d 个自定义热键</string>
+    <string name="custom_hotkeys_action_count">%1$d 个动作</string>
 
     <!-- 配对状态字符串 -->
     <string name="pairing_status_pairing">配对中: PIN码 %s</string>
