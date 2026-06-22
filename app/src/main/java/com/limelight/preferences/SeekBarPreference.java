@@ -16,6 +16,8 @@ import android.widget.TextView;
 
 import java.util.Locale;
 
+import com.limelight.R;
+
 // Based on a Stack Overflow example: http://stackoverflow.com/questions/1974193/slider-on-my-preferencescreen
 public class SeekBarPreference extends DialogPreference
 {
@@ -202,7 +204,7 @@ public class SeekBarPreference extends DialogPreference
         }
         String t;
         if (getKey() != null && getKey().equals("seekbar_background_reconnect_timeout") && value == 0) {
-            t = "永不超时";
+            t = context.getString(R.string.seekbar_never_timeout);
         } else if (divisor != 1) {
             float floatValue = value / (float) divisor;
             t = String.format(Locale.getDefault(), "%.1f", floatValue);
@@ -219,13 +221,13 @@ public class SeekBarPreference extends DialogPreference
         valueEditText.setText(String.valueOf(currentValue));
         valueEditText.setSelection(valueEditText.getText().length());
         dialog.setTitle(getTitle());
-        dialog.setMessage("输入数值，范围 " + minValue + " - " + maxValue);
+        dialog.setMessage(context.getString(R.string.seekbar_input_dialog_message, minValue, maxValue));
         dialog.setView(valueEditText);
         dialog.setPositiveButton(android.R.string.ok, (dialogInterface, i) -> {
             try {
                 setProgress(Integer.parseInt(valueEditText.getText().toString().trim()));
             } catch (NumberFormatException e) {
-                valueEditText.setError("请输入数字");
+                valueEditText.setError(context.getString(R.string.seekbar_input_number_error));
             }
         });
         dialog.setNegativeButton(android.R.string.cancel, null);

@@ -4446,7 +4446,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         this.prefConfig = com.limelight.preferences.PreferenceConfiguration.readPreferences(this);
 
         // 如果存在临时触摸模式设置，则重新应用它
-        if (temporaryTouchMode != -1) {
+        if (temporaryTouchMode != -1 && conn != null && streamView != null) {
             changeTouchMode(temporaryTouchMode);
         }
 
