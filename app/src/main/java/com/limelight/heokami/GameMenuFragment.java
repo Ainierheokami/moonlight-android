@@ -75,8 +75,6 @@ public class GameMenuFragment extends Fragment {
     private boolean showFromLeft = false;
     private long lastDisconnectTapMs = 0;
     private android.animation.ValueAnimator holdAnimator = null;
-    private ItemTouchHelper sectionOrderTouchHelper;
-
     // 动画持续时间
     private static final int ANIMATION_DURATION = 300;
 
@@ -670,77 +668,48 @@ public class GameMenuFragment extends Fragment {
 
     private void showSectionOrderDialog() {
         List<MenuSection> sections = new ArrayList<>(getOrderedSections());
-        RecyclerView recyclerView = new RecyclerView(game);
+        View dialogView = LayoutInflater.from(game).inflate(R.layout.dialog_section_order, null);
+        TextView subtitle = dialogView.findViewById(R.id.sectionOrderSubtitle);
+        RecyclerView recyclerView = dialogView.findViewById(R.id.sectionOrderList);
+        Button resetButton = dialogView.findViewById(R.id.sectionOrderResetButton);
+        Button doneButton = dialogView.findViewById(R.id.sectionOrderDoneButton);
+
+        subtitle.setText(R.string.game_menu_section_order_hint);
+
         recyclerView.setLayoutManager(new LinearLayoutManager(game));
         recyclerView.setOverScrollMode(View.OVER_SCROLL_NEVER);
         recyclerView.setNestedScrollingEnabled(false);
         recyclerView.setClipToPadding(false);
-        recyclerView.setPadding(dp(12), dp(8), dp(12), dp(4));
-        recyclerView.setBackgroundResource(R.drawable.dialog_background);
-
-        TextView header = new TextView(game);
-        header.setText(R.string.game_menu_section_order_hint);
-        header.setTextColor(0xFF6A7280);
-        header.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
-        header.setPadding(dp(20), dp(2), dp(20), dp(10));
-
-        LinearLayout container = new LinearLayout(game);
-        container.setOrientation(LinearLayout.VERTICAL);
-        container.addView(header);
-        container.addView(recyclerView, new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                dp(300)));
+        recyclerView.setPadding(0, dp(2), 0, dp(2));
 
         SectionOrderAdapter adapter = new SectionOrderAdapter(sections);
         recyclerView.setAdapter(adapter);
-        sectionOrderTouchHelper = new ItemTouchHelper(new ItemTouchHelper.SimpleCallback(
-                ItemTouchHelper.UP | ItemTouchHelper.DOWN,
-                0) {
-            @Override
-            public boolean isLongPressDragEnabled() {
-                return false;
-            }
 
-            @Override
-            public boolean isItemViewSwipeEnabled() {
-                return false;
-            }
+        final android.app.AlertDialog dialog = new android.app.AlertDialog.Builder(game)
+                .setView(dialogView)
+                .create();
 
-            @Override
-            public int getMovementFlags(RecyclerView recyclerView, RecyclerView.ViewHolder viewHolder) {
-                return makeMovementFlags(ItemTouchHelper.UP | ItemTouchHelper.DOWN, 0);
-            }
-
-            @Override
-            public boolean onMove(RecyclerView recyclerView, RecyclerView.ViewHolder viewHolder, RecyclerView.ViewHolder target) {
-                int from = viewHolder.getAdapterPosition();
-                int to = target.getAdapterPosition();
-                if (from == RecyclerView.NO_POSITION || to == RecyclerView.NO_POSITION) {
-                    return false;
-                }
-                adapter.moveItem(from, to);
-                return true;
-            }
-
-            @Override
-            public void onSwiped(RecyclerView.ViewHolder viewHolder, int direction) {
-            }
+        resetButton.setOnClickListener(v -> {
+            resetSectionOrder();
+            sections.clear();
+            sections.addAll(getOrderedSections());
+            adapter.notifyDataSetChanged();
         });
-        sectionOrderTouchHelper.attachToRecyclerView(recyclerView);
+        doneButton.setOnClickListener(v -> {
+            saveSectionOrder(sections);
+            renderDashboard();
+            dialog.dismiss();
+        });
 
-        new android.app.AlertDialog.Builder(game)
-                .setTitle(R.string.game_menu_section_order_title)
-                .setView(container)
-                .setPositiveButton(android.R.string.ok, (dialog, which) -> {
-                    saveSectionOrder(sections);
-                    renderDashboard();
-                })
-                .setNeutralButton(R.string.game_menu_section_order_reset, (dialog, which) -> {
-                    resetSectionOrder();
-                    renderDashboard();
-                })
-                .setNegativeButton(android.R.string.cancel, null)
-                .show();
+        dialog.show();
+    }
+
+    public static List<String> debugSectionOrderTitles() {
+        List<String> titles = new ArrayList<>();
+        for (MenuSection section : MenuSection.values()) {
+            titles.add(section.name());
+        }
+        return titles;
     }
 
     private final class SectionOrderAdapter extends RecyclerView.Adapter<SectionOrderAdapter.SectionViewHolder> {
@@ -752,86 +721,48 @@ public class GameMenuFragment extends Fragment {
 
         @Override
         public SectionViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
-            LinearLayout row = new LinearLayout(game);
-            row.setOrientation(LinearLayout.HORIZONTAL);
-            row.setGravity(android.view.Gravity.CENTER_VERTICAL);
-            row.setPadding(dp(12), dp(10), dp(12), dp(10));
-            row.setBackgroundResource(R.drawable.button_background_dark);
-
-            TextView indexView = new TextView(game);
-            indexView.setTextColor(0xFF9AA3B2);
-            indexView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
-            indexView.setGravity(android.view.Gravity.CENTER);
-            LinearLayout.LayoutParams indexParams = new LinearLayout.LayoutParams(dp(28), ViewGroup.LayoutParams.WRAP_CONTENT);
-            row.addView(indexView, indexParams);
-
-            ImageView handle = new ImageView(game);
-            handle.setImageResource(R.drawable.ic_move);
-            handle.setAlpha(0.9f);
-            handle.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
-            LinearLayout.LayoutParams handleParams = new LinearLayout.LayoutParams(dp(24), dp(24));
-            handleParams.setMargins(dp(8), 0, dp(12), 0);
-            row.addView(handle, handleParams);
-
-            LinearLayout textColumn = new LinearLayout(game);
-            textColumn.setOrientation(LinearLayout.VERTICAL);
-            LinearLayout.LayoutParams textParams = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
-            TextView title = new TextView(game);
-            title.setTextColor(0xFFFFFFFF);
-            title.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
-            title.setSingleLine(true);
-            title.setEllipsize(TextUtils.TruncateAt.END);
-            TextView subtitle = new TextView(game);
-            subtitle.setTextColor(0xFF9AA3B2);
-            subtitle.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11);
-            subtitle.setSingleLine(true);
-            subtitle.setEllipsize(TextUtils.TruncateAt.END);
-            textColumn.addView(title);
-            textColumn.addView(subtitle);
-            row.addView(textColumn, textParams);
-
-            return new SectionViewHolder(row, indexView, handle, title, subtitle);
+            View row = LayoutInflater.from(game).inflate(R.layout.dialog_section_order_item, parent, false);
+            return new SectionViewHolder(row);
         }
 
         @Override
         public void onBindViewHolder(SectionViewHolder holder, int position) {
             MenuSection section = sections.get(position);
-            holder.indexView.setText(String.valueOf(position + 1));
             holder.titleView.setText(getString(section.titleRes));
-                holder.subtitleView.setText(position == 0 ? getString(R.string.game_menu_section_order_first) : getString(R.string.game_menu_section_order_drag_hint));
-                holder.handleView.setOnTouchListener((v, event) -> {
-                    if (event.getActionMasked() == MotionEvent.ACTION_DOWN) {
-                        if (sectionOrderTouchHelper != null) {
-                            sectionOrderTouchHelper.startDrag(holder);
-                        }
-                        return true;
-                    }
-                    return false;
-                });
-            }
+            holder.subtitleView.setText(position == 0
+                    ? getString(R.string.game_menu_section_order_first)
+                    : getString(R.string.game_menu_section_order_drag_hint));
+            holder.badgeView.setText(String.valueOf(position + 1));
+            holder.itemView.setOnLongClickListener(v -> {
+                return true;
+            });
+        }
 
         @Override
         public int getItemCount() {
             return sections.size();
         }
 
-        void moveItem(int from, int to) {
-            java.util.Collections.swap(sections, from, to);
+        private void moveSection(int from, int to) {
+            if (from < 0 || to < 0 || from >= sections.size() || to >= sections.size() || from == to) {
+                return;
+            }
+            MenuSection section = sections.remove(from);
+            sections.add(to, section);
             notifyItemMoved(from, to);
+            notifyItemRangeChanged(Math.min(from, to), Math.abs(from - to) + 1);
         }
 
-        final class SectionViewHolder extends RecyclerView.ViewHolder {
-            final TextView indexView;
-            final ImageView handleView;
+        private final class SectionViewHolder extends RecyclerView.ViewHolder {
+            final TextView badgeView;
             final TextView titleView;
             final TextView subtitleView;
 
-            SectionViewHolder(View itemView, TextView indexView, ImageView handleView, TextView titleView, TextView subtitleView) {
+            SectionViewHolder(View itemView) {
                 super(itemView);
-                this.indexView = indexView;
-                this.handleView = handleView;
-                this.titleView = titleView;
-                this.subtitleView = subtitleView;
+                badgeView = itemView.findViewById(R.id.sectionOrderBadge);
+                titleView = itemView.findViewById(R.id.sectionOrderTitleText);
+                subtitleView = itemView.findViewById(R.id.sectionOrderSubtitleText);
             }
         }
     }
