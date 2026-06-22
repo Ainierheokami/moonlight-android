@@ -119,6 +119,10 @@ public class AppView extends Activity implements AdapterFragmentCallbacks {
                         shortcutHelper.reportComputerShortcutUsed(computer);
                     }
 
+                    // Seed the running app state immediately so the first context menu
+                    // reflects an already-running session before the first poll arrives.
+                    lastRunningAppId = computer.runningGameId;
+
                     try {
                         appGridAdapter = new AppGridAdapter(AppView.this,
                                 PreferenceConfiguration.readPreferences(AppView.this),
@@ -505,11 +509,12 @@ public class AppView extends Activity implements AdapterFragmentCallbacks {
 
         AdapterContextMenuInfo info = (AdapterContextMenuInfo) menuInfo;
         AppObject selectedApp = (AppObject) appGridAdapter.getItem(info.position);
+        int effectiveRunningAppId = lastRunningAppId != 0 ? lastRunningAppId : computer.runningGameId;
 
         menu.setHeaderTitle(selectedApp.app.getAppName());
 
-        if (lastRunningAppId != 0) {
-            if (lastRunningAppId == selectedApp.app.getAppId()) {
+        if (effectiveRunningAppId != 0) {
+            if (effectiveRunningAppId == selectedApp.app.getAppId()) {
                 menu.add(Menu.NONE, START_OR_RESUME_ID, 1, getResources().getString(R.string.applist_menu_resume));
                 menu.add(Menu.NONE, QUIT_ID, 2, getResources().getString(R.string.applist_menu_quit));
             }
@@ -519,7 +524,7 @@ public class AppView extends Activity implements AdapterFragmentCallbacks {
         }
 
         // Only show the hide checkbox if this is not the currently running app or it's already hidden
-        if (lastRunningAppId != selectedApp.app.getAppId() || selectedApp.isHidden) {
+        if (effectiveRunningAppId != selectedApp.app.getAppId() || selectedApp.isHidden) {
             MenuItem hideAppItem = menu.add(Menu.NONE, HIDE_APP_ID, 3, getResources().getString(R.string.applist_menu_hide_app));
             hideAppItem.setCheckable(true);
             hideAppItem.setChecked(selectedApp.isHidden);
@@ -742,9 +747,10 @@ public class AppView extends Activity implements AdapterFragmentCallbacks {
             public void onItemClick(AdapterView<?> arg0, View arg1, int pos,
                                     long id) {
                 AppObject app = (AppObject) appGridAdapter.getItem(pos);
+                int effectiveRunningAppId = lastRunningAppId != 0 ? lastRunningAppId : computer.runningGameId;
 
                 // Only open the context menu if something is running, otherwise start it
-                if (lastRunningAppId != 0) {
+                if (effectiveRunningAppId != 0) {
                     openContextMenu(arg1);
                 } else {
                     ServerHelper.doStart(AppView.this, app.app, computer, managerBinder, selectedAddress);

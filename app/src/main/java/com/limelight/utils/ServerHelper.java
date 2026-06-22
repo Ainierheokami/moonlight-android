@@ -89,11 +89,12 @@ public class ServerHelper {
     public static void doStart(Activity parent, NvApp app, ComputerDetails computer,
                                ComputerManagerService.ComputerManagerBinder managerBinder,
                                ComputerDetails.AddressTuple startAddress) {
-        if (computer.state == ComputerDetails.State.OFFLINE || startAddress == null) {
+        ComputerDetails.AddressTuple effectiveAddress = startAddress != null ? startAddress : computer.activeAddress;
+        if (computer.state == ComputerDetails.State.OFFLINE || effectiveAddress == null) {
             Toast.makeText(parent, parent.getResources().getString(R.string.pair_pc_offline), Toast.LENGTH_SHORT).show();
             return;
         }
-        parent.startActivity(createStartIntent(parent, app, computer, managerBinder, startAddress));
+        parent.startActivity(createStartIntent(parent, app, computer, managerBinder, effectiveAddress));
     }
 
     public static void doNetworkTest(final Activity parent) {
