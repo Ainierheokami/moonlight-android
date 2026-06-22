@@ -511,8 +511,8 @@
     <string name="game_menu_audio_volume_150">150%</string>
     <string name="game_menu_audio_volume_200">200%</string>
     <string name="game_menu_slider_reset">复位</string>
-    <string name="title_checkbox_enable_game_menu_gesture_wake">启用游戏菜单手势唤醒</string>
-    <string name="summary_checkbox_enable_game_menu_gesture_wake">开启后，从屏幕左侧或右侧的全屏返回手势可以唤出游戏菜单。</string>
+    <string name="title_checkbox_enable_game_menu_gesture_wake">启用滑动菜单</string>
+    <string name="summary_checkbox_enable_game_menu_gesture_wake">开启后，使用应用内边缘滑动唤出游戏菜单，并在串流中屏蔽全屏导航返回。</string>
     <string name="seekbar_never_timeout">永不超时</string>
     <string name="seekbar_input_dialog_message">请输入数值，范围 %1$d - %2$d。</string>
     <string name="seekbar_input_number_error">请输入数字</string>

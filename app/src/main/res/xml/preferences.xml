@@ -158,7 +158,7 @@
             android:key="checkbox_enable_game_menu_gesture_wake"
             android:title="@string/title_checkbox_enable_game_menu_gesture_wake"
             android:summary="@string/summary_checkbox_enable_game_menu_gesture_wake"
-            android:defaultValue="true" />
+            android:defaultValue="false" />
         <com.limelight.preferences.SeekBarPreference
             android:key="seekbar_edge_menu_hot_zone"
             android:dialogMessage="@string/summary_seekbar_edge_menu_hot_zone"

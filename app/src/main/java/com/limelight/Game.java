@@ -233,6 +233,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
     private Object gameMenuBackCallback;
     private boolean gameMenuBackCallbackRegistered = false;
     private boolean pendingGameMenuWake = false;
+    private int systemGestureExclusionGeneration = 0;
     private static final int EDGE_MENU_INTENT_THRESHOLD_DP = 10;
     private static final int EDGE_MENU_SYSTEM_GESTURE_EXCLUSION_WIDTH_DP = 32;
     private static final long EDGE_MENU_TRAIL_HIDE_DELAY_MS = 650;
@@ -323,7 +324,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         performanceOverlayView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 10);
     }
 
-    private boolean isGameMenuGestureWakeEnabled() {
+    private boolean isEdgeGameMenuGestureEnabled() {
         return prefConfig != null && prefConfig.enableGameMenuGestureWake;
     }
 
@@ -370,7 +371,12 @@ public class Game extends Activity implements SurfaceHolder.Callback,
                     }
                 }
                 if (supportsBackAnimation && "onBackStarted".equals(name) && args != null && args.length == 1) {
-                    if (!isGameMenuGestureWakeEnabled() || GameMenu.isMenuShowing() || EditMenu.isMenuShowing()) {
+                    if (GameMenu.isMenuShowing() || EditMenu.isMenuShowing()) {
+                        pendingGameMenuWake = false;
+                        return null;
+                    }
+                    if (isEdgeGameMenuGestureEnabled()) {
+                        pendingGameMenuWake = false;
                         return null;
                     }
                     int edge = getSwipeEdgeFromBackEvent(args[0]);
@@ -389,7 +395,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
                     }
                     if (GameMenu.isMenuShowing() || EditMenu.isMenuShowing()) {
                         onBackPressed();
-                    } else if (isGameMenuGestureWakeEnabled()) {
+                    } else if (!isEdgeGameMenuGestureEnabled()) {
                         showMenu(GameMenu.Side.RIGHT);
                     }
                     return null;
@@ -2840,6 +2846,14 @@ public class Game extends Activity implements SurfaceHolder.Callback,
 
     private boolean handleEdgeMenuGesture(MotionEvent event) {
         View gestureView = getEdgeMenuGestureView();
+        if (!isEdgeGameMenuGestureEnabled()) {
+            if (edgeMenuCandidate || edgeMenuConsuming) {
+                boolean wasConsuming = edgeMenuConsuming;
+                resetEdgeMenuGesture();
+                return wasConsuming;
+            }
+            return false;
+        }
         if (gestureView == null || GameMenu.isMenuShowing() || com.limelight.heokami.EditMenu.isMenuShowing()) {
             boolean wasConsuming = edgeMenuConsuming;
             setEdgeMenuDebugText("blocked view/menu action=" + event.getActionMasked());
@@ -4482,13 +4496,18 @@ public class Game extends Activity implements SurfaceHolder.Callback,
             return;
         }
 
-        if (!excludeEdges) {
+        final int requestGeneration = ++systemGestureExclusionGeneration;
+        if (!excludeEdges || !isEdgeGameMenuGestureEnabled()) {
             setEdgeMenuDebugText("gesture exclusion OFF");
             clearSystemGestureExclusionRects();
             return;
         }
 
         exclusionView.post(() -> {
+            if (requestGeneration != systemGestureExclusionGeneration) {
+                return;
+            }
+
             int width = exclusionView.getWidth();
             int height = exclusionView.getHeight();
             if (width <= 0 || height <= 0) {
@@ -4511,6 +4530,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
             return;
         }
 
+        systemGestureExclusionGeneration++;
         java.util.List<Rect> emptyRects = java.util.Collections.emptyList();
         View decorView = getWindow() != null ? getWindow().getDecorView() : null;
         if (decorView != null) {
@@ -4545,10 +4565,16 @@ public class Game extends Activity implements SurfaceHolder.Callback,
             }
             com.limelight.heokami.GameMenu.setMenuShowing(false);
             updateSystemGestureExclusion(true);
+            return;
         }
-        
-        // 返回键只负责关闭已有菜单；游戏菜单现在由空白边缘手势唤出。
-        android.util.Log.d("GameMenu", "Back pressed with no menu showing; ignoring");
+
+        if (isEdgeGameMenuGestureEnabled()) {
+            android.util.Log.d("GameMenu", "Back pressed with edge gesture menu enabled; ignoring");
+            return;
+        }
+
+        // 未启用滑动菜单时，返回键/全屏导航返回继续作为菜单唤起入口。
+        showMenu(com.limelight.heokami.GameMenu.Side.RIGHT);
     }
 
     private void destroyVirtualControllerInstance() {

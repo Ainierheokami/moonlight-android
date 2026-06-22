@@ -370,8 +370,8 @@
     <string name="summary_seekbar_edge_menu_hot_zone">How far inward from the left/right screen edge a swipe can start.</string>
     <string name="title_seekbar_edge_menu_swipe_threshold">Slide menu swipe distance</string>
     <string name="summary_seekbar_edge_menu_swipe_threshold">How far you must drag inward before the game menu opens.</string>
-    <string name="title_checkbox_enable_game_menu_gesture_wake">Enable gesture wake for game menu</string>
-    <string name="summary_checkbox_enable_game_menu_gesture_wake">When enabled, a fullscreen back gesture can open the game menu from the left or right edge.</string>
+    <string name="title_checkbox_enable_game_menu_gesture_wake">Enable slide menu gesture</string>
+    <string name="summary_checkbox_enable_game_menu_gesture_wake">When enabled, use the app edge swipe to open the game menu and block fullscreen navigation back while streaming.</string>
     <string name="seekbar_never_timeout">Never time out</string>
     <string name="seekbar_input_dialog_message">Enter a value between %1$d and %2$d.</string>
     <string name="seekbar_input_number_error">Please enter a number.</string>

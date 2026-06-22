@@ -140,7 +140,7 @@ public class PreferenceConfiguration {
     private static final boolean DEFAULT_STREAM_ENHANCE_ROTATION_SYNC = false;
     private static final boolean DEFAULT_STREAM_ENHANCE_SUPPRESS_VIDEO = false;
     private static final boolean DEFAULT_FORCE_RESUME_CURRENT_SESSION = false;
-    private static final boolean DEFAULT_ENABLE_GAME_MENU_GESTURE_WAKE = true;
+    private static final boolean DEFAULT_ENABLE_GAME_MENU_GESTURE_WAKE = false;
     private static final String DEFAULT_STREAM_ENHANCE_MODE = "-1";
     public static final int DEFAULT_EDGE_MENU_HOT_ZONE_DP = 16;
     public static final int DEFAULT_EDGE_MENU_SWIPE_THRESHOLD_DP = 56;

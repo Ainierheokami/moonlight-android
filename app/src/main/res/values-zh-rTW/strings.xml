@@ -288,8 +288,8 @@
     <string name="summary_checkbox_gamepad_motion_fallback">如果您連線的手把或 Android 版本不支援手把感測器，請使用裝置內建的動態感測器。
 \n注意：啟用此選項可能會導致您的手把在主機被辨識為 PlayStation 控制器。</string>
     <string name="title_checkbox_gamepad_motion_fallback">模擬手把動態感測器支援</string>
-    <string name="title_checkbox_enable_game_menu_gesture_wake">啟用遊戲選單手勢喚醒</string>
-    <string name="summary_checkbox_enable_game_menu_gesture_wake">開啟後，從螢幕左側或右側的全螢幕返回手勢可以叫出遊戲選單。</string>
+    <string name="title_checkbox_enable_game_menu_gesture_wake">啟用滑動選單</string>
+    <string name="summary_checkbox_enable_game_menu_gesture_wake">開啟後，使用應用程式內的邊緣滑動叫出遊戲選單，並在串流中屏蔽全螢幕導覽返回。</string>
     <string name="seekbar_never_timeout">永不逾時</string>
     <string name="seekbar_input_dialog_message">請輸入數值，範圍 %1$d - %2$d。</string>
     <string name="seekbar_input_number_error">請輸入數字</string>
