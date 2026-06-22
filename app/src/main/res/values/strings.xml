@@ -581,7 +581,11 @@
     <string name="game_menu_audio_volume_150">150%</string>
     <string name="game_menu_audio_volume_200">200%</string>
     <string name="game_menu_slider_reset">Reset</string>
+    <string name="game_menu_slider_input_message">Enter a value from %1$d to %2$d. Step: %3$d.</string>
     <string name="game_menu_touchpad_sensitivity">Touch sensitivity</string>
+    <string name="game_menu_section_order">Section order</string>
+    <string name="game_menu_section_order_title">Manage section order</string>
+    <string name="game_menu_section_order_reset">Reset order</string>
     <string name="game_menu_stream_presets">Stream presets</string>
     <string name="game_menu_stream_presets_short">Presets</string>
     <string name="game_menu_stream_enhance">Enhance</string>

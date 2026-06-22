@@ -6,9 +6,14 @@ import android.animation.ObjectAnimator;
 import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
+import android.content.SharedPreferences;
+import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.preference.PreferenceManager;
+import android.text.InputType;
+import android.text.TextUtils;
 import android.util.Log;
 import android.util.TypedValue;
 import android.view.LayoutInflater;
@@ -20,6 +25,7 @@ import android.widget.Toast;
 import android.app.Fragment;
 
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.GridLayout;
 import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
@@ -47,6 +53,7 @@ import java.util.List;
 public class GameMenuFragment extends Fragment {
 
     private static final String PREF_LAST_STREAM_DISPLAY_LABEL = "last_stream_display_label";
+    private static final String PREF_GAME_MENU_SECTION_ORDER = "game_menu_section_order";
 
     private Game game;
     private NvConnection conn;
@@ -307,10 +314,14 @@ public class GameMenuFragment extends Fragment {
         TextView chip = new TextView(game);
         chip.setText(label + "\n" + value);
         chip.setTextColor(0xFFE6E6E6);
-        chip.setTextSize(TypedValue.COMPLEX_UNIT_SP, 10);
+        chip.setTextSize(TypedValue.COMPLEX_UNIT_SP, 9);
         chip.setGravity(android.view.Gravity.CENTER);
+        chip.setMaxLines(2);
+        chip.setEllipsize(TextUtils.TruncateAt.END);
+        chip.setIncludeFontPadding(false);
+        chip.setLineSpacing(0, 0.92f);
         chip.setBackgroundResource(R.drawable.menu_panel_background);
-        chip.setPadding(dp(6), dp(6), dp(6), dp(6));
+        chip.setPadding(dp(5), dp(5), dp(5), dp(5));
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, dp(42), 1f);
         lp.setMargins(dp(3), 0, dp(3), 0);
         statusContainer.addView(chip, lp);
@@ -321,7 +332,7 @@ public class GameMenuFragment extends Fragment {
         dashboardContainer.removeAllViews();
 
         List<MenuAction> actions = buildMenuActions();
-        for (MenuSection section : MenuSection.values()) {
+        for (MenuSection section : getOrderedSections()) {
             List<MenuAction> sectionActions = new ArrayList<>();
             for (MenuAction action : actions) {
                 if (action.visible && action.section == section) {
@@ -432,6 +443,7 @@ public class GameMenuFragment extends Fragment {
         actions.add(new MenuAction("portal_edit", R.string.game_menu_portal_toggle_edit, 0, MenuSection.PORTALS, 30, false, true, game.getPortalManagerView() != null, v -> togglePortalEditMode()));
         actions.add(new MenuAction("portal_manage", R.string.game_menu_portal_manage, 0, MenuSection.PORTALS, 40, false, true, game.getPortalManagerView() != null, v -> showPortalManagerDialog()));
 
+        actions.add(new MenuAction("section_order", R.string.game_menu_section_order, 0, MenuSection.CUSTOM, 5, false, true, true, v -> showSectionOrderDialog()));
         actions.add(new MenuAction("edit_hotkeys", R.string.game_menu_edit_hotkeys, 0, MenuSection.CUSTOM, 10, false, true, true, v -> openCustomHotkeyManager()));
         List<CustomHotkeysManager.CustomHotkey> customItems = CustomHotkeysManager.load(game);
         int priority = 20;
@@ -479,6 +491,8 @@ public class GameMenuFragment extends Fragment {
         label.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
         label.setGravity(android.view.Gravity.CENTER_VERTICAL);
         label.setSingleLine(false);
+        label.setMaxLines(2);
+        label.setEllipsize(TextUtils.TruncateAt.END);
         LinearLayout.LayoutParams labelParams = new LinearLayout.LayoutParams(dp(82), ViewGroup.LayoutParams.MATCH_PARENT);
         row.addView(label, labelParams);
 
@@ -501,6 +515,10 @@ public class GameMenuFragment extends Fragment {
 
         final int[] currentValue = new int[]{progressToValue(slider, seekBar.getProgress())};
         updateSliderLabel(label, slider, currentValue[0]);
+        View.OnClickListener editSliderValue = v -> showSliderValueDialog(slider, seekBar, label, currentValue);
+        label.setOnClickListener(editSliderValue);
+        label.setClickable(true);
+        label.setForeground(getSelectableItemBackground());
         seekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
@@ -537,6 +555,193 @@ public class GameMenuFragment extends Fragment {
 
     private void updateSliderLabel(TextView label, MenuSlider slider, int value) {
         label.setText(getString(slider.titleRes) + "\n" + value + "%");
+    }
+
+    private Drawable getSelectableItemBackground() {
+        TypedValue outValue = new TypedValue();
+        game.getTheme().resolveAttribute(android.R.attr.selectableItemBackground, outValue, true);
+        return game.getResources().getDrawable(outValue.resourceId);
+    }
+
+    private void showSliderValueDialog(MenuSlider slider, SeekBar seekBar, TextView label, int[] currentValue) {
+        EditText input = new EditText(game);
+        input.setInputType(InputType.TYPE_CLASS_NUMBER);
+        input.setSingleLine(true);
+        input.setSelectAllOnFocus(true);
+        input.setText(String.valueOf(currentValue[0]));
+        input.setHint(slider.min + " - " + slider.max);
+        int padding = dp(18);
+        input.setPadding(padding, dp(8), padding, dp(8));
+
+        LinearLayout container = new LinearLayout(game);
+        container.setOrientation(LinearLayout.VERTICAL);
+        container.setPadding(dp(20), dp(8), dp(20), 0);
+
+        TextView message = new TextView(game);
+        message.setText(getString(R.string.game_menu_slider_input_message, slider.min, slider.max, slider.step));
+        message.setTextColor(0xFF555555);
+        message.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
+        message.setPadding(0, 0, 0, dp(8));
+        container.addView(message);
+        container.addView(input, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT));
+
+        new android.app.AlertDialog.Builder(game)
+                .setTitle(getString(slider.titleRes))
+                .setView(container)
+                .setPositiveButton(android.R.string.ok, (dialog, which) -> {
+                    int value;
+                    try {
+                        value = Integer.parseInt(input.getText().toString().trim());
+                    } catch (NumberFormatException e) {
+                        Toast.makeText(game, R.string.seekbar_input_number_error, Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+                    value = normalizeSliderValue(slider, value);
+                    seekBar.setProgress(valueToProgress(slider, value));
+                    currentValue[0] = value;
+                    updateSliderLabel(label, slider, value);
+                    slider.applyCallback.apply(value);
+                })
+                .setNegativeButton(android.R.string.cancel, null)
+                .show();
+        input.requestFocus();
+    }
+
+    private int normalizeSliderValue(MenuSlider slider, int value) {
+        int clamped = Math.max(slider.min, Math.min(slider.max, value));
+        int offset = clamped - slider.min;
+        int roundedSteps = Math.round(offset / (float) slider.step);
+        return Math.max(slider.min, Math.min(slider.max, slider.min + roundedSteps * slider.step));
+    }
+
+    private List<MenuSection> getDefaultSectionOrder() {
+        List<MenuSection> sections = new ArrayList<>();
+        for (MenuSection section : MenuSection.values()) {
+            sections.add(section);
+        }
+        return sections;
+    }
+
+    private List<MenuSection> getOrderedSections() {
+        List<MenuSection> ordered = new ArrayList<>();
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(game);
+        String savedOrder = prefs.getString(PREF_GAME_MENU_SECTION_ORDER, null);
+        if (savedOrder != null) {
+            String[] names = savedOrder.split(",");
+            for (String name : names) {
+                try {
+                    MenuSection section = MenuSection.valueOf(name);
+                    if (!ordered.contains(section)) {
+                        ordered.add(section);
+                    }
+                } catch (IllegalArgumentException ignored) {
+                }
+            }
+        }
+
+        for (MenuSection section : MenuSection.values()) {
+            if (!ordered.contains(section)) {
+                ordered.add(section);
+            }
+        }
+        return ordered;
+    }
+
+    private void saveSectionOrder(List<MenuSection> sections) {
+        StringBuilder builder = new StringBuilder();
+        for (MenuSection section : sections) {
+            if (builder.length() > 0) {
+                builder.append(',');
+            }
+            builder.append(section.name());
+        }
+        PreferenceManager.getDefaultSharedPreferences(game)
+                .edit()
+                .putString(PREF_GAME_MENU_SECTION_ORDER, builder.toString())
+                .apply();
+    }
+
+    private void resetSectionOrder() {
+        PreferenceManager.getDefaultSharedPreferences(game)
+                .edit()
+                .remove(PREF_GAME_MENU_SECTION_ORDER)
+                .apply();
+    }
+
+    private void showSectionOrderDialog() {
+        List<MenuSection> sections = new ArrayList<>(getOrderedSections());
+        LinearLayout container = new LinearLayout(game);
+        container.setOrientation(LinearLayout.VERTICAL);
+        container.setPadding(dp(16), dp(8), dp(16), 0);
+
+        final Runnable[] redraw = new Runnable[1];
+        redraw[0] = () -> {
+            container.removeAllViews();
+            for (int i = 0; i < sections.size(); i++) {
+                final int index = i;
+                LinearLayout row = new LinearLayout(game);
+                row.setOrientation(LinearLayout.HORIZONTAL);
+                row.setGravity(android.view.Gravity.CENTER_VERTICAL);
+                row.setPadding(0, dp(4), 0, dp(4));
+
+                TextView title = new TextView(game);
+                title.setText(getString(sections.get(index).titleRes));
+                title.setTextColor(0xFF222222);
+                title.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
+                title.setSingleLine(true);
+                title.setEllipsize(TextUtils.TruncateAt.END);
+                row.addView(title, new LinearLayout.LayoutParams(0, dp(40), 1f));
+
+                Button up = makeSectionOrderButton("↑");
+                up.setEnabled(index > 0);
+                up.setOnClickListener(v -> {
+                    java.util.Collections.swap(sections, index, index - 1);
+                    redraw[0].run();
+                });
+                row.addView(up);
+
+                Button down = makeSectionOrderButton("↓");
+                down.setEnabled(index < sections.size() - 1);
+                down.setOnClickListener(v -> {
+                    java.util.Collections.swap(sections, index, index + 1);
+                    redraw[0].run();
+                });
+                row.addView(down);
+
+                container.addView(row, new LinearLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.WRAP_CONTENT));
+            }
+        };
+        redraw[0].run();
+
+        new android.app.AlertDialog.Builder(game)
+                .setTitle(R.string.game_menu_section_order_title)
+                .setView(container)
+                .setPositiveButton(android.R.string.ok, (dialog, which) -> {
+                    saveSectionOrder(sections);
+                    renderDashboard();
+                })
+                .setNeutralButton(R.string.game_menu_section_order_reset, (dialog, which) -> {
+                    resetSectionOrder();
+                    renderDashboard();
+                })
+                .setNegativeButton(android.R.string.cancel, null)
+                .show();
+    }
+
+    private Button makeSectionOrderButton(String text) {
+        Button button = new Button(game);
+        button.setAllCaps(false);
+        button.setText(text);
+        button.setTextSize(TypedValue.COMPLEX_UNIT_SP, 18);
+        button.setPadding(0, 0, 0, 0);
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(dp(44), dp(36));
+        params.setMargins(dp(6), 0, 0, 0);
+        button.setLayoutParams(params);
+        return button;
     }
 
     private Button createActionButton(MenuAction action) {

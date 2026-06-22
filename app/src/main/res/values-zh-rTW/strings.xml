@@ -302,4 +302,8 @@
     <!-- 遊戲選單：新增項 -->
     <string name="game_menu_change_touch">觸控模式</string>
     <string name="game_menu_toggle_perf_overlay">切換效能疊加層</string>
+    <string name="game_menu_slider_input_message">請輸入 %1$d 到 %2$d 之間的數值，步進為 %3$d。</string>
+    <string name="game_menu_section_order">分類順序</string>
+    <string name="game_menu_section_order_title">管理分類順序</string>
+    <string name="game_menu_section_order_reset">恢復預設</string>
 </resources>
