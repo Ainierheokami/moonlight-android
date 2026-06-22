@@ -36,6 +36,7 @@ class MacroAdapter(private val actions: MutableList<MacroAction>, private val di
 
     @SuppressLint("SetTextI18n")
     override fun onBindViewHolder(holder: MacroViewHolder, position: Int) {
+        ensureFullWidth(holder)
         val action = getItem(position)
 //        holder.editText.setText("Index: $position, Type: ${action.type}, Data: ${action.data}")
         var dataText = "${action.data}"
@@ -75,6 +76,26 @@ class MacroAdapter(private val actions: MutableList<MacroAction>, private val di
         holder.editButton.setOnClickListener {
             showAddMacroDialog(position)
             dialog.dismiss()
+        }
+    }
+
+    override fun onViewAttachedToWindow(holder: MacroViewHolder) {
+        super.onViewAttachedToWindow(holder)
+        ensureFullWidth(holder)
+    }
+
+    private fun ensureFullWidth(holder: MacroViewHolder) {
+        val recyclerView = holder.itemView.parent as? RecyclerView ?: return
+        val availableWidth = recyclerView.width - recyclerView.paddingLeft - recyclerView.paddingRight
+        if (availableWidth <= 0) return
+        val params = holder.itemView.layoutParams ?: RecyclerView.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT,
+            ViewGroup.LayoutParams.WRAP_CONTENT
+        )
+        if (params.width != availableWidth) {
+            params.width = availableWidth
+            params.height = ViewGroup.LayoutParams.WRAP_CONTENT
+            holder.itemView.layoutParams = params
         }
     }
 
