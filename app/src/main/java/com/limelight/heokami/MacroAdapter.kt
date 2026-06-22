@@ -27,6 +27,10 @@ class MacroAdapter(private val actions: MutableList<MacroAction>, private val di
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): MacroViewHolder {
         val itemView = LayoutInflater.from(parent.context).inflate(R.layout.macro_item, parent, false)
+        itemView.layoutParams = RecyclerView.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT,
+            ViewGroup.LayoutParams.WRAP_CONTENT
+        )
         return MacroViewHolder(itemView)
     }
 
