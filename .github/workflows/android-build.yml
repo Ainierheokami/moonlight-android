@@ -35,11 +35,27 @@ jobs:
 
       - name: Install Android packages
         run: |
-          sdkmanager --install \
-            "platform-tools" \
-            "platforms;android-35" \
-            "build-tools;35.0.0" \
-            "ndk;27.0.12077973"
+          install_android_packages() {
+            sdkmanager --install \
+              "platform-tools" \
+              "platforms;android-35" \
+              "build-tools;35.0.0" \
+              "ndk;27.0.12077973"
+          }
+
+          for attempt in 1 2 3; do
+            if install_android_packages; then
+              break
+            fi
+
+            if [ "$attempt" -eq 3 ]; then
+              exit 1
+            fi
+
+            echo "Android package installation failed; retrying after cleanup."
+            rm -rf "$ANDROID_HOME/ndk/27.0.12077973" "$ANDROID_HOME/.temp" "$ANDROID_HOME/temp"
+            sleep 10
+          done
           yes | sdkmanager --licenses >/dev/null
 
       - name: Normalize CI Gradle properties
