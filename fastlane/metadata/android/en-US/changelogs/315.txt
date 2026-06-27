@@ -1,0 +1,5 @@
+- Added per-host stream audio gain settings with higher boost support and in-game slider controls
+- Improved in-game menu controls, back gesture handling, and resume-session behavior
+- Added customizable PC list section ordering with refreshed dialog controls and localized prompts
+- Improved hotkey and macro editor layout stability for fixed-width rows and cleaner controls
+- Reduced repeated device refresh feedback after initial discovery
