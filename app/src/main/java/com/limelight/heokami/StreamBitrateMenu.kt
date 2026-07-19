@@ -3,7 +3,6 @@ package com.limelight.heokami
 import android.app.AlertDialog
 import android.os.Handler
 import android.os.Looper
-import android.preference.PreferenceManager
 import android.view.LayoutInflater
 import android.widget.SeekBar
 import android.widget.TextView
@@ -12,6 +11,7 @@ import com.limelight.Game
 import com.limelight.LimeLog
 import com.limelight.R
 import com.limelight.nvstream.NvConnection
+import com.limelight.preferences.PreferenceConfiguration
 
 /**
  * Runtime bitrate adjustment UI inspired by qiin2333/moonlight-vplus
@@ -24,7 +24,6 @@ object StreamBitrateMenu {
         val view = LayoutInflater.from(game).inflate(R.layout.dialog_seekbar, null)
         val valueText = view.findViewById<TextView>(R.id.bitrate_value)
         val seekBar = view.findViewById<SeekBar>(R.id.bitrate_seekbar)
-        val prefs = PreferenceManager.getDefaultSharedPreferences(game)
         seekBar.max = 59
 
         fun updateValue(kbps: Int) {
@@ -41,7 +40,12 @@ object StreamBitrateMenu {
             conn.setBitrate(bitrateKbps) { success, error ->
                 Handler(Looper.getMainLooper()).post {
                     if (success) {
-                        prefs.edit().putInt("seekbar_bitrate_kbps", bitrateKbps).apply()
+                        PreferenceConfiguration.setDeviceBitrate(
+                            game,
+                            game.intent.getStringExtra(Game.EXTRA_PC_UUID),
+                            game.intent.getStringExtra(Game.EXTRA_HOST),
+                            bitrateKbps,
+                        )
                         game.prefConfig?.bitrate = bitrateKbps
                         Toast.makeText(game, R.string.game_menu_bitrate_applied, Toast.LENGTH_SHORT).show()
                     } else {
