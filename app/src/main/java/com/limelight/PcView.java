@@ -74,6 +74,7 @@ import android.widget.AdapterView.OnItemClickListener;
 import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.LinearLayout;
+import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.AdapterView.AdapterContextMenuInfo;
@@ -1484,6 +1485,15 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
             }
         });
 
+        if (computer.address != null) {
+            addComputerAction(actionList, actionDialog, R.string.pcview_menu_set_bitrate, false, new Runnable() {
+                @Override
+                public void run() {
+                    showBitrateDialog(computer);
+                }
+            });
+        }
+
         if (BuildConfig.DEBUG) {
             addComputerAction(actionList, actionDialog, R.string.debug_write_test_cover, false, new Runnable() {
                 @Override
@@ -1530,6 +1540,63 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
         if (window != null) {
             window.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
         }
+    }
+
+    private void showBitrateDialog(final ComputerObject computer) {
+        View dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_seekbar, null);
+        final TextView valueText = dialogView.findViewById(R.id.bitrate_value);
+        final SeekBar seekBar = dialogView.findViewById(R.id.bitrate_seekbar);
+        final int maxBitrateMbps = 150;
+
+        int currentBitrateKbps = PreferenceConfiguration.getDeviceBitrate(
+                this, computer.details.uuid, computer.address.address);
+        seekBar.setMax(maxBitrateMbps);
+        seekBar.setProgress(currentBitrateKbps > 0 ? currentBitrateKbps / 1000 : 0);
+
+        final Runnable updateText = new Runnable() {
+            @Override
+            public void run() {
+                int bitrateMbps = seekBar.getProgress();
+                if (bitrateMbps == 0) {
+                    valueText.setText(R.string.default_val);
+                }
+                else {
+                    valueText.setText(getString(R.string.game_menu_current_bitrate_mbps, (float) bitrateMbps));
+                }
+            }
+        };
+        updateText.run();
+
+        seekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                updateText.run();
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {
+            }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+            }
+        });
+
+        new AlertDialog.Builder(this)
+                .setTitle(getString(R.string.dialog_title_set_bitrate, computer.details.name))
+                .setView(dialogView)
+                .setPositiveButton(R.string.intro_ok, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        PreferenceConfiguration.setDeviceBitrate(
+                                PcView.this,
+                                computer.details.uuid,
+                                computer.address.address,
+                                seekBar.getProgress() * 1000);
+                    }
+                })
+                .setNegativeButton(R.string.intro_cancel, null)
+                .show();
     }
 
     private void addComputerAction(LinearLayout actionList, final AlertDialog dialog, int labelResId,
