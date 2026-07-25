@@ -23,7 +23,7 @@ public class AndroidAudioRenderer implements AudioRenderer {
 
     private AudioTrack track;
     private volatile int volumeGainPercent = 100;
-    private short[] gainBuffer;
+    private Pcm16AudioLimiter audioLimiter;
 
     // 音频流量统计
     private long totalAudioInputBytes = 0;  // 累计输入音频流量（字节）
@@ -142,6 +142,7 @@ public class AndroidAudioRenderer implements AudioRenderer {
         LimeLog.info("Audio channel config: "+String.format("0x%X", channelConfig));
 
         bytesPerFrame = audioConfiguration.channelCount * samplesPerFrame * 2;
+        audioLimiter = new Pcm16AudioLimiter(sampleRate, audioConfiguration.channelCount);
 
         // We're not supposed to request less than the minimum
         // buffer size for our buffer, but it appears that we can
@@ -255,27 +256,7 @@ public class AndroidAudioRenderer implements AudioRenderer {
     }
 
     private short[] applyVolumeGain(short[] audioData) {
-        int gainPercent = volumeGainPercent;
-        if (gainPercent == 100) {
-            return audioData;
-        }
-
-        if (gainBuffer == null || gainBuffer.length < audioData.length) {
-            gainBuffer = new short[audioData.length];
-        }
-
-        for (int i = 0; i < audioData.length; i++) {
-            int sample = audioData[i] * gainPercent / 100;
-            if (sample > Short.MAX_VALUE) {
-                sample = Short.MAX_VALUE;
-            }
-            else if (sample < Short.MIN_VALUE) {
-                sample = Short.MIN_VALUE;
-            }
-            gainBuffer[i] = (short) sample;
-        }
-
-        return gainBuffer;
+        return audioLimiter.apply(audioData, volumeGainPercent);
     }
 
     @Override
