@@ -578,4 +578,24 @@
     <string name="stream_enhance_device_id">设备 ID：%1$s</string>
     <string name="stream_enhance_unknown">未知</string>
     <string name="pcview_menu_stream_enhance">串流增强</string>
+    <string name="category_app_update">应用更新</string>
+    <string name="title_auto_update_check">自动检查更新</string>
+    <string name="summary_auto_update_check">每天最多检查一次 GitHub，有新版 APK 时提醒。</string>
+    <string name="title_check_for_updates">检查更新</string>
+    <string name="summary_check_for_updates_default">检查最新 GitHub Release</string>
+    <string name="summary_check_for_updates">当前版本：%1$s</string>
+    <string name="update_check_in_progress">正在检查更新…</string>
+    <string name="update_available_title">Moonlight 有新版本</string>
+    <string name="update_available_message">当前版本：%1$s\n最新版本：%2$s</string>
+    <string name="update_download">下载 APK</string>
+    <string name="update_view_release">查看发布页</string>
+    <string name="update_later">稍后</string>
+    <string name="update_no_update_title">已是最新版本</string>
+    <string name="update_no_update_message">当前版本为 %1$s。</string>
+    <string name="update_check_failed_title">无法检查更新</string>
+    <string name="update_check_failed_message">请检查网络连接后重试。</string>
+    <string name="update_download_title">正在下载 Moonlight %1$s</string>
+    <string name="update_download_description">下载完成后点击通知即可安装。</string>
+    <string name="update_download_started">已开始下载，完成后可从系统通知安装。</string>
+    <string name="update_open_link_failed">没有可打开更新链接的应用。</string>
 </resources>

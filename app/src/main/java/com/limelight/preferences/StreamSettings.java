@@ -38,11 +38,13 @@ import android.widget.ScrollView;
 import android.widget.TextView;
 
 import com.limelight.LimeLog;
+import com.limelight.BuildConfig;
 import com.limelight.PcView;
 import com.limelight.R;
 import com.limelight.binding.video.MediaCodecHelper;
 import com.limelight.utils.Dialog;
 import com.limelight.utils.UiHelper;
+import com.limelight.utils.UpdateChecker;
 
 import java.lang.reflect.Method;
 import java.util.Arrays;
@@ -405,6 +407,16 @@ public class StreamSettings extends Activity {
 
             addPreferencesFromResource(R.xml.preferences);
             PreferenceScreen screen = getPreferenceScreen();
+
+            Preference updateNowPreference = findPreference("check_for_updates");
+            if (updateNowPreference != null) {
+                updateNowPreference.setSummary(getString(R.string.summary_check_for_updates,
+                        BuildConfig.VERSION_NAME));
+                updateNowPreference.setOnPreferenceClickListener(preference -> {
+                    UpdateChecker.checkForUpdates(getActivity(), true);
+                    return true;
+                });
+            }
 
             // hide on-screen controls category on non touch screen devices
             if (!getActivity().getPackageManager().hasSystemFeature(PackageManager.FEATURE_TOUCHSCREEN)) {

@@ -352,6 +352,9 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
         Log.i("PcView", "pcGridAdapter initialized: " + (pcGridAdapter != null));
 
         initializeViews();
+
+        // Check at most once per day unless the user requests a manual check in settings.
+        com.limelight.utils.UpdateChecker.checkForUpdates(this, false);
     }
 
     private void startComputerUpdates() {

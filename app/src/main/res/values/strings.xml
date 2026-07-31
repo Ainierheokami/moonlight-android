@@ -648,4 +648,24 @@
     <string name="stream_enhance_device_id">Device ID: %1$s</string>
     <string name="stream_enhance_unknown">Unknown</string>
     <string name="pcview_menu_stream_enhance">Stream enhancement</string>
+    <string name="category_app_update">App Updates</string>
+    <string name="title_auto_update_check">Automatically check for updates</string>
+    <string name="summary_auto_update_check">Check GitHub once per day and notify you when a newer APK is available.</string>
+    <string name="title_check_for_updates">Check for updates</string>
+    <string name="summary_check_for_updates_default">Check the latest GitHub release</string>
+    <string name="summary_check_for_updates">Current version: %1$s</string>
+    <string name="update_check_in_progress">Checking for updates…</string>
+    <string name="update_available_title">Moonlight update available</string>
+    <string name="update_available_message">Current version: %1$s\nLatest version: %2$s</string>
+    <string name="update_download">Download APK</string>
+    <string name="update_view_release">View release</string>
+    <string name="update_later">Later</string>
+    <string name="update_no_update_title">Moonlight is up to date</string>
+    <string name="update_no_update_message">You are running %1$s.</string>
+    <string name="update_check_failed_title">Unable to check for updates</string>
+    <string name="update_check_failed_message">Check your network connection and try again.</string>
+    <string name="update_download_title">Downloading Moonlight %1$s</string>
+    <string name="update_download_description">Tap the completed download notification to install.</string>
+    <string name="update_download_started">Download started. Installation is available from the completed download notification.</string>
+    <string name="update_open_link_failed">No app is available to open the update link.</string>
 </resources>
