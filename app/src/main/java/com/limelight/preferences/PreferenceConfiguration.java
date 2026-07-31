@@ -90,6 +90,7 @@ public class PreferenceConfiguration {
     // 后台切回自动重连相关设置
     private static final String BACKGROUND_RECONNECT_ENABLED_PREF_STRING = "checkbox_background_reconnect_enabled";
     private static final String BACKGROUND_RECONNECT_TIMEOUT_PREF_STRING = "seekbar_background_reconnect_timeout";
+    private static final String AUTOMATIC_RECONNECT_ENABLED_PREF_STRING = "checkbox_automatic_reconnect_enabled";
 
     static final String DEFAULT_RESOLUTION = "1280x720";
     static final String DEFAULT_FPS = "60";
@@ -148,6 +149,7 @@ public class PreferenceConfiguration {
     // 后台切回自动重连默认值
     private static final boolean DEFAULT_BACKGROUND_RECONNECT_ENABLED = true;
     private static final int DEFAULT_BACKGROUND_RECONNECT_TIMEOUT = 0; // 0表示永不超时，单位：分钟
+    private static final boolean DEFAULT_AUTOMATIC_RECONNECT_ENABLED = true;
 
     public static String EDITTEXT_SIMPLE_PERF_OVERLAY_PREF_STRING = "edittext_simple_perf_overlay";
     public static final int FRAME_PACING_MIN_LATENCY = 0;
@@ -214,6 +216,7 @@ public class PreferenceConfiguration {
     // 后台切回自动重连设置
     public boolean backgroundReconnectEnabled;
     public int backgroundReconnectTimeout;
+    public boolean automaticReconnectEnabled;
 
     public String simplifyPerfOverlayPrefTemplate;
 
@@ -745,6 +748,7 @@ public class PreferenceConfiguration {
         // 读取后台切回自动重连设置
         config.backgroundReconnectEnabled = prefs.getBoolean(BACKGROUND_RECONNECT_ENABLED_PREF_STRING, DEFAULT_BACKGROUND_RECONNECT_ENABLED);
         config.backgroundReconnectTimeout = prefs.getInt(BACKGROUND_RECONNECT_TIMEOUT_PREF_STRING, DEFAULT_BACKGROUND_RECONNECT_TIMEOUT);
+        config.automaticReconnectEnabled = prefs.getBoolean(AUTOMATIC_RECONNECT_ENABLED_PREF_STRING, DEFAULT_AUTOMATIC_RECONNECT_ENABLED);
         
         return config;
     }

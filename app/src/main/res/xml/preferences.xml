@@ -470,6 +470,11 @@
             android:title="@string/title_background_reconnect_enabled"
             android:summary="@string/summary_background_reconnect_enabled"
             android:defaultValue="true" />
+        <CheckBoxPreference
+            android:key="checkbox_automatic_reconnect_enabled"
+            android:title="@string/title_automatic_reconnect_enabled"
+            android:summary="@string/summary_automatic_reconnect_enabled"
+            android:defaultValue="true" />
         <com.limelight.preferences.SeekBarPreference
             android:key="seekbar_background_reconnect_timeout"
             android:dependency="checkbox_background_reconnect_enabled"

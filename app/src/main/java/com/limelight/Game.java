@@ -149,6 +149,10 @@ public class Game extends Activity implements SurfaceHolder.Callback,
     private static final int THREE_FINGER_TAP_THRESHOLD = 300;
     private static final int SCREENSHOT_PRECACHE_INITIAL_DELAY_MS = 3000;
     private static final int SCREENSHOT_PRECACHE_INTERVAL_MS = 5000;
+    private static final int INITIAL_AUTOMATIC_RECONNECT_ATTEMPTS = 3;
+    private static final int RUNTIME_AUTOMATIC_RECONNECT_ATTEMPTS = 6;
+    private static final long AUTOMATIC_RECONNECT_STABLE_RESET_MS = 30000;
+    private static final long[] AUTOMATIC_RECONNECT_DELAYS_MS = {1500, 3000, 6000, 10000, 10000, 10000};
 
     private ControllerHandler controllerHandler;
     private KeyboardTranslator keyboardTranslator;
@@ -198,10 +202,18 @@ public class Game extends Activity implements SurfaceHolder.Callback,
     
     // Robust Reconnection
     private ViewGroup reconnectionOverlay;
+    private TextView reconnectionStatusText;
     private Handler disconnectHandler = new Handler();
     private Runnable delayedSuspendRunnable;
     private Runnable screenshotPrecacheRunnable;
     private boolean shouldReconnectOnForeground = false;
+    private final Object automaticReconnectLock = new Object();
+    private boolean automaticReconnectPending = false;
+    private int automaticReconnectAttempt = 0;
+    private int automaticReconnectGeneration = 0;
+    private boolean hasEstablishedStream = false;
+    private Runnable automaticReconnectRunnable;
+    private Runnable automaticReconnectResetRunnable;
 
     private int modifierFlags = 0;
     private boolean grabbedInput = true;
@@ -819,17 +831,17 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         reconnectionOverlay.addView(pb, pbParams);
         
         // Add status text
-        TextView tv = new TextView(this);
-        tv.setText(R.string.conn_establishing_msg);
-        tv.setTextColor(0xFFFFFFFF);
-        tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, 18);
+        reconnectionStatusText = new TextView(this);
+        reconnectionStatusText.setText(R.string.conn_establishing_msg);
+        reconnectionStatusText.setTextColor(0xFFFFFFFF);
+        reconnectionStatusText.setTextSize(TypedValue.COMPLEX_UNIT_SP, 18);
         FrameLayout.LayoutParams tvParams = new FrameLayout.LayoutParams(
             FrameLayout.LayoutParams.WRAP_CONTENT, FrameLayout.LayoutParams.WRAP_CONTENT);
         tvParams.gravity = Gravity.CENTER_HORIZONTAL | Gravity.BOTTOM;
         // Bottom margin 80dp
         tvParams.bottomMargin = (int) TypedValue.applyDimension(
             TypedValue.COMPLEX_UNIT_DIP, 80, getResources().getDisplayMetrics());
-        reconnectionOverlay.addView(tv, tvParams);
+        reconnectionOverlay.addView(reconnectionStatusText, tvParams);
 
         ((ViewGroup)findViewById(android.R.id.content)).addView(reconnectionOverlay, 
             new FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT));
@@ -1467,8 +1479,15 @@ public class Game extends Activity implements SurfaceHolder.Callback,
     @Override
     protected void onDestroy() {
         unregisterGameMenuBackCallback();
+        cancelAutomaticReconnect(true);
         super.onDestroy();
         stopScreenshotPrecache();
+
+        if (keyboardTranslator != null) {
+            InputManager inputManager = (InputManager) getSystemService(Context.INPUT_SERVICE);
+            inputManager.unregisterInputDeviceListener(keyboardTranslator);
+            keyboardTranslator = null;
+        }
 
         if (lowLatencyWifiLock != null) {
             lowLatencyWifiLock.release();
@@ -1559,6 +1578,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
     @Override
     protected void onPause() {
         currentGameInstance = null;
+        cancelAutomaticReconnect(true);
         if (streamRotationListener != null) {
             streamRotationListener.disable();
         }
@@ -3203,6 +3223,188 @@ public class Game extends Activity implements SurfaceHolder.Callback,
     public void stageComplete(String stage) {
     }
 
+    private boolean isAutomaticReconnectEligibleTermination(int errorCode) {
+        if (errorCode == MoonBridge.ML_ERROR_GRACEFUL_TERMINATION) {
+            // A user-initiated stop clears connected before stopping the native connection.
+            // If we are still marked connected, this graceful termination came from the peer.
+            return connected;
+        }
+
+        return errorCode != MoonBridge.ML_ERROR_PROTECTED_CONTENT &&
+                errorCode != MoonBridge.ML_ERROR_FRAME_CONVERSION &&
+                errorCode != MoonBridge.ML_ERROR_NO_VIDEO_FRAME;
+    }
+
+    private boolean requestAutomaticReconnect(String reason) {
+        final int generation;
+        final int attempt;
+        final int maxAttempts;
+        final long delayMs;
+
+        synchronized (automaticReconnectLock) {
+            if (automaticReconnectPending) {
+                // Audio, video, and control threads can report the same outage independently.
+                // The first callback owns the retry; later callbacks are already handled.
+                return true;
+            }
+            if (!prefConfig.automaticReconnectEnabled || displayedFailureDialog ||
+                    isSwitchingDisplay || isBackgroundSuspended ||
+                    isFinishing() || lastHost == null) {
+                return false;
+            }
+
+            maxAttempts = hasEstablishedStream ? RUNTIME_AUTOMATIC_RECONNECT_ATTEMPTS :
+                    INITIAL_AUTOMATIC_RECONNECT_ATTEMPTS;
+            if (automaticReconnectAttempt >= maxAttempts) {
+                return false;
+            }
+
+            attempt = ++automaticReconnectAttempt;
+            delayMs = AUTOMATIC_RECONNECT_DELAYS_MS[Math.min(attempt - 1,
+                    AUTOMATIC_RECONNECT_DELAYS_MS.length - 1)];
+            automaticReconnectPending = true;
+            generation = ++automaticReconnectGeneration;
+            if (automaticReconnectResetRunnable != null) {
+                disconnectHandler.removeCallbacks(automaticReconnectResetRunnable);
+                automaticReconnectResetRunnable = null;
+            }
+        }
+
+        Log.i("MoonReconnect", "[Game] scheduling same-address reconnect: reason=" + reason +
+                ", host=" + lastHost + ", attempt=" + attempt + "/" + maxAttempts +
+                ", delay=" + delayMs + "ms");
+
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                beginAutomaticReconnect(generation, attempt, maxAttempts, delayMs);
+            }
+        });
+        return true;
+    }
+
+    private void beginAutomaticReconnect(final int generation, int attempt, int maxAttempts, long delayMs) {
+        synchronized (automaticReconnectLock) {
+            if (!automaticReconnectPending || generation != automaticReconnectGeneration) {
+                return;
+            }
+        }
+
+        if (spinner != null) {
+            spinner.dismiss();
+            spinner = null;
+        }
+
+        if (reconnectionStatusText != null) {
+            reconnectionStatusText.setText(getString(R.string.automatic_reconnect_status, attempt, maxAttempts));
+        }
+        if (reconnectionOverlay != null) {
+            reconnectionOverlay.animate().cancel();
+            reconnectionOverlay.setAlpha(1f);
+            reconnectionOverlay.setVisibility(View.VISIBLE);
+        }
+
+        stopScreenshotPrecache();
+        setInputGrabState(false);
+        if (controllerHandler != null) {
+            controllerHandler.stop();
+        }
+
+        final NvConnection failedConnection = conn;
+        conn = null;
+        connecting = false;
+        connected = false;
+        updatePipAutoEnter();
+        UiHelper.notifyStreamConnecting(Game.this);
+
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                if (failedConnection != null) {
+                    failedConnection.stop();
+                }
+
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        synchronized (automaticReconnectLock) {
+                            if (!automaticReconnectPending || generation != automaticReconnectGeneration) {
+                                return;
+                            }
+
+                            automaticReconnectRunnable = new Runnable() {
+                                @Override
+                                public void run() {
+                                    startPendingAutomaticReconnect(generation);
+                                }
+                            };
+                            disconnectHandler.postDelayed(automaticReconnectRunnable, delayMs);
+                        }
+                    }
+                });
+            }
+        }, "Moonlight connection cleanup").start();
+    }
+
+    private void startPendingAutomaticReconnect(int generation) {
+        synchronized (automaticReconnectLock) {
+            if (!automaticReconnectPending || generation != automaticReconnectGeneration) {
+                return;
+            }
+            automaticReconnectPending = false;
+            automaticReconnectRunnable = null;
+        }
+
+        if (isFinishing() || isBackgroundSuspended || isSwitchingDisplay ||
+                streamView == null || streamView.getHolder() == null ||
+                streamView.getHolder().getSurface() == null ||
+                !streamView.getHolder().getSurface().isValid()) {
+            Log.i("MoonReconnect", "[Game] same-address reconnect cancelled because activity is not ready");
+            return;
+        }
+
+        displayedFailureDialog = false;
+        startConnection(streamView.getHolder());
+    }
+
+    private void cancelAutomaticReconnect(boolean resetAttempts) {
+        synchronized (automaticReconnectLock) {
+            automaticReconnectPending = false;
+            automaticReconnectGeneration++;
+            if (automaticReconnectRunnable != null) {
+                disconnectHandler.removeCallbacks(automaticReconnectRunnable);
+                automaticReconnectRunnable = null;
+            }
+            if (automaticReconnectResetRunnable != null) {
+                disconnectHandler.removeCallbacks(automaticReconnectResetRunnable);
+                automaticReconnectResetRunnable = null;
+            }
+            if (resetAttempts) {
+                automaticReconnectAttempt = 0;
+            }
+        }
+    }
+
+    private void scheduleAutomaticReconnectAttemptReset() {
+        synchronized (automaticReconnectLock) {
+            if (automaticReconnectResetRunnable != null) {
+                disconnectHandler.removeCallbacks(automaticReconnectResetRunnable);
+            }
+            automaticReconnectResetRunnable = new Runnable() {
+                @Override
+                public void run() {
+                    synchronized (automaticReconnectLock) {
+                        automaticReconnectAttempt = 0;
+                        automaticReconnectResetRunnable = null;
+                    }
+                    Log.i("MoonReconnect", "[Game] automatic reconnect attempt count reset after stable stream");
+                }
+            };
+            disconnectHandler.postDelayed(automaticReconnectResetRunnable,
+                    AUTOMATIC_RECONNECT_STABLE_RESET_MS);
+        }
+    }
+
     private void stopConnection() {
         disconnectHandler.removeCallbacks(delayedSuspendRunnable);
         if (connecting || connected) {
@@ -3534,6 +3736,13 @@ public class Game extends Activity implements SurfaceHolder.Callback,
             return;
         }
 
+        // Port flags identify transport stages. Retry the exact address selected for this
+        // activity before running the generic Internet port test or showing an error.
+        if (portFlags != 0 && errorCode != -1 &&
+                requestAutomaticReconnect("stage " + stage + " failed (error " + errorCode + ")")) {
+            return;
+        }
+
         // Perform a connection test if the failure could be due to a blocked port
         // This does network I/O, so don't do it on the main thread.
         final int portTestResult = MoonBridge.testClientConnectivity(ServerHelper.CONNECTION_TEST_SERVER, 443, portFlags);
@@ -3594,6 +3803,11 @@ public class Game extends Activity implements SurfaceHolder.Callback,
     public void connectionTerminated(final int errorCode) {
         if (isSwitchingDisplay) {
             Log.i("MoonReconnect", "[Game] connectionTerminated ignored during display switching");
+            return;
+        }
+
+        if (isAutomaticReconnectEligibleTermination(errorCode) &&
+                requestAutomaticReconnect("connection terminated (error " + errorCode + ")")) {
             return;
         }
 
@@ -3732,6 +3946,14 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
+                synchronized (automaticReconnectLock) {
+                    automaticReconnectPending = false;
+                    automaticReconnectRunnable = null;
+                    hasEstablishedStream = true;
+                }
+                displayedFailureDialog = false;
+                scheduleAutomaticReconnectAttemptReset();
+
                 if (spinner != null) {
                     spinner.dismiss();
                     spinner = null;
@@ -3750,6 +3972,9 @@ public class Game extends Activity implements SurfaceHolder.Callback,
 
                 connected = true;
                 connecting = false;
+                if (reconnectionStatusText != null) {
+                    reconnectionStatusText.setText(R.string.conn_establishing_msg);
+                }
                 updatePipAutoEnter();
                 startScreenshotPrecache();
                 setupStreamRotationSync();
@@ -4763,8 +4988,11 @@ public class Game extends Activity implements SurfaceHolder.Callback,
 
         // 重新初始化 controllerHandler、keyboardTranslator
         controllerHandler = new ControllerHandler(this, conn, this, prefConfig);
-        keyboardTranslator = new KeyboardTranslator();
         InputManager inputManager = (InputManager) getSystemService(Context.INPUT_SERVICE);
+        if (keyboardTranslator != null) {
+            inputManager.unregisterInputDeviceListener(keyboardTranslator);
+        }
+        keyboardTranslator = new KeyboardTranslator();
         inputManager.registerInputDeviceListener(keyboardTranslator, null);
 
         // 重新初始化 touchContextMap
