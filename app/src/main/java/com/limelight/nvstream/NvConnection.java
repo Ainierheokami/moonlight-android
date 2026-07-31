@@ -23,6 +23,7 @@ import java.util.Timer;
 import java.util.TimerTask;
 import java.util.List;
 import java.util.concurrent.Semaphore;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
@@ -47,6 +48,8 @@ public class NvConnection {
     private String uniqueId;
     private ConnectionContext context;
     private static Semaphore connectionAllowed = new Semaphore(1);
+    private final AtomicBoolean connectionPermitHeld = new AtomicBoolean(false);
+    private final AtomicBoolean stopping = new AtomicBoolean(false);
     private final boolean isMonkey;
     private final Context appContext;
 
@@ -102,6 +105,7 @@ public class NvConnection {
 
     public void stop() {
         LimeLog.info("NvConnection.stop() called");
+        stopping.set(true);
         
         try {
             // Interrupt any pending connection. This is thread-safe.
@@ -126,21 +130,20 @@ public class NvConnection {
                 }
             }
 
-            // Now a pending connection can be processed
-            LimeLog.info("Releasing connection semaphore");
-            connectionAllowed.release();
-            LimeLog.info("Connection semaphore released");
+            releaseConnectionPermit();
         } catch (Exception e) {
             LimeLog.severe("Exception in stop method: " + e.getMessage());
             e.printStackTrace();
-            
-            // Make sure we always release the semaphore
-            try {
-                connectionAllowed.release();
-                LimeLog.info("Connection semaphore released after exception");
-            } catch (Exception ex) {
-                LimeLog.severe("Exception releasing semaphore: " + ex.getMessage());
-            }
+
+            releaseConnectionPermit();
+        }
+    }
+
+    private void releaseConnectionPermit() {
+        if (connectionPermitHeld.compareAndSet(true, false)) {
+            LimeLog.info("Releasing connection semaphore");
+            connectionAllowed.release();
+            LimeLog.info("Connection semaphore released");
         }
     }
 
@@ -509,7 +512,16 @@ public class NvConnection {
                 try {
                     LimeLog.info("Acquiring connection semaphore...");
                     connectionAllowed.acquire();
+                    connectionPermitHeld.set(true);
                     LimeLog.info("Connection semaphore acquired");
+
+                    // stop() may have interrupted this connection while it was waiting for the
+                    // global Moonlight-core permit. Do not start a stale connection afterwards.
+                    if (stopping.get()) {
+                        LimeLog.info("Connection was stopped while waiting for semaphore");
+                        releaseConnectionPermit();
+                        return;
+                    }
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                     LimeLog.severe("InterruptedException while acquiring connection semaphore: " + e.getMessage());
@@ -545,14 +557,14 @@ public class NvConnection {
                             // LiStartConnection() failed, so the caller is not expected
                             // to stop the connection themselves. We need to release their
                             // semaphore count for them.
-                            connectionAllowed.release();
+                            releaseConnectionPermit();
                             return;
                         }
                         LimeLog.info("Connection started successfully");
                     } catch (Exception e) {
                         LimeLog.severe("Exception during connection start: " + e.getMessage());
                         e.printStackTrace();
-                        connectionAllowed.release();
+                        releaseConnectionPermit();
                         context.connListener.displayMessage("Connection error: " + e.getMessage());
                         context.connListener.stageFailed(appName, 0, -1);
                         return;
