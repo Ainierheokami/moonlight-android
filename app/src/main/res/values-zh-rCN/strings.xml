@@ -197,6 +197,7 @@
     <string name="title_automatic_reconnect_enabled">连接中断后自动重连</string>
     <string name="summary_automatic_reconnect_enabled">连接暂时失败时重试当前选定地址，绝不自动使用其他地址</string>
     <string name="automatic_reconnect_status">连接已中断，正在重连（%1$d/%2$d）…</string>
+    <string name="automatic_reconnect_cancel">取消重连</string>
     <string name="title_background_reconnect_timeout">后台重连超时时间</string>
     <string name="summary_background_reconnect_timeout">尝试重连前的最大等待时间（0 = 永不超时）</string>
     <string name="suffix_background_reconnect_timeout_minutes">分钟</string>

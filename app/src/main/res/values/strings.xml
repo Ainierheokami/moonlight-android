@@ -289,6 +289,7 @@
     <string name="title_automatic_reconnect_enabled">Reconnect after connection loss</string>
     <string name="summary_automatic_reconnect_enabled">Retry the currently selected address after a transient connection failure. Other addresses are never used.</string>
     <string name="automatic_reconnect_status">Connection lost. Reconnecting (%1$d/%2$d)…</string>
+    <string name="automatic_reconnect_cancel">Cancel reconnect</string>
     <string name="title_background_reconnect_timeout">Background reconnect timeout</string>
     <string name="summary_background_reconnect_timeout">Maximum time to wait before attempting to reconnect (0 = never timeout)</string>
     <string name="suffix_background_reconnect_timeout_minutes">minutes</string>

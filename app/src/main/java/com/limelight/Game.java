@@ -203,6 +203,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
     // Robust Reconnection
     private ViewGroup reconnectionOverlay;
     private TextView reconnectionStatusText;
+    private android.widget.Button reconnectionCancelButton;
     private Handler disconnectHandler = new Handler();
     private Runnable delayedSuspendRunnable;
     private Runnable screenshotPrecacheRunnable;
@@ -383,6 +384,10 @@ public class Game extends Activity implements SurfaceHolder.Callback,
                     }
                 }
                 if (supportsBackAnimation && "onBackStarted".equals(name) && args != null && args.length == 1) {
+                    if (isAutomaticReconnectInProgress()) {
+                        pendingGameMenuWake = false;
+                        return null;
+                    }
                     if (GameMenu.isMenuShowing() || EditMenu.isMenuShowing()) {
                         pendingGameMenuWake = false;
                         return null;
@@ -401,6 +406,11 @@ public class Game extends Activity implements SurfaceHolder.Callback,
                     return null;
                 }
                 if ("onBackInvoked".equals(name)) {
+                    if (isAutomaticReconnectInProgress()) {
+                        pendingGameMenuWake = false;
+                        cancelAutomaticReconnectFromUser();
+                        return null;
+                    }
                     if (pendingGameMenuWake) {
                         pendingGameMenuWake = false;
                         return null;
@@ -842,6 +852,17 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         tvParams.bottomMargin = (int) TypedValue.applyDimension(
             TypedValue.COMPLEX_UNIT_DIP, 80, getResources().getDisplayMetrics());
         reconnectionOverlay.addView(reconnectionStatusText, tvParams);
+
+        reconnectionCancelButton = new android.widget.Button(this);
+        reconnectionCancelButton.setText(R.string.automatic_reconnect_cancel);
+        reconnectionCancelButton.setVisibility(View.GONE);
+        reconnectionCancelButton.setOnClickListener(view -> cancelAutomaticReconnectFromUser());
+        FrameLayout.LayoutParams cancelParams = new FrameLayout.LayoutParams(
+            FrameLayout.LayoutParams.WRAP_CONTENT, FrameLayout.LayoutParams.WRAP_CONTENT);
+        cancelParams.gravity = Gravity.CENTER_HORIZONTAL | Gravity.BOTTOM;
+        cancelParams.bottomMargin = (int) TypedValue.applyDimension(
+            TypedValue.COMPLEX_UNIT_DIP, 20, getResources().getDisplayMetrics());
+        reconnectionOverlay.addView(reconnectionCancelButton, cancelParams);
 
         ((ViewGroup)findViewById(android.R.id.content)).addView(reconnectionOverlay, 
             new FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT));
@@ -1963,6 +1984,13 @@ public class Game extends Activity implements SurfaceHolder.Callback,
 
         // Handle the back button to show the menu
         if (event.getKeyCode() == KeyEvent.KEYCODE_BACK) {
+            if (isAutomaticReconnectInProgress()) {
+                if (event.getRepeatCount() == 0) {
+                    cancelAutomaticReconnectFromUser();
+                }
+                return true;
+            }
+
             // We'll let the system handle this if we're not grabbing input,
             // which will likely finish the activity or show the menu depending on state.
             // If we are grabbing input, we want to show the menu instead of sending
@@ -3303,6 +3331,9 @@ public class Game extends Activity implements SurfaceHolder.Callback,
             reconnectionOverlay.setAlpha(1f);
             reconnectionOverlay.setVisibility(View.VISIBLE);
         }
+        if (reconnectionCancelButton != null) {
+            reconnectionCancelButton.setVisibility(View.VISIBLE);
+        }
 
         stopScreenshotPrecache();
         setInputGrabState(false);
@@ -3383,6 +3414,27 @@ public class Game extends Activity implements SurfaceHolder.Callback,
                 automaticReconnectAttempt = 0;
             }
         }
+        if (reconnectionCancelButton != null) {
+            reconnectionCancelButton.setVisibility(View.GONE);
+        }
+    }
+
+    private boolean isAutomaticReconnectInProgress() {
+        synchronized (automaticReconnectLock) {
+            return automaticReconnectAttempt > 0 && (automaticReconnectPending || connecting);
+        }
+    }
+
+    private void cancelAutomaticReconnectFromUser() {
+        if (!isAutomaticReconnectInProgress()) {
+            return;
+        }
+
+        Log.i("MoonReconnect", "[Game] automatic reconnect cancelled by user");
+        cancelAutomaticReconnect(true);
+        shouldReconnectOnForeground = false;
+        stopConnection();
+        finish();
     }
 
     private void scheduleAutomaticReconnectAttemptReset() {
@@ -3974,6 +4026,9 @@ public class Game extends Activity implements SurfaceHolder.Callback,
                 connecting = false;
                 if (reconnectionStatusText != null) {
                     reconnectionStatusText.setText(R.string.conn_establishing_msg);
+                }
+                if (reconnectionCancelButton != null) {
+                    reconnectionCancelButton.setVisibility(View.GONE);
                 }
                 updatePipAutoEnter();
                 startScreenshotPrecache();
@@ -4769,6 +4824,11 @@ public class Game extends Activity implements SurfaceHolder.Callback,
     @Override
     public void onBackPressed(){
         android.util.Log.d("GameMenu", "onBackPressed called, isMenuShowing: " + com.limelight.heokami.GameMenu.isMenuShowing());
+        if (isAutomaticReconnectInProgress()) {
+            cancelAutomaticReconnectFromUser();
+            return;
+        }
+
         // 优先关闭编辑菜单
         if (com.limelight.heokami.EditMenu.isMenuShowing()) {
             android.app.Fragment menuFragment = getFragmentManager().findFragmentByTag("EditMenu");
