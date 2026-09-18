@@ -253,6 +253,10 @@
     <string name="summary_checkbox_enable_sops">Allow GFE to modify game settings for optimal streaming</string>
     <string name="title_checkbox_host_audio">Play audio on PC</string>
     <string name="summary_checkbox_host_audio">Play audio from the computer and this device</string>
+    <string name="title_checkbox_clipboard_sync_text">Sync clipboard text with PC (Foundation Sunshine only)</string>
+    <string name="summary_checkbox_clipboard_sync_text">Forward text copied on this device to the PC and vice versa. Requires Foundation Sunshine clipboard support.</string>
+    <string name="title_checkbox_clipboard_sync_image">Sync clipboard images with PC (Foundation Sunshine only)</string>
+    <string name="summary_checkbox_clipboard_sync_image">Forward images copied on this device to the PC. Large screenshots may use significant bandwidth.</string>
 
     <string name="category_advanced_settings">Advanced Settings</string>
     <string name="title_unlock_fps">Unlock all possible frame rates</string>

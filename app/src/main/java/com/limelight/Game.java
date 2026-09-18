@@ -34,6 +34,8 @@ import com.limelight.nvstream.http.NvApp;
 import com.limelight.nvstream.http.NvHTTP;
 import com.limelight.nvstream.input.KeyboardPacket;
 import com.limelight.nvstream.input.MouseButtonPacket;
+import com.limelight.nvstream.input.ClipboardHttpProvider;
+import com.limelight.nvstream.input.ClipboardSyncManager;
 import com.limelight.nvstream.jni.MoonBridge;
 import com.limelight.preferences.GlPreferences;
 import com.limelight.preferences.PreferenceConfiguration;
@@ -164,6 +166,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
     private SharedPreferences tombstonePrefs;
 
     private NvConnection conn;
+    private ClipboardSyncManager clipboardSyncManager;
     private AndroidAudioRenderer audioRenderer;
     private SpinnerDialog spinner;
     private boolean displayedFailureDialog = false;
@@ -1202,6 +1205,12 @@ public class Game extends Activity implements SurfaceHolder.Callback,
             if (controllerHandler != null) {
                 controllerHandler.resume();
             }
+
+            // Android may not notify the app about clipboard changes that happened
+            // while it was unfocused. Poll once when focus returns.
+            if (clipboardSyncManager != null) {
+                clipboardSyncManager.onFocusGained();
+            }
         }
 
         // With Android native pointer capture, capture is lost when focus is lost,
@@ -1501,6 +1510,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
     protected void onDestroy() {
         unregisterGameMenuBackCallback();
         cancelAutomaticReconnect(true);
+        stopClipboardSync();
         super.onDestroy();
         stopScreenshotPrecache();
 
@@ -1565,6 +1575,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
 
             // 完全停止连接
             if (conn != null) {
+                stopClipboardSync();
                 Log.i("MoonReconnect", "[Game] suspendConnection: conn.stop()");
                 conn.stop();
             }
@@ -3459,6 +3470,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
 
     private void stopConnection() {
         disconnectHandler.removeCallbacks(delayedSuspendRunnable);
+        stopClipboardSync();
         if (connecting || connected) {
             captureLastFrameForComputer();
             stopScreenshotPrecache();
@@ -3483,6 +3495,50 @@ public class Game extends Activity implements SurfaceHolder.Callback,
                     conn.stop();
                 }
             }.start();
+        }
+    }
+
+    private void startClipboardSyncIfEnabled() {
+        if (clipboardSyncManager != null || prefConfig == null || conn == null) {
+            return;
+        }
+
+        final boolean syncText = prefConfig.enableClipboardSyncText;
+        final boolean syncImage = prefConfig.enableClipboardSyncImage;
+        if (!syncText && !syncImage) {
+            return;
+        }
+
+        ClipboardSyncManager manager = new ClipboardSyncManager(
+                getApplicationContext(),
+                syncText,
+                syncImage,
+                getPackageName() + ".clipboard_fileprovider",
+                new ClipboardHttpProvider() {
+                    @Override
+                    public NvHTTP get() {
+                        try {
+                            return conn == null ? null : conn.createNvHttp();
+                        } catch (Exception e) {
+                            Log.w("ClipboardSync", "Unable to create host HTTP client", e);
+                            return null;
+                        }
+                    }
+                });
+        try {
+            manager.start();
+            clipboardSyncManager = manager;
+            Log.i("ClipboardSync", "Foundation Sunshine clipboard sync started");
+        } catch (Throwable t) {
+            Log.e("ClipboardSync", "Failed to start clipboard sync", t);
+            manager.stop();
+        }
+    }
+
+    private void stopClipboardSync() {
+        if (clipboardSyncManager != null) {
+            clipboardSyncManager.stop();
+            clipboardSyncManager = null;
         }
     }
 
@@ -4058,6 +4114,8 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         });
 
         // Report this shortcut being used (off the main thread to prevent ANRs)
+        startClipboardSyncIfEnabled();
+
         ComputerDetails computer = new ComputerDetails();
         computer.name = pcName;
         computer.uuid = Game.this.getIntent().getStringExtra(EXTRA_PC_UUID);

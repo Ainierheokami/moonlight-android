@@ -62,8 +62,10 @@ import com.limelight.nvstream.jni.MoonBridge;
 
 import okhttp3.ConnectionPool;
 import okhttp3.HttpUrl;
+import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
+import okhttp3.RequestBody;
 import okhttp3.Response;
 import okhttp3.ResponseBody;
 
@@ -456,6 +458,92 @@ public class NvHTTP {
         else {
             throw new HostHttpResponseException(response.code(), response.message());
         }
+    }
+
+    /**
+     * Upload an oversized clipboard payload to Foundation Sunshine's
+     * certificate-authenticated blob endpoint.
+     */
+    public ClipboardBlobUploadResult uploadClipboardBlob(String mime, byte[] data) throws IOException {
+        if (mime == null || mime.isEmpty() || data == null || data.length == 0) {
+            throw new IOException("Invalid clipboard blob upload");
+        }
+
+        HttpUrl url = getHttpsUrl(true).newBuilder()
+                .addPathSegments("api/v1/clipboard/blob")
+                .build();
+        RequestBody requestBody = RequestBody.create(data, MediaType.parse("application/octet-stream"));
+        Request request = new Request.Builder()
+                .url(url)
+                .post(requestBody)
+                .addHeader("X-Clipboard-Mime", mime)
+                .build();
+
+        try (Response response = performAndroidTlsHack(clipboardBlobClient()).newCall(request).execute()) {
+            ResponseBody body = response.body();
+            if (!response.isSuccessful()) {
+                if (body != null) {
+                    body.close();
+                }
+                throw new HostHttpResponseException(response.code(), response.message());
+            }
+            if (body == null) {
+                throw new IOException("Empty clipboard blob upload response");
+            }
+
+            JSONObject json;
+            try {
+                json = new JSONObject(body.string());
+            } catch (JSONException e) {
+                throw new IOException("Clipboard blob upload response is not JSON", e);
+            }
+
+            String id = json.optString("id").trim();
+            if (id.isEmpty()) {
+                throw new IOException("Clipboard blob upload response missing id");
+            }
+            String responseMime = json.optString("mime", mime);
+            long size = json.optLong("size", data.length);
+            if (size < 0) {
+                size = data.length;
+            }
+            return new ClipboardBlobUploadResult(id,
+                    responseMime.isEmpty() ? mime : responseMime, size);
+        }
+    }
+
+    /** Download a previously advertised Foundation Sunshine clipboard blob. */
+    public byte[] downloadClipboardBlob(String id) throws IOException {
+        if (id == null || id.isEmpty()) {
+            throw new IOException("Invalid clipboard blob id");
+        }
+
+        HttpUrl url = getHttpsUrl(true).newBuilder()
+                .addPathSegments("api/v1/clipboard/blob")
+                .addPathSegment(id)
+                .build();
+        Request request = new Request.Builder().url(url).get().build();
+
+        try (Response response = performAndroidTlsHack(clipboardBlobClient()).newCall(request).execute()) {
+            ResponseBody body = response.body();
+            if (!response.isSuccessful()) {
+                if (body != null) {
+                    body.close();
+                }
+                throw new HostHttpResponseException(response.code(), response.message());
+            }
+            if (body == null) {
+                throw new IOException("Empty clipboard blob response");
+            }
+            return body.bytes();
+        }
+    }
+
+    private OkHttpClient clipboardBlobClient() {
+        return httpClientLongConnectTimeout.newBuilder()
+                .readTimeout(30, TimeUnit.SECONDS)
+                .writeTimeout(30, TimeUnit.SECONDS)
+                .build();
     }
 
     private String openHttpConnectionToString(OkHttpClient client, HttpUrl baseUrl, String path) throws IOException {

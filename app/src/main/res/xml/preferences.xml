@@ -307,6 +307,18 @@
             android:title="@string/title_checkbox_host_audio"
             android:summary="@string/summary_checkbox_host_audio"
             android:defaultValue="false" />
+        <!-- 仅限基地版：依赖 Foundation Sunshine 的剪贴板同步接口。 -->
+        <CheckBoxPreference
+            android:key="checkbox_clipboard_sync_text"
+            android:title="@string/title_checkbox_clipboard_sync_text"
+            android:summary="@string/summary_checkbox_clipboard_sync_text"
+            android:defaultValue="false" />
+        <!-- 仅限基地版：依赖 Foundation Sunshine 的剪贴板同步接口。 -->
+        <CheckBoxPreference
+            android:key="checkbox_clipboard_sync_image"
+            android:title="@string/title_checkbox_clipboard_sync_image"
+            android:summary="@string/summary_checkbox_clipboard_sync_image"
+            android:defaultValue="false" />
         <CheckBoxPreference
             android:key="checkbox_stream_enhance_use_vdd"
             android:title="@string/title_stream_enhance_use_vdd"

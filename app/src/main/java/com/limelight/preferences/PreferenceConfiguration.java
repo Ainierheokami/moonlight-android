@@ -37,6 +37,8 @@ public class PreferenceConfiguration {
     private static final String SOPS_PREF_STRING = "checkbox_enable_sops";
     private static final String DISABLE_TOASTS_PREF_STRING = "checkbox_disable_warnings";
     private static final String HOST_AUDIO_PREF_STRING = "checkbox_host_audio";
+    private static final String CLIPBOARD_SYNC_TEXT_PREF_STRING = "checkbox_clipboard_sync_text";
+    private static final String CLIPBOARD_SYNC_IMAGE_PREF_STRING = "checkbox_clipboard_sync_image";
     private static final String DEADZONE_PREF_STRING = "seekbar_deadzone";
     private static final String OSC_OPACITY_PREF_STRING = "seekbar_osc_opacity";
     private static final String LANGUAGE_PREF_STRING = "list_languages";
@@ -99,6 +101,8 @@ public class PreferenceConfiguration {
     private static final boolean DEFAULT_SOPS = true;
     private static final boolean DEFAULT_DISABLE_TOASTS = false;
     private static final boolean DEFAULT_HOST_AUDIO = false;
+    private static final boolean DEFAULT_CLIPBOARD_SYNC_TEXT = false;
+    private static final boolean DEFAULT_CLIPBOARD_SYNC_IMAGE = false;
     private static final int DEFAULT_DEADZONE = 7;
     private static final int DEFAULT_OPACITY = 90;
     public static final String DEFAULT_LANGUAGE = "default";
@@ -171,6 +175,7 @@ public class PreferenceConfiguration {
     public int deadzonePercentage;
     public int oscOpacity;
     public boolean stretchVideo, enableSops, playHostAudio, disableWarnings, centerVideo;
+    public boolean enableClipboardSyncText, enableClipboardSyncImage;
     public String language;
     public boolean smallIconMode, multiController, usbDriver, flipFaceButtons;
     public boolean onscreenController;
@@ -691,6 +696,8 @@ public class PreferenceConfiguration {
         config.stretchVideo = prefs.getBoolean(STRETCH_PREF_STRING, DEFAULT_STRETCH);
         config.centerVideo = prefs.getBoolean(CENTER_PREF_STRING, DEFAULT_CENTER);
         config.playHostAudio = prefs.getBoolean(HOST_AUDIO_PREF_STRING, DEFAULT_HOST_AUDIO);
+        config.enableClipboardSyncText = prefs.getBoolean(CLIPBOARD_SYNC_TEXT_PREF_STRING, DEFAULT_CLIPBOARD_SYNC_TEXT);
+        config.enableClipboardSyncImage = prefs.getBoolean(CLIPBOARD_SYNC_IMAGE_PREF_STRING, DEFAULT_CLIPBOARD_SYNC_IMAGE);
         config.smallIconMode = prefs.getBoolean(SMALL_ICONS_PREF_STRING, getDefaultSmallMode(context));
         config.multiController = prefs.getBoolean(MULTI_CONTROLLER_PREF_STRING, DEFAULT_MULTI_CONTROLLER);
         config.usbDriver = prefs.getBoolean(USB_DRIVER_PREF_SRING, DEFAULT_USB_DRIVER);

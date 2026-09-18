@@ -124,9 +124,22 @@ public class MoonBridge {
 
     public static final byte LI_BATTERY_PERCENTAGE_UNKNOWN = (byte)0xFF;
 
+    // Sunshine Foundation clipboard sync wire format:
+    // u8 version, u8 kind, u32 token, u32 payload length, payload (little-endian).
+    public static final int CLIPBOARD_WIRE_HEADER = 10;
+    private static final int CLIPBOARD_WIRE_VERSION = 1;
+    public static final byte LI_CLIPBOARD_KIND_TEXT = 1;
+    public static final byte LI_CLIPBOARD_KIND_PNG = 2;
+    public static final byte LI_CLIPBOARD_KIND_REF = 3;
+
+    public interface ClipboardListener {
+        void onClipboardData(byte kind, int token, byte[] data);
+    }
+
     private static AudioRenderer audioRenderer;
     private static VideoDecoderRenderer videoRenderer;
     private static NvConnectionListener connectionListener;
+    private static volatile ClipboardListener clipboardListener;
 
     static {
         System.loadLibrary("moonlight-core");
@@ -326,6 +339,39 @@ public class MoonBridge {
         }
     }
 
+    public static void bridgeClClipboardData(byte[] frame) {
+        ClipboardListener listener = clipboardListener;
+        if (listener == null || frame == null || frame.length < CLIPBOARD_WIRE_HEADER) {
+            return;
+        }
+
+        if ((frame[0] & 0xFF) != CLIPBOARD_WIRE_VERSION) {
+            return;
+        }
+
+        byte kind = frame[1];
+        int token = (frame[2] & 0xFF) |
+                ((frame[3] & 0xFF) << 8) |
+                ((frame[4] & 0xFF) << 16) |
+                ((frame[5] & 0xFF) << 24);
+        int payloadLength = (frame[6] & 0xFF) |
+                ((frame[7] & 0xFF) << 8) |
+                ((frame[8] & 0xFF) << 16) |
+                ((frame[9] & 0xFF) << 24);
+
+        if (payloadLength < 0 || payloadLength > frame.length - CLIPBOARD_WIRE_HEADER) {
+            return;
+        }
+
+        byte[] payload = new byte[payloadLength];
+        System.arraycopy(frame, CLIPBOARD_WIRE_HEADER, payload, 0, payloadLength);
+        listener.onClipboardData(kind, token, payload);
+    }
+
+    public static void setClipboardListener(ClipboardListener listener) {
+        clipboardListener = listener;
+    }
+
     public static void setupBridge(VideoDecoderRenderer videoRenderer, AudioRenderer audioRenderer, NvConnectionListener connectionListener) {
         MoonBridge.videoRenderer = videoRenderer;
         MoonBridge.audioRenderer = audioRenderer;
@@ -390,6 +436,28 @@ public class MoonBridge {
     public static native void sendMouseHighResHScroll(short scrollAmount);
 
     public static native void sendUtf8Text(String text);
+
+    public static int sendClipboardData(byte kind, int token, byte[] payload) {
+        if (payload == null || payload.length > 65500 - CLIPBOARD_WIRE_HEADER) {
+            return -1;
+        }
+
+        byte[] frame = new byte[CLIPBOARD_WIRE_HEADER + payload.length];
+        frame[0] = (byte)CLIPBOARD_WIRE_VERSION;
+        frame[1] = kind;
+        frame[2] = (byte)(token & 0xFF);
+        frame[3] = (byte)((token >>> 8) & 0xFF);
+        frame[4] = (byte)((token >>> 16) & 0xFF);
+        frame[5] = (byte)((token >>> 24) & 0xFF);
+        frame[6] = (byte)(payload.length & 0xFF);
+        frame[7] = (byte)((payload.length >>> 8) & 0xFF);
+        frame[8] = (byte)((payload.length >>> 16) & 0xFF);
+        frame[9] = (byte)((payload.length >>> 24) & 0xFF);
+        System.arraycopy(payload, 0, frame, CLIPBOARD_WIRE_HEADER, payload.length);
+        return sendClipboardFrameNative(frame);
+    }
+
+    private static native int sendClipboardFrameNative(byte[] frame);
 
     public static native String getStageName(int stage);
 

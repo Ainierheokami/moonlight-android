@@ -125,6 +125,31 @@ Java_com_limelight_nvstream_jni_MoonBridge_sendUtf8Text(JNIEnv *env, jclass claz
     (*env)->ReleaseStringUTFChars(env, text, utf8Text);
 }
 
+JNIEXPORT jint JNICALL
+Java_com_limelight_nvstream_jni_MoonBridge_sendClipboardFrameNative(JNIEnv *env, jclass clazz, jbyteArray frame) {
+    jbyte* data;
+    jsize length;
+    int ret;
+
+    if (frame == NULL) {
+        return -1;
+    }
+
+    length = (*env)->GetArrayLength(env, frame);
+    if (length <= 0) {
+        return -1;
+    }
+
+    data = (*env)->GetByteArrayElements(env, frame, NULL);
+    if (data == NULL) {
+        return -1;
+    }
+
+    ret = LiSendClipboardData(data, length);
+    (*env)->ReleaseByteArrayElements(env, frame, data, JNI_ABORT);
+    return ret;
+}
+
 JNIEXPORT void JNICALL
 Java_com_limelight_nvstream_jni_MoonBridge_stopConnection(JNIEnv *env, jclass clazz) {
     LiStopConnection();

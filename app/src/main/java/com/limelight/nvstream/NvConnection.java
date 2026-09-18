@@ -103,6 +103,15 @@ public class NvConnection {
         return new SecureRandom().nextInt();
     }
 
+    /**
+     * Create an authenticated HTTP client for auxiliary Foundation Sunshine
+     * APIs used while this stream is active.
+     */
+    public NvHTTP createNvHttp() throws IOException {
+        return new NvHTTP(context.serverAddress, context.httpsPort, uniqueId,
+                context.serverCert, cryptoProvider);
+    }
+
     public void stop() {
         LimeLog.info("NvConnection.stop() called");
         stopping.set(true);
