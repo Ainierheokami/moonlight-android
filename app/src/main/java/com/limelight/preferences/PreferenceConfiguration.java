@@ -56,6 +56,7 @@ public class PreferenceConfiguration {
     private static final String ENABLE_PIP_PREF_STRING = "checkbox_enable_pip";
     private static final String ENABLE_PERF_OVERLAY_STRING = "checkbox_enable_perf_overlay";
     private static final String ENABLE_SIMPLIFY_PERF_OVERLAY_STRING = "checkbox_enable_simplify_perf_overlay";
+    public static final String DEBUG_TOAST_PREF_STRING = "checkbox_enable_debug_toast";
     private static final String BIND_ALL_USB_STRING = "checkbox_usb_bind_all";
     private static final String MOUSE_EMULATION_STRING = "checkbox_mouse_emulation";
     private static final String ANALOG_SCROLLING_PREF_STRING = "analog_scrolling";
@@ -118,6 +119,7 @@ public class PreferenceConfiguration {
     private static final boolean DEFAULT_ENABLE_PIP = false;
     private static final boolean DEFAULT_ENABLE_PERF_OVERLAY = false;
     private static final boolean DEFAULT_ENABLE_SIMPLIFY_PERF_OVERLAY = false;
+    private static final boolean DEFAULT_DEBUG_TOAST = false;
     private static final boolean DEFAULT_BIND_ALL_USB = false;
     private static final boolean DEFAULT_MOUSE_EMULATION = true;
     private static final String DEFAULT_ANALOG_STICK_FOR_SCROLLING = "right";
@@ -149,6 +151,11 @@ public class PreferenceConfiguration {
     private static final String DEFAULT_STREAM_ENHANCE_MODE = "-1";
     public static final int DEFAULT_EDGE_MENU_HOT_ZONE_DP = 16;
     public static final int DEFAULT_EDGE_MENU_SWIPE_THRESHOLD_DP = 56;
+
+    public static boolean isDebugToastEnabled(Context context) {
+        return PreferenceManager.getDefaultSharedPreferences(context)
+                .getBoolean(DEBUG_TOAST_PREF_STRING, DEFAULT_DEBUG_TOAST);
+    }
 
     // 后台切回自动重连默认值
     private static final boolean DEFAULT_BACKGROUND_RECONNECT_ENABLED = true;

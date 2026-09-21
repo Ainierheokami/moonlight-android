@@ -438,6 +438,11 @@
             android:title="@string/title_checkbox_disable_warnings"
             android:summary="@string/summary_checkbox_disable_warnings"
             android:defaultValue="false" />
+        <CheckBoxPreference
+            android:key="checkbox_enable_debug_toast"
+            android:title="@string/title_checkbox_enable_debug_toast"
+            android:summary="@string/summary_checkbox_enable_debug_toast"
+            android:defaultValue="false" />
         <ListPreference
             android:key="video_format"
             android:title="@string/title_video_format"

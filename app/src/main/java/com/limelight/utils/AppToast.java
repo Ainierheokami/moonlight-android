@@ -16,18 +16,18 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowManager;
-import android.widget.Button;
 import android.widget.FrameLayout;
-import android.widget.ImageButton;
 import android.widget.TextView;
 
 import com.limelight.LimeLog;
 import com.limelight.R;
+import com.limelight.preferences.PreferenceConfiguration;
 
 import java.lang.ref.WeakReference;
 
 /**
- * An in-app toast that stays readable and can copy the message with recent logs.
+ * An in-app toast that stays readable without intercepting touches in normal mode.
+ * Debug mode makes the whole toast clickable to copy the message with recent logs.
  */
 public final class AppToast {
     public static final int LENGTH_SHORT = 0;
@@ -184,33 +184,34 @@ public final class AppToast {
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT));
 
+        boolean debugMode = PreferenceConfiguration.isDebugToastEnabled(activity);
+
         TextView messageView = toastView.findViewById(R.id.appToastMessage);
         messageView.setText(message);
 
-        final Button copyButton = toastView.findViewById(R.id.appToastCopyButton);
-        final ImageButton dismissButton = toastView.findViewById(R.id.appToastDismissButton);
+        TextView copyHint = toastView.findViewById(R.id.appToastCopyHint);
+        copyHint.setVisibility(debugMode ? View.VISIBLE : View.GONE);
 
         View.OnClickListener copyListener = new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                copyDiagnostics(activity, copyButton);
+                copyDiagnostics(activity, copyHint);
             }
         };
-        toastView.setOnClickListener(copyListener);
-        copyButton.setOnClickListener(copyListener);
-        dismissButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                dismiss();
-            }
-        });
+        toastView.setClickable(debugMode);
+        toastView.setFocusable(debugMode);
+        toastView.setOnClickListener(debugMode ? copyListener : null);
 
+        int windowFlags = WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
+                | WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL;
+        if (!debugMode) {
+            windowFlags |= WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE;
+        }
         WindowManager.LayoutParams layoutParams = new WindowManager.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT,
                 WindowManager.LayoutParams.TYPE_APPLICATION_ATTACHED_DIALOG,
-                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
-                        | WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL,
+                windowFlags,
                 PixelFormat.TRANSLUCENT);
         layoutParams.gravity = Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL;
         layoutParams.y = dp(activity, 32);
@@ -265,7 +266,7 @@ public final class AppToast {
         }
     }
 
-    private void copyDiagnostics(Activity activity, Button copyButton) {
+    private void copyDiagnostics(Activity activity, TextView copyHint) {
         ClipboardManager clipboardManager = (ClipboardManager) activity.getSystemService(Context.CLIPBOARD_SERVICE);
         if (clipboardManager == null) {
             LimeLog.warning("Unable to copy in-app toast diagnostics: clipboard service unavailable");
@@ -274,8 +275,7 @@ public final class AppToast {
 
         clipboardManager.setPrimaryClip(ClipData.newPlainText(
                 activity.getString(R.string.app_toast_clipboard_label), buildDiagnostics(activity)));
-        copyButton.setText(R.string.app_toast_copied);
-        copyButton.setEnabled(false);
+        copyHint.setText(R.string.app_toast_copied);
         LimeLog.info("Copied in-app toast diagnostics");
 
         if (dismissRunnable != null) {

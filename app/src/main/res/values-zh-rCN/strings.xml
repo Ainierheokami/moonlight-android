@@ -127,10 +127,10 @@
     <string name="title_checkbox_stretch_video"> 将画面拉伸至全屏 </string>
     <string name="title_checkbox_disable_warnings"> 禁用错误提示 </string>
     <string name="summary_checkbox_disable_warnings"> 串流中禁用连接错误提示 </string>
-    <string name="app_toast_copy">复制日志</string>
+    <string name="title_checkbox_enable_debug_toast">启用 Debug Toast</string>
+    <string name="summary_checkbox_enable_debug_toast">启用后点击提示直接复制上下文日志；关闭后仅显示文字，不响应触摸。</string>
     <string name="app_toast_copied">已复制</string>
-    <string name="app_toast_copy_hint">点击提示或“复制日志”获取调试信息</string>
-    <string name="app_toast_dismiss">关闭</string>
+    <string name="app_toast_copy_hint">点击复制调试日志</string>
     <string name="app_toast_clipboard_label">Moonlight 调试信息</string>
     <string name="title_checkbox_enable_pip">启用画中画观察模式</string>
     <string name="summary_checkbox_enable_pip">允许多任务时观看串流画面（但不操作）</string>

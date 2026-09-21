@@ -265,6 +265,8 @@
     <string name="summary_checkbox_reduce_refresh_rate">Lower display refresh rates can save power at the expense of some additional video latency</string>
     <string name="title_checkbox_disable_warnings">Disable warning messages</string>
     <string name="summary_checkbox_disable_warnings">Disable on-screen connection warning messages while streaming</string>
+    <string name="title_checkbox_enable_debug_toast">Enable debug toasts</string>
+    <string name="summary_checkbox_enable_debug_toast">Make toasts clickable to copy diagnostic logs. When disabled, toasts only display text and do not respond to touch.</string>
     <string name="title_disable_frame_drop">Never drop frames</string>
     <string name="summary_disable_frame_drop">May reduce micro-stuttering on some devices, but can increase latency</string>
     <string name="pc_view_delete_ip">Delete connection address (selected only)</string>
@@ -309,10 +311,8 @@
 
     <!-- Toasts -->
     <string name="toast_controller_type_changed">Gamepad type may be changed due to motion sensor emulation</string>
-    <string name="app_toast_copy">Copy logs</string>
     <string name="app_toast_copied">Copied</string>
-    <string name="app_toast_copy_hint">Tap this message or Copy logs to collect diagnostic info</string>
-    <string name="app_toast_dismiss">Dismiss</string>
+    <string name="app_toast_copy_hint">Tap to copy diagnostic logs</string>
     <string name="app_toast_clipboard_label">Moonlight diagnostic info</string>
 
     <!-- Array strings -->
