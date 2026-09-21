@@ -1,17 +1,21 @@
 package com.limelight.utils;
 
 import android.app.Activity;
+import android.app.Application;
 import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
 import android.content.ContextWrapper;
+import android.graphics.PixelFormat;
 import android.os.Build;
+import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.FrameLayout;
 import android.widget.ImageButton;
@@ -36,13 +40,62 @@ public final class AppToast {
 
     private static WeakReference<Activity> lastActivity;
     private static AppToast activeToast;
+    private static boolean lifecycleCallbacksRegistered;
+
+    private static final Application.ActivityLifecycleCallbacks ACTIVITY_LIFECYCLE_CALLBACKS =
+            new Application.ActivityLifecycleCallbacks() {
+                @Override
+                public void onActivityResumed(Activity activity) {
+                    if (!isUsable(activity)) {
+                        return;
+                    }
+
+                    lastActivity = new WeakReference<>(activity);
+                    if (activeToast != null) {
+                        activeToast.attachToActivity(activity);
+                    }
+                }
+
+                @Override
+                public void onActivityDestroyed(Activity activity) {
+                    if (lastActivity != null && lastActivity.get() == activity) {
+                        lastActivity = null;
+                    }
+                    if (activeToast != null && activeToast.hostActivity == activity) {
+                        activeToast.detachWindow();
+                    }
+                }
+
+                @Override
+                public void onActivityCreated(Activity activity, Bundle savedInstanceState) {
+                }
+
+                @Override
+                public void onActivityStarted(Activity activity) {
+                }
+
+                @Override
+                public void onActivityPaused(Activity activity) {
+                }
+
+                @Override
+                public void onActivityStopped(Activity activity) {
+                }
+
+                @Override
+                public void onActivitySaveInstanceState(Activity activity, Bundle outState) {
+                }
+            };
 
     private final Context context;
     private final CharSequence message;
     private final int duration;
 
     private View toastView;
-    private ViewGroup host;
+    private View windowView;
+    private WindowManager windowManager;
+    private WindowManager.LayoutParams windowParams;
+    private Activity hostActivity;
     private Runnable dismissRunnable;
 
     private AppToast(Context context, CharSequence message, int duration) {
@@ -66,6 +119,8 @@ public final class AppToast {
             return;
         }
 
+        registerActivityLifecycleCallbacks(activity);
+
         Runnable showRunnable = new Runnable() {
             @Override
             public void run() {
@@ -82,20 +137,53 @@ public final class AppToast {
     }
 
     private void showOnActivity(final Activity activity) {
-        if (activity.isFinishing() || activity.isDestroyed()) {
-            return;
-        }
-
-        View contentView = activity.findViewById(android.R.id.content);
-        if (!(contentView instanceof ViewGroup)) {
-            LimeLog.warning("Unable to show in-app toast because the Activity content is not a ViewGroup");
+        if (!isUsable(activity)) {
             return;
         }
 
         dismissActiveToast();
+        activeToast = this;
+        attachToActivity(activity);
 
-        host = (ViewGroup) contentView;
-        toastView = LayoutInflater.from(activity).inflate(R.layout.app_toast, host, false);
+        dismissRunnable = new Runnable() {
+            @Override
+            public void run() {
+                if (activeToast == AppToast.this) {
+                    dismiss();
+                }
+            }
+        };
+        MAIN_HANDLER.postDelayed(dismissRunnable,
+                duration == LENGTH_LONG ? LONG_DURATION_MS : SHORT_DURATION_MS);
+    }
+
+    /**
+     * Attach the toast to the current Activity as an application dialog window.
+     * This keeps it above normal Activity content and lets it follow Activity changes.
+     */
+    private void attachToActivity(final Activity activity) {
+        if (activeToast != this || !isUsable(activity)) {
+            return;
+        }
+
+        if (hostActivity == activity && windowView != null && windowManager != null) {
+            bringWindowToFront();
+            return;
+        }
+
+        detachWindow();
+        hostActivity = activity;
+
+        FrameLayout windowContent = new FrameLayout(activity);
+        windowContent.setClipChildren(false);
+        int horizontalMargin = dp(activity, 14);
+        windowContent.setPadding(horizontalMargin, 0, horizontalMargin, 0);
+
+        toastView = LayoutInflater.from(activity).inflate(R.layout.app_toast, windowContent, false);
+        windowContent.addView(toastView, new FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT));
+
         TextView messageView = toastView.findViewById(R.id.appToastMessage);
         messageView.setText(message);
 
@@ -117,32 +205,64 @@ public final class AppToast {
             }
         });
 
-        if (host instanceof FrameLayout) {
-            FrameLayout.LayoutParams layoutParams = new FrameLayout.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT,
-                    ViewGroup.LayoutParams.WRAP_CONTENT,
-                    Gravity.BOTTOM);
-            int horizontalMargin = dp(activity, 14);
-            layoutParams.setMargins(horizontalMargin, 0, horizontalMargin, dp(activity, 32));
-            host.addView(toastView, layoutParams);
-        }
-        else {
-            host.addView(toastView, new ViewGroup.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT,
-                    ViewGroup.LayoutParams.WRAP_CONTENT));
+        WindowManager.LayoutParams layoutParams = new WindowManager.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                WindowManager.LayoutParams.TYPE_APPLICATION_ATTACHED_DIALOG,
+                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
+                        | WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL,
+                PixelFormat.TRANSLUCENT);
+        layoutParams.gravity = Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL;
+        layoutParams.y = dp(activity, 32);
+        layoutParams.token = activity.getWindow().getDecorView().getWindowToken();
+        layoutParams.packageName = activity.getPackageName();
+        layoutParams.setTitle("Moonlight AppToast");
+
+        windowView = windowContent;
+        windowManager = activity.getWindowManager();
+        windowParams = layoutParams;
+
+        if (layoutParams.token == null) {
+            LimeLog.warning("Unable to show in-app toast because the Activity window is not attached");
+            detachWindow();
+            retryAttach(activity);
+            return;
         }
 
-        activeToast = this;
-        dismissRunnable = new Runnable() {
+        try {
+            windowManager.addView(windowView, windowParams);
+        }
+        catch (RuntimeException e) {
+            LimeLog.warning("Unable to attach in-app toast window: " + e.getMessage());
+            detachWindow();
+            retryAttach(activity);
+        }
+    }
+
+    private void retryAttach(final Activity activity) {
+        MAIN_HANDLER.postDelayed(new Runnable() {
             @Override
             public void run() {
-                if (activeToast == AppToast.this) {
-                    dismiss();
+                if (activeToast == AppToast.this && windowView == null && isUsable(activity)) {
+                    attachToActivity(activity);
                 }
             }
-        };
-        MAIN_HANDLER.postDelayed(dismissRunnable,
-                duration == LENGTH_LONG ? LONG_DURATION_MS : SHORT_DURATION_MS);
+        }, 150L);
+    }
+
+    private void bringWindowToFront() {
+        if (windowManager == null || windowView == null || windowParams == null) {
+            return;
+        }
+
+        try {
+            windowManager.removeViewImmediate(windowView);
+            windowManager.addView(windowView, windowParams);
+        }
+        catch (RuntimeException e) {
+            LimeLog.warning("Unable to raise in-app toast window: " + e.getMessage());
+            detachWindow();
+        }
     }
 
     private void copyDiagnostics(Activity activity, Button copyButton) {
@@ -203,14 +323,26 @@ public final class AppToast {
             MAIN_HANDLER.removeCallbacks(dismissRunnable);
             dismissRunnable = null;
         }
-        if (toastView != null && host != null) {
-            host.removeView(toastView);
-        }
-        toastView = null;
-        host = null;
+        detachWindow();
         if (activeToast == this) {
             activeToast = null;
         }
+    }
+
+    private void detachWindow() {
+        if (windowManager != null && windowView != null) {
+            try {
+                windowManager.removeViewImmediate(windowView);
+            }
+            catch (RuntimeException ignored) {
+                // The Activity may already have removed its windows during destruction.
+            }
+        }
+        windowView = null;
+        windowManager = null;
+        windowParams = null;
+        toastView = null;
+        hostActivity = null;
     }
 
     private static void dismissActiveToast() {
@@ -230,6 +362,13 @@ public final class AppToast {
             return activity;
         }
         return null;
+    }
+
+    private static synchronized void registerActivityLifecycleCallbacks(Activity activity) {
+        if (!lifecycleCallbacksRegistered) {
+            activity.getApplication().registerActivityLifecycleCallbacks(ACTIVITY_LIFECYCLE_CALLBACKS);
+            lifecycleCallbacksRegistered = true;
+        }
     }
 
     private static Activity findActivity(Context context) {
