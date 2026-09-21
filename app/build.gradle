@@ -20,6 +20,18 @@ if (shouldIncrementBuildSeq) {
     buildSeqFile.withOutputStream { buildSeqProps.store(it, "Auto-incremented APK build sequence") }
 }
 
+def gitCommit = "unknown"
+try {
+    def gitProcess = ["git", "rev-parse", "HEAD"].execute(null, rootProject.projectDir)
+    gitProcess.waitFor()
+    if (gitProcess.exitValue() == 0) {
+        gitCommit = gitProcess.text.trim()
+    }
+}
+catch (Exception ignored) {
+    // Source archives and restricted build environments may not include Git metadata.
+}
+
 def releaseStoreFile = System.getenv("MOONLIGHT_RELEASE_STORE_FILE")
 def releaseStorePassword = System.getenv("MOONLIGHT_RELEASE_STORE_PASSWORD")
 def releaseKeyAlias = System.getenv("MOONLIGHT_RELEASE_KEY_ALIAS")
@@ -47,6 +59,7 @@ android {
         def customTag = "-heokami-" + buildDate + "(${buildSeq})"
         versionName baseVersion + customTag
         versionCode = 315
+        buildConfigField "String", "BUILD_COMMIT", "\"${gitCommit}\""
 
         // Generate native debug symbols to allow Google Play to symbolicate our native crashes
         ndk.debugSymbolLevel = 'FULL'

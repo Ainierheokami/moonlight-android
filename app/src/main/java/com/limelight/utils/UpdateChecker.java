@@ -44,6 +44,8 @@ public final class UpdateChecker {
             "https://api.github.com/repos/Ainierheokami/moonlight-android/releases/tags/latest";
     private static final long AUTO_CHECK_INTERVAL_MS = TimeUnit.DAYS.toMillis(1);
     private static final Pattern NUMBER_PATTERN = Pattern.compile("\\d+");
+    private static final Pattern COMMIT_PATTERN = Pattern.compile(
+            "\\bcommit\\s+([0-9a-f]{7,40})\\b", Pattern.CASE_INSENSITIVE);
     private static final Pattern APK_NAME_PATTERN = Pattern.compile(
             "^Moonlight-(.+)-(debug|release)\\.apk$", Pattern.CASE_INSENSITIVE);
     private static final AtomicBoolean CHECK_IN_PROGRESS = new AtomicBoolean(false);
@@ -106,7 +108,7 @@ public final class UpdateChecker {
                     if (BuildConfig.ROOT_BUILD) {
                         // The repository's release workflow currently publishes NonRoot APKs only.
                         release = new ReleaseInfo(parsedRelease.versionName, parsedRelease.releasePageUrl,
-                                null, null);
+                                null, null, parsedRelease.commitId);
                     }
                     else {
                         release = parsedRelease;
@@ -118,7 +120,7 @@ public final class UpdateChecker {
                             return;
                         }
 
-                        if (isNewerVersion(BuildConfig.VERSION_NAME, release.versionName)) {
+                        if (isNewerRelease(BuildConfig.VERSION_NAME, BuildConfig.BUILD_COMMIT, release)) {
                             showUpdateDialog(activity, release);
                         }
                         else if (userInitiated) {
@@ -160,7 +162,10 @@ public final class UpdateChecker {
         AlertDialog.Builder builder = new AlertDialog.Builder(activity)
                 .setTitle(R.string.update_available_title)
                 .setMessage(activity.getString(R.string.update_available_message,
-                        BuildConfig.VERSION_NAME, release.versionName))
+                        BuildConfig.VERSION_NAME, release.versionName)
+                        + "\n"
+                        + activity.getString(R.string.update_available_commit_message,
+                        shortCommit(BuildConfig.BUILD_COMMIT), shortCommit(release.commitId)))
                 .setNegativeButton(R.string.update_later, null)
                 .setNeutralButton(R.string.update_view_release,
                         (dialog, which) -> openUrl(activity, release.releasePageUrl));
@@ -221,7 +226,8 @@ public final class UpdateChecker {
         String fileName = selectedAsset.getString("name");
         String downloadUrl = requireHttpsUrl(selectedAsset.getString("browser_download_url"));
         String versionName = extractVersionFromAssetName(fileName);
-        return new ReleaseInfo(versionName, releasePageUrl, downloadUrl, fileName);
+        String commitId = extractCommitId(root.optString("body", ""));
+        return new ReleaseInfo(versionName, releasePageUrl, downloadUrl, fileName, commitId);
     }
 
     private static JSONObject selectApkAsset(JSONArray assets, boolean debugBuild) throws JSONException {
@@ -256,6 +262,35 @@ public final class UpdateChecker {
             }
         }
         return false;
+    }
+
+    static boolean isNewerRelease(String currentVersion, String currentCommit, ReleaseInfo candidate) {
+        if (isKnownCommit(currentCommit) && isKnownCommit(candidate.commitId)) {
+            return !commitsMatch(currentCommit, candidate.commitId);
+        }
+        return isNewerVersion(currentVersion, candidate.versionName);
+    }
+
+    private static String extractCommitId(String releaseBody) {
+        Matcher matcher = COMMIT_PATTERN.matcher(releaseBody == null ? "" : releaseBody);
+        return matcher.find() ? matcher.group(1) : null;
+    }
+
+    private static boolean isKnownCommit(String commitId) {
+        return commitId != null && commitId.matches("(?i)[0-9a-f]{7,40}");
+    }
+
+    private static boolean commitsMatch(String currentCommit, String candidateCommit) {
+        String current = currentCommit.toLowerCase(Locale.ROOT);
+        String candidate = candidateCommit.toLowerCase(Locale.ROOT);
+        return current.equals(candidate) || current.startsWith(candidate) || candidate.startsWith(current);
+    }
+
+    private static String shortCommit(String commitId) {
+        if (!isKnownCommit(commitId)) {
+            return "unknown";
+        }
+        return commitId.length() <= 12 ? commitId : commitId.substring(0, 12);
     }
 
     private static List<Long> numericParts(String version) {
@@ -293,13 +328,15 @@ public final class UpdateChecker {
         final String releasePageUrl;
         final String apkDownloadUrl;
         final String apkFileName;
+        final String commitId;
 
         ReleaseInfo(String versionName, String releasePageUrl, String apkDownloadUrl,
-                    String apkFileName) {
+                    String apkFileName, String commitId) {
             this.versionName = versionName;
             this.releasePageUrl = releasePageUrl;
             this.apkDownloadUrl = apkDownloadUrl;
             this.apkFileName = apkFileName;
+            this.commitId = commitId;
         }
     }
 }

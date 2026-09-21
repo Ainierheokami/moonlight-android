@@ -667,6 +667,7 @@
     <string name="update_check_in_progress">Checking for updates…</string>
     <string name="update_available_title">Moonlight update available</string>
     <string name="update_available_message">Current version: %1$s\nLatest version: %2$s</string>
+    <string name="update_available_commit_message">Current commit: %1$s\nLatest commit: %2$s</string>
     <string name="update_download">Download APK</string>
     <string name="update_view_release">View release</string>
     <string name="update_later">Later</string>
