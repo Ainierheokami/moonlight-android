@@ -13,7 +13,7 @@ import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
-import android.widget.Toast;
+import com.limelight.utils.AppToast;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
@@ -188,7 +188,7 @@ public class CustomHotkeysManager {
             MacroEditor editor = new MacroEditor(game, json, null);
             editor.runMacroAction(vk);
         } catch (Exception e) {
-            Toast.makeText(game, "执行自定义热键失败", Toast.LENGTH_SHORT).show();
+            AppToast.makeText(game, "执行自定义热键失败", AppToast.LENGTH_SHORT).show();
             Log.e(TAG, "执行自定义热键失败: " + hotkey.name, e);
         }
     }
@@ -256,7 +256,7 @@ public class CustomHotkeysManager {
                 editHotkeyMacro(game, vk, newItem, () -> {
                     save(game, items);
                     if (onChanged != null) onChanged.run();
-                    Toast.makeText(game, R.string.custom_hotkeys_save_success, Toast.LENGTH_SHORT).show();
+                    AppToast.makeText(game, R.string.custom_hotkeys_save_success, AppToast.LENGTH_SHORT).show();
                 });
             });
         });
@@ -324,7 +324,7 @@ public class CustomHotkeysManager {
                         editHotkeyMacro(game, vk, target, () -> {
                             save(game, items);
                             if (onChanged != null) onChanged.run();
-                            Toast.makeText(game, R.string.custom_hotkeys_save_success, Toast.LENGTH_SHORT).show();
+                            AppToast.makeText(game, R.string.custom_hotkeys_save_success, AppToast.LENGTH_SHORT).show();
                         });
                     } else if (which == 1) { // 重命名
                         promptForName(game, target.name, name -> {
@@ -370,7 +370,7 @@ public class CustomHotkeysManager {
             }
             editor.showMacroEditor();
         } catch (Exception e) {
-            Toast.makeText(game, "打开宏编辑器失败", Toast.LENGTH_SHORT).show();
+            AppToast.makeText(game, "打开宏编辑器失败", AppToast.LENGTH_SHORT).show();
             Log.e(TAG, "为热键打开宏编辑器失败: " + hotkey.name, e);
         }
     }

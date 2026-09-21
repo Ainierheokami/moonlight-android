@@ -36,7 +36,7 @@ import android.view.View;
 import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.TextView;
-import android.widget.Toast;
+import com.limelight.utils.AppToast;
 
 public class AddComputerManually extends Activity {
     private TextView hostText;
@@ -197,7 +197,7 @@ public class AddComputerManually extends Activity {
             AddComputerManually.this.runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
-                Toast.makeText(AddComputerManually.this, getResources().getString(R.string.addpc_success), Toast.LENGTH_LONG).show();
+                AppToast.makeText(AddComputerManually.this, getResources().getString(R.string.addpc_success), AppToast.LENGTH_LONG).show();
 
                 if (!isFinishing()) {
                     // Close the activity
@@ -320,7 +320,7 @@ public class AddComputerManually extends Activity {
         String hostAddress = hostText.getText().toString().trim();
 
         if (hostAddress.length() == 0) {
-            Toast.makeText(AddComputerManually.this, getResources().getString(R.string.addpc_enter_ip), Toast.LENGTH_LONG).show();
+            AppToast.makeText(AddComputerManually.this, getResources().getString(R.string.addpc_enter_ip), AppToast.LENGTH_LONG).show();
             return true;
         }
 

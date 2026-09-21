@@ -13,7 +13,7 @@ import android.widget.Button
 import android.widget.CheckBox
 import android.widget.EditText
 import android.widget.LinearLayout
-import android.widget.Toast
+import com.limelight.utils.AppToast
 import android.widget.TextView
 import androidx.annotation.StringRes
 import androidx.appcompat.view.ContextThemeWrapper
@@ -135,7 +135,7 @@ class MacroEditor(private val context: Context, private var jsonData: JSONObject
                 }
             }
         } catch (e: Exception) {
-            Toast.makeText(context, "加载宏失败: ${e.message}", Toast.LENGTH_SHORT).show()
+            AppToast.makeText(context, "加载宏失败: ${e.message}", AppToast.LENGTH_SHORT).show()
             Log.e("MacroEditor", "加载宏失败: ${e.message}", e)
         }
         Log.d("MacroEditor", "--- loadMacro finished, actions count: ${actions.size} ---")
@@ -191,7 +191,7 @@ class MacroEditor(private val context: Context, private var jsonData: JSONObject
             Log.d("MacroEditor", "--- saveMacro finished ---")
 
         } catch (e: Exception) {
-            Toast.makeText(context, "保存宏失败: ${e.message}", Toast.LENGTH_SHORT).show()
+            AppToast.makeText(context, "保存宏失败: ${e.message}", AppToast.LENGTH_SHORT).show()
             Log.e("MacroEditor", "保存宏失败: ${e.message}", e)
         }
     }

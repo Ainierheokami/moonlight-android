@@ -8,7 +8,7 @@ import android.os.Looper
 import android.util.Log
 import android.widget.Button
 import android.widget.TextView
-import android.widget.Toast
+import com.limelight.utils.AppToast
 import androidx.appcompat.app.AppCompatActivity
 import com.limelight.PcView
 import com.limelight.R
@@ -42,30 +42,32 @@ class LoadSystemSettingsActivity : AppCompatActivity() {
                         val result = SystemSettingsBackupHelper.importSystemBackup(this@LoadSystemSettingsActivity, content)
                         if (result == 1) {
                             textView.text = "同设备全量恢复成功"
-                            Toast.makeText(
+                            AppToast.makeText(
                                 this@LoadSystemSettingsActivity,
                                 "配对凭据与系统设置已完美全量恢复！应用即将自动重启...",
-                                Toast.LENGTH_LONG
+                                AppToast.LENGTH_LONG
                             ).show()
                         } else {
                             textView.text = "跨机安全降级恢复成功"
-                            Toast.makeText(
+                            AppToast.makeText(
                                 this@LoadSystemSettingsActivity,
                                 "跨设备导入成功！设置与电脑列表已恢复，凭证已安全隔离。应用即将自动重启...",
-                                Toast.LENGTH_LONG
+                                AppToast.LENGTH_LONG
                             ).show()
                         }
-                        // 延迟 800ms 后自动重启应用，确保 Toast 可见且 SP 落盘完成
+                        // 给应用内提示留出可读和复制调试信息的时间
                         restartApp()
                     } catch (e: Exception) {
                         Log.e("LoadSettingsActivity", "设置导入发生异常", e)
                         textView.text = "设置恢复失败"
-                        Toast.makeText(
+                        AppToast.makeText(
                             this@LoadSystemSettingsActivity,
                             "配置文件损坏或非系统备份文件，无法恢复设置",
-                            Toast.LENGTH_LONG
+                            AppToast.LENGTH_LONG
                         ).show()
-                        this@LoadSystemSettingsActivity.finish()
+                        Handler(Looper.getMainLooper()).postDelayed({
+                            this@LoadSystemSettingsActivity.finish()
+                        }, 3000)
                     }
                 }
 
@@ -90,6 +92,6 @@ class LoadSystemSettingsActivity : AppCompatActivity() {
             intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TASK or Intent.FLAG_ACTIVITY_NEW_TASK
             startActivity(intent)
             finish()
-        }, 800)
+        }, 3000)
     }
 }

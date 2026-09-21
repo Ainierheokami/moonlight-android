@@ -309,6 +309,11 @@
 
     <!-- Toasts -->
     <string name="toast_controller_type_changed">Gamepad type may be changed due to motion sensor emulation</string>
+    <string name="app_toast_copy">Copy logs</string>
+    <string name="app_toast_copied">Copied</string>
+    <string name="app_toast_copy_hint">Tap this message or Copy logs to collect diagnostic info</string>
+    <string name="app_toast_dismiss">Dismiss</string>
+    <string name="app_toast_clipboard_label">Moonlight diagnostic info</string>
 
     <!-- Array strings -->
     <string name="resolution_360p">360p</string>

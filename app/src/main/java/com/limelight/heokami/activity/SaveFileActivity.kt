@@ -2,10 +2,12 @@ package com.limelight.heokami.activity
 
 import android.net.Uri
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import android.widget.Button
 import android.widget.TextView
-import android.widget.Toast
+import com.limelight.utils.AppToast
 import androidx.appcompat.app.AppCompatActivity
 
 import com.limelight.R
@@ -37,8 +39,8 @@ class SaveFileActivity : AppCompatActivity() {
         )
         if (savedUri != null) {
             Log.d("pickFile", "自动保存配置到: $savedUri")
-            Toast.makeText(this, "配置已保存到 Download/Moonlight", Toast.LENGTH_SHORT).show()
-            finish()
+            AppToast.makeText(this, "配置已保存到 Download/Moonlight", AppToast.LENGTH_SHORT).show()
+            Handler(Looper.getMainLooper()).postDelayed({ finish() }, 1800)
             return
         }
 

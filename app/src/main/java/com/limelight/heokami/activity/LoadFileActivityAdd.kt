@@ -8,7 +8,7 @@ import android.os.Looper
 import android.util.Log
 import android.widget.Button
 import android.widget.TextView
-import android.widget.Toast
+import com.limelight.utils.AppToast
 import androidx.appcompat.app.AppCompatActivity
 
 import com.limelight.PcView
@@ -38,13 +38,15 @@ class LoadFileActivityAdd : AppCompatActivity() {
                     Log.d("pickFile", "文件内容: $content")
 
                     VirtualKeyboardConfigurationLoader.loadForFileAdd(this@LoadFileActivityAdd, content)
-                    Toast.makeText(this@LoadFileActivityAdd, "追加配置成功，应用即将自动重启...", Toast.LENGTH_SHORT).show()
-                    // 延迟 800ms 后自动重启应用，确保 SP 写入完成
+                    AppToast.makeText(this@LoadFileActivityAdd, "追加配置成功，应用即将自动重启...", AppToast.LENGTH_SHORT).show()
+                    // 给应用内提示留出可读和复制调试信息的时间
                     restartApp()
                 } catch (e: Exception) {
                     Log.e("pickFile", "追加按键配置异常", e)
-                    Toast.makeText(this@LoadFileActivityAdd, "配置格式破损，无法追加虚拟键盘布局", Toast.LENGTH_LONG).show()
-                    this@LoadFileActivityAdd.finish()
+                    AppToast.makeText(this@LoadFileActivityAdd, "配置格式破损，无法追加虚拟键盘布局", AppToast.LENGTH_LONG).show()
+                    Handler(Looper.getMainLooper()).postDelayed({
+                        this@LoadFileActivityAdd.finish()
+                    }, 3000)
                 }
             }
 
@@ -65,6 +67,6 @@ class LoadFileActivityAdd : AppCompatActivity() {
             intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TASK or Intent.FLAG_ACTIVITY_NEW_TASK
             startActivity(intent)
             finish()
-        }, 800)
+        }, 3000)
     }
 }

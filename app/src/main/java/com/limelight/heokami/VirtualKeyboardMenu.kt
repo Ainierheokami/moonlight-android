@@ -29,7 +29,7 @@ import android.widget.ScrollView
 import android.widget.SeekBar
 import android.widget.Spinner
 import android.widget.TextView
-import android.widget.Toast
+import com.limelight.utils.AppToast
 import com.limelight.Game
 import com.limelight.R
 import com.limelight.binding.input.virtual_keyboard.VirtualKeyboard
@@ -806,7 +806,7 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
         styleActionsSection.addView(Button(context).apply { text = context.getString(R.string.virtual_keyboard_menu_copy_appearance_style); setOnClickListener { VirtualKeyboardConfigurationLoader.copyAppearanceStyle(virtualKeyboard, element, context) } })
         styleActionsSection.addView(Button(context).apply { text = context.getString(R.string.virtual_keyboard_menu_paste_appearance_style); setOnClickListener { VirtualKeyboardConfigurationLoader.pasteAppearanceStyle(virtualKeyboard, element, context); virtualKeyboard.refreshLayout() } })
         styleActionsSection.addView(Button(context).apply { text = context.getString(R.string.virtual_keyboard_menu_apply_style_to_same_group); setOnClickListener { VirtualKeyboardConfigurationLoader.applyAppearanceStyleToSameGroup(virtualKeyboard, element, context); virtualKeyboard.refreshLayout() } })
-        styleActionsSection.addView(Button(context).apply { text = context.getString(R.string.virtual_keyboard_menu_paste_appearance_style_to_form); setOnClickListener { try { val style = VirtualKeyboardConfigurationLoader.getAppearanceStyleFromClipboard(context); if (style != null) Toast.makeText(context, "样式已应用到表单", Toast.LENGTH_SHORT).show() } catch (e: Exception) { Toast.makeText(context, "粘贴失败", Toast.LENGTH_SHORT).show() } } })
+        styleActionsSection.addView(Button(context).apply { text = context.getString(R.string.virtual_keyboard_menu_paste_appearance_style_to_form); setOnClickListener { try { val style = VirtualKeyboardConfigurationLoader.getAppearanceStyleFromClipboard(context); if (style != null) AppToast.makeText(context, "样式已应用到表单", AppToast.LENGTH_SHORT).show() } catch (e: Exception) { AppToast.makeText(context, "粘贴失败", AppToast.LENGTH_SHORT).show() } } })
 
         // --- 实时预览：横屏时固定在左侧，减少切换页签的来回成本 ---
         fun buildSinglePreview(): Pair<FrameLayout, Pair<View, TextView>> {
@@ -1135,7 +1135,7 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
                 dialog.dismiss()
             } catch (e: Exception) {
                 Log.e("vk", "save/add failed", e)
-                Toast.makeText(context, "操作失败: ${e.message}", Toast.LENGTH_SHORT).show()
+                AppToast.makeText(context, "操作失败: ${e.message}", AppToast.LENGTH_SHORT).show()
             }
         }
     }

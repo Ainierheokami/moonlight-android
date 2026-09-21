@@ -21,7 +21,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.MotionEvent;
 import android.view.animation.AccelerateDecelerateInterpolator;
-import android.widget.Toast;
+import com.limelight.utils.AppToast;
 
 import android.app.Fragment;
 
@@ -435,7 +435,7 @@ public class GameMenuFragment extends Fragment {
         actions.add(new MenuAction("virtual_keyboard", R.string.game_menu_toggle_virtual_keyboard, 0, MenuSection.OVERLAY, 20, false, true, true, v -> {
             hideMenuWithAnimation();
             game.toggleVirtualKeyboard();
-            Toast.makeText(game, game.getString(R.string.game_menu_toggle_virtual_keyboard_toast), Toast.LENGTH_SHORT).show();
+            AppToast.makeText(game, game.getString(R.string.game_menu_toggle_virtual_keyboard_toast), AppToast.LENGTH_SHORT).show();
         }));
         actions.add(new MenuAction("edit_virtual_keyboard", R.string.game_menu_edit_virtual_keyboard, 0, MenuSection.OVERLAY, 30, false, true, true, v -> openVirtualKeyboardEditor()));
         actions.add(new MenuAction("perf", R.string.game_menu_toggle_perf_overlay, 0, MenuSection.OVERLAY, 40, false, true, true, v -> {
@@ -600,7 +600,7 @@ public class GameMenuFragment extends Fragment {
                     try {
                         value = Integer.parseInt(input.getText().toString().trim());
                     } catch (NumberFormatException e) {
-                        Toast.makeText(game, R.string.seekbar_input_number_error, Toast.LENGTH_SHORT).show();
+                        AppToast.makeText(game, R.string.seekbar_input_number_error, AppToast.LENGTH_SHORT).show();
                         return;
                     }
                     value = normalizeSliderValue(slider, value);
@@ -843,7 +843,7 @@ public class GameMenuFragment extends Fragment {
             vk.enterEditMode();
             new Handler(Looper.getMainLooper()).postDelayed(() -> new EditMenu(game, vk), ANIMATION_DURATION + 50);
         } else {
-            Toast.makeText(game, "无法进入编辑模式：虚拟键盘未就绪", Toast.LENGTH_SHORT).show();
+            AppToast.makeText(game, "无法进入编辑模式：虚拟键盘未就绪", AppToast.LENGTH_SHORT).show();
         }
     }
 
@@ -852,7 +852,7 @@ public class GameMenuFragment extends Fragment {
         new Handler(Looper.getMainLooper()).postDelayed(() -> {
             VirtualKeyboard vk = game.getVirtualKeyboard();
             if (vk == null) {
-                Toast.makeText(game, "无法编辑：虚拟键盘未就绪", Toast.LENGTH_SHORT).show();
+                AppToast.makeText(game, "无法编辑：虚拟键盘未就绪", AppToast.LENGTH_SHORT).show();
                 return;
             }
             CustomHotkeysManager.showManageDialog(game, vk, this::renderDashboard);
@@ -863,7 +863,7 @@ public class GameMenuFragment extends Fragment {
         hideMenuWithAnimation();
         VirtualKeyboard vk = game.getVirtualKeyboard();
         if (vk == null) {
-            Toast.makeText(game, "无法执行：虚拟键盘未就绪", Toast.LENGTH_SHORT).show();
+            AppToast.makeText(game, "无法执行：虚拟键盘未就绪", AppToast.LENGTH_SHORT).show();
             return;
         }
         CustomHotkeysManager.runCustomHotkey(game, vk, item);
@@ -1119,7 +1119,7 @@ public class GameMenuFragment extends Fragment {
             return;
         }
         lastDisconnectTapMs = now;
-        Toast.makeText(game, R.string.game_menu_disconnect_confirm, Toast.LENGTH_SHORT).show();
+        AppToast.makeText(game, R.string.game_menu_disconnect_confirm, AppToast.LENGTH_SHORT).show();
     }
 
     private void togglePortals() {
@@ -1129,7 +1129,7 @@ public class GameMenuFragment extends Fragment {
             boolean enabled = portalManager.togglePortalsEnabled();
             game.postNotification(enabled ? getString(R.string.game_menu_portal_enable) : getString(R.string.game_menu_portal_disable), 2000);
         } else {
-            Toast.makeText(game, "portalManager 为空", Toast.LENGTH_SHORT).show();
+            AppToast.makeText(game, "portalManager 为空", AppToast.LENGTH_SHORT).show();
         }
     }
 
@@ -1137,7 +1137,7 @@ public class GameMenuFragment extends Fragment {
         hideMenuWithAnimation();
         PortalManagerView portalManager = game.getPortalManagerView();
         if (portalManager == null) {
-            Toast.makeText(game, "portalManager 为空", Toast.LENGTH_SHORT).show();
+            AppToast.makeText(game, "portalManager 为空", AppToast.LENGTH_SHORT).show();
             return;
         }
         PortalConfig config = new PortalConfig();
@@ -1193,7 +1193,7 @@ public class GameMenuFragment extends Fragment {
         hideMenuWithAnimation();
         PortalManagerView portalManager = game.getPortalManagerView();
         if (portalManager == null) {
-            Toast.makeText(game, "portalManager 为空", Toast.LENGTH_SHORT).show();
+            AppToast.makeText(game, "portalManager 为空", AppToast.LENGTH_SHORT).show();
             return;
         }
 
@@ -1453,7 +1453,7 @@ public class GameMenuFragment extends Fragment {
     }
 
     private void showSwitchDisplayDialog() {
-        Toast.makeText(game, "正在获取屏幕列表...", Toast.LENGTH_SHORT).show();
+        AppToast.makeText(game, "正在获取屏幕列表...", AppToast.LENGTH_SHORT).show();
         new Thread(() -> {
             try {
                 final List<NvHTTP.DisplayInfo> rawDisplays = conn.getDisplays();
@@ -1594,7 +1594,7 @@ public class GameMenuFragment extends Fragment {
                             
                             String toastText = getDisplayNickname(selected);
                             rememberDisplayLabel(toastText);
-                            Toast.makeText(game, "正在切换到: " + toastText + "，请稍候...", Toast.LENGTH_SHORT).show();
+                            AppToast.makeText(game, "正在切换到: " + toastText + "，请稍候...", AppToast.LENGTH_SHORT).show();
                             game.recreateConnectionWithDisplay(targetValue, isVirtual);
                             dialog.dismiss();
                         });
@@ -1640,11 +1640,11 @@ public class GameMenuFragment extends Fragment {
                         .getString("cached_physical_display_guid", "");
                 String targetDisplay = (cachedGuid != null && !cachedGuid.trim().isEmpty()) ? cachedGuid : "\\\\.\\DISPLAY1";
                 rememberDisplayLabel("物理主屏幕");
-                Toast.makeText(game, "正在切换到: " + targetDisplay + "，请稍候...", Toast.LENGTH_SHORT).show();
+                AppToast.makeText(game, "正在切换到: " + targetDisplay + "，请稍候...", AppToast.LENGTH_SHORT).show();
                 game.recreateConnectionWithDisplay(targetDisplay, false);
             } else if (which == 1) {
                 rememberDisplayLabel("虚拟显示器 (强制激活)");
-                Toast.makeText(game, "正在激活并切换到虚拟显示器，请稍候...", Toast.LENGTH_SHORT).show();
+                AppToast.makeText(game, "正在激活并切换到虚拟显示器，请稍候...", AppToast.LENGTH_SHORT).show();
                 game.recreateConnectionWithDisplay("", true);
             } else {
                 android.app.AlertDialog.Builder inputBuilder = new android.app.AlertDialog.Builder(game);
@@ -1658,7 +1658,7 @@ public class GameMenuFragment extends Fragment {
                         boolean isVirtual = customDisplay.toLowerCase(java.util.Locale.ROOT).contains("zako")
                                 || customDisplay.toLowerCase(java.util.Locale.ROOT).contains("virtual");
                         rememberDisplayLabel(customDisplay);
-                        Toast.makeText(game, "正在切换到: " + customDisplay + "，请稍候...", Toast.LENGTH_SHORT).show();
+                        AppToast.makeText(game, "正在切换到: " + customDisplay + "，请稍候...", AppToast.LENGTH_SHORT).show();
                         game.recreateConnectionWithDisplay(customDisplay, isVirtual);
                     }
                 });

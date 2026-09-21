@@ -15,7 +15,7 @@ import android.widget.CheckBox
 import android.widget.LinearLayout
 import android.widget.RadioGroup
 import android.widget.TextView
-import android.widget.Toast
+import com.limelight.utils.AppToast
 import com.limelight.Game
 import com.limelight.binding.PlatformBinding
 import com.limelight.R
@@ -40,7 +40,7 @@ object StreamEnhanceMenu {
     @JvmStatic
     fun show(game: Game, conn: NvConnection) {
         if (conn.isNvidiaServerSoftware) {
-            Toast.makeText(game, R.string.game_menu_sunshine_required, Toast.LENGTH_LONG).show()
+            AppToast.makeText(game, R.string.game_menu_sunshine_required, AppToast.LENGTH_LONG).show()
             return
         }
 
@@ -50,7 +50,7 @@ object StreamEnhanceMenu {
     @JvmStatic
     fun show(activity: Activity, computer: ComputerDetails, uniqueId: String?) {
         if (computer.nvidiaServer) {
-            Toast.makeText(activity, R.string.game_menu_sunshine_required, Toast.LENGTH_LONG).show()
+            AppToast.makeText(activity, R.string.game_menu_sunshine_required, AppToast.LENGTH_LONG).show()
             return
         }
 
@@ -363,7 +363,7 @@ object StreamEnhanceMenu {
                 }
 
                 editor.apply()
-                Toast.makeText(game, R.string.game_menu_stream_enhance_saved, Toast.LENGTH_SHORT).show()
+                AppToast.makeText(game, R.string.game_menu_stream_enhance_saved, AppToast.LENGTH_SHORT).show()
             }
             .show()
     }

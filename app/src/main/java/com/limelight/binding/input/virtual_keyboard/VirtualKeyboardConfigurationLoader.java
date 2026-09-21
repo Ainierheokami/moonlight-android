@@ -10,7 +10,7 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.util.DisplayMetrics;
 import android.util.Log;
-import android.widget.Toast;
+import com.limelight.utils.AppToast;
 import android.content.ClipboardManager;
 import android.content.ClipData;
 
@@ -172,10 +172,10 @@ public class VirtualKeyboardConfigurationLoader {
             sAppearanceStyleClipboard = extractAppearanceFromElement(element);
             // 写入系统剪贴板
             writeStyleToSystemClipboard(context, sAppearanceStyleClipboard);
-            Toast.makeText(context, "已复制外观样式（已写入系统剪贴板）", Toast.LENGTH_SHORT).show();
+            AppToast.makeText(context, "已复制外观样式（已写入系统剪贴板）", AppToast.LENGTH_SHORT).show();
         } catch (Exception e) {
             Log.e("heokami", "复制外观样式失败", e);
-            Toast.makeText(context, "复制外观样式失败：" + e.getMessage(), Toast.LENGTH_SHORT).show();
+            AppToast.makeText(context, "复制外观样式失败：" + e.getMessage(), AppToast.LENGTH_SHORT).show();
         }
     }
 
@@ -191,17 +191,17 @@ public class VirtualKeyboardConfigurationLoader {
             JSONObject style = tryReadStyleFromSystemClipboard(context);
             if (style == null) {
                 if (sAppearanceStyleClipboard == null) {
-                    Toast.makeText(context, "样式剪贴板为空，无法粘贴", Toast.LENGTH_SHORT).show();
+                    AppToast.makeText(context, "样式剪贴板为空，无法粘贴", AppToast.LENGTH_SHORT).show();
                     return;
                 }
                 style = sAppearanceStyleClipboard;
             }
             applyAppearanceToElement(element, style);
             saveProfile(virtualKeyboard, context);
-            Toast.makeText(context, "已粘贴外观样式", Toast.LENGTH_SHORT).show();
+            AppToast.makeText(context, "已粘贴外观样式", AppToast.LENGTH_SHORT).show();
         } catch (Exception e) {
             Log.e("heokami", "粘贴外观样式失败", e);
-            Toast.makeText(context, "粘贴外观样式失败：" + e.getMessage(), Toast.LENGTH_SHORT).show();
+            AppToast.makeText(context, "粘贴外观样式失败：" + e.getMessage(), AppToast.LENGTH_SHORT).show();
         }
     }
 
@@ -213,7 +213,7 @@ public class VirtualKeyboardConfigurationLoader {
                                                        final Context context) {
         if (element == null) return;
         if (element.group == -1) {
-            Toast.makeText(context, "该按钮未设置分组，无法应用样式到同组", Toast.LENGTH_SHORT).show();
+            AppToast.makeText(context, "该按钮未设置分组，无法应用样式到同组", AppToast.LENGTH_SHORT).show();
             return;
         }
         try {
@@ -225,10 +225,10 @@ public class VirtualKeyboardConfigurationLoader {
                 }
             }
             saveProfile(virtualKeyboard, context);
-            Toast.makeText(context, "已将外观样式应用到同组", Toast.LENGTH_SHORT).show();
+            AppToast.makeText(context, "已将外观样式应用到同组", AppToast.LENGTH_SHORT).show();
         } catch (Exception e) {
             Log.e("heokami", "应用外观样式到同组失败", e);
-            Toast.makeText(context, "应用外观样式到同组失败：" + e.getMessage(), Toast.LENGTH_SHORT).show();
+            AppToast.makeText(context, "应用外观样式到同组失败：" + e.getMessage(), AppToast.LENGTH_SHORT).show();
         }
     }
 
@@ -935,14 +935,14 @@ public class VirtualKeyboardConfigurationLoader {
                         virtualKeyboard.getElementByElementId(Integer.parseInt(elementId)).loadConfiguration(json);
                     }
                 }catch (Exception e){
-                    Toast.makeText(context, String.format("elementId %s 载入异常", elementId) + e.getMessage(), Toast.LENGTH_SHORT).show();
+                    AppToast.makeText(context, String.format("elementId %s 载入异常", elementId) + e.getMessage(), AppToast.LENGTH_SHORT).show();
                     Log.e("heokami", String.format("elementId %s 载入异常 \n Json: %s", elementId, jsonConfig), e);
 
                     Log.e("heokami", e.toString(), e);
                 }
             }
         } catch (Exception e) {
-            Toast.makeText(context, "载入异常，清空配置文件" + e.getMessage(), Toast.LENGTH_SHORT).show();
+            AppToast.makeText(context, "载入异常，清空配置文件" + e.getMessage(), AppToast.LENGTH_SHORT).show();
             Log.e("heokami", e.toString(), e);
             // 报错则还原默认
             virtualKeyboard.loadDefaultLayout();

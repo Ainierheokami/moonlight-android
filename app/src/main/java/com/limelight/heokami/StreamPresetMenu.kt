@@ -7,7 +7,7 @@ import android.os.Looper
 import android.preference.PreferenceManager
 import android.text.InputType
 import android.widget.EditText
-import android.widget.Toast
+import com.limelight.utils.AppToast
 import com.limelight.Game
 import com.limelight.R
 import com.limelight.nvstream.NvConnection
@@ -93,7 +93,7 @@ object StreamPresetMenu {
             .putStringSet(PRESET_NAMES, names)
             .putString(PRESET_PREFIX + name, json.toString())
             .apply()
-        Toast.makeText(context, R.string.game_menu_preset_saved, Toast.LENGTH_SHORT).show()
+        AppToast.makeText(context, R.string.game_menu_preset_saved, AppToast.LENGTH_SHORT).show()
     }
 
     private fun showPresetActions(game: Game, conn: NvConnection, name: String) {
@@ -146,7 +146,7 @@ object StreamPresetMenu {
             .remove(PRESET_PREFIX + oldName)
             .putString(PRESET_PREFIX + newName, oldValue)
             .apply()
-        Toast.makeText(context, R.string.game_menu_preset_saved, Toast.LENGTH_SHORT).show()
+        AppToast.makeText(context, R.string.game_menu_preset_saved, AppToast.LENGTH_SHORT).show()
     }
 
     private fun deletePreset(context: Context, name: String) {
@@ -157,7 +157,7 @@ object StreamPresetMenu {
             .putStringSet(PRESET_NAMES, names)
             .remove(PRESET_PREFIX + name)
             .apply()
-        Toast.makeText(context, R.string.game_menu_preset_deleted, Toast.LENGTH_SHORT).show()
+        AppToast.makeText(context, R.string.game_menu_preset_deleted, AppToast.LENGTH_SHORT).show()
     }
 
     private fun applyPreset(game: Game, conn: NvConnection, name: String) {
@@ -180,7 +180,7 @@ object StreamPresetMenu {
         }
 
         Handler(Looper.getMainLooper()).post {
-            Toast.makeText(game, R.string.game_menu_preset_applied_reconnect, Toast.LENGTH_LONG).show()
+            AppToast.makeText(game, R.string.game_menu_preset_applied_reconnect, AppToast.LENGTH_LONG).show()
         }
     }
 }

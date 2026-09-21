@@ -76,7 +76,7 @@ import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.SeekBar;
 import android.widget.TextView;
-import android.widget.Toast;
+import com.limelight.utils.AppToast;
 import android.widget.AdapterView.AdapterContextMenuInfo;
 
 import androidx.annotation.NonNull;
@@ -239,7 +239,7 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
             public void onClick(View v) {
                 // 停止刷新
                 stopComputerUpdates(true);
-                Toast.makeText(PcView.this, R.string.scut_stop_refresh, Toast.LENGTH_SHORT).show();
+                AppToast.makeText(PcView.this, R.string.scut_stop_refresh, AppToast.LENGTH_SHORT).show();
             }
         });
 
@@ -249,7 +249,7 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
                 //通过停止并重新开始来触发手动刷新
                 stopComputerUpdates(true);
                 startComputerUpdates();
-                Toast.makeText(PcView.this, R.string.scut_refresh_list, Toast.LENGTH_SHORT).show();
+                AppToast.makeText(PcView.this, R.string.scut_refresh_list, AppToast.LENGTH_SHORT).show();
             }
         });
 
@@ -636,12 +636,12 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
         
         if (computer.details.state == ComputerDetails.State.OFFLINE || computer.address == null) {
             Log.w(PAIRING_TAG, "配对失败: PC离线或地址为空");
-            Toast.makeText(PcView.this, getResources().getString(R.string.pair_pc_offline), Toast.LENGTH_SHORT).show();
+            AppToast.makeText(PcView.this, getResources().getString(R.string.pair_pc_offline), AppToast.LENGTH_SHORT).show();
             return;
         }
         if (managerBinder == null) {
             Log.e(PAIRING_TAG, "配对失败: ComputerManager服务未运行");
-            Toast.makeText(PcView.this, getResources().getString(R.string.error_manager_not_running), Toast.LENGTH_LONG).show();
+            AppToast.makeText(PcView.this, getResources().getString(R.string.error_manager_not_running), AppToast.LENGTH_LONG).show();
             return;
         }
 
@@ -726,7 +726,7 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
                                     if (pcRecyclerAdapter != null) {
                                         pcRecyclerAdapter.clearPairingStatus(finalComputer);
                                     }
-                                    Toast.makeText(PcView.this, errorMessage, Toast.LENGTH_LONG).show();
+                                    AppToast.makeText(PcView.this, errorMessage, AppToast.LENGTH_LONG).show();
                                     // 重新开始轮询
                                     startComputerUpdates();
                                 }
@@ -1054,7 +1054,7 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
                         }
                         
                         if (errorMessage != null) {
-                            Toast.makeText(PcView.this, errorMessage, Toast.LENGTH_LONG).show();
+                            AppToast.makeText(PcView.this, errorMessage, AppToast.LENGTH_LONG).show();
                         }
                         // 重新开始轮询
                         startComputerUpdates();
@@ -1084,12 +1084,12 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
 
     private void doWakeOnLan(final ComputerDetails computer) {
         if (computer.state == ComputerDetails.State.ONLINE) {
-            Toast.makeText(PcView.this, getResources().getString(R.string.wol_pc_online), Toast.LENGTH_SHORT).show();
+            AppToast.makeText(PcView.this, getResources().getString(R.string.wol_pc_online), AppToast.LENGTH_SHORT).show();
             return;
         }
 
         if (computer.macAddress == null) {
-            Toast.makeText(PcView.this, getResources().getString(R.string.wol_no_mac), Toast.LENGTH_SHORT).show();
+            AppToast.makeText(PcView.this, getResources().getString(R.string.wol_no_mac), AppToast.LENGTH_SHORT).show();
             return;
         }
 
@@ -1108,7 +1108,7 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
-                        Toast.makeText(PcView.this, toastMessage, Toast.LENGTH_LONG).show();
+                        AppToast.makeText(PcView.this, toastMessage, AppToast.LENGTH_LONG).show();
                     }
                 });
             }
@@ -1117,15 +1117,15 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
 
     private void doUnpair(final ComputerDetails computer) {
         if (computer.state == ComputerDetails.State.OFFLINE || computer.activeAddress == null) {
-            Toast.makeText(PcView.this, getResources().getString(R.string.error_pc_offline), Toast.LENGTH_SHORT).show();
+            AppToast.makeText(PcView.this, getResources().getString(R.string.error_pc_offline), AppToast.LENGTH_SHORT).show();
             return;
         }
         if (managerBinder == null) {
-            Toast.makeText(PcView.this, getResources().getString(R.string.error_manager_not_running), Toast.LENGTH_LONG).show();
+            AppToast.makeText(PcView.this, getResources().getString(R.string.error_manager_not_running), AppToast.LENGTH_LONG).show();
             return;
         }
 
-        Toast.makeText(PcView.this, getResources().getString(R.string.unpairing), Toast.LENGTH_SHORT).show();
+        AppToast.makeText(PcView.this, getResources().getString(R.string.unpairing), AppToast.LENGTH_SHORT).show();
         new Thread(new Runnable() {
             @Override
             public void run() {
@@ -1160,7 +1160,7 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
-                        Toast.makeText(PcView.this, toastMessage, Toast.LENGTH_LONG).show();
+                        AppToast.makeText(PcView.this, toastMessage, AppToast.LENGTH_LONG).show();
                     }
                 });
             }
@@ -1169,11 +1169,11 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
 
     public void doAppList(ComputerObject computer, boolean newlyPaired, boolean showHiddenGames) {
         if (computer.details.state == ComputerDetails.State.OFFLINE) {
-            Toast.makeText(PcView.this, getResources().getString(R.string.error_pc_offline), Toast.LENGTH_SHORT).show();
+            AppToast.makeText(PcView.this, getResources().getString(R.string.error_pc_offline), AppToast.LENGTH_SHORT).show();
             return;
         }
         if (managerBinder == null) {
-            Toast.makeText(PcView.this, getResources().getString(R.string.error_manager_not_running), Toast.LENGTH_LONG).show();
+            AppToast.makeText(PcView.this, getResources().getString(R.string.error_manager_not_running), AppToast.LENGTH_LONG).show();
             return;
         }
 
@@ -1214,7 +1214,7 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
 
             case RESUME_ID:
                 if (managerBinder == null) {
-                    Toast.makeText(PcView.this, getResources().getString(R.string.error_manager_not_running), Toast.LENGTH_LONG).show();
+                    AppToast.makeText(PcView.this, getResources().getString(R.string.error_manager_not_running), AppToast.LENGTH_LONG).show();
                     return true;
                 }
 
@@ -1223,7 +1223,7 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
 
             case QUIT_ID:
                 if (managerBinder == null) {
-                    Toast.makeText(PcView.this, getResources().getString(R.string.error_manager_not_running), Toast.LENGTH_LONG).show();
+                    AppToast.makeText(PcView.this, getResources().getString(R.string.error_manager_not_running), AppToast.LENGTH_LONG).show();
                     return true;
                 }
 
@@ -1260,7 +1260,7 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
 
    private void doRemoveIp(final ComputerObject computer) {
        if (managerBinder == null) {
-           Toast.makeText(PcView.this, getResources().getString(R.string.error_manager_not_running), Toast.LENGTH_LONG).show();
+           AppToast.makeText(PcView.this, getResources().getString(R.string.error_manager_not_running), AppToast.LENGTH_LONG).show();
            return;
        }
        if (computer == null || computer.address == null) {
@@ -1272,7 +1272,7 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
 
        // Save the updated computer details
        managerBinder.updateComputer(computer.details);
-       Toast.makeText(PcView.this, getResources().getString(R.string.delete_ip_success), Toast.LENGTH_SHORT).show();
+       AppToast.makeText(PcView.this, getResources().getString(R.string.delete_ip_success), AppToast.LENGTH_SHORT).show();
 
        // The UI will be refreshed by the callback
    }
@@ -1332,7 +1332,7 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
 
            case RESUME_ID:
                if (managerBinder == null) {
-                   Toast.makeText(PcView.this, getResources().getString(R.string.error_manager_not_running), Toast.LENGTH_LONG).show();
+                   AppToast.makeText(PcView.this, getResources().getString(R.string.error_manager_not_running), AppToast.LENGTH_LONG).show();
                    return true;
                }
 
@@ -1341,7 +1341,7 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
 
            case QUIT_ID:
                if (managerBinder == null) {
-                   Toast.makeText(PcView.this, getResources().getString(R.string.error_manager_not_running), Toast.LENGTH_LONG).show();
+                   AppToast.makeText(PcView.this, getResources().getString(R.string.error_manager_not_running), AppToast.LENGTH_LONG).show();
                    return true;
                }
 
@@ -1429,7 +1429,7 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
                     @Override
                     public void run() {
                         if (managerBinder == null) {
-                            Toast.makeText(PcView.this, getResources().getString(R.string.error_manager_not_running), Toast.LENGTH_LONG).show();
+                            AppToast.makeText(PcView.this, getResources().getString(R.string.error_manager_not_running), AppToast.LENGTH_LONG).show();
                             return;
                         }
                         ServerHelper.doStart(PcView.this, new NvApp("app", computer.details.runningGameId, false), computer.details, managerBinder);
@@ -1439,7 +1439,7 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
                     @Override
                     public void run() {
                         if (managerBinder == null) {
-                            Toast.makeText(PcView.this, getResources().getString(R.string.error_manager_not_running), Toast.LENGTH_LONG).show();
+                            AppToast.makeText(PcView.this, getResources().getString(R.string.error_manager_not_running), AppToast.LENGTH_LONG).show();
                             return;
                         }
                         UiHelper.displayQuitConfirmationDialog(PcView.this, new Runnable() {
@@ -1481,7 +1481,7 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
             @Override
             public void run() {
                 if (managerBinder == null) {
-                    Toast.makeText(PcView.this, getResources().getString(R.string.error_manager_not_running), Toast.LENGTH_LONG).show();
+                    AppToast.makeText(PcView.this, getResources().getString(R.string.error_manager_not_running), AppToast.LENGTH_LONG).show();
                     return;
                 }
                 StreamEnhanceMenu.show(PcView.this, computer.details, managerBinder.getUniqueId());
@@ -1656,7 +1656,7 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
             pcRecyclerAdapter.notifyDataSetChanged();
         }
 
-        Toast.makeText(this, getString(R.string.debug_test_cover_written, coverSize), Toast.LENGTH_SHORT).show();
+        AppToast.makeText(this, getString(R.string.debug_test_cover_written, coverSize), AppToast.LENGTH_SHORT).show();
     }
 
     private void confirmRemoveComputer(final ComputerObject computer) {
@@ -1668,7 +1668,7 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
             @Override
             public void run() {
                 if (managerBinder == null) {
-                    Toast.makeText(PcView.this, getResources().getString(R.string.error_manager_not_running), Toast.LENGTH_LONG).show();
+                    AppToast.makeText(PcView.this, getResources().getString(R.string.error_manager_not_running), AppToast.LENGTH_LONG).show();
                     return;
                 }
                 removeComputer(computer.details);

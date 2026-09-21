@@ -9,7 +9,7 @@ import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.Environment;
 import android.preference.PreferenceManager;
-import android.widget.Toast;
+import com.limelight.utils.AppToast;
 
 import com.limelight.BuildConfig;
 import com.limelight.LimeLog;
@@ -70,13 +70,13 @@ public final class UpdateChecker {
 
         if (!CHECK_IN_PROGRESS.compareAndSet(false, true)) {
             if (userInitiated) {
-                Toast.makeText(activity, R.string.update_check_in_progress, Toast.LENGTH_SHORT).show();
+                AppToast.makeText(activity, R.string.update_check_in_progress, AppToast.LENGTH_SHORT).show();
             }
             return;
         }
 
         if (userInitiated) {
-            Toast.makeText(activity, R.string.update_check_in_progress, Toast.LENGTH_SHORT).show();
+            AppToast.makeText(activity, R.string.update_check_in_progress, AppToast.LENGTH_SHORT).show();
         }
 
         Request request = new Request.Builder()
@@ -188,7 +188,7 @@ public final class UpdateChecker {
                 throw new IllegalStateException("DownloadManager unavailable");
             }
             manager.enqueue(request);
-            Toast.makeText(activity, R.string.update_download_started, Toast.LENGTH_LONG).show();
+            AppToast.makeText(activity, R.string.update_download_started, AppToast.LENGTH_LONG).show();
         }
         catch (RuntimeException e) {
             LimeLog.warning("Unable to enqueue update download: " + e.getMessage());
@@ -201,7 +201,7 @@ public final class UpdateChecker {
             activity.startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(url)));
         }
         catch (RuntimeException e) {
-            Toast.makeText(activity, R.string.update_open_link_failed, Toast.LENGTH_LONG).show();
+            AppToast.makeText(activity, R.string.update_open_link_failed, AppToast.LENGTH_LONG).show();
         }
     }
 

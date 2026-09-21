@@ -20,7 +20,7 @@ import android.widget.Button;
 import android.widget.FrameLayout;
 import android.widget.TextView;
 import android.view.Gravity;
-import android.widget.Toast;
+import com.limelight.utils.AppToast;
 import android.view.ViewParent;
 import android.view.MotionEvent;
 

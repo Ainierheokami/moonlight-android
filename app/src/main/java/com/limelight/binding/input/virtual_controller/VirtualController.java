@@ -11,7 +11,7 @@ import android.util.DisplayMetrics;
 import android.view.View;
 import android.widget.Button;
 import android.widget.FrameLayout;
-import android.widget.Toast;
+import com.limelight.utils.AppToast;
 
 import com.limelight.LimeLog;
 import com.limelight.R;
@@ -86,7 +86,7 @@ public class VirtualController {
                     message = context.getString(R.string.controller_mode_active_buttons);
                 }
 
-                Toast.makeText(context, message, Toast.LENGTH_SHORT).show();
+                AppToast.makeText(context, message, AppToast.LENGTH_SHORT).show();
 
                 buttonConfigure.invalidate();
 

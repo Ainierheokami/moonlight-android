@@ -6,7 +6,7 @@ import android.os.Looper
 import android.view.LayoutInflater
 import android.widget.SeekBar
 import android.widget.TextView
-import android.widget.Toast
+import com.limelight.utils.AppToast
 import com.limelight.Game
 import com.limelight.LimeLog
 import com.limelight.R
@@ -47,9 +47,9 @@ object StreamBitrateMenu {
                             bitrateKbps,
                         )
                         game.prefConfig?.bitrate = bitrateKbps
-                        Toast.makeText(game, R.string.game_menu_bitrate_applied, Toast.LENGTH_SHORT).show()
+                        AppToast.makeText(game, R.string.game_menu_bitrate_applied, AppToast.LENGTH_SHORT).show()
                     } else {
-                        Toast.makeText(game, error ?: game.getString(R.string.game_menu_bitrate_failed), Toast.LENGTH_LONG).show()
+                        AppToast.makeText(game, error ?: game.getString(R.string.game_menu_bitrate_failed), AppToast.LENGTH_LONG).show()
                     }
                 }
             }

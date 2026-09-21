@@ -11,7 +11,7 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.TextView;
-import android.widget.Toast;
+import com.limelight.utils.AppToast;
 
 import androidx.recyclerview.widget.RecyclerView;
 

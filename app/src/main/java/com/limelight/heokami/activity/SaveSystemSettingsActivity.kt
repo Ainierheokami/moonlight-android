@@ -2,6 +2,8 @@ package com.limelight.heokami.activity
 
 import android.net.Uri
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import android.widget.Button
 import android.widget.TextView
@@ -9,6 +11,7 @@ import androidx.appcompat.app.AppCompatActivity
 import com.limelight.R
 import com.limelight.heokami.FilePickerUtils
 import com.limelight.heokami.SystemSettingsBackupHelper
+import com.limelight.utils.AppToast
 
 /**
  * 全量配对与设置备份的 Activity。
@@ -36,15 +39,15 @@ class SaveSystemSettingsActivity : AppCompatActivity() {
         } catch (e: Exception) {
             Log.e("SaveSettingsActivity", "备份发生异常", e)
             textView.text = "备份失败"
-            android.widget.Toast.makeText(this, "备份保存异常，请重试", android.widget.Toast.LENGTH_SHORT).show()
-            finish()
+            AppToast.makeText(this, "备份保存异常，请重试", AppToast.LENGTH_SHORT).show()
+            finishAfterToast()
             return
         }
 
         if (backupData == null) {
             textView.text = "备份失败：导出生成为空"
-            android.widget.Toast.makeText(this, "备份失败，配置生成为空", android.widget.Toast.LENGTH_SHORT).show()
-            finish()
+            AppToast.makeText(this, "备份失败，配置生成为空", AppToast.LENGTH_SHORT).show()
+            finishAfterToast()
             return
         }
 
@@ -52,8 +55,8 @@ class SaveSystemSettingsActivity : AppCompatActivity() {
         if (savedUri != null) {
             Log.d("SaveSettingsActivity", "自动保存系统设置到: $savedUri")
             textView.text = "配对与设置备份成功"
-            android.widget.Toast.makeText(this, "备份已保存到 Download/Moonlight", android.widget.Toast.LENGTH_SHORT).show()
-            finish()
+            AppToast.makeText(this, "备份已保存到 Download/Moonlight", AppToast.LENGTH_SHORT).show()
+            finishAfterToast()
             return
         }
 
@@ -64,13 +67,13 @@ class SaveSystemSettingsActivity : AppCompatActivity() {
                     try {
                         filePicker.saveToUri(uri, backupData)
                         textView.text = "配对与设置备份成功"
-                        android.widget.Toast.makeText(this@SaveSystemSettingsActivity, "配对与设置备份成功", android.widget.Toast.LENGTH_SHORT).show()
+                        AppToast.makeText(this@SaveSystemSettingsActivity, "配对与设置备份成功", AppToast.LENGTH_SHORT).show()
                     } catch (e: Exception) {
                         Log.e("SaveSettingsActivity", "备份发生异常", e)
                         textView.text = "备份失败"
-                        android.widget.Toast.makeText(this@SaveSystemSettingsActivity, "备份保存异常，请重试", android.widget.Toast.LENGTH_SHORT).show()
+                        AppToast.makeText(this@SaveSystemSettingsActivity, "备份保存异常，请重试", AppToast.LENGTH_SHORT).show()
                     }
-                    this@SaveSystemSettingsActivity.finish()
+                    finishAfterToast()
                 }
 
                 override fun onError(error: String) {
@@ -82,5 +85,9 @@ class SaveSystemSettingsActivity : AppCompatActivity() {
             intentLaunch = (savedInstanceState == null),
             defaultFileName = defaultName
         )
+    }
+
+    private fun finishAfterToast() {
+        Handler(Looper.getMainLooper()).postDelayed({ finish() }, 1800)
     }
 }
