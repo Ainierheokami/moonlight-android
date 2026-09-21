@@ -5101,6 +5101,11 @@ public class Game extends Activity implements SurfaceHolder.Callback,
             PlatformBinding.getCryptoProvider(this), serverCert,
             prefConfig.streamEnhanceDisplayName, prefConfig.forceResumeCurrentSession,
             isSwitchingDisplayForcedRelaunch);
+        // The persisted preferences now carry the selected display. Do not keep a
+        // one-shot in-memory override alive after this connection is created.
+        tempOverrideDisplayName = null;
+        tempOverrideUseVdd = null;
+        tempOverrideForceResume = null;
         isSwitchingDisplayForcedRelaunch = false; // 单次消费后立即复位
         screenshotCaptureRequested = false;
 

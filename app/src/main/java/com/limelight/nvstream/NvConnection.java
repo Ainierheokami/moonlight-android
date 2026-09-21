@@ -44,6 +44,11 @@ import com.limelight.nvstream.jni.MoonBridge;
 
 public class NvConnection {
     // Context parameters
+    private static final String PREF_LAST_STREAM_DISPLAY_NAME = "last_stream_display_name";
+    private static final String PREF_LAST_STREAM_DISPLAY_USE_VDD = "last_stream_display_use_vdd";
+    private static final String PREF_LAST_STREAM_DISPLAY_LABEL = "last_stream_display_label";
+    private static final String PREF_STREAM_ENHANCE_DISPLAY_NAME = "edittext_stream_enhance_display_name";
+    private static final String PREF_CACHED_PHYSICAL_DISPLAY_GUID = "cached_physical_display_guid";
     private LimelightCryptoProvider cryptoProvider;
     private String uniqueId;
     private ConnectionContext context;
@@ -84,7 +89,7 @@ public class NvConnection {
 
         this.isMonkey = ActivityManager.isUserAMonkey();
     }
-    
+
     private static SecretKey generateRiAesKey() {
         try {
             KeyGenerator keyGen = KeyGenerator.getInstance("AES");
@@ -282,6 +287,8 @@ public class NvConnection {
             try {
                 List<NvHTTP.DisplayInfo> list = h.getDisplays();
                 if (list != null) {
+                    validateDisplaySelection(list);
+
                     NvHTTP.DisplayInfo physicalInfo = null;
                     for (NvHTTP.DisplayInfo info : list) {
                         if (info == null) {
@@ -298,7 +305,7 @@ public class NvConnection {
                     if (physicalInfo != null && physicalInfo.deviceId != null && !physicalInfo.deviceId.trim().isEmpty()) {
                         android.preference.PreferenceManager.getDefaultSharedPreferences(appContext)
                                 .edit()
-                                .putString("cached_physical_display_guid", physicalInfo.deviceId.trim())
+                                .putString(PREF_CACHED_PHYSICAL_DISPLAY_GUID, physicalInfo.deviceId.trim())
                                 .apply();
                         LimeLog.info("Automatically cached physical display GUID: " + physicalInfo.deviceId.trim());
                     }
@@ -479,6 +486,70 @@ public class NvConnection {
         LimeLog.info("Launched new game session");
         
         return true;
+    }
+
+    private void validateDisplaySelection(List<NvHTTP.DisplayInfo> displays) {
+        String selectedDisplay = context.displayName;
+        if (selectedDisplay == null || selectedDisplay.trim().isEmpty()
+                || displays == null) {
+            return;
+        }
+
+        if (isDisplaySelectionAvailable(displays, selectedDisplay)) {
+            return;
+        }
+
+        LimeLog.warning("Saved display selection is no longer available on the host: "
+                + selectedDisplay + ". Falling back to the host default display.");
+        context.displayName = "";
+        clearPersistedDisplaySelection();
+    }
+
+    static boolean isDisplaySelectionAvailable(List<NvHTTP.DisplayInfo> displays, String selection) {
+        if (selection == null || selection.trim().isEmpty()) {
+            return true;
+        }
+        if (displays == null || displays.isEmpty()) {
+            return false;
+        }
+
+        String normalizedSelection = normalizeDisplaySelection(selection);
+        for (NvHTTP.DisplayInfo display : displays) {
+            if (display == null) {
+                continue;
+            }
+
+            if (normalizedSelection.equalsIgnoreCase(normalizeDisplaySelection(display.displayName))
+                    || normalizedSelection.equalsIgnoreCase(normalizeDisplaySelection(display.deviceId))
+                    || normalizedSelection.equalsIgnoreCase(normalizeDisplaySelection(display.toString()))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static String normalizeDisplaySelection(String value) {
+        if (value == null) {
+            return "";
+        }
+
+        String normalized = value.trim();
+        int friendlySuffixIndex = normalized.indexOf(" (");
+        if (friendlySuffixIndex >= 0) {
+            normalized = normalized.substring(0, friendlySuffixIndex).trim();
+        }
+        return normalized;
+    }
+
+    private void clearPersistedDisplaySelection() {
+        android.preference.PreferenceManager.getDefaultSharedPreferences(appContext)
+                .edit()
+                .remove(PREF_LAST_STREAM_DISPLAY_NAME)
+                .remove(PREF_LAST_STREAM_DISPLAY_USE_VDD)
+                .remove(PREF_LAST_STREAM_DISPLAY_LABEL)
+                .remove(PREF_STREAM_ENHANCE_DISPLAY_NAME)
+                .remove(PREF_CACHED_PHYSICAL_DISPLAY_GUID)
+                .apply();
     }
 
     public void start(final AudioRenderer audioRenderer, final VideoDecoderRenderer videoDecoderRenderer, final NvConnectionListener connectionListener)

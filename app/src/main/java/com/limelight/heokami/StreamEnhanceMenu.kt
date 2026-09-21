@@ -36,6 +36,9 @@ object StreamEnhanceMenu {
     private const val SUPPRESS_VIDEO = "checkbox_stream_enhance_suppress_video"
     private const val FORCE_RESUME = "checkbox_force_resume_current_session"
     private const val CACHED_PHYSICAL_GUID = "cached_physical_display_guid"
+    private const val LAST_STREAM_DISPLAY_NAME = "last_stream_display_name"
+    private const val LAST_STREAM_DISPLAY_USE_VDD = "last_stream_display_use_vdd"
+    private const val LAST_STREAM_DISPLAY_LABEL = "last_stream_display_label"
 
     @JvmStatic
     fun show(game: Game, conn: NvConnection) {
@@ -354,6 +357,9 @@ object StreamEnhanceMenu {
                         .putString(DISPLAY_NAME, "")
                         .putString(SCREEN_MODE, "-1")
                         .putString(VDD_MODE, "-1")
+                        .remove(LAST_STREAM_DISPLAY_NAME)
+                        .remove(LAST_STREAM_DISPLAY_USE_VDD)
+                        .remove(LAST_STREAM_DISPLAY_LABEL)
                 } else {
                     editor
                         .putBoolean(USE_VDD, tempUseVdd)
