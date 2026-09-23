@@ -679,4 +679,5 @@
     <string name="update_download_description">Tap the completed download notification to install.</string>
     <string name="update_download_started">Download started. Installation is available from the completed download notification.</string>
     <string name="update_open_link_failed">No app is available to open the update link.</string>
+    <string name="evdev_mouse_capture_unavailable">Root access is unavailable. Mouse capture cannot be started.</string>
 </resources>

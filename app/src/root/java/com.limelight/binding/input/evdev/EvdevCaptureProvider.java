@@ -3,10 +3,11 @@ package com.limelight.binding.input.evdev;
 import android.app.Activity;
 import android.os.Build;
 import android.os.Looper;
-import android.widget.Toast;
 
 import com.limelight.LimeLog;
+import com.limelight.R;
 import com.limelight.binding.input.capture.InputCaptureProvider;
+import com.limelight.utils.AppToast;
 
 import java.io.DataOutputStream;
 import java.io.File;
@@ -208,7 +209,8 @@ public class EvdevCaptureProvider extends InputCaptureProvider {
         activity.runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                Toast.makeText(activity, "This device is not rooted - Mouse capture is unavailable", Toast.LENGTH_LONG).show();
+                AppToast.makeText(activity, R.string.evdev_mouse_capture_unavailable,
+                        AppToast.LENGTH_LONG).show();
             }
         });
     }

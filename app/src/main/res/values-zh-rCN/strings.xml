@@ -609,4 +609,5 @@
     <string name="update_download_description">下载完成后点击通知即可安装。</string>
     <string name="update_download_started">已开始下载，完成后可从系统通知安装。</string>
     <string name="update_open_link_failed">没有可打开更新链接的应用。</string>
+    <string name="evdev_mouse_capture_unavailable">无法获取 Root 权限，鼠标捕获功能不可用。</string>
 </resources>
