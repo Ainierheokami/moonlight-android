@@ -37,6 +37,10 @@ public final class AppToast {
     private static final long SHORT_DURATION_MS = 3500L;
     private static final long LONG_DURATION_MS = 6500L;
     private static final long COPIED_DURATION_MS = 1800L;
+    // TYPE_APPLICATION_ABOVE_SUB_PANEL is hidden from the public SDK, but remains a
+    // supported application sub-window type. It is the highest app-owned sub-window layer.
+    private static final int TYPE_APPLICATION_ABOVE_SUB_PANEL =
+            WindowManager.LayoutParams.FIRST_SUB_WINDOW + 5;
     private static final Handler MAIN_HANDLER = new Handler(Looper.getMainLooper());
 
     private static WeakReference<Activity> lastActivity;
@@ -159,7 +163,7 @@ public final class AppToast {
     }
 
     /**
-     * Attach the toast as an Activity sub-panel so it can appear above app dialogs.
+     * Attach the toast above application dialogs and popup sub-panels.
      */
     private void attachToActivity(final Activity activity) {
         if (activeToast != this || !isUsable(activity)) {
@@ -220,13 +224,13 @@ public final class AppToast {
         WindowManager.LayoutParams layoutParams = new WindowManager.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT,
-                WindowManager.LayoutParams.TYPE_APPLICATION_SUB_PANEL,
+                TYPE_APPLICATION_ABOVE_SUB_PANEL,
                 windowFlags,
                 PixelFormat.TRANSLUCENT);
         layoutParams.gravity = Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL;
         layoutParams.y = dp(activity, 48);
-        // A sub-panel is layered above its attached Activity window, keeping the toast
-        // visible over normal application-layer dialogs without leaving this app.
+        // Keep the toast in the Activity's own window hierarchy, but above normal app
+        // dialogs and sub-panels without requesting system-overlay permission.
         layoutParams.token = activityWindowToken;
         layoutParams.packageName = activity.getPackageName();
         layoutParams.setTitle("Moonlight AppToast");
