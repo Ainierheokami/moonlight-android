@@ -176,13 +176,15 @@ public final class AppToast {
 
         FrameLayout windowContent = new FrameLayout(activity);
         windowContent.setClipChildren(false);
-        int horizontalMargin = dp(activity, 14);
+        int horizontalMargin = dp(activity, 16);
         windowContent.setPadding(horizontalMargin, 0, horizontalMargin, 0);
 
         toastView = LayoutInflater.from(activity).inflate(R.layout.app_toast, windowContent, false);
-        windowContent.addView(toastView, new FrameLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT));
+        FrameLayout.LayoutParams toastLayoutParams = new FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                Gravity.CENTER_HORIZONTAL);
+        windowContent.addView(toastView, toastLayoutParams);
 
         boolean debugMode = PreferenceConfiguration.isDebugToastEnabled(activity);
 
@@ -214,7 +216,7 @@ public final class AppToast {
                 windowFlags,
                 PixelFormat.TRANSLUCENT);
         layoutParams.gravity = Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL;
-        layoutParams.y = dp(activity, 32);
+        layoutParams.y = dp(activity, 48);
         layoutParams.token = activity.getWindow().getDecorView().getWindowToken();
         layoutParams.packageName = activity.getPackageName();
         layoutParams.setTitle("Moonlight AppToast");

@@ -1,41 +1,43 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/appToastRoot"
-    android:layout_width="match_parent"
+    android:layout_width="wrap_content"
     android:layout_height="wrap_content"
-    android:minHeight="44dp"
+    android:minHeight="48dp"
     android:background="@drawable/app_toast_background"
-    android:elevation="6dp"
+    android:elevation="8dp"
     android:gravity="center_vertical"
     android:orientation="horizontal"
-    android:paddingStart="12dp"
-    android:paddingTop="8dp"
-    android:paddingEnd="12dp"
-    android:paddingBottom="8dp">
+    android:paddingStart="14dp"
+    android:paddingTop="10dp"
+    android:paddingEnd="14dp"
+    android:paddingBottom="10dp">
 
     <LinearLayout
-        android:layout_width="0dp"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_weight="1"
         android:orientation="vertical">
 
         <TextView
             android:id="@+id/appToastMessage"
-            android:layout_width="match_parent"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:ellipsize="end"
             android:maxLines="4"
+            android:maxWidth="520dp"
+            android:lineSpacingExtra="2dp"
             android:textColor="#F5F8FC"
             android:textSize="14sp" />
 
         <TextView
             android:id="@+id/appToastCopyHint"
-            android:layout_width="match_parent"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="2dp"
+            android:maxWidth="520dp"
             android:visibility="gone"
             android:text="@string/app_toast_copy_hint"
-            android:textColor="#9FB0C2"
-            android:textSize="11sp" />
+            android:textColor="#B3C0CE"
+            android:textSize="12sp" />
     </LinearLayout>
 </LinearLayout>
