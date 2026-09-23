@@ -158,8 +158,7 @@ public final class AppToast {
     }
 
     /**
-     * Attach the toast as a regular application window using the Activity token.
-     * Unlike an attached-dialog subwindow, this lets it remain above app dialogs too.
+     * Attach the toast to the Activity window so it remains visible above Activity content.
      */
     private void attachToActivity(final Activity activity) {
         if (activeToast != this || !isUsable(activity)) {
@@ -212,7 +211,7 @@ public final class AppToast {
         WindowManager.LayoutParams layoutParams = new WindowManager.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT,
-                WindowManager.LayoutParams.TYPE_APPLICATION,
+                WindowManager.LayoutParams.TYPE_APPLICATION_ATTACHED_DIALOG,
                 windowFlags,
                 PixelFormat.TRANSLUCENT);
         layoutParams.gravity = Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL;
