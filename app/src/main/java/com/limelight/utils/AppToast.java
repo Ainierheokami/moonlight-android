@@ -158,7 +158,7 @@ public final class AppToast {
     }
 
     /**
-     * Attach the toast to the Activity window so it remains visible above Activity content.
+     * Attach the toast as an Activity application window so it can appear above app dialogs.
      */
     private void attachToActivity(final Activity activity) {
         if (activeToast != this || !isUsable(activity)) {
@@ -211,12 +211,14 @@ public final class AppToast {
         WindowManager.LayoutParams layoutParams = new WindowManager.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT,
-                WindowManager.LayoutParams.TYPE_APPLICATION_ATTACHED_DIALOG,
+                WindowManager.LayoutParams.TYPE_APPLICATION,
                 windowFlags,
                 PixelFormat.TRANSLUCENT);
         layoutParams.gravity = Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL;
         layoutParams.y = dp(activity, 48);
-        layoutParams.token = activity.getWindow().getDecorView().getWindowToken();
+        // Leave token unset. Activity's WindowManager fills in the Activity token for a
+        // top-level application window; decorView.getWindowToken() is only valid for
+        // attached subwindows such as TYPE_APPLICATION_ATTACHED_DIALOG.
         layoutParams.packageName = activity.getPackageName();
         layoutParams.setTitle("Moonlight AppToast");
 
@@ -224,18 +226,12 @@ public final class AppToast {
         windowManager = activity.getWindowManager();
         windowParams = layoutParams;
 
-        if (layoutParams.token == null) {
-            LimeLog.warning("Unable to show in-app toast because the Activity window is not attached");
-            detachWindow();
-            retryAttach(activity);
-            return;
-        }
-
         try {
             windowManager.addView(windowView, windowParams);
         }
         catch (RuntimeException e) {
-            LimeLog.warning("Unable to attach in-app toast window: " + e.getMessage());
+            LimeLog.warning("Unable to attach in-app toast window: "
+                    + e.getClass().getSimpleName() + ": " + e.getMessage());
             detachWindow();
             retryAttach(activity);
         }
@@ -262,7 +258,8 @@ public final class AppToast {
             windowManager.addView(windowView, windowParams);
         }
         catch (RuntimeException e) {
-            LimeLog.warning("Unable to raise in-app toast window: " + e.getMessage());
+            LimeLog.warning("Unable to raise in-app toast window: "
+                    + e.getClass().getSimpleName() + ": " + e.getMessage());
             detachWindow();
         }
     }
