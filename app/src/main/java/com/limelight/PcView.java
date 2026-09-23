@@ -1381,7 +1381,7 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
             return;
         }
 
-        final AlertDialog actionDialog = new AlertDialog.Builder(this).create();
+        final AlertDialog actionDialog = new AlertDialog.Builder(this, R.style.ModernAlertDialogTheme).create();
         View content = LayoutInflater.from(this).inflate(R.layout.dialog_pc_actions, null);
 
         TextView title = content.findViewById(R.id.pcActionTitle);
@@ -1529,7 +1529,7 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
             }
         });
 
-        actionDialog.setView(content);
+        actionDialog.setView(content, 0, 0, 0, 0);
         actionDialog.setOnDismissListener(new DialogInterface.OnDismissListener() {
             @Override
             public void onDismiss(DialogInterface dialog) {

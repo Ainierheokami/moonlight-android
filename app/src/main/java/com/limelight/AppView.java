@@ -26,6 +26,7 @@ import com.limelight.utils.SpinnerDialog;
 import com.limelight.utils.UiHelper;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.app.Service;
 import android.content.ComponentName;
 import android.content.Intent;
@@ -43,18 +44,13 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.IBinder;
-import android.view.ContextMenu;
-import android.view.Menu;
-import android.view.MenuItem;
 import android.view.View;
-import android.view.ContextMenu.ContextMenuInfo;
 import android.widget.AbsListView;
 import android.widget.AdapterView;
 import android.widget.AdapterView.OnItemClickListener;
 import android.widget.ImageView;
 import android.widget.TextView;
 import com.limelight.utils.AppToast;
-import android.widget.AdapterView.AdapterContextMenuInfo;
 
 import org.xmlpull.v1.XmlPullParserException;
 
@@ -505,59 +501,66 @@ public class AppView extends Activity implements AdapterFragmentCallbacks {
         stopComputerUpdates();
     }
 
-    @Override
-    public void onCreateContextMenu(ContextMenu menu, View v, ContextMenuInfo menuInfo) {
-        super.onCreateContextMenu(menu, v, menuInfo);
-
-        AdapterContextMenuInfo info = (AdapterContextMenuInfo) menuInfo;
-        AppObject selectedApp = (AppObject) appGridAdapter.getItem(info.position);
+    private void showAppActionDialog(final AppObject selectedApp, final View targetView) {
         int effectiveRunningAppId = lastRunningAppId != 0 ? lastRunningAppId : computer.runningGameId;
-
-        menu.setHeaderTitle(selectedApp.app.getAppName());
+        final ArrayList<Integer> actionIds = new ArrayList<>();
+        final ArrayList<CharSequence> actionLabels = new ArrayList<>();
 
         if (effectiveRunningAppId != 0) {
             if (effectiveRunningAppId == selectedApp.app.getAppId()) {
-                menu.add(Menu.NONE, START_OR_RESUME_ID, 1, getResources().getString(R.string.applist_menu_resume));
-                menu.add(Menu.NONE, QUIT_ID, 2, getResources().getString(R.string.applist_menu_quit));
+                addAppActionOption(actionIds, actionLabels, START_OR_RESUME_ID, R.string.applist_menu_resume);
+                addAppActionOption(actionIds, actionLabels, QUIT_ID, R.string.applist_menu_quit);
             }
             else {
-                menu.add(Menu.NONE, START_WITH_QUIT, 1, getResources().getString(R.string.applist_menu_quit_and_start));
+                addAppActionOption(actionIds, actionLabels, START_WITH_QUIT,
+                        R.string.applist_menu_quit_and_start);
             }
         }
 
-        // Only show the hide checkbox if this is not the currently running app or it's already hidden
+        // Only offer hide/show when this is not the currently running app or it's already hidden.
         if (effectiveRunningAppId != selectedApp.app.getAppId() || selectedApp.isHidden) {
-            MenuItem hideAppItem = menu.add(Menu.NONE, HIDE_APP_ID, 3, getResources().getString(R.string.applist_menu_hide_app));
-            hideAppItem.setCheckable(true);
-            hideAppItem.setChecked(selectedApp.isHidden);
+            actionIds.add(HIDE_APP_ID);
+            actionLabels.add((selectedApp.isHidden ? "\u2713 " : "") + getString(R.string.applist_menu_hide_app));
         }
 
-        menu.add(Menu.NONE, VIEW_DETAILS_ID, 4, getResources().getString(R.string.applist_menu_details));
+        addAppActionOption(actionIds, actionLabels, VIEW_DETAILS_ID, R.string.applist_menu_details);
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            // Only add an option to create shortcut if box art is loaded
-            // and when we're in grid-mode (not list-mode).
-            ImageView appImageView = info.targetView.findViewById(R.id.grid_image);
-            if (appImageView != null) {
-                // We have a grid ImageView, so we must be in grid-mode
-                BitmapDrawable drawable = (BitmapDrawable)appImageView.getDrawable();
-                if (drawable != null && drawable.getBitmap() != null) {
-                    // We have a bitmap loaded too
-                    menu.add(Menu.NONE, CREATE_SHORTCUT_ID, 5, getResources().getString(R.string.applist_menu_scut));
-                }
+        // Only offer shortcuts on Android O+ when box art is loaded in grid mode.
+        final Bitmap shortcutBitmap = getShortcutBitmap(targetView);
+        if (shortcutBitmap != null) {
+            addAppActionOption(actionIds, actionLabels, CREATE_SHORTCUT_ID, R.string.applist_menu_scut);
+        }
+
+        new AlertDialog.Builder(this, R.style.ModernAlertDialogTheme)
+                .setTitle(selectedApp.app.getAppName())
+                .setItems(actionLabels.toArray(new CharSequence[0]), (dialog, which) ->
+                        handleAppAction(actionIds.get(which), selectedApp, shortcutBitmap))
+                .show();
+    }
+
+    private void addAppActionOption(ArrayList<Integer> actionIds, ArrayList<CharSequence> actionLabels,
+                                    int actionId, int labelResId) {
+        actionIds.add(actionId);
+        actionLabels.add(getString(labelResId));
+    }
+
+    private Bitmap getShortcutBitmap(View targetView) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O || targetView == null) {
+            return null;
+        }
+
+        ImageView appImageView = targetView.findViewById(R.id.grid_image);
+        if (appImageView != null && appImageView.getDrawable() instanceof BitmapDrawable) {
+            Bitmap bitmap = ((BitmapDrawable) appImageView.getDrawable()).getBitmap();
+            if (bitmap != null) {
+                return bitmap;
             }
         }
+        return null;
     }
 
-    @Override
-    public void onContextMenuClosed(Menu menu) {
-    }
-
-    @Override
-    public boolean onContextItemSelected(MenuItem item) {
-        AdapterContextMenuInfo info = (AdapterContextMenuInfo) item.getMenuInfo();
-        final AppObject app = (AppObject) appGridAdapter.getItem(info.position);
-        switch (item.getItemId()) {
+    private void handleAppAction(int actionId, final AppObject app, Bitmap shortcutBitmap) {
+        switch (actionId) {
             case START_WITH_QUIT:
                 // Display a confirmation dialog first
                 UiHelper.displayQuitConfirmationDialog(this, new Runnable() {
@@ -566,12 +569,12 @@ public class AppView extends Activity implements AdapterFragmentCallbacks {
                         ServerHelper.doStart(AppView.this, app.app, computer, managerBinder, selectedAddress);
                     }
                 }, null);
-                return true;
+                return;
 
             case START_OR_RESUME_ID:
                 // Resume is the same as start for us
                 ServerHelper.doStart(AppView.this, app.app, computer, managerBinder, selectedAddress);
-                return true;
+                return;
 
             case QUIT_ID:
                 // Display a confirmation dialog first
@@ -592,14 +595,14 @@ public class AppView extends Activity implements AdapterFragmentCallbacks {
                         });
                     }
                 }, null);
-                return true;
+                return;
 
             case VIEW_DETAILS_ID:
                 Dialog.displayDialog(AppView.this, getResources().getString(R.string.title_details), app.app.toString(), false);
-                return true;
+                return;
 
             case HIDE_APP_ID:
-                if (item.isChecked()) {
+                if (app.isHidden) {
                     // Transitioning hidden to shown
                     hiddenAppIds.remove(app.app.getAppId());
                 }
@@ -608,18 +611,16 @@ public class AppView extends Activity implements AdapterFragmentCallbacks {
                     hiddenAppIds.add(app.app.getAppId());
                 }
                 updateHiddenApps(false);
-                return true;
+                return;
 
             case CREATE_SHORTCUT_ID:
-                ImageView appImageView = info.targetView.findViewById(R.id.grid_image);
-                Bitmap appBits = ((BitmapDrawable)appImageView.getDrawable()).getBitmap();
-                if (!shortcutHelper.createPinnedGameShortcut(computer, app.app, appBits)) {
+                if (shortcutBitmap != null && !shortcutHelper.createPinnedGameShortcut(computer, app.app, shortcutBitmap)) {
                     AppToast.makeText(AppView.this, getResources().getString(R.string.unable_to_pin_shortcut), AppToast.LENGTH_LONG).show();
                 }
-                return true;
+                return;
 
             default:
-                return super.onContextItemSelected(item);
+                return;
         }
     }
 
@@ -753,14 +754,13 @@ public class AppView extends Activity implements AdapterFragmentCallbacks {
 
                 // Only open the context menu if something is running, otherwise start it
                 if (effectiveRunningAppId != 0) {
-                    openContextMenu(arg1);
+                    showAppActionDialog(app, arg1);
                 } else {
                     ServerHelper.doStart(AppView.this, app.app, computer, managerBinder, selectedAddress);
                 }
             }
         });
         UiHelper.applyStatusBarPadding(listView);
-        registerForContextMenu(listView);
         listView.requestFocus();
     }
 

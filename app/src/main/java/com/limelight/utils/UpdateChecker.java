@@ -124,7 +124,7 @@ public final class UpdateChecker {
                             showUpdateDialog(activity, release);
                         }
                         else if (userInitiated) {
-                            new AlertDialog.Builder(activity)
+                            new AlertDialog.Builder(activity, R.style.ModernAlertDialogTheme)
                                     .setTitle(R.string.update_no_update_title)
                                     .setMessage(activity.getString(R.string.update_no_update_message,
                                             BuildConfig.VERSION_NAME))
@@ -149,7 +149,7 @@ public final class UpdateChecker {
 
         activity.runOnUiThread(() -> {
             if (isActivityUsable(activity)) {
-                new AlertDialog.Builder(activity)
+                new AlertDialog.Builder(activity, R.style.ModernAlertDialogTheme)
                         .setTitle(R.string.update_check_failed_title)
                         .setMessage(R.string.update_check_failed_message)
                         .setPositiveButton(android.R.string.ok, null)
@@ -159,7 +159,7 @@ public final class UpdateChecker {
     }
 
     private static void showUpdateDialog(Activity activity, ReleaseInfo release) {
-        AlertDialog.Builder builder = new AlertDialog.Builder(activity)
+        AlertDialog.Builder builder = new AlertDialog.Builder(activity, R.style.ModernAlertDialogTheme)
                 .setTitle(R.string.update_available_title)
                 .setMessage(activity.getString(R.string.update_available_message,
                         BuildConfig.VERSION_NAME, release.versionName)
