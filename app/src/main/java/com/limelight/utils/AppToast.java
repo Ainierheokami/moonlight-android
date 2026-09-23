@@ -10,6 +10,7 @@ import android.graphics.PixelFormat;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.IBinder;
 import android.os.Looper;
 import android.view.Gravity;
 import android.view.LayoutInflater;
@@ -158,7 +159,7 @@ public final class AppToast {
     }
 
     /**
-     * Attach the toast as an Activity application window so it can appear above app dialogs.
+     * Attach the toast as an Activity sub-panel so it can appear above app dialogs.
      */
     private void attachToActivity(final Activity activity) {
         if (activeToast != this || !isUsable(activity)) {
@@ -167,6 +168,14 @@ public final class AppToast {
 
         if (hostActivity == activity && windowView != null && windowManager != null) {
             bringWindowToFront();
+            return;
+        }
+
+        IBinder activityWindowToken = activity.getWindow().getDecorView().getWindowToken();
+        if (activityWindowToken == null) {
+            LimeLog.warning("Unable to attach in-app toast because the Activity window is not attached");
+            detachWindow();
+            retryAttach(activity);
             return;
         }
 
@@ -211,14 +220,14 @@ public final class AppToast {
         WindowManager.LayoutParams layoutParams = new WindowManager.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT,
-                WindowManager.LayoutParams.TYPE_APPLICATION,
+                WindowManager.LayoutParams.TYPE_APPLICATION_SUB_PANEL,
                 windowFlags,
                 PixelFormat.TRANSLUCENT);
         layoutParams.gravity = Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL;
         layoutParams.y = dp(activity, 48);
-        // Leave token unset. Activity's WindowManager fills in the Activity token for a
-        // top-level application window; decorView.getWindowToken() is only valid for
-        // attached subwindows such as TYPE_APPLICATION_ATTACHED_DIALOG.
+        // A sub-panel is layered above its attached Activity window, keeping the toast
+        // visible over normal application-layer dialogs without leaving this app.
+        layoutParams.token = activityWindowToken;
         layoutParams.packageName = activity.getPackageName();
         layoutParams.setTitle("Moonlight AppToast");
 
