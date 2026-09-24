@@ -1,6 +1,5 @@
 package com.limelight.preferences;
 
-import android.app.AlertDialog;
 import android.content.Context;
 import android.os.Bundle;
 import android.preference.DialogPreference;
@@ -17,6 +16,7 @@ import android.widget.TextView;
 import java.util.Locale;
 
 import com.limelight.R;
+import com.limelight.utils.OverlayAlertDialog;
 
 // Based on a Stack Overflow example: http://stackoverflow.com/questions/1974193/slider-on-my-preferencescreen
 public class SeekBarPreference extends DialogPreference
@@ -167,21 +167,21 @@ public class SeekBarPreference extends DialogPreference
 
     @Override
     public void showDialog(Bundle state) {
-        super.showDialog(state);
-
-        Button positiveButton = ((AlertDialog) getDialog()).getButton(AlertDialog.BUTTON_POSITIVE);
-        positiveButton.setOnClickListener(new OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                if (shouldPersist()) {
-                    currentValue = progressToValue(seekBar.getProgress());
-                    persistInt(currentValue);
-                    callChangeListener(currentValue);
-                }
-
-                getDialog().dismiss();
-            }
-        });
+        final View dialogView = onCreateDialogView();
+        onBindDialogView(dialogView);
+        new OverlayAlertDialog.Builder(context)
+                .setTitle(getTitle())
+                .setView(dialogView)
+                .setPositiveButton(android.R.string.ok, (dialogInterface, which) -> {
+                    if (shouldPersist()) {
+                        currentValue = progressToValue(seekBar.getProgress());
+                        persistInt(currentValue);
+                        callChangeListener(currentValue);
+                    }
+                })
+                .setNegativeButton(android.R.string.cancel, null)
+                .setCancelable(true)
+                .show();
     }
 
     private int valueToProgress(int value) {
@@ -215,7 +215,7 @@ public class SeekBarPreference extends DialogPreference
     }
 
     private void showValueInputDialog() {
-        AlertDialog.Builder dialog = new AlertDialog.Builder(context);
+        OverlayAlertDialog.Builder dialog = new OverlayAlertDialog.Builder(context);
         EditText valueEditText = new EditText(context);
         valueEditText.setInputType(android.text.InputType.TYPE_CLASS_NUMBER | android.text.InputType.TYPE_NUMBER_FLAG_SIGNED);
         valueEditText.setText(String.valueOf(currentValue));

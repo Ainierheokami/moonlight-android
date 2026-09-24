@@ -1,12 +1,12 @@
 package com.limelight.heokami
 
-import android.app.AlertDialog
 import android.os.Handler
 import android.os.Looper
 import android.view.LayoutInflater
 import android.widget.SeekBar
 import android.widget.TextView
 import com.limelight.utils.AppToast
+import com.limelight.utils.OverlayAlertDialog
 import com.limelight.Game
 import com.limelight.LimeLog
 import com.limelight.R
@@ -69,7 +69,7 @@ object StreamBitrateMenu {
             }
         })
 
-        AlertDialog.Builder(game)
+        OverlayAlertDialog.Builder(game)
             .setTitle(R.string.game_menu_adjust_bitrate)
             .setView(view)
             .setNegativeButton(android.R.string.cancel, null)

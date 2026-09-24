@@ -16,6 +16,7 @@ import android.widget.SeekBar;
 import android.widget.TextView;
 import com.limelight.Game;
 import com.limelight.nvstream.input.MouseButtonPacket;
+import com.limelight.utils.OverlayAlertDialog;
 
 import java.util.Locale;
 
@@ -574,7 +575,7 @@ public class PortalOverlayView extends View {
      * 显示传送门设置对话框
      */
     private void showPortalSettingsDialog() {
-        android.app.AlertDialog.Builder builder = new android.app.AlertDialog.Builder(getContext());
+        OverlayAlertDialog.Builder builder = new OverlayAlertDialog.Builder(getContext());
         builder.setTitle("画面映射设置 - " + config.name);
         String[] items = {
                 "删除画面映射",
@@ -636,7 +637,7 @@ public class PortalOverlayView extends View {
             }
         }
 
-        new android.app.AlertDialog.Builder(getContext())
+        new OverlayAlertDialog.Builder(getContext())
                 .setTitle("设置帧率限制")
                 .setSingleChoiceItems(labels, checked, (dialog, which) -> {
                     config.frameRateLimit = fpsValues[which];
@@ -684,7 +685,7 @@ public class PortalOverlayView extends View {
             }
         });
 
-        new android.app.AlertDialog.Builder(getContext())
+        new OverlayAlertDialog.Builder(getContext())
                 .setTitle("设置缩放比例")
                 .setView(content)
                 .setPositiveButton(android.R.string.ok, (dialog, which) -> {
@@ -704,7 +705,7 @@ public class PortalOverlayView extends View {
     private void showAspectRatioDialog() {
         String[] labels = new String[]{"拉伸填充", "保持源比例", "正方形"};
         int checked = Math.max(0, Math.min(labels.length - 1, config.aspectRatioMode));
-        new android.app.AlertDialog.Builder(getContext())
+        new OverlayAlertDialog.Builder(getContext())
                 .setTitle("设置宽高比")
                 .setSingleChoiceItems(labels, checked, (dialog, which) -> {
                     config.aspectRatioMode = which;

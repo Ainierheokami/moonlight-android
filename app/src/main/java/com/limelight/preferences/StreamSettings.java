@@ -1,6 +1,5 @@
 package com.limelight.preferences;
 
-import android.app.AlertDialog;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -36,6 +35,7 @@ import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.ScrollView;
 import android.widget.TextView;
+import com.limelight.utils.OverlayAlertDialog;
 
 import com.limelight.LimeLog;
 import com.limelight.BuildConfig;
@@ -337,8 +337,8 @@ public class StreamSettings extends Activity {
             scrollView.addView(layout);
 
             // 构建对话框
-            AlertDialog.Builder builder = new AlertDialog.Builder(context);
-            AlertDialog dialog = builder.setTitle("修改精简实时信息模板")
+            OverlayAlertDialog.Builder builder = new OverlayAlertDialog.Builder(context);
+            OverlayAlertDialog dialog = builder.setTitle("修改精简实时信息模板")
                     .setView(scrollView)
                     .setCancelable(true) // 允许通过返回键关闭
                     .setPositiveButton(context.getString(R.string.default_button), (dialogInterface, which) -> {
@@ -356,10 +356,8 @@ public class StreamSettings extends Activity {
                     .setNegativeButton(context.getString(R.string.cancel_button), (dialogInterface, which) -> {
                         dialogInterface.dismiss();
                     })
+                    .setCanceledOnTouchOutside(true)
                     .create();
-
-            // 设置点击对话框外部可关闭
-            dialog.setCanceledOnTouchOutside(true);
 
             // 设置对话框的最大高度（可选，防止对话框太长）
 //            dialog.setOnShowListener(dialogInterface -> {

@@ -1,7 +1,6 @@
 package com.limelight.heokami
 
 import android.annotation.SuppressLint
-import android.app.AlertDialog
 import android.content.Context
 import android.graphics.Color
 import android.os.Handler
@@ -14,6 +13,7 @@ import android.widget.CheckBox
 import android.widget.EditText
 import android.widget.LinearLayout
 import com.limelight.utils.AppToast
+import com.limelight.utils.OverlayAlertDialog
 import android.widget.TextView
 import androidx.annotation.StringRes
 import androidx.appcompat.view.ContextThemeWrapper
@@ -229,7 +229,7 @@ class MacroEditor(private val context: Context, private var jsonData: JSONObject
     private lateinit var macroAdapter: MacroAdapter
 
     @SuppressLint("SetTextI18n")
-    private fun updateMacroDisplay(layout: LinearLayout, actions: MutableList<MacroAction>, dialog: AlertDialog) {
+    private fun updateMacroDisplay(layout: LinearLayout, actions: MutableList<MacroAction>, dialog: OverlayAlertDialog) {
         layout.removeAllViews() // 每次更新前先清空所有 View
 
         Log.d("MacroEditor", "更新显示: $actions")
@@ -584,7 +584,7 @@ class MacroEditor(private val context: Context, private var jsonData: JSONObject
         dialog.show()
         HotkeyUi.finishDialog(dialog)
         if (index == -1) {
-            val button = dialog.getButton(AlertDialog.BUTTON_NEUTRAL)
+            val button = dialog.getButton(OverlayAlertDialog.BUTTON_NEUTRAL)
             button.isEnabled = false
         }
     }

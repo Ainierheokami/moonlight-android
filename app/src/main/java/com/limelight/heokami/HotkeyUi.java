@@ -1,19 +1,19 @@
 package com.limelight.heokami;
 
-import android.app.AlertDialog;
 import android.content.Context;
 import android.graphics.Color;
 import android.widget.Button;
 import android.widget.EditText;
 
 import com.limelight.R;
+import com.limelight.utils.OverlayAlertDialog;
 
 final class HotkeyUi {
     private HotkeyUi() {
     }
 
-    static AlertDialog.Builder dialogBuilder(Context context) {
-        return new AlertDialog.Builder(context, R.style.ModernHotkeyDialogTheme);
+    static OverlayAlertDialog.Builder dialogBuilder(Context context) {
+        return new OverlayAlertDialog.Builder(context, R.style.ModernHotkeyDialogTheme);
     }
 
     static int dp(Context context, int value) {
@@ -40,11 +40,11 @@ final class HotkeyUi {
                 : R.drawable.modern_dialog_secondary_button_background);
     }
 
-    static void finishDialog(AlertDialog dialog) {
+    static void finishDialog(OverlayAlertDialog dialog) {
         int accent = Color.rgb(106, 203, 255);
-        Button positive = dialog.getButton(AlertDialog.BUTTON_POSITIVE);
-        Button neutral = dialog.getButton(AlertDialog.BUTTON_NEUTRAL);
-        Button negative = dialog.getButton(AlertDialog.BUTTON_NEGATIVE);
+        Button positive = dialog.getButton(OverlayAlertDialog.BUTTON_POSITIVE);
+        Button neutral = dialog.getButton(OverlayAlertDialog.BUTTON_NEUTRAL);
+        Button negative = dialog.getButton(OverlayAlertDialog.BUTTON_NEGATIVE);
         if (positive != null) positive.setTextColor(accent);
         if (neutral != null) neutral.setTextColor(accent);
         if (negative != null) negative.setTextColor(Color.rgb(184, 196, 210));

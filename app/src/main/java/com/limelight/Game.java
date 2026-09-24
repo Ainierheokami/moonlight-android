@@ -4640,10 +4640,8 @@ public class Game extends Activity implements SurfaceHolder.Callback,
      * 切换悬浮键盘显示/隐藏
      */
     public void toggleFloatingKeyboard() {
-        FragmentManager fm = getFragmentManager();
-        Fragment fragment = fm.findFragmentByTag("floating_keyboard");
-        if (fragment != null && fragment instanceof FloatingVirtualKeyboardFragment) {
-            ((FloatingVirtualKeyboardFragment) fragment).dismiss();
+        if (FloatingVirtualKeyboardFragment.isShowing(this)) {
+            FloatingVirtualKeyboardFragment.dismiss(this);
             postNotification(getResources().getString(R.string.floating_keyboard_hidden), 2000);
         } else {
             FloatingVirtualKeyboardFragment.show(this);

@@ -1,27 +1,19 @@
 package com.limelight.utils;
 
 import android.app.Activity;
-import android.app.AlertDialog;
 import android.app.GameManager;
 import android.app.GameState;
 import android.app.LocaleManager;
 import android.app.UiModeManager;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.content.SharedPreferences;
 import android.content.res.Configuration;
-import android.graphics.Color;
 import android.graphics.Insets;
-import android.graphics.drawable.ColorDrawable;
 import android.os.Build;
 import android.os.LocaleList;
-import android.view.LayoutInflater;
 import android.view.View;
-import android.view.Window;
 import android.view.WindowInsets;
 import android.view.WindowManager;
-import android.widget.Button;
-import android.widget.TextView;
 
 import com.limelight.Game;
 import com.limelight.R;
@@ -211,67 +203,30 @@ public class UiHelper {
     }
 
     public static void displayQuitConfirmationDialog(Activity parent, final Runnable onYes, final Runnable onNo) {
-        DialogInterface.OnClickListener dialogClickListener = new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialog, int which) {
-                switch (which){
-                    case DialogInterface.BUTTON_POSITIVE:
-                        if (onYes != null) {
-                            onYes.run();
-                        }
-                        break;
-
-                    case DialogInterface.BUTTON_NEGATIVE:
-                        if (onNo != null) {
-                            onNo.run();
-                        }
-                        break;
-                }
-            }
-        };
-
-        AlertDialog.Builder builder = new AlertDialog.Builder(parent);
-        builder.setMessage(parent.getResources().getString(R.string.applist_quit_confirmation))
-                .setPositiveButton(parent.getResources().getString(R.string.yes), dialogClickListener)
-                .setNegativeButton(parent.getResources().getString(R.string.no), dialogClickListener)
-                .show();
+        OverlayDialog.show(
+                parent,
+                parent.getString(R.string.applist_menu_quit),
+                parent.getString(R.string.applist_quit_confirmation),
+                parent.getString(R.string.no),
+                onNo,
+                null,
+                null,
+                parent.getString(R.string.yes),
+                onYes,
+                true);
     }
 
     public static void displayDeletePcConfirmationDialog(Activity parent, ComputerDetails computer, final Runnable onYes, final Runnable onNo) {
-        final AlertDialog dialog = new AlertDialog.Builder(parent).create();
-        View content = LayoutInflater.from(parent).inflate(R.layout.dialog_modern_message, null);
-        ((TextView) content.findViewById(R.id.dialogTitleText)).setText(computer.name);
-        ((TextView) content.findViewById(R.id.dialogMessageText)).setText(parent.getResources().getString(R.string.delete_pc_msg));
-
-        Button noButton = content.findViewById(R.id.dialogHelpButton);
-        noButton.setText(parent.getResources().getString(R.string.no));
-        Button yesButton = content.findViewById(R.id.dialogOkButton);
-        yesButton.setText(parent.getResources().getString(R.string.yes));
-
-        noButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                dialog.dismiss();
-                if (onNo != null) {
-                    onNo.run();
-                }
-            }
-        });
-        yesButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                dialog.dismiss();
-                if (onYes != null) {
-                    onYes.run();
-                }
-            }
-        });
-
-        dialog.setView(content);
-        dialog.show();
-        Window window = dialog.getWindow();
-        if (window != null) {
-            window.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
-        }
+        OverlayDialog.show(
+                parent,
+                computer.name,
+                parent.getString(R.string.delete_pc_msg),
+                parent.getString(R.string.no),
+                onNo,
+                null,
+                null,
+                parent.getString(R.string.yes),
+                onYes,
+                true);
     }
 }

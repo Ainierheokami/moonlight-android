@@ -1,7 +1,6 @@
 package com.limelight.utils;
 
 import android.app.Activity;
-import android.app.AlertDialog;
 import android.app.DownloadManager;
 import android.content.Context;
 import android.content.Intent;
@@ -124,12 +123,18 @@ public final class UpdateChecker {
                             showUpdateDialog(activity, release);
                         }
                         else if (userInitiated) {
-                            new AlertDialog.Builder(activity, R.style.ModernAlertDialogTheme)
-                                    .setTitle(R.string.update_no_update_title)
-                                    .setMessage(activity.getString(R.string.update_no_update_message,
-                                            BuildConfig.VERSION_NAME))
-                                    .setPositiveButton(android.R.string.ok, null)
-                                    .show();
+                            OverlayDialog.show(
+                                    activity,
+                                    activity.getString(R.string.update_no_update_title),
+                                    activity.getString(R.string.update_no_update_message,
+                                            BuildConfig.VERSION_NAME),
+                                    null,
+                                    null,
+                                    null,
+                                    null,
+                                    activity.getString(android.R.string.ok),
+                                    null,
+                                    true);
                         }
                     });
                 }
@@ -149,33 +154,39 @@ public final class UpdateChecker {
 
         activity.runOnUiThread(() -> {
             if (isActivityUsable(activity)) {
-                new AlertDialog.Builder(activity, R.style.ModernAlertDialogTheme)
-                        .setTitle(R.string.update_check_failed_title)
-                        .setMessage(R.string.update_check_failed_message)
-                        .setPositiveButton(android.R.string.ok, null)
-                        .show();
+                OverlayDialog.show(
+                        activity,
+                        activity.getString(R.string.update_check_failed_title),
+                        activity.getString(R.string.update_check_failed_message),
+                        null,
+                        null,
+                        null,
+                        null,
+                        activity.getString(android.R.string.ok),
+                        null,
+                        true);
             }
         });
     }
 
     private static void showUpdateDialog(Activity activity, ReleaseInfo release) {
-        AlertDialog.Builder builder = new AlertDialog.Builder(activity, R.style.ModernAlertDialogTheme)
-                .setTitle(R.string.update_available_title)
-                .setMessage(activity.getString(R.string.update_available_message,
+        OverlayDialog.show(
+                activity,
+                activity.getString(R.string.update_available_title),
+                activity.getString(R.string.update_available_message,
                         BuildConfig.VERSION_NAME, release.versionName)
                         + "\n"
                         + activity.getString(R.string.update_available_commit_message,
-                        shortCommit(BuildConfig.BUILD_COMMIT), shortCommit(release.commitId)))
-                .setNegativeButton(R.string.update_later, null)
-                .setNeutralButton(R.string.update_view_release,
-                        (dialog, which) -> openUrl(activity, release.releasePageUrl));
-
-        if (release.apkDownloadUrl != null) {
-            builder.setPositiveButton(R.string.update_download,
-                    (dialog, which) -> downloadApk(activity, release));
-        }
-
-        builder.show();
+                        shortCommit(BuildConfig.BUILD_COMMIT), shortCommit(release.commitId)),
+                activity.getString(R.string.update_later),
+                null,
+                activity.getString(R.string.update_view_release),
+                () -> openUrl(activity, release.releasePageUrl),
+                release.apkDownloadUrl == null
+                        ? null : activity.getString(R.string.update_download),
+                release.apkDownloadUrl == null
+                        ? null : () -> downloadApk(activity, release),
+                true);
     }
 
     private static void downloadApk(Activity activity, ReleaseInfo release) {

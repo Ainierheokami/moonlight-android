@@ -1,6 +1,5 @@
 package com.limelight.heokami;
 
-import android.app.AlertDialog;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.text.InputType;
@@ -14,6 +13,7 @@ import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
 import com.limelight.utils.AppToast;
+import com.limelight.utils.OverlayAlertDialog;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
@@ -241,7 +241,7 @@ public class CustomHotkeysManager {
             }
         }
 
-        AlertDialog.Builder builder = HotkeyUi.dialogBuilder(game);
+        OverlayAlertDialog.Builder builder = HotkeyUi.dialogBuilder(game);
         builder.setTitle(game.getString(R.string.custom_hotkeys_manage_title));
         builder.setView(content);
 
@@ -262,7 +262,7 @@ public class CustomHotkeysManager {
         });
 
         builder.setNegativeButton(game.getString(R.string.cancel_button), null);
-        AlertDialog dialog = builder.show();
+        OverlayAlertDialog dialog = builder.show();
         HotkeyUi.finishDialog(dialog);
     }
 
@@ -317,7 +317,7 @@ public class CustomHotkeysManager {
                 game.getString(R.string.custom_hotkeys_rename),
                 game.getString(R.string.custom_hotkeys_delete)
         };
-        AlertDialog dialog = HotkeyUi.dialogBuilder(game)
+        OverlayAlertDialog dialog = HotkeyUi.dialogBuilder(game)
                 .setTitle(target.name)
                 .setItems(options, (d, which) -> {
                     if (which == 0) { // 编辑宏
@@ -333,7 +333,7 @@ public class CustomHotkeysManager {
                             if (onChanged != null) onChanged.run();
                         });
                     } else if (which == 2) { // 删除
-                        AlertDialog confirmDialog = HotkeyUi.dialogBuilder(game)
+                        OverlayAlertDialog confirmDialog = HotkeyUi.dialogBuilder(game)
                                 .setMessage(R.string.custom_hotkeys_confirm_delete)
                                 .setPositiveButton(R.string.confirm_button, (dd, ww) -> {
                                     items.remove(target);
@@ -455,7 +455,7 @@ public class CustomHotkeysManager {
         wrapper.setPadding(pad, pad, pad, pad);
         wrapper.addView(input, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
 
-        AlertDialog dialog = HotkeyUi.dialogBuilder(context)
+        OverlayAlertDialog dialog = HotkeyUi.dialogBuilder(context)
                 .setTitle(R.string.custom_hotkeys_name_hint)
                 .setView(wrapper)
                 .setPositiveButton(R.string.confirm_button, (d, w) -> {

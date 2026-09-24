@@ -1,6 +1,5 @@
 package com.limelight.heokami.pref
 
-import android.app.AlertDialog
 import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Color
@@ -13,6 +12,7 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import com.limelight.R
 import com.limelight.preferences.PreferenceConfiguration
+import com.limelight.utils.OverlayAlertDialog
 
 class EdgeMenuPreviewPreference(context: Context, attrs: AttributeSet?) : Preference(context, attrs) {
     @Deprecated("Deprecated in Java")
@@ -44,7 +44,7 @@ class EdgeMenuPreviewPreference(context: Context, attrs: AttributeSet?) : Prefer
             dp(150)
         ))
 
-        AlertDialog.Builder(context)
+        OverlayAlertDialog.Builder(context)
             .setTitle(R.string.title_edge_menu_preview)
             .setView(layout)
             .setPositiveButton(android.R.string.ok, null)

@@ -35,16 +35,16 @@ import com.limelight.ui.AdapterFragment;
 import com.limelight.ui.AdapterFragmentCallbacks;
 import com.limelight.utils.Dialog;
 import com.limelight.utils.HelpLauncher;
+import com.limelight.utils.OverlayContainer;
+import com.limelight.utils.OverlayDialog;
 import com.limelight.utils.ServerHelper;
 import com.limelight.utils.ShortcutHelper;
 import com.limelight.utils.UiHelper;
 
 import android.app.Activity;
 import android.app.ActivityManager;
-import android.app.AlertDialog;
 import android.app.Service;
 import android.content.ComponentName;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.content.res.Configuration;
@@ -53,7 +53,6 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.RectF;
-import android.graphics.drawable.ColorDrawable;
 import android.opengl.GLSurfaceView;
 import android.os.Build;
 import android.os.Bundle;
@@ -65,7 +64,6 @@ import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
-import android.view.Window;
 import android.view.ContextMenu.ContextMenuInfo;
 import android.view.View.OnClickListener;
 import android.widget.AbsListView;
@@ -1381,7 +1379,8 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
             return;
         }
 
-        final AlertDialog actionDialog = new AlertDialog.Builder(this, R.style.ModernAlertDialogTheme).create();
+        final OverlayContainer.DialogHandle[] actionHandle =
+                new OverlayContainer.DialogHandle[1];
         View content = LayoutInflater.from(this).inflate(R.layout.dialog_pc_actions, null);
 
         TextView title = content.findViewById(R.id.pcActionTitle);
@@ -1394,13 +1393,13 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
 
         if (computer.details.state == ComputerDetails.State.OFFLINE ||
                 computer.details.state == ComputerDetails.State.UNKNOWN) {
-            addComputerAction(actionList, actionDialog, R.string.pcview_menu_send_wol, false, new Runnable() {
+            addComputerAction(actionList, actionHandle, R.string.pcview_menu_send_wol, false, new Runnable() {
                 @Override
                 public void run() {
                     doWakeOnLan(computer.details);
                 }
             });
-            addComputerAction(actionList, actionDialog, R.string.pcview_menu_eol, false, new Runnable() {
+            addComputerAction(actionList, actionHandle, R.string.pcview_menu_eol, false, new Runnable() {
                 @Override
                 public void run() {
                     HelpLauncher.launchGameStreamEolFaq(PcView.this);
@@ -1408,14 +1407,14 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
             });
         }
         else if (computer.details.pairState != PairState.PAIRED) {
-            addComputerAction(actionList, actionDialog, R.string.pcview_menu_pair_pc, false, new Runnable() {
+            addComputerAction(actionList, actionHandle, R.string.pcview_menu_pair_pc, false, new Runnable() {
                 @Override
                 public void run() {
                     doPair(computer);
                 }
             });
             if (computer.details.nvidiaServer) {
-                addComputerAction(actionList, actionDialog, R.string.pcview_menu_eol, false, new Runnable() {
+                addComputerAction(actionList, actionHandle, R.string.pcview_menu_eol, false, new Runnable() {
                     @Override
                     public void run() {
                         HelpLauncher.launchGameStreamEolFaq(PcView.this);
@@ -1425,7 +1424,7 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
         }
         else {
             if (computer.details.runningGameId != 0) {
-                addComputerAction(actionList, actionDialog, R.string.applist_menu_resume, false, new Runnable() {
+                addComputerAction(actionList, actionHandle, R.string.applist_menu_resume, false, new Runnable() {
                     @Override
                     public void run() {
                         if (managerBinder == null) {
@@ -1435,7 +1434,7 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
                         ServerHelper.doStart(PcView.this, new NvApp("app", computer.details.runningGameId, false), computer.details, managerBinder);
                     }
                 });
-                addComputerAction(actionList, actionDialog, R.string.applist_menu_quit, false, new Runnable() {
+                addComputerAction(actionList, actionHandle, R.string.applist_menu_quit, false, new Runnable() {
                     @Override
                     public void run() {
                         if (managerBinder == null) {
@@ -1454,7 +1453,7 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
             }
 
             if (computer.details.nvidiaServer) {
-                addComputerAction(actionList, actionDialog, R.string.pcview_menu_eol, false, new Runnable() {
+                addComputerAction(actionList, actionHandle, R.string.pcview_menu_eol, false, new Runnable() {
                     @Override
                     public void run() {
                         HelpLauncher.launchGameStreamEolFaq(PcView.this);
@@ -1462,7 +1461,7 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
                 });
             }
 
-            addComputerAction(actionList, actionDialog, R.string.pcview_menu_app_list, false, new Runnable() {
+            addComputerAction(actionList, actionHandle, R.string.pcview_menu_app_list, false, new Runnable() {
                 @Override
                 public void run() {
                     doAppList(computer, false, true);
@@ -1470,14 +1469,14 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
             });
         }
 
-        addComputerAction(actionList, actionDialog, R.string.pcview_menu_test_network, false, new Runnable() {
+        addComputerAction(actionList, actionHandle, R.string.pcview_menu_test_network, false, new Runnable() {
             @Override
             public void run() {
                 ServerHelper.doNetworkTest(PcView.this);
             }
         });
 
-        addComputerAction(actionList, actionDialog, R.string.pcview_menu_stream_enhance, false, new Runnable() {
+        addComputerAction(actionList, actionHandle, R.string.pcview_menu_stream_enhance, false, new Runnable() {
             @Override
             public void run() {
                 if (managerBinder == null) {
@@ -1489,7 +1488,7 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
         });
 
         if (computer.address != null) {
-            addComputerAction(actionList, actionDialog, R.string.pcview_menu_set_bitrate, false, new Runnable() {
+            addComputerAction(actionList, actionHandle, R.string.pcview_menu_set_bitrate, false, new Runnable() {
                 @Override
                 public void run() {
                     showBitrateDialog(computer);
@@ -1498,7 +1497,7 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
         }
 
         if (BuildConfig.DEBUG) {
-            addComputerAction(actionList, actionDialog, R.string.debug_write_test_cover, false, new Runnable() {
+            addComputerAction(actionList, actionHandle, R.string.debug_write_test_cover, false, new Runnable() {
                 @Override
                 public void run() {
                     writeDebugTestCover(computer);
@@ -1507,7 +1506,7 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
         }
 
         if (computer.address != null) {
-            addComputerAction(actionList, actionDialog, R.string.pc_view_delete_ip, true, new Runnable() {
+            addComputerAction(actionList, actionHandle, R.string.pc_view_delete_ip, true, new Runnable() {
                 @Override
                 public void run() {
                     confirmRemoveIp(computer);
@@ -1515,33 +1514,34 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
             });
         }
 
-        addComputerAction(actionList, actionDialog, R.string.pcview_menu_delete_pc, true, new Runnable() {
+        addComputerAction(actionList, actionHandle, R.string.pcview_menu_delete_pc, true, new Runnable() {
             @Override
             public void run() {
                 confirmRemoveComputer(computer);
             }
         });
 
-        addComputerAction(actionList, actionDialog, R.string.pcview_menu_details, false, new Runnable() {
+        addComputerAction(actionList, actionHandle, R.string.pcview_menu_details, false, new Runnable() {
             @Override
             public void run() {
                 Dialog.displayDialog(PcView.this, getResources().getString(R.string.title_details), computer.details.toString(), false);
             }
         });
 
-        actionDialog.setView(content, 0, 0, 0, 0);
-        actionDialog.setOnDismissListener(new DialogInterface.OnDismissListener() {
+        stopComputerUpdates(false);
+        Runnable dismissAction = new Runnable() {
             @Override
-            public void onDismiss(DialogInterface dialog) {
+            public void run() {
+                if (actionHandle[0] != null) {
+                    actionHandle[0].remove();
+                }
                 startComputerUpdates();
             }
-        });
-        stopComputerUpdates(false);
-        actionDialog.show();
-
-        Window window = actionDialog.getWindow();
-        if (window != null) {
-            window.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+        };
+        actionHandle[0] = OverlayDialog.showCustom(
+                this, content, 560, 0, true, true, dismissAction);
+        if (actionHandle[0] == null) {
+            startComputerUpdates();
         }
     }
 
@@ -1585,24 +1585,62 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
             }
         });
 
-        new AlertDialog.Builder(this)
-                .setTitle(getString(R.string.dialog_title_set_bitrate, computer.details.name))
-                .setView(dialogView)
-                .setPositiveButton(R.string.intro_ok, new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialog, int which) {
-                        PreferenceConfiguration.setDeviceBitrate(
-                                PcView.this,
-                                computer.details.uuid,
-                                computer.address.address,
-                                seekBar.getProgress() * 1000);
-                    }
-                })
-                .setNegativeButton(R.string.intro_cancel, null)
-                .show();
+        LinearLayout dialogLayout = (LinearLayout) dialogView;
+        dialogLayout.setBackgroundResource(R.drawable.modern_dialog_background);
+
+        TextView titleView = new TextView(this);
+        titleView.setText(getString(R.string.dialog_title_set_bitrate, computer.details.name));
+        titleView.setTextColor(Color.rgb(245, 248, 252));
+        titleView.setTextSize(20);
+        titleView.setTypeface(null, android.graphics.Typeface.BOLD);
+        LinearLayout.LayoutParams titleParams = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        titleParams.bottomMargin = dp(10);
+        dialogLayout.addView(titleView, 0, titleParams);
+
+        LinearLayout buttonRow = new LinearLayout(this);
+        buttonRow.setGravity(android.view.Gravity.END | android.view.Gravity.CENTER_VERTICAL);
+        LinearLayout.LayoutParams buttonRowParams = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        buttonRowParams.topMargin = dp(12);
+        dialogLayout.addView(buttonRow, buttonRowParams);
+
+        Button cancelButton = createOverlayButton(R.string.intro_cancel, false);
+        Button okButton = createOverlayButton(R.string.intro_ok, true);
+        LinearLayout.LayoutParams cancelParams = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT, dp(44));
+        LinearLayout.LayoutParams okParams = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT, dp(44));
+        okParams.leftMargin = dp(10);
+        buttonRow.addView(cancelButton, cancelParams);
+        buttonRow.addView(okButton, okParams);
+
+        final OverlayContainer.DialogHandle[] bitrateHandle =
+                new OverlayContainer.DialogHandle[1];
+        Runnable dismiss = new Runnable() {
+            @Override
+            public void run() {
+                if (bitrateHandle[0] != null) {
+                    bitrateHandle[0].remove();
+                }
+            }
+        };
+        cancelButton.setOnClickListener(view -> dismiss.run());
+        okButton.setOnClickListener(view -> {
+            dismiss.run();
+            PreferenceConfiguration.setDeviceBitrate(
+                    PcView.this,
+                    computer.details.uuid,
+                    computer.address.address,
+                    seekBar.getProgress() * 1000);
+        });
+        bitrateHandle[0] = OverlayDialog.showCustom(
+                this, dialogView, 560, 0, true, true, dismiss);
     }
 
-    private void addComputerAction(LinearLayout actionList, final AlertDialog dialog, int labelResId,
+    private void addComputerAction(LinearLayout actionList,
+                                   final OverlayContainer.DialogHandle[] dialogHandle,
+                                   int labelResId,
                                    boolean dangerous, final Runnable action) {
         Button button = new Button(this);
         button.setAllCaps(false);
@@ -1626,7 +1664,10 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
         button.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                dialog.dismiss();
+                if (dialogHandle[0] != null) {
+                    dialogHandle[0].remove();
+                }
+                startComputerUpdates();
                 if (action != null) {
                     action.run();
                 }
@@ -1636,6 +1677,24 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
 
     private int dp(int value) {
         return Math.round(value * getResources().getDisplayMetrics().density);
+    }
+
+    private Button createOverlayButton(int labelResId, boolean primary) {
+        Button button = new Button(this);
+        button.setAllCaps(false);
+        button.setText(labelResId);
+        button.setTextColor(primary ? Color.WHITE : Color.rgb(220, 230, 241));
+        button.setTextSize(14);
+        button.setMinWidth(dp(96));
+        button.setMinHeight(0);
+        button.setPadding(dp(18), 0, dp(18), 0);
+        button.setBackgroundResource(primary
+                ? R.drawable.modern_dialog_primary_button_background
+                : R.drawable.modern_dialog_secondary_button_background);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            button.setStateListAnimator(null);
+        }
+        return button;
     }
 
     private void writeDebugTestCover(ComputerObject computer) {
@@ -1677,36 +1736,17 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
     }
 
     private void confirmRemoveIp(final ComputerObject computer) {
-        final AlertDialog dialog = new AlertDialog.Builder(this).create();
-        View content = LayoutInflater.from(this).inflate(R.layout.dialog_modern_message, null);
-        ((TextView) content.findViewById(R.id.dialogTitleText)).setText(computer.details.name);
-        ((TextView) content.findViewById(R.id.dialogMessageText)).setText(getString(R.string.delete_ip_msg));
-
-        Button helpButton = content.findViewById(R.id.dialogHelpButton);
-        helpButton.setText(R.string.no);
-        Button okButton = content.findViewById(R.id.dialogOkButton);
-        okButton.setText(R.string.yes);
-
-        helpButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                dialog.dismiss();
-            }
-        });
-        okButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                dialog.dismiss();
-                doRemoveIp(computer);
-            }
-        });
-
-        dialog.setView(content);
-        dialog.show();
-        Window window = dialog.getWindow();
-        if (window != null) {
-            window.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
-        }
+        OverlayDialog.show(
+                this,
+                computer.details.name,
+                getString(R.string.delete_ip_msg),
+                getString(R.string.no),
+                null,
+                null,
+                null,
+                getString(R.string.yes),
+                () -> doRemoveIp(computer),
+                true);
     }
     
     private void removeComputer(ComputerDetails details) {

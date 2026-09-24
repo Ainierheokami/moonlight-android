@@ -1,11 +1,8 @@
 package com.limelight.heokami
 
 import android.annotation.SuppressLint
-import android.app.AlertDialog
-import android.app.Dialog
 import android.content.Context
 import android.content.Intent
-import android.graphics.drawable.ColorDrawable
 import android.preference.PreferenceManager
 import android.text.Editable
 import android.text.InputType
@@ -15,7 +12,6 @@ import android.util.Log
 import android.util.TypedValue
 import android.view.View
 import android.view.ViewGroup
-import android.view.Window
 import android.widget.AdapterView
 import android.widget.ArrayAdapter
 import android.widget.Button
@@ -30,6 +26,9 @@ import android.widget.SeekBar
 import android.widget.Spinner
 import android.widget.TextView
 import com.limelight.utils.AppToast
+import com.limelight.utils.OverlayContainer
+import com.limelight.utils.OverlayAlertDialog
+import com.limelight.utils.OverlayManager
 import com.limelight.Game
 import com.limelight.R
 import com.limelight.binding.input.virtual_keyboard.VirtualKeyboard
@@ -65,7 +64,7 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
         this.game = game
     }
 
-    private fun createListView(dialog: AlertDialog): ListView {
+    private fun createListView(dialog: OverlayAlertDialog): ListView {
         val listView = ListView(context)
         val actionMap = createActionMap(dialog) // 传入 dialog 引用
         val items = actionMap.keys.toList().toTypedArray()
@@ -254,7 +253,7 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
 
         scrollView.addView(layout)
 
-        val builder = AlertDialog.Builder(context)
+        val builder = OverlayAlertDialog.Builder(context)
         val dialog = builder.setTitle(context.getString(R.string.menu_title_grid_lines))
             .setView(scrollView)
             .setNegativeButton(R.string.virtual_keyboard_menu_cancel_button, null)
@@ -300,7 +299,7 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
 
         // 增强型颜色选择器：色板 + 色谱
         fun showColorPalette(target: EditText, swatch: View) {
-            var paletteDialog: AlertDialog? = null
+            var paletteDialog: OverlayAlertDialog? = null
 
             val initialFromText = try {
                 if (target.text.isNullOrBlank()) null else getHexValue(target.text.toString()).toInt()
@@ -503,7 +502,7 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
                 override fun onTabReselected(tab: TabLayout.Tab?) {}
             })
 
-            paletteDialog = AlertDialog.Builder(context)
+            paletteDialog = OverlayAlertDialog.Builder(context)
                 .setTitle("选择颜色")
                 .setView(ScrollView(context).apply { addView(root) })
                 .setNegativeButton(R.string.virtual_keyboard_menu_cancel_button, null)
@@ -978,7 +977,7 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
         })
 
         // ================== 数据回填 ==================
-        lateinit var dialog: Dialog
+        lateinit var dialogHandle: OverlayContainer.DialogHandle
         if (element != null) {
             buttonIdEditText.setText(element?.elementId.toString())
             buttonTextEditText.setText(element?.text)
@@ -1032,7 +1031,8 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
                     try {
                         virtualKeyboard.removeElementByElement(element)
                         VirtualKeyboardConfigurationLoader.saveProfile(virtualKeyboard, context)
-                        dialog.dismiss()
+                        dialogHandle.remove()
+                        virtualKeyboard.hideEdgeHotZonePreview()
                     } catch (e: Exception) {
                         Log.e("vk", "delete failed", e)
                     }
@@ -1067,7 +1067,10 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
         val cancelButton = Button(context).apply {
             text = context.getString(R.string.virtual_keyboard_menu_cancel_button)
             layoutParams = LinearLayout.LayoutParams(0, dp(38), 1f).apply { rightMargin = dp(8) }
-            setOnClickListener { dialog.dismiss() }
+            setOnClickListener {
+                dialogHandle.remove()
+                virtualKeyboard.hideEdgeHotZonePreview()
+            }
         }
         val saveButton = Button(context).apply {
             text = context.getString(if (element != null) R.string.virtual_keyboard_menu_save_button else R.string.virtual_keyboard_menu_confirm_button)
@@ -1077,22 +1080,29 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
         footerRow.addView(saveButton)
         rootLayout.addView(footerRow)
 
-        dialog = Dialog(context).apply {
-            requestWindowFeature(Window.FEATURE_NO_TITLE)
-            setContentView(rootLayout)
-            setCancelable(element == null)
-            setOnDismissListener { virtualKeyboard.hideEdgeHotZonePreview() }
+        val dm = context.resources.displayMetrics
+        val maxWidthDp = if (isWideLayout) {
+            (dm.widthPixels / density * 0.86f).toInt()
+        } else {
+            (dm.widthPixels / density * 0.94f).toInt()
         }
-        dialog.setCanceledOnTouchOutside(false)
-        dialog.show()
-        dialog.window?.let { window ->
-            window.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
-            val dm = context.resources.displayMetrics
-            if (isWideLayout) {
-                window.setLayout((dm.widthPixels * 0.86f).toInt(), (dm.heightPixels * 0.84f).toInt())
-            } else {
-                window.setLayout((dm.widthPixels * 0.94f).toInt(), ViewGroup.LayoutParams.WRAP_CONTENT)
-            }
+        val maxHeightDp = if (isWideLayout) {
+            (dm.heightPixels / density * 0.84f).toInt()
+        } else {
+            0
+        }
+        dialogHandle = OverlayManager.getInstance().showDialog(
+            context,
+            rootLayout,
+            maxWidthDp,
+            maxHeightDp,
+            element == null,
+            Runnable {
+                dialogHandle.remove()
+                virtualKeyboard.hideEdgeHotZonePreview()
+            }) ?: run {
+            virtualKeyboard.hideEdgeHotZonePreview()
+            return
         }
 
         saveButton.setOnClickListener {
@@ -1132,7 +1142,8 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
                 }
                 VirtualKeyboardConfigurationLoader.saveProfile(virtualKeyboard, context)
                 virtualKeyboard.refreshLayout()
-                dialog.dismiss()
+                dialogHandle.remove()
+                virtualKeyboard.hideEdgeHotZonePreview()
             } catch (e: Exception) {
                 Log.e("vk", "save/add failed", e)
                 AppToast.makeText(context, "操作失败: ${e.message}", AppToast.LENGTH_SHORT).show()
@@ -1142,7 +1153,7 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
 
     fun createActionMap(): Map<String, () -> Unit> = createActionMap(null)
 
-    fun createActionMap(dialog: AlertDialog?): Map<String, () -> Unit> {
+    fun createActionMap(dialog: OverlayAlertDialog?): Map<String, () -> Unit> {
         val actionMap = mutableMapOf<String, () -> Unit>()
         actionMap[context.getString(R.string.virtual_keyboard_menu_add_button_eg)] = {
             VirtualKeyboardConfigurationLoader.addButton(
@@ -1228,14 +1239,6 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
                 .setNegativeButton(R.string.virtual_keyboard_menu_cancel_button, null)
                 .setCancelable(true)
                 .create()
-
-            dialog.setOnShowListener {
-                val window = dialog.window
-                val dm = context.resources.displayMetrics
-                window?.setLayout((dm.widthPixels * 0.98f).toInt(),
-                    (dm.heightPixels * 0.9f).toInt())
-                HotkeyUi.finishDialog(dialog)
-            }
 
             val horizontalScroll = HorizontalScrollView(context).apply {
                 layoutParams = LinearLayout.LayoutParams(
@@ -1387,6 +1390,7 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
             scrollView.addView(horizontalScroll)
 
             dialog.show()
+            HotkeyUi.finishDialog(dialog)
         }
 
         fun showJoyStickVKCodeDialog(context: Context, buttonTextEditText: EditText?, vkCodeEditText: EditText?) {
@@ -1580,7 +1584,7 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
                 }
             }
 
-            val builder = AlertDialog.Builder(context)
+            val builder = OverlayAlertDialog.Builder(context)
             val dialog = builder.setTitle(context.getString(R.string.virtual_keyboard_menu_set_the_handle_arrow_keys))
                 .setView(scrollView)
                 .setPositiveButton(R.string.virtual_keyboard_menu_confirm_button) { _, _ ->

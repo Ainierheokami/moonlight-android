@@ -1,15 +1,12 @@
 package com.limelight.heokami
 
-import android.app.Dialog
-import android.app.DialogFragment
+import android.app.Activity
 import android.content.SharedPreferences
-import android.os.Bundle
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
-import android.view.WindowManager
 import android.widget.Button
 import android.widget.ImageButton
 import android.widget.LinearLayout
@@ -28,17 +25,25 @@ import com.limelight.R
 import com.limelight.binding.input.virtual_keyboard.VirtualKeyboard
 import com.limelight.heokami.VirtualKeyboardVkCode
 import com.limelight.nvstream.input.KeyboardPacket
+import com.limelight.utils.OverlayContainer
+import com.limelight.utils.OverlayManager
 
 /**
  * 悬浮虚拟键盘Fragment
  * 提供可移动的悬浮键盘界面，包含功能条和优化的键盘布局
  */
-class FloatingVirtualKeyboardFragment : DialogFragment() {
+class FloatingVirtualKeyboardFragment private constructor(private val game: Game) : OverlayManager.LifecycleListener {
 
-    private lateinit var game: Game
+    private val activity: Game
+        get() = game
+
     private lateinit var virtualKeyboard: VirtualKeyboard
     private val pressedButtons = mutableSetOf<Button>()
     private lateinit var prefs: SharedPreferences
+    private var rootView: View? = null
+    private var overlayHandle: OverlayContainer.DialogHandle? = null
+    private var currentLeftPx = 0
+    private var currentTopPx = 0
     
     // 键盘状态
     private var isNumericMode = false
@@ -92,70 +97,53 @@ class FloatingVirtualKeyboardFragment : DialogFragment() {
         private const val KEY_KEYBOARD_WIDTH = "keyboard_width"
         private const val KEY_KEYBOARD_HEIGHT = "keyboard_height"
         
+        private var activeInstance: FloatingVirtualKeyboardFragment? = null
+
         @JvmStatic
         fun show(game: Game) {
             Log.d("FloatingKeyboard", "show() method called")
             try {
-                val fragment = FloatingVirtualKeyboardFragment()
-                fragment.show(game.fragmentManager, "floating_keyboard")
-                Log.d("FloatingKeyboard", "Fragment shown successfully")
+                activeInstance?.dismiss()
+                val controller = FloatingVirtualKeyboardFragment(game)
+                activeInstance = controller
+                controller.showOverlay()
+                Log.d("FloatingKeyboard", "Overlay shown successfully")
             } catch (e: Exception) {
                 Log.e("FloatingKeyboard", "Error showing fragment", e)
             }
         }
-    }
 
-    override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
-        Log.d("FloatingKeyboard", "onCreateDialog() called")
-        
-        // 初始化SharedPreferences
-        prefs = activity.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        Log.d("FloatingKeyboard", "SharedPreferences initialized")
-        
-        // 加载保存的状态
-        loadSavedStates()
-        
-        // 初始化屏幕相关的限制
-        initializeScreenConstraints()
-        
-        return Dialog(activity, R.style.FloatingDialog).apply {
-            // 设置对话框为悬浮模式，支持全屏移动
-            window?.setFlags(
-                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
-                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
-            )
-            window?.setFlags(
-                WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
-                WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN
-            )
-            // 添加全屏移动标志，允许移动到状态栏区域
-            window?.setFlags(
-                WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
-                WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS
-            )
-            
-            // 禁用背景变暗效果，实现完全透明
-            window?.clearFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND)
-            window?.setDimAmount(0.0f)
+        @JvmStatic
+        fun isShowing(game: Game): Boolean {
+            return activeInstance?.game === game && activeInstance?.isShowing() == true
+        }
+
+        @JvmStatic
+        fun dismiss(game: Game) {
+            if (activeInstance?.game === game) {
+                activeInstance?.dismiss()
+            }
         }
     }
 
-    override fun onCreateView(
-        inflater: LayoutInflater,
-        container: ViewGroup?,
-        savedInstanceState: Bundle?
-    ): View? {
-        return inflater.inflate(R.layout.floating_virtual_keyboard, container, false)
-    }
+    private fun showOverlay() {
+        Log.d("FloatingKeyboard", "showOverlay() called")
 
-    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        super.onViewCreated(view, savedInstanceState)
-        
-        Log.d("FloatingKeyboard", "onViewCreated() called")
-        
-        game = activity as Game
+        // 初始化SharedPreferences
+        prefs = game.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        Log.d("FloatingKeyboard", "SharedPreferences initialized")
+
+        // 加载保存的状态
+        loadSavedStates()
+
+        // 初始化屏幕相关的限制
+        initializeScreenConstraints()
+
         virtualKeyboard = game.getVirtualKeyboard()
-        
+        val view = LayoutInflater.from(game).inflate(R.layout.floating_virtual_keyboard, null, false)
+        rootView = view
+        Log.d("FloatingKeyboard", "onViewCreated() called")
+
         // 应用保存的透明度
         Log.d("FloatingKeyboard", "Applying initial opacity: $currentOpacity")
         applyOpacity(view)
@@ -176,44 +164,76 @@ class FloatingVirtualKeyboardFragment : DialogFragment() {
         
         // 应用按键高度自适应
         applyKeyHeightAdaptation()
-        
+
+        val savedX = prefs.getInt(KEY_POSITION_X, -1)
+        val savedY = prefs.getInt(KEY_POSITION_Y, -1)
+        val displayMetrics = game.resources.displayMetrics
+        currentLeftPx = if (savedX == -1 && savedY == -1) {
+            (displayMetrics.widthPixels - dpToPx(currentWidth)) / 2
+        } else {
+            savedX
+        }.coerceAtLeast(0)
+        currentTopPx = if (savedX == -1 && savedY == -1) {
+            (displayMetrics.heightPixels - dpToPx(currentHeight)) / 2
+        } else {
+            savedY
+        }.coerceAtLeast(0)
+
+        val overlayManager = OverlayManager.getInstance()
+        overlayManager.initialize(game)
+        overlayManager.addLifecycleListener(this)
+        overlayHandle = overlayManager.showOverlay(
+            game,
+            view,
+            dpToPx(currentWidth),
+            dpToPx(currentHeight),
+            currentLeftPx,
+            currentTopPx,
+            true,
+            ::dismiss
+        )
+        if (overlayHandle == null) {
+            overlayManager.removeLifecycleListener(this)
+            rootView = null
+            activeInstance = null
+        }
         Log.d("FloatingKeyboard", "onViewCreated() completed")
     }
 
-    override fun onResume() {
-        super.onResume()
+    private fun isShowing(): Boolean = overlayHandle?.isShowing == true
 
-        // 在 onResume 中设置可确保覆盖所有布局的 wrap_content 属性
-        dialog?.window?.let { window ->
-            val params = window.attributes
-
-            // 恢复尺寸
-            params.width = dpToPx(currentWidth)
-            params.height = dpToPx(currentHeight)
-
-            // 恢复位置
-            val savedX = prefs.getInt(KEY_POSITION_X, -1) // -1 用于检测首次运行
-            val savedY = prefs.getInt(KEY_POSITION_Y, -1)
-            
-            if (savedX == -1 && savedY == -1) {
-                params.gravity = android.view.Gravity.CENTER
-            } else {
-                params.gravity = android.view.Gravity.TOP or android.view.Gravity.START
-                params.x = savedX
-                params.y = savedY
-            }
-            
-            window.attributes = params
-            Log.d("FloatingKeyboard", "Applied final window attributes in onResume")
+    fun dismiss() {
+        if (overlayHandle == null && rootView == null) {
+            return
+        }
+        saveCurrentStates()
+        resetAllModifierKeys()
+        overlayHandle?.remove()
+        overlayHandle = null
+        OverlayManager.getInstance().removeLifecycleListener(this)
+        rootView = null
+        if (activeInstance === this) {
+            activeInstance = null
         }
     }
 
-    override fun onDestroy() {
-        super.onDestroy()
-        // 保存当前状态
-        saveCurrentStates()
-        // 重置所有修饰键状态
-        resetAllModifierKeys()
+    override fun onActivityResumed(activity: Activity) {
+        if (activity === game && isShowing()) {
+            OverlayManager.getInstance().getContainer(game)?.bringToFront()
+        }
+    }
+
+    override fun onActivityDestroyed(activity: Activity) {
+        if (activity === game) {
+            saveCurrentStates()
+            resetAllModifierKeys()
+            overlayHandle = null
+            rootView = null
+            OverlayManager.getInstance().removeLifecycleListener(this)
+            if (activeInstance === this) {
+                activeInstance = null
+            }
+        }
     }
 
     /**
@@ -556,31 +576,29 @@ class FloatingVirtualKeyboardFragment : DialogFragment() {
                 val totalMove = kotlin.math.sqrt((totalMoveX * totalMoveX + totalMoveY * totalMoveY).toDouble()).toFloat()
                 val unSnapThresholdPx = dpToPx(unSnapThreshold).toFloat()
                 
-                // 获取当前窗口属性
-                val window = dialog.window
-                val attributes = window?.attributes
-                
-                attributes?.let {
-                    // 计算新位置
-                    val newX = it.x + deltaX.toInt()
-                    val newY = it.y + deltaY.toInt()
-                    
-                    // 简化的智能吸附逻辑
-                    val finalPos = if (totalMove < unSnapThresholdPx) {
-                        // 拖动距离较小，应用吸附
-                        applyEdgeSnapping(newX, newY)
-                    } else {
-                        // 拖动距离较大，暂时禁用吸附，允许自由移动
-                        Pair(newX, newY)
-                    }
-                    
-                    // 应用新位置
-                    it.x = finalPos.first
-                    it.y = finalPos.second
-                    window.attributes = it
-                    
-                    Log.d("FloatingKeyboard", "Moving keyboard: deltaX=$deltaX, deltaY=$deltaY, newX=${finalPos.first}, newY=${finalPos.second}, totalMove=${totalMove.toInt()}px")
+                // Overlay 中没有独立 Window，直接更新统一容器里的布局参数。
+                val newX = currentLeftPx + deltaX.toInt()
+                val newY = currentTopPx + deltaY.toInt()
+
+                // 简化的智能吸附逻辑
+                val finalPos = if (totalMove < unSnapThresholdPx) {
+                    // 拖动距离较小，应用吸附
+                    applyEdgeSnapping(newX, newY)
+                } else {
+                    // 拖动距离较大，暂时禁用吸附，允许自由移动
+                    Pair(newX, newY)
                 }
+
+                currentLeftPx = finalPos.first
+                currentTopPx = finalPos.second
+                overlayHandle?.updateLayout(
+                    dpToPx(currentWidth),
+                    dpToPx(currentHeight),
+                    currentLeftPx,
+                    currentTopPx
+                )
+
+                Log.d("FloatingKeyboard", "Moving keyboard: deltaX=$deltaX, deltaY=$deltaY, newX=${finalPos.first}, newY=${finalPos.second}, totalMove=${totalMove.toInt()}px")
                 
                 // 更新上次位置
                 lastX = event.rawX
@@ -888,40 +906,30 @@ class FloatingVirtualKeyboardFragment : DialogFragment() {
      * 保存当前状态
      */
     private fun saveCurrentStates() {
-        // 保存位置
-        val window = dialog?.window
-        val attributes = window?.attributes
-        attributes?.let {
-            prefs.edit().apply {
-                putInt(KEY_POSITION_X, it.x)
-                putInt(KEY_POSITION_Y, it.y)
-                putBoolean(KEY_NUMERIC_MODE, isNumericMode)
-                putBoolean(KEY_FUNCTION_MODE, isFunctionMode)
-                putFloat(KEY_OPACITY, currentOpacity)
-                putBoolean(KEY_DRAGGING_MODE, isDragging)
-                putBoolean(KEY_RESIZE_ENABLED, isResizingEnabled)
-                putInt(KEY_KEYBOARD_WIDTH, currentWidth)
-                putInt(KEY_KEYBOARD_HEIGHT, currentHeight)
-                apply()
-            }
-            Log.d("FloatingKeyboard", "Saved states: pos(${it.x},${it.y}), numeric=$isNumericMode, function=$isFunctionMode, opacity=$currentOpacity, dragging=$isDragging, resizing=$isResizingEnabled, size=${currentWidth}x${currentHeight}dp")
+        prefs.edit().apply {
+            putInt(KEY_POSITION_X, currentLeftPx)
+            putInt(KEY_POSITION_Y, currentTopPx)
+            putBoolean(KEY_NUMERIC_MODE, isNumericMode)
+            putBoolean(KEY_FUNCTION_MODE, isFunctionMode)
+            putFloat(KEY_OPACITY, currentOpacity)
+            putBoolean(KEY_DRAGGING_MODE, isDragging)
+            putBoolean(KEY_RESIZE_ENABLED, isResizingEnabled)
+            putInt(KEY_KEYBOARD_WIDTH, currentWidth)
+            putInt(KEY_KEYBOARD_HEIGHT, currentHeight)
+            apply()
         }
+        Log.d("FloatingKeyboard", "Saved states: pos($currentLeftPx,$currentTopPx), numeric=$isNumericMode, function=$isFunctionMode, opacity=$currentOpacity, dragging=$isDragging, resizing=$isResizingEnabled, size=${currentWidth}x${currentHeight}dp")
     }
 
     /**
      * 保存当前位置（拖拽结束时调用）
      */
     private fun saveCurrentPosition() {
-        val window = dialog?.window
-        val attributes = window?.attributes
-        attributes?.let {
-            prefs.edit().apply {
-                putInt(KEY_POSITION_X, it.x)
-                putInt(KEY_POSITION_Y, it.y)
-                apply()
-            }
-            Log.d("FloatingKeyboard", "Position saved: x=${it.x}, y=${it.y}")
-        }
+        prefs.edit()
+            .putInt(KEY_POSITION_X, currentLeftPx)
+            .putInt(KEY_POSITION_Y, currentTopPx)
+            .apply()
+        Log.d("FloatingKeyboard", "Position saved: x=$currentLeftPx, y=$currentTopPx")
     }
 
     /**
@@ -982,7 +990,7 @@ class FloatingVirtualKeyboardFragment : DialogFragment() {
      * 检测调整大小模式
      */
     private fun detectResizeMode(x: Float, y: Float): ResizeMode {
-        val view = dialog?.window?.decorView ?: return ResizeMode.NONE
+        val view = rootView ?: return ResizeMode.NONE
         val width = view.width.toFloat()
         val height = view.height.toFloat()
         
@@ -1013,9 +1021,6 @@ class FloatingVirtualKeyboardFragment : DialogFragment() {
      * 应用大小调整
      */
     private fun applyResize(deltaX: Float, deltaY: Float) {
-        val window = dialog?.window ?: return
-        val attributes = window.attributes
-        
         val deltaXDp = pxToDp(deltaX.toInt())
         val deltaYDp = pxToDp(deltaY.toInt())
         
@@ -1030,7 +1035,7 @@ class FloatingVirtualKeyboardFragment : DialogFragment() {
             ResizeMode.LEFT -> {
                 newWidth -= deltaXDp
                 // 左边调整时需要移动位置
-                attributes.x += dpToPx(deltaXDp)
+                currentLeftPx += dpToPx(deltaXDp)
             }
             ResizeMode.BOTTOM -> {
                 newHeight += deltaYDp
@@ -1038,7 +1043,7 @@ class FloatingVirtualKeyboardFragment : DialogFragment() {
             ResizeMode.TOP -> {
                 newHeight -= deltaYDp
                 // 上边调整时需要移动位置
-                attributes.y += dpToPx(deltaYDp)
+                currentTopPx += dpToPx(deltaYDp)
             }
             ResizeMode.BOTTOM_RIGHT -> {
                 newWidth += deltaXDp
@@ -1047,18 +1052,18 @@ class FloatingVirtualKeyboardFragment : DialogFragment() {
             ResizeMode.BOTTOM_LEFT -> {
                 newWidth -= deltaXDp
                 newHeight += deltaYDp
-                attributes.x += dpToPx(deltaXDp)
+                currentLeftPx += dpToPx(deltaXDp)
             }
             ResizeMode.TOP_RIGHT -> {
                 newWidth += deltaXDp
                 newHeight -= deltaYDp
-                attributes.y += dpToPx(deltaYDp)
+                currentTopPx += dpToPx(deltaYDp)
             }
             ResizeMode.TOP_LEFT -> {
                 newWidth -= deltaXDp
                 newHeight -= deltaYDp
-                attributes.x += dpToPx(deltaXDp)
-                attributes.y += dpToPx(deltaYDp)
+                currentLeftPx += dpToPx(deltaXDp)
+                currentTopPx += dpToPx(deltaYDp)
             }
             else -> return
         }
@@ -1071,10 +1076,13 @@ class FloatingVirtualKeyboardFragment : DialogFragment() {
         currentWidth = newWidth
         currentHeight = newHeight
         
-        // 应用新尺寸
-        attributes.width = dpToPx(currentWidth)
-        attributes.height = dpToPx(currentHeight)
-        window.attributes = attributes
+        // 应用新尺寸和位置
+        overlayHandle?.updateLayout(
+            dpToPx(currentWidth),
+            dpToPx(currentHeight),
+            currentLeftPx,
+            currentTopPx
+        )
         
         // 应用按键高度自适应
         applyKeyHeightAdaptation()
@@ -1150,7 +1158,7 @@ class FloatingVirtualKeyboardFragment : DialogFragment() {
      * 应用按键高度自适应
      */
     private fun applyKeyHeightAdaptation() {
-        val rootView = this.view ?: return
+        val rootView = this.rootView ?: return
         val keyboardContainer = rootView.findViewById<LinearLayout>(R.id.keyboard_container) ?: run {
             Log.w("FloatingKeyboard", "Keyboard container not found")
             return

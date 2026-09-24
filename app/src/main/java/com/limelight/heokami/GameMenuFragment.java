@@ -44,6 +44,7 @@ import com.limelight.nvstream.http.NvHTTP;
 import com.limelight.binding.input.virtual_keyboard.VirtualKeyboard;
 import com.limelight.nvstream.input.KeyboardPacket;
 import com.limelight.heokami.FloatingVirtualKeyboardFragment;
+import com.limelight.utils.OverlayAlertDialog;
 import com.limelight.portal.PortalConfig;
 import com.limelight.portal.PortalManagerView;
 import android.graphics.RectF;
@@ -414,8 +415,7 @@ public class GameMenuFragment extends Fragment {
         }));
         actions.add(new MenuAction("full_keyboard", R.string.game_menu_full_keyboard, R.drawable.ic_full_keyboard, MenuSection.INPUT, 30, false, true, true, v -> {
             hideMenuWithAnimation();
-            VirtualKeyboardDialogFragment fragment = new VirtualKeyboardDialogFragment();
-            fragment.show(game.getFragmentManager(), "VirtualKeyboard");
+            VirtualKeyboardDialogFragment.show(game);
         }));
         actions.add(new MenuAction("send_clipboard", R.string.game_menu_send_clipboard_content, R.drawable.ic_clipboard, MenuSection.INPUT, 40, false, true, true, v -> {
             hideMenuWithAnimation();
@@ -592,7 +592,7 @@ public class GameMenuFragment extends Fragment {
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT));
 
-        new android.app.AlertDialog.Builder(game)
+        new OverlayAlertDialog.Builder(game)
                 .setTitle(getString(slider.titleRes))
                 .setView(container)
                 .setPositiveButton(android.R.string.ok, (dialog, which) -> {
@@ -716,7 +716,7 @@ public class GameMenuFragment extends Fragment {
         });
         sectionOrderTouchHelper.attachToRecyclerView(recyclerView);
 
-        final android.app.AlertDialog dialog = new android.app.AlertDialog.Builder(game)
+        final OverlayAlertDialog dialog = new OverlayAlertDialog.Builder(game)
                 .setView(dialogView)
                 .create();
         dialog.setOnDismissListener(ignored -> sectionOrderTouchHelper = null);
@@ -1199,7 +1199,7 @@ public class GameMenuFragment extends Fragment {
 
         List<PortalConfig> portals = portalManager.getPortalConfigsSnapshot();
         if (portals.isEmpty()) {
-            new android.app.AlertDialog.Builder(game)
+            new OverlayAlertDialog.Builder(game)
                     .setTitle("管理画面映射")
                     .setMessage("还没有画面映射。请先添加一个画面映射，再调整源区域和显示位置。")
                     .setPositiveButton("添加画面映射", (dialog, which) -> addPortal())
@@ -1217,7 +1217,7 @@ public class GameMenuFragment extends Fragment {
             items[i] = config.name + " · " + (config.enabled ? "开启" : "关闭") + " · " + mode;
         }
 
-        new android.app.AlertDialog.Builder(game)
+        new OverlayAlertDialog.Builder(game)
                 .setTitle("管理画面映射")
                 .setItems(items, (dialog, which) -> showPortalActionsDialog(portals.get(which).id))
                 .setPositiveButton("添加", (dialog, which) -> addPortal())
@@ -1252,7 +1252,7 @@ public class GameMenuFragment extends Fragment {
         };
 
         PortalConfig finalSelected = selected;
-        new android.app.AlertDialog.Builder(game)
+        new OverlayAlertDialog.Builder(game)
                 .setTitle(finalSelected.name)
                 .setItems(actions, (dialog, which) -> {
                     switch (which) {
@@ -1290,7 +1290,7 @@ public class GameMenuFragment extends Fragment {
             return;
         }
 
-        new android.app.AlertDialog.Builder(game)
+        new OverlayAlertDialog.Builder(game)
                 .setTitle("删除画面映射")
                 .setMessage("确定删除 " + portalName + "？")
                 .setPositiveButton("删除", (dialog, which) -> {
@@ -1550,12 +1550,12 @@ public class GameMenuFragment extends Fragment {
                     dividerLp.bottomMargin = dp(8);
                     layout.addView(divider, dividerLp);
                     
-                    android.app.AlertDialog.Builder builder = new android.app.AlertDialog.Builder(game);
+                    OverlayAlertDialog.Builder builder = new OverlayAlertDialog.Builder(game);
                     builder.setTitle("切换显示器");
                     builder.setView(layout);
                     builder.setNegativeButton(android.R.string.cancel, null);
                     
-                    final android.app.AlertDialog dialog = builder.create();
+                    final OverlayAlertDialog dialog = builder.create();
                     
                     int addedItems = 0;
                     for (NvHTTP.DisplayInfo selected : displays) {
@@ -1630,7 +1630,7 @@ public class GameMenuFragment extends Fragment {
             return;
         }
 
-        android.app.AlertDialog.Builder builder = new android.app.AlertDialog.Builder(game);
+        OverlayAlertDialog.Builder builder = new OverlayAlertDialog.Builder(game);
         builder.setTitle("切换显示器 (未能自动获取列表，请选择常用项)");
         
         final String[] items = new String[]{"物理主屏幕 (\\\\.\\DISPLAY1)", "虚拟显示器 (强制激活)", "手动输入名称..."};
@@ -1647,7 +1647,7 @@ public class GameMenuFragment extends Fragment {
                 AppToast.makeText(game, "正在激活并切换到虚拟显示器，请稍候...", AppToast.LENGTH_SHORT).show();
                 game.recreateConnectionWithDisplay("", true);
             } else {
-                android.app.AlertDialog.Builder inputBuilder = new android.app.AlertDialog.Builder(game);
+                OverlayAlertDialog.Builder inputBuilder = new OverlayAlertDialog.Builder(game);
                 inputBuilder.setTitle("输入显示器名称");
                 final android.widget.EditText input = new android.widget.EditText(game);
                 input.setHint("Windows 示例: \\\\.\\DISPLAY2\nLinux 示例: DP-1");

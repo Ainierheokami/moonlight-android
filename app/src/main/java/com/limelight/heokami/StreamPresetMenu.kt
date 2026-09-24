@@ -1,6 +1,5 @@
 package com.limelight.heokami
 
-import android.app.AlertDialog
 import android.content.Context
 import android.os.Handler
 import android.os.Looper
@@ -8,6 +7,7 @@ import android.preference.PreferenceManager
 import android.text.InputType
 import android.widget.EditText
 import com.limelight.utils.AppToast
+import com.limelight.utils.OverlayAlertDialog
 import com.limelight.Game
 import com.limelight.R
 import com.limelight.nvstream.NvConnection
@@ -45,7 +45,7 @@ object StreamPresetMenu {
         val labels = mutableListOf(game.getString(R.string.game_menu_preset_save_current))
         labels.addAll(names)
 
-        AlertDialog.Builder(game)
+        OverlayAlertDialog.Builder(game)
             .setTitle(R.string.game_menu_stream_presets)
             .setItems(labels.toTypedArray()) { _, which ->
                 if (which == 0) {
@@ -63,7 +63,7 @@ object StreamPresetMenu {
         input.setSingleLine(true)
         input.hint = game.getString(R.string.game_menu_preset_name_hint)
 
-        AlertDialog.Builder(game)
+        OverlayAlertDialog.Builder(game)
             .setTitle(R.string.game_menu_preset_save_current)
             .setView(input)
             .setNegativeButton(android.R.string.cancel, null)
@@ -103,7 +103,7 @@ object StreamPresetMenu {
             game.getString(R.string.game_menu_preset_rename),
             game.getString(R.string.game_menu_preset_delete),
         )
-        AlertDialog.Builder(game)
+        OverlayAlertDialog.Builder(game)
             .setTitle(name)
             .setItems(actions) { _, which ->
                 when (which) {
@@ -122,7 +122,7 @@ object StreamPresetMenu {
         input.setSingleLine(true)
         input.setText(oldName)
 
-        AlertDialog.Builder(game)
+        OverlayAlertDialog.Builder(game)
             .setTitle(R.string.game_menu_preset_rename)
             .setView(input)
             .setNegativeButton(android.R.string.cancel, null)

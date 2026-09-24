@@ -1,12 +1,12 @@
 package com.limelight.heokami
 
 import android.annotation.SuppressLint
-import android.app.AlertDialog
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
 import android.widget.TextView
+import com.limelight.utils.OverlayAlertDialog
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
@@ -16,7 +16,7 @@ import android.content.Context
 
 // ... MacroAction 数据类
 
-class MacroAdapter(private val actions: MutableList<MacroAction>, private val dialog: AlertDialog, private val showAddMacroDialog: (Int) -> Unit, private val context: Context) :
+class MacroAdapter(private val actions: MutableList<MacroAction>, private val dialog: OverlayAlertDialog, private val showAddMacroDialog: (Int) -> Unit, private val context: Context) :
     ListAdapter<MacroAction, MacroAdapter.MacroViewHolder>(MacroDiffCallback()) {
 
     inner class MacroViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {

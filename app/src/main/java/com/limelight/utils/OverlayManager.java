@@ -9,6 +9,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.ViewParent;
 
 import com.limelight.LimeLog;
 
@@ -33,6 +34,9 @@ public final class OverlayManager {
             new Application.ActivityLifecycleCallbacks() {
                 @Override
                 public void onActivityCreated(Activity activity, Bundle savedInstanceState) {
+                    if (isUsable(activity)) {
+                        getContainerInternal(activity);
+                    }
                 }
 
                 @Override
@@ -127,6 +131,13 @@ public final class OverlayManager {
         lifecycleListeners.add(listener);
     }
 
+    public void removeLifecycleListener(LifecycleListener listener) {
+        if (listener == null) {
+            return;
+        }
+        lifecycleListeners.remove(listener);
+    }
+
     public Activity getResumedActivity() {
         Activity activity = resumedActivity == null ? null : resumedActivity.get();
         return isUsable(activity) ? activity : null;
@@ -167,6 +178,18 @@ public final class OverlayManager {
                 : container.addDialogView(dialogView, maxWidthDp, cancelable, onBackPressed);
     }
 
+    public OverlayContainer.DialogHandle showDialog(Activity activity, View dialogView,
+                                                    int maxWidthDp, int maxHeightDp,
+                                                    boolean cancelable,
+                                                    boolean cancelOnTouchOutside,
+                                                    Runnable onDismiss) {
+        OverlayContainer container = getContainer(activity);
+        return container == null
+                ? null
+                : container.addDialogView(dialogView, maxWidthDp, maxHeightDp, cancelable,
+                cancelOnTouchOutside, onDismiss);
+    }
+
     public OverlayContainer.DialogHandle showDialog(Context context, View dialogView,
                                                     int maxWidthDp, int maxHeightDp,
                                                     boolean cancelable, Runnable onBackPressed) {
@@ -176,6 +199,29 @@ public final class OverlayManager {
                 ? null
                 : container.addDialogView(dialogView, maxWidthDp, maxHeightDp,
                 cancelable, onBackPressed);
+    }
+
+    public OverlayContainer.DialogHandle showOverlay(Activity activity, View overlayView,
+                                                     int widthPx, int heightPx,
+                                                     int leftPx, int topPx,
+                                                     boolean cancelable,
+                                                     Runnable onBackPressed) {
+        OverlayContainer container = getContainer(activity);
+        return container == null
+                ? null
+                : container.addOverlayView(overlayView, widthPx, heightPx, leftPx, topPx,
+                cancelable, onBackPressed);
+    }
+
+    public OverlayContainer.DialogHandle showFullScreenDialog(Activity activity, View dialogView,
+                                                              boolean cancelable,
+                                                              boolean cancelOnTouchOutside,
+                                                              Runnable onDismiss) {
+        OverlayContainer container = getContainer(activity);
+        return container == null
+                ? null
+                : container.addFullScreenDialogView(dialogView, cancelable,
+                cancelOnTouchOutside, onDismiss);
     }
 
     private OverlayContainer getContainerInternal(Activity activity) {

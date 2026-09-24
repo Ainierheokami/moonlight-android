@@ -20,13 +20,13 @@ import com.limelight.ui.AdapterFragment;
 import com.limelight.ui.AdapterFragmentCallbacks;
 import com.limelight.utils.CacheHelper;
 import com.limelight.utils.Dialog;
+import com.limelight.utils.OverlayDialog;
 import com.limelight.utils.ServerHelper;
 import com.limelight.utils.ShortcutHelper;
 import com.limelight.utils.SpinnerDialog;
 import com.limelight.utils.UiHelper;
 
 import android.app.Activity;
-import android.app.AlertDialog;
 import android.app.Service;
 import android.content.ComponentName;
 import android.content.Intent;
@@ -531,11 +531,9 @@ public class AppView extends Activity implements AdapterFragmentCallbacks {
             addAppActionOption(actionIds, actionLabels, CREATE_SHORTCUT_ID, R.string.applist_menu_scut);
         }
 
-        new AlertDialog.Builder(this, R.style.ModernAlertDialogTheme)
-                .setTitle(selectedApp.app.getAppName())
-                .setItems(actionLabels.toArray(new CharSequence[0]), (dialog, which) ->
-                        handleAppAction(actionIds.get(which), selectedApp, shortcutBitmap))
-                .show();
+        OverlayDialog.showList(this, selectedApp.app.getAppName(),
+                actionLabels.toArray(new CharSequence[0]), which ->
+                        handleAppAction(actionIds.get(which), selectedApp, shortcutBitmap));
     }
 
     private void addAppActionOption(ArrayList<Integer> actionIds, ArrayList<CharSequence> actionLabels,

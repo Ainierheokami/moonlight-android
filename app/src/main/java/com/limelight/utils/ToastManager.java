@@ -4,7 +4,6 @@ import android.app.Activity;
 import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
-import android.content.ContextWrapper;
 import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
@@ -120,18 +119,20 @@ public final class ToastManager implements OverlayManager.LifecycleListener {
             return;
         }
 
+        AppToast nextToast = pendingToasts.peekFirst();
+        if (nextToast == null) {
+            return;
+        }
+
         Activity activity = OverlayManager.getInstance().getResumedActivity();
-        if (activity == null && activeToast != null) {
-            activity = findActivity(activeToast.getContext());
+        if (activity == null) {
+            activity = OverlayManager.getInstance().resolveActivity(nextToast.getContext());
         }
         if (activity == null) {
             return;
         }
 
         activeToast = pendingToasts.pollFirst();
-        if (activeToast == null) {
-            return;
-        }
         activeDeadline = SystemClock.uptimeMillis()
                 + (activeToast.getDuration() == AppToast.LENGTH_LONG
                 ? LONG_DURATION_MS : SHORT_DURATION_MS);
@@ -273,8 +274,17 @@ public final class ToastManager implements OverlayManager.LifecycleListener {
                 && now - lastEnqueuedAt < DEDUPLICATION_WINDOW_MS) {
             return true;
         }
-        return activeToast != null && message.contentEquals(activeToast.getMessage())
-                && now - lastEnqueuedAt < DEDUPLICATION_WINDOW_MS;
+
+        if (activeToast != null && message.contentEquals(activeToast.getMessage())) {
+            return true;
+        }
+
+        for (AppToast pendingToast : pendingToasts) {
+            if (message.contentEquals(pendingToast.getMessage())) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private void cancelTimeout() {
@@ -293,18 +303,4 @@ public final class ToastManager implements OverlayManager.LifecycleListener {
         }
     }
 
-    private static Activity findActivity(Context context) {
-        Context current = context;
-        while (current instanceof ContextWrapper) {
-            if (current instanceof Activity) {
-                return (Activity) current;
-            }
-            Context base = ((ContextWrapper) current).getBaseContext();
-            if (base == current) {
-                break;
-            }
-            current = base;
-        }
-        return current instanceof Activity ? (Activity) current : null;
-    }
 }

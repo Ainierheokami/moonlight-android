@@ -4,7 +4,6 @@
 
 package com.limelight.binding.input.virtual_controller;
 
-import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.graphics.Canvas;
@@ -16,6 +15,8 @@ import android.widget.FrameLayout;
 
 import org.json.JSONException;
 import org.json.JSONObject;
+
+import com.limelight.utils.OverlayAlertDialog;
 
 public abstract class VirtualControllerElement extends View {
     protected static boolean _PRINT_DEBUG_INFORMATION = false;
@@ -172,7 +173,7 @@ public abstract class VirtualControllerElement extends View {
     }
 
     protected void showConfigurationDialog() {
-        AlertDialog.Builder alertBuilder = new AlertDialog.Builder(getContext());
+        OverlayAlertDialog.Builder alertBuilder = new OverlayAlertDialog.Builder(getContext());
 
         alertBuilder.setTitle("Configuration");
 
@@ -217,7 +218,7 @@ public abstract class VirtualControllerElement extends View {
                 }
             }
         });
-        AlertDialog alert = alertBuilder.create();
+        OverlayAlertDialog alert = alertBuilder.create();
         // show menu
         alert.show();
     }

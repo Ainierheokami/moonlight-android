@@ -1,6 +1,5 @@
 package com.limelight.heokami
 
-import android.app.AlertDialog
 import android.app.Activity
 import android.os.Handler
 import android.os.Looper
@@ -16,6 +15,7 @@ import android.widget.LinearLayout
 import android.widget.RadioGroup
 import android.widget.TextView
 import com.limelight.utils.AppToast
+import com.limelight.utils.OverlayAlertDialog
 import com.limelight.Game
 import com.limelight.binding.PlatformBinding
 import com.limelight.R
@@ -337,7 +337,7 @@ object StreamEnhanceMenu {
             }
         }.start()
 
-        AlertDialog.Builder(game)
+        OverlayAlertDialog.Builder(game)
             .setTitle(R.string.game_menu_stream_enhance)
             .setView(view)
             .setNeutralButton(R.string.game_menu_sync_rotation_now) { _, _ ->
