@@ -3,6 +3,7 @@ package com.limelight.utils;
 import android.app.Activity;
 import android.app.Application;
 import android.content.Context;
+import android.content.ContextWrapper;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -75,8 +76,9 @@ public final class OverlayManager {
 
                     OverlayContainer container = containers.remove(activity);
                     if (container != null) {
-                        ViewGroup parent = (ViewGroup) container.getParent();
-                        if (parent != null) {
+                        ViewParent parentView = container.getParent();
+                        if (parentView instanceof ViewGroup) {
+                            ViewGroup parent = (ViewGroup) parentView;
                             parent.removeView(container);
                         }
                     }
@@ -130,6 +132,20 @@ public final class OverlayManager {
         return isUsable(activity) ? activity : null;
     }
 
+    /**
+     * Resolves the Activity that should host an app overlay. A Context passed from a view or
+     * themed wrapper is preferred; otherwise the Activity most recently reported as resumed is
+     * used. This fallback matters when the manager is initialized after the Activity's resume
+     * callback has already happened.
+     */
+    public Activity resolveActivity(Context context) {
+        Activity activity = findActivity(context);
+        if (isUsable(activity)) {
+            return activity;
+        }
+        return getResumedActivity();
+    }
+
     public OverlayContainer getContainer(Activity activity) {
         if (Looper.myLooper() != Looper.getMainLooper()) {
             LimeLog.warning("Overlay container requested off the main thread");
@@ -149,6 +165,17 @@ public final class OverlayManager {
         return container == null
                 ? null
                 : container.addDialogView(dialogView, maxWidthDp, cancelable, onBackPressed);
+    }
+
+    public OverlayContainer.DialogHandle showDialog(Context context, View dialogView,
+                                                    int maxWidthDp, int maxHeightDp,
+                                                    boolean cancelable, Runnable onBackPressed) {
+        Activity activity = resolveActivity(context);
+        OverlayContainer container = getContainer(activity);
+        return container == null
+                ? null
+                : container.addDialogView(dialogView, maxWidthDp, maxHeightDp,
+                cancelable, onBackPressed);
     }
 
     private OverlayContainer getContainerInternal(Activity activity) {
@@ -193,5 +220,20 @@ public final class OverlayManager {
 
     static boolean isUsable(Activity activity) {
         return activity != null && !activity.isFinishing() && !activity.isDestroyed();
+    }
+
+    private static Activity findActivity(Context context) {
+        Context current = context;
+        while (current instanceof ContextWrapper) {
+            if (current instanceof Activity) {
+                return (Activity) current;
+            }
+            Context base = ((ContextWrapper) current).getBaseContext();
+            if (base == current) {
+                break;
+            }
+            current = base;
+        }
+        return current instanceof Activity ? (Activity) current : null;
     }
 }

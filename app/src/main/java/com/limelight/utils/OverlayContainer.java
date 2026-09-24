@@ -65,6 +65,15 @@ public final class OverlayContainer extends FrameLayout {
      */
     public DialogHandle addDialogView(View dialogView, int maxWidthDp,
                                       boolean cancelable, Runnable onBackPressed) {
+        return addDialogView(dialogView, maxWidthDp, 0, cancelable, onBackPressed);
+    }
+
+    /**
+     * Adds a dialog with an optional fixed maximum height. A fixed height is useful for large
+     * editor panels that already contain their own scrolling child.
+     */
+    public DialogHandle addDialogView(View dialogView, int maxWidthDp, int maxHeightDp,
+                                      boolean cancelable, Runnable onBackPressed) {
         if (dialogView == null) {
             throw new IllegalArgumentException("dialogView must not be null");
         }
@@ -76,12 +85,14 @@ public final class OverlayContainer extends FrameLayout {
 
         int width = calculateDialogWidth(maxWidthDp <= 0
                 ? DEFAULT_DIALOG_MAX_WIDTH_DP : maxWidthDp);
+        int height = calculateDialogHeight(maxHeightDp);
         FrameLayout.LayoutParams layoutParams = new FrameLayout.LayoutParams(
                 width,
-                ViewGroup.LayoutParams.WRAP_CONTENT,
+                height,
                 android.view.Gravity.CENTER);
         dialogView.setClickable(true);
         dialogView.setFocusable(true);
+        dialogView.setFocusableInTouchMode(true);
         dialogView.setElevation(dp(16));
         dialogLayer.addView(dialogView, layoutParams);
 
@@ -160,6 +171,10 @@ public final class OverlayContainer extends FrameLayout {
             clearFocus();
             setFocusableInTouchMode(false);
         }
+        else {
+            setFocusableInTouchMode(true);
+            requestFocus();
+        }
     }
 
     private void ensureDimView() {
@@ -182,17 +197,26 @@ public final class OverlayContainer extends FrameLayout {
         return Math.max(dp(240), Math.min(dp(maxWidthDp), availableWidth));
     }
 
+    private int calculateDialogHeight(int maxHeightDp) {
+        if (maxHeightDp <= 0) {
+            return ViewGroup.LayoutParams.WRAP_CONTENT;
+        }
+
+        int availableHeight = getResources().getDisplayMetrics().heightPixels
+                - (2 * dp(DIALOG_HORIZONTAL_MARGIN_DP));
+        return Math.max(dp(160), Math.min(dp(maxHeightDp), availableHeight));
+    }
+
     private int dp(int value) {
         return (int) (value * getResources().getDisplayMetrics().density + 0.5f);
     }
 
     @Override
     public boolean dispatchKeyEvent(KeyEvent event) {
-        if (event.getKeyCode() == KeyEvent.KEYCODE_BACK
-                && event.getAction() == KeyEvent.ACTION_UP
-                && !dialogEntries.isEmpty()) {
+        if (event.getKeyCode() == KeyEvent.KEYCODE_BACK && !dialogEntries.isEmpty()) {
             DialogEntry entry = dialogEntries.get(dialogEntries.size() - 1);
-            if (entry.cancelable && entry.onBackPressed != null) {
+            if (event.getAction() == KeyEvent.ACTION_UP
+                    && entry.cancelable && entry.onBackPressed != null) {
                 entry.onBackPressed.run();
             }
             return true;
