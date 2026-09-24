@@ -1,72 +1,91 @@
 package com.limelight.utils;
 
-import java.util.ArrayList;
-import java.util.Iterator;
-
 import android.app.Activity;
-import android.app.AlertDialog;
-import android.content.DialogInterface;
-import android.content.DialogInterface.OnCancelListener;
-import android.graphics.Color;
-import android.graphics.drawable.ColorDrawable;
 import android.view.LayoutInflater;
 import android.view.View;
-import android.view.Window;
 import android.widget.TextView;
 
 import com.limelight.R;
 
-public class SpinnerDialog implements Runnable,OnCancelListener {
+import java.util.ArrayList;
+import java.util.Iterator;
+
+/** App-owned progress dialog rendered in the Activity overlay. */
+public class SpinnerDialog implements Runnable {
     private final String title;
     private final String message;
     private final Activity activity;
-    private AlertDialog progress;
-    private TextView messageText;
     private final boolean finish;
 
-    private static final ArrayList<SpinnerDialog> rundownDialogs = new ArrayList<>();
+    private OverlayContainer.DialogHandle overlayHandle;
+    private TextView messageText;
 
-    private SpinnerDialog(Activity activity, String title, String message, boolean finish)
-    {
+    private static final ArrayList<SpinnerDialog> rundownDialogs = new ArrayList<>();
+    private static boolean lifecycleCallbacksRegistered;
+    private static final OverlayManager.LifecycleListener LIFECYCLE_LISTENER =
+            new OverlayManager.LifecycleListener() {
+                @Override
+                public void onActivityResumed(Activity activity) {
+                }
+
+                @Override
+                public void onActivityDestroyed(Activity activity) {
+                    synchronized (rundownDialogs) {
+                        Iterator<SpinnerDialog> iterator = rundownDialogs.iterator();
+                        while (iterator.hasNext()) {
+                            SpinnerDialog dialog = iterator.next();
+                            if (dialog.activity == activity) {
+                                dialog.overlayHandle = null;
+                                dialog.messageText = null;
+                                iterator.remove();
+                            }
+                        }
+                    }
+                }
+            };
+
+    private SpinnerDialog(Activity activity, String title, String message, boolean finish) {
         this.activity = activity;
         this.title = title;
         this.message = message;
-        this.progress = null;
         this.finish = finish;
     }
 
-    public static SpinnerDialog displayDialog(Activity activity, String title, String message, boolean finish)
-    {
+    public static SpinnerDialog displayDialog(Activity activity, String title, String message,
+                                              boolean finish) {
         SpinnerDialog spinner = new SpinnerDialog(activity, title, message, finish);
         activity.runOnUiThread(spinner);
         return spinner;
     }
 
-    public static void closeDialogs(Activity activity)
-    {
+    public static void closeDialogs(final Activity activity) {
+        final ArrayList<SpinnerDialog> dialogs = new ArrayList<>();
         synchronized (rundownDialogs) {
-            Iterator<SpinnerDialog> i = rundownDialogs.iterator();
-            while (i.hasNext()) {
-                SpinnerDialog dialog = i.next();
+            Iterator<SpinnerDialog> iterator = rundownDialogs.iterator();
+            while (iterator.hasNext()) {
+                SpinnerDialog dialog = iterator.next();
                 if (dialog.activity == activity) {
-                    i.remove();
-                    if (dialog.progress != null && dialog.progress.isShowing()) {
-                        dialog.progress.dismiss();
-                    }
-                    dialog.messageText = null;
+                    dialogs.add(dialog);
+                    iterator.remove();
                 }
             }
         }
+
+        for (final SpinnerDialog dialog : dialogs) {
+            activity.runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    dialog.dismissInternal();
+                }
+            });
+        }
     }
 
-    public void dismiss()
-    {
-        // Running again with progress != null will destroy it
+    public void dismiss() {
         activity.runOnUiThread(this);
     }
 
-    public void setMessage(final String message)
-    {
+    public void setMessage(final String message) {
         activity.runOnUiThread(new Runnable() {
             @Override
             public void run() {
@@ -79,62 +98,60 @@ public class SpinnerDialog implements Runnable,OnCancelListener {
 
     @Override
     public void run() {
-
-        // If we're dying, don't bother doing anything
-        if (activity.isFinishing()) {
+        if (!OverlayManager.isUsable(activity)) {
             return;
         }
 
-        if (progress == null)
-        {
-            View content = LayoutInflater.from(activity).inflate(R.layout.dialog_modern_spinner, null);
+        registerLifecycleCallbacks(activity);
+
+        if (overlayHandle == null) {
+            View content = LayoutInflater.from(activity).inflate(
+                    R.layout.dialog_modern_spinner, null, false);
             ((TextView) content.findViewById(R.id.spinnerTitleText)).setText(title);
             messageText = content.findViewById(R.id.spinnerMessageText);
             messageText.setText(message);
 
-            progress = new AlertDialog.Builder(activity).create();
-            progress.setView(content);
-            progress.setOnCancelListener(this);
-
-            // If we want to finish the activity when this is killed, make it cancellable
-            if (finish)
-            {
-                progress.setCancelable(true);
-                progress.setCanceledOnTouchOutside(false);
-            }
-            else
-            {
-                progress.setCancelable(false);
-            }
-
-            synchronized (rundownDialogs) {
-                rundownDialogs.add(this);
-                progress.show();
-            }
-
-            Window window = progress.getWindow();
-            if (window != null) {
-                window.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
-            }
-        }
-        else
-        {
-            synchronized (rundownDialogs) {
-                if (rundownDialogs.remove(this) && progress.isShowing()) {
-                    progress.dismiss();
+            overlayHandle = OverlayManager.getInstance().showDialog(
+                    activity,
+                    content,
+                    520,
+                    finish,
+                    finish ? new Runnable() {
+                        @Override
+                        public void run() {
+                            dismissInternal();
+                            activity.finish();
+                        }
+                    } : null);
+            if (overlayHandle != null) {
+                synchronized (rundownDialogs) {
+                    rundownDialogs.add(this);
                 }
             }
-            messageText = null;
+        }
+        else {
+            dismissInternal();
         }
     }
 
-    @Override
-    public void onCancel(DialogInterface dialog) {
+    private void dismissInternal() {
+        OverlayContainer.DialogHandle handle = overlayHandle;
+        overlayHandle = null;
+        if (handle != null) {
+            handle.remove();
+        }
+        messageText = null;
         synchronized (rundownDialogs) {
             rundownDialogs.remove(this);
         }
+    }
 
-        // This will only be called if finish was true, so we don't need to check again
-        activity.finish();
+    private static void registerLifecycleCallbacks(Activity activity) {
+        OverlayManager overlayManager = OverlayManager.getInstance();
+        overlayManager.initialize(activity);
+        if (!lifecycleCallbacksRegistered) {
+            overlayManager.addLifecycleListener(LIFECYCLE_LISTENER);
+            lifecycleCallbacksRegistered = true;
+        }
     }
 }

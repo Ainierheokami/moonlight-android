@@ -1,52 +1,74 @@
 package com.limelight.utils;
 
-import java.util.ArrayList;
-
 import android.app.Activity;
-import android.app.AlertDialog;
-import android.graphics.Color;
-import android.graphics.drawable.ColorDrawable;
 import android.view.LayoutInflater;
 import android.view.View;
-import android.view.Window;
 import android.widget.Button;
 import android.widget.TextView;
 
 import com.limelight.R;
 
+import java.util.ArrayList;
+import java.util.Iterator;
+
+/** App-owned message dialog rendered in the Activity overlay. */
 public class Dialog implements Runnable {
     private final String title;
     private final String message;
     private final Activity activity;
     private final Runnable runOnDismiss;
 
-    private AlertDialog alert;
+    private OverlayContainer.DialogHandle overlayHandle;
 
     private static final ArrayList<Dialog> rundownDialogs = new ArrayList<>();
+    private static boolean lifecycleCallbacksRegistered;
+    private static final OverlayManager.LifecycleListener LIFECYCLE_LISTENER =
+            new OverlayManager.LifecycleListener() {
+                @Override
+                public void onActivityResumed(Activity activity) {
+                }
 
-    private Dialog(Activity activity, String title, String message, Runnable runOnDismiss)
-    {
+                @Override
+                public void onActivityDestroyed(Activity activity) {
+                    synchronized (rundownDialogs) {
+                        Iterator<Dialog> iterator = rundownDialogs.iterator();
+                        while (iterator.hasNext()) {
+                            Dialog dialog = iterator.next();
+                            if (dialog.activity == activity) {
+                                dialog.overlayHandle = null;
+                                iterator.remove();
+                            }
+                        }
+                    }
+                }
+            };
+
+    private Dialog(Activity activity, String title, String message, Runnable runOnDismiss) {
         this.activity = activity;
         this.title = title;
         this.message = message;
         this.runOnDismiss = runOnDismiss;
     }
 
-    public static void closeDialogs()
-    {
+    public static void closeDialogs() {
+        final ArrayList<Dialog> dialogs;
         synchronized (rundownDialogs) {
-            for (Dialog d : rundownDialogs) {
-                if (d.alert.isShowing()) {
-                    d.alert.dismiss();
-                }
-            }
-
+            dialogs = new ArrayList<>(rundownDialogs);
             rundownDialogs.clear();
+        }
+
+        for (final Dialog dialog : dialogs) {
+            dialog.activity.runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    dialog.dismissInternal();
+                }
+            });
         }
     }
 
-    public static void displayDialog(final Activity activity, String title, String message, final boolean endAfterDismiss)
-    {
+    public static void displayDialog(final Activity activity, String title, String message,
+                                     final boolean endAfterDismiss) {
         activity.runOnUiThread(new Dialog(activity, title, message, new Runnable() {
             @Override
             public void run() {
@@ -57,20 +79,21 @@ public class Dialog implements Runnable {
         }));
     }
 
-    public static void displayDialog(Activity activity, String title, String message, Runnable runOnDismiss)
-    {
+    public static void displayDialog(Activity activity, String title, String message,
+                                     Runnable runOnDismiss) {
         activity.runOnUiThread(new Dialog(activity, title, message, runOnDismiss));
     }
 
     @Override
     public void run() {
-        // If we're dying, don't bother creating a dialog
-        if (activity.isFinishing())
+        if (!OverlayManager.isUsable(activity)) {
             return;
+        }
 
-        alert = new AlertDialog.Builder(activity).create();
+        registerLifecycleCallbacks(activity);
 
-        View content = LayoutInflater.from(activity).inflate(R.layout.dialog_modern_message, null);
+        View content = LayoutInflater.from(activity).inflate(
+                R.layout.dialog_modern_message, null, false);
         ((TextView) content.findViewById(R.id.dialogTitleText)).setText(title);
         ((TextView) content.findViewById(R.id.dialogMessageText)).setText(message);
 
@@ -78,12 +101,10 @@ public class Dialog implements Runnable {
         okButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                synchronized (rundownDialogs) {
-                    rundownDialogs.remove(Dialog.this);
-                    alert.dismiss();
+                dismissInternal();
+                if (runOnDismiss != null) {
+                    runOnDismiss.run();
                 }
-
-                runOnDismiss.run();
             }
         });
 
@@ -91,33 +112,46 @@ public class Dialog implements Runnable {
         helpButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                synchronized (rundownDialogs) {
-                    rundownDialogs.remove(Dialog.this);
-                    alert.dismiss();
+                dismissInternal();
+                if (runOnDismiss != null) {
+                    runOnDismiss.run();
                 }
-
-                runOnDismiss.run();
-
                 HelpLauncher.launchTroubleshooting(activity);
             }
         });
 
-        alert.setView(content);
-        alert.setCancelable(false);
-        alert.setCanceledOnTouchOutside(false);
+        overlayHandle = OverlayManager.getInstance().showDialog(
+                activity, content, 560, false, null);
+        if (overlayHandle == null) {
+            return;
+        }
 
         synchronized (rundownDialogs) {
             rundownDialogs.add(this);
-            alert.show();
-        }
-
-        Window window = alert.getWindow();
-        if (window != null) {
-            window.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
         }
 
         okButton.setFocusable(true);
         okButton.setFocusableInTouchMode(true);
         okButton.requestFocus();
+    }
+
+    private void dismissInternal() {
+        OverlayContainer.DialogHandle handle = overlayHandle;
+        overlayHandle = null;
+        if (handle != null) {
+            handle.remove();
+        }
+        synchronized (rundownDialogs) {
+            rundownDialogs.remove(this);
+        }
+    }
+
+    private static void registerLifecycleCallbacks(Activity activity) {
+        OverlayManager overlayManager = OverlayManager.getInstance();
+        overlayManager.initialize(activity);
+        if (!lifecycleCallbacksRegistered) {
+            overlayManager.addLifecycleListener(LIFECYCLE_LISTENER);
+            lifecycleCallbacksRegistered = true;
+        }
     }
 }
