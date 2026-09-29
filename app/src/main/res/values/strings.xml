@@ -339,6 +339,8 @@
 
     <string name="title_frame_pacing">Video frame pacing</string>
     <string name="summary_frame_pacing">Specify how to balance video latency and smoothness</string>
+    <string name="title_enhanced_low_latency_decoding">Enhanced low latency decoding</string>
+    <string name="summary_enhanced_low_latency_decoding">Run the hardware decoder at maximum clocks with vendor low latency options. Lowers decode time but uses more power. Disable if video fails to start or stutters</string>
     <string name="pacing_latency">Prefer lowest latency</string>
     <string name="pacing_balanced">Balanced</string>
     <string name="pacing_balanced_alt">Balanced with FPS limit</string>

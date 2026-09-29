@@ -289,6 +289,8 @@
     <string name="title_troubleshooting">解决方案向导</string>
     <string name="summary_troubleshooting">查看有关诊断和修复常见流传输问题的提示</string>
     <string name="summary_frame_pacing">指定如何平衡视频延迟和流畅度</string>
+    <string name="title_enhanced_low_latency_decoding">增强低延迟解码</string>
+    <string name="summary_enhanced_low_latency_decoding">让硬件解码器以最高频率运行并启用厂商低延迟参数，可降低解码时间，但耗电更高。若视频无法启动或出现卡顿请关闭</string>
     <string name="pacing_balanced_alt">有FPS限制的平衡</string>
     <string name="pacing_latency">优先最低延迟</string>
     <string name="summary_seekbar_deadzone">注意：有些游戏可以执行一个比Moonlight摇杆配置的更大的盲区。</string>

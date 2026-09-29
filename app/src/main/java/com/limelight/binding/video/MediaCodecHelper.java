@@ -432,7 +432,7 @@ public class MediaCodecHelper {
         return false;
     }
 
-    private static boolean decoderSupportsAndroidRLowLatency(MediaCodecInfo decoderInfo, String mimeType) {
+    public static boolean decoderSupportsAndroidRLowLatency(MediaCodecInfo decoderInfo, String mimeType) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             try {
                 if (decoderInfo.getCapabilitiesForType(mimeType).isFeatureSupported(CodecCapabilities.FEATURE_LowLatency)) {
@@ -493,6 +493,19 @@ public class MediaCodecHelper {
     }
 
     public static boolean setDecoderLowLatencyOptions(MediaFormat videoFormat, MediaCodecInfo decoderInfo, int tryNumber) {
+        return setDecoderLowLatencyOptions(videoFormat, decoderInfo, tryNumber, false);
+    }
+
+    /**
+     * @param stackAllOptions When true, KEY_LOW_LATENCY is combined with the operating rate/priority
+     *                        and vendor low latency options even if the decoder supports
+     *                        FEATURE_LowLatency. KEY_LOW_LATENCY alone only changes buffering and
+     *                        does not raise the decoder clocks on many SoCs, so this lowers decode
+     *                        time noticeably at high bitrates. Only used with tryNumber 0; callers
+     *                        must fall back to the regular tries if configure() fails.
+     */
+    public static boolean setDecoderLowLatencyOptions(MediaFormat videoFormat, MediaCodecInfo decoderInfo, int tryNumber,
+                                                      boolean stackAllOptions) {
         // Options here should be tried in the order of most to least risky. The decoder will use
         // the first MediaFormat that doesn't fail in configure().
 
@@ -505,7 +518,7 @@ public class MediaCodecHelper {
 
             // If this decoder officially supports FEATURE_LowLatency, we will just use that alone
             // for try 0. Otherwise, we'll include it as best effort with other options.
-            if (decoderSupportsAndroidRLowLatency(decoderInfo, videoFormat.getString(MediaFormat.KEY_MIME))) {
+            if (!stackAllOptions && decoderSupportsAndroidRLowLatency(decoderInfo, videoFormat.getString(MediaFormat.KEY_MIME))) {
                 return true;
             }
         }

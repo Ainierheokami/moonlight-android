@@ -8,6 +8,7 @@ import android.media.AudioManager;
 import android.media.AudioTrack;
 import android.media.audiofx.AudioEffect;
 import android.os.Build;
+import android.os.Process;
 
 import com.limelight.Game;
 import com.limelight.LimeLog;
@@ -43,6 +44,9 @@ public class AndroidAudioRenderer implements AudioRenderer {
     public static float getLastAudioOutputRateMBps() {
         return lastAudioOutputRateMBps;
     }
+
+    // Only touched by the native audio thread calling playDecodedAudio()
+    private boolean playbackThreadPriorityRaised = false;
 
     public AndroidAudioRenderer(Context context, boolean enableAudioFx) {
         this.context = context;
@@ -249,6 +253,12 @@ public class AndroidAudioRenderer implements AudioRenderer {
 
     @Override
     public void playDecodedAudio(short[] audioData) {
+        if (!playbackThreadPriorityRaised) {
+            // Called on the native audio thread, which runs at the default priority otherwise
+            Process.setThreadPriority(Process.THREAD_PRIORITY_URGENT_AUDIO);
+            playbackThreadPriorityRaised = true;
+        }
+
         // 累加输入流量
         totalAudioInputBytes += audioData.length * 2; // short 为 2 字节
         short[] outputAudioData = applyVolumeGain(audioData);

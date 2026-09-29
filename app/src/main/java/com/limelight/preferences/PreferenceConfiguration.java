@@ -55,6 +55,7 @@ public class PreferenceConfiguration {
     private static final String ENABLE_HDR_PREF_STRING = "checkbox_enable_hdr";
     private static final String ENABLE_PIP_PREF_STRING = "checkbox_enable_pip";
     private static final String ENABLE_PERF_OVERLAY_STRING = "checkbox_enable_perf_overlay";
+    private static final String ENHANCED_LOW_LATENCY_DECODING_STRING = "checkbox_enhanced_low_latency_decoding";
     private static final String ENABLE_SIMPLIFY_PERF_OVERLAY_STRING = "checkbox_enable_simplify_perf_overlay";
     public static final String DEBUG_TOAST_PREF_STRING = "checkbox_enable_debug_toast";
     private static final String BIND_ALL_USB_STRING = "checkbox_usb_bind_all";
@@ -118,6 +119,7 @@ public class PreferenceConfiguration {
     private static final boolean DEFAULT_ENABLE_HDR = false;
     private static final boolean DEFAULT_ENABLE_PIP = false;
     private static final boolean DEFAULT_ENABLE_PERF_OVERLAY = false;
+    private static final boolean DEFAULT_ENHANCED_LOW_LATENCY_DECODING = true;
     private static final boolean DEFAULT_ENABLE_SIMPLIFY_PERF_OVERLAY = false;
     private static final boolean DEFAULT_DEBUG_TOAST = false;
     private static final boolean DEFAULT_BIND_ALL_USB = false;
@@ -192,6 +194,7 @@ public class PreferenceConfiguration {
     public boolean enableHdr;
     public boolean enablePip;
     public boolean enablePerfOverlay, enableSimplifyPerfOverlay;
+    public boolean enhancedLowLatencyDecoding;
     public boolean enableLatencyToast;
     public boolean bindAllUsb;
     public boolean mouseEmulation;
@@ -715,6 +718,7 @@ public class PreferenceConfiguration {
         config.enableHdr = prefs.getBoolean(ENABLE_HDR_PREF_STRING, DEFAULT_ENABLE_HDR) && !isShieldAtvFirmwareWithBrokenHdr();
         config.enablePip = prefs.getBoolean(ENABLE_PIP_PREF_STRING, DEFAULT_ENABLE_PIP);
         config.enablePerfOverlay = prefs.getBoolean(ENABLE_PERF_OVERLAY_STRING, DEFAULT_ENABLE_PERF_OVERLAY);
+        config.enhancedLowLatencyDecoding = prefs.getBoolean(ENHANCED_LOW_LATENCY_DECODING_STRING, DEFAULT_ENHANCED_LOW_LATENCY_DECODING);
         config.enableSimplifyPerfOverlay = prefs.getBoolean(ENABLE_SIMPLIFY_PERF_OVERLAY_STRING, DEFAULT_ENABLE_SIMPLIFY_PERF_OVERLAY);
         config.bindAllUsb = prefs.getBoolean(BIND_ALL_USB_STRING, DEFAULT_BIND_ALL_USB);
         config.mouseEmulation = prefs.getBoolean(MOUSE_EMULATION_STRING, DEFAULT_MOUSE_EMULATION);

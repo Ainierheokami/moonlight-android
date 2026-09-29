@@ -153,6 +153,9 @@ public class MediaCodecDecoderRenderer extends VideoDecoderRenderer implements C
     // 添加一个标志来跟踪解码器是否已被释放
     private boolean decoderReleased = false;
 
+    // Only touched by the native decoder thread calling submitDecodeUnit()
+    private boolean submitThreadPriorityRaised = false;
+
     private MediaCodecInfo findAvcDecoder() {
         MediaCodecInfo decoder = MediaCodecHelper.findProbableSafeDecoder("video/avc", MediaCodecInfo.CodecProfileLevel.AVCProfileHigh);
         if (decoder == null) {
@@ -837,13 +840,21 @@ public class MediaCodecDecoderRenderer extends VideoDecoderRenderer implements C
         adaptivePlayback = MediaCodecHelper.decoderSupportsAdaptivePlayback(selectedDecoderInfo, mimeType);
         fusedIdrFrame = MediaCodecHelper.decoderSupportsFusedIdrFrame(selectedDecoderInfo, mimeType);
 
-        for (int tryNumber = 0;; tryNumber++) {
+        // When the decoder supports FEATURE_LowLatency, the regular try 0 only sets KEY_LOW_LATENCY.
+        // In enhanced mode, first try that stacked with the clock/priority and vendor options
+        // (try -1), then fall back to the regular sequence if the decoder rejects it.
+        boolean stackedTry = prefs.enhancedLowLatencyDecoding &&
+                MediaCodecHelper.decoderSupportsAndroidRLowLatency(selectedDecoderInfo, mimeType);
+
+        for (int tryNumber = stackedTry ? -1 : 0;; tryNumber++) {
             LimeLog.info("Decoder configuration try: "+tryNumber);
 
             MediaFormat mediaFormat = createBaseMediaFormat(mimeType);
 
             // This will try low latency options until we find one that works (or we give up).
-            boolean newFormat = MediaCodecHelper.setDecoderLowLatencyOptions(mediaFormat, selectedDecoderInfo, tryNumber);
+            boolean newFormat = tryNumber < 0 ?
+                    MediaCodecHelper.setDecoderLowLatencyOptions(mediaFormat, selectedDecoderInfo, 0, true) :
+                    MediaCodecHelper.setDecoderLowLatencyOptions(mediaFormat, selectedDecoderInfo, tryNumber);
 
             // Throw the underlying codec exception on the last attempt if the caller requested it
             if (tryConfigureDecoder(selectedDecoderInfo, mediaFormat, !newFormat && throwOnCodecError)) {
@@ -1265,6 +1276,10 @@ public class MediaCodecDecoderRenderer extends VideoDecoderRenderer implements C
         rendererThread = new Thread() {
             @Override
             public void run() {
+                // Output buffers must be released as soon as they are decoded, so don't let
+                // UI/GC work preempt this thread (Java priorities only map to a small nice range).
+                Process.setThreadPriority(Process.THREAD_PRIORITY_URGENT_DISPLAY);
+
                 BufferInfo info = new BufferInfo();
                 while (!stopping) {
                     try {
@@ -1636,6 +1651,12 @@ public class MediaCodecDecoderRenderer extends VideoDecoderRenderer implements C
     public int submitDecodeUnit(byte[] decodeUnitData, int decodeUnitLength, int decodeUnitType,
                                 int frameNumber, int frameType, char frameHostProcessingLatency,
                                 long receiveTimeMs, long enqueueTimeMs) {
+        if (!submitThreadPriorityRaised) {
+            // Called on the native decoder thread, which runs at the default priority otherwise
+            Process.setThreadPriority(Process.THREAD_PRIORITY_URGENT_DISPLAY);
+            submitThreadPriorityRaised = true;
+        }
+
         if (stopping) {
             // Don't bother if we're stopping
             return MoonBridge.DR_OK;
