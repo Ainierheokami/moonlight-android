@@ -4246,7 +4246,18 @@ public class Game extends Activity implements SurfaceHolder.Callback,
             holder.getSurface().setFrameRate(desiredFrameRate,
                     Surface.FRAME_RATE_COMPATIBILITY_FIXED_SOURCE);
         }
-        
+
+        // Disable producer throttling on the underlying surface for reduced latency (upstream 6d4c64a5).
+        // Called via reflection because Surface.setProducerThrottlingEnabled() needs a newer compileSdk.
+        if (Build.VERSION.SDK_INT >= 37) {
+            try {
+                Surface.class.getMethod("setProducerThrottlingEnabled", boolean.class)
+                        .invoke(holder.getSurface(), false);
+            } catch (Exception e) {
+                LimeLog.warning("Unable to disable producer throttling: " + e);
+            }
+        }
+
         // 如果我们需要重新连接，在这里开始
         if (isBackgroundSuspended && shouldReconnectOnForeground && lastHost != null) {
             Log.i("MoonReconnect", "[Game] surfaceCreated: starting connection after background");

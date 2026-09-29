@@ -2,14 +2,12 @@ package com.limelight.binding.audio;
 
 import android.content.Context;
 import android.content.Intent;
-import android.content.SharedPreferences;
 import android.media.AudioAttributes;
 import android.media.AudioFormat;
 import android.media.AudioManager;
 import android.media.AudioTrack;
 import android.media.audiofx.AudioEffect;
 import android.os.Build;
-import android.preference.PreferenceManager;
 
 import com.limelight.Game;
 import com.limelight.LimeLog;
@@ -34,6 +32,18 @@ public class AndroidAudioRenderer implements AudioRenderer {
     public double audioInputRateMBps = 0; // 输入音频速率（MB/s）
     public double audioOutputRateMBps = 0; // 输出音频速率（MB/s）
 
+    // 最近一次统计的音频速率，供视频性能叠加层跨线程读取
+    private static volatile float lastAudioInputRateMBps = 0;
+    private static volatile float lastAudioOutputRateMBps = 0;
+
+    public static float getLastAudioInputRateMBps() {
+        return lastAudioInputRateMBps;
+    }
+
+    public static float getLastAudioOutputRateMBps() {
+        return lastAudioOutputRateMBps;
+    }
+
     public AndroidAudioRenderer(Context context, boolean enableAudioFx) {
         this.context = context;
         this.enableAudioFx = enableAudioFx;
@@ -55,11 +65,10 @@ public class AndroidAudioRenderer implements AudioRenderer {
             audioInputRateMBps = (totalAudioInputBytes / 1024.0 / 1024.0) / (elapsedTimeMs / 1000.0);
             audioOutputRateMBps = (totalAudioOutputBytes / 1024.0 / 1024.0) / (elapsedTimeMs / 1000.0);
 
-            SharedPreferences audioRateMBpsPerfs = PreferenceManager.getDefaultSharedPreferences(context);
-            audioRateMBpsPerfs.edit()
-                .putFloat("audio_input_rate", (float) audioInputRateMBps)
-                .putFloat("audio_output_rate", (float) audioOutputRateMBps)
-                .apply();
+            // 仅保存在内存中供性能叠加层读取。之前每秒写一次 SharedPreferences，
+            // 会在串流期间反复把整个首选项文件写回磁盘，造成无谓的 IO 与 CPU 抖动。
+            lastAudioInputRateMBps = (float) audioInputRateMBps;
+            lastAudioOutputRateMBps = (float) audioOutputRateMBps;
 
 
             // 打印速率日志（可选）
@@ -116,6 +125,10 @@ public class AndroidAudioRenderer implements AudioRenderer {
     public int setup(MoonBridge.AudioConfiguration audioConfiguration, int sampleRate, int samplesPerFrame) {
         int channelConfig;
         int bytesPerFrame;
+
+        // 新会话不沿用上一次串流的音频速率
+        lastAudioInputRateMBps = 0;
+        lastAudioOutputRateMBps = 0;
 
         switch (audioConfiguration.channelCount)
         {

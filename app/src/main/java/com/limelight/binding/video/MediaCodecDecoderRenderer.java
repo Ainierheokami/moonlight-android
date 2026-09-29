@@ -42,6 +42,7 @@ import android.view.SurfaceHolder;
 
 import com.limelight.heokami.TemplateRenderer;
 import com.limelight.heokami.NetSpeedMonitor;
+import com.limelight.binding.audio.AndroidAudioRenderer;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Locale;
@@ -1623,7 +1624,7 @@ public class MediaCodecDecoderRenderer extends VideoDecoderRenderer implements C
             sps.constraintSet4Flag = true;
             sps.constraintSet5Flag = true;
         }
-        else {
+        else if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
             // Force the constraints unset otherwise (some may be set by default)
             sps.constraintSet4Flag = false;
             sps.constraintSet5Flag = false;
@@ -1635,7 +1636,6 @@ public class MediaCodecDecoderRenderer extends VideoDecoderRenderer implements C
     public int submitDecodeUnit(byte[] decodeUnitData, int decodeUnitLength, int decodeUnitType,
                                 int frameNumber, int frameType, char frameHostProcessingLatency,
                                 long receiveTimeMs, long enqueueTimeMs) {
-        Log.i("MoonDebug", "[Decoder] submitDecodeUnit: frameNumber=" + frameNumber + ", decodeUnitLength=" + decodeUnitLength + ", frameType=" + frameType);
         if (stopping) {
             // Don't bother if we're stopping
             return MoonBridge.DR_OK;
@@ -1737,6 +1737,9 @@ public class MediaCodecDecoderRenderer extends VideoDecoderRenderer implements C
                         reloutputRateMBps = (double) speedInfo.uploadSpeed / 1024 / 1024;
                     }
 
+                    float audioInputRateMBps = AndroidAudioRenderer.getLastAudioInputRateMBps();
+                    float audioOutputRateMBps = AndroidAudioRenderer.getLastAudioOutputRateMBps();
+
                     Map<String, String> data = new HashMap<>();
                     data.put("@data1", String.format(Locale.getDefault(),"%.2f", fps.totalFps));
                     data.put("@data2", simplify_decoder);
@@ -1748,13 +1751,13 @@ public class MediaCodecDecoderRenderer extends VideoDecoderRenderer implements C
                     data.put("@data5", String.format(Locale.getDefault(),"%1$.2f%%", (float)lastTwo.framesLost / lastTwo.totalFrames * 100));
                     data.put("@data6", String.format(Locale.getDefault(), "%.2fMB/s", inputRateMBps)); // 输入流量速率
                     data.put("@data7", String.format(Locale.getDefault(), "%.2fMB/s", outputRateMBps)); // 输出流量速率
-                    data.put("@data8", String.format(Locale.getDefault(), "%.2fMB/s", simplifyTemplatePrefs.getFloat("audio_input_rate", (float) 0)));
-                    data.put("@data9", String.format(Locale.getDefault(), "%.2fMB/s", simplifyTemplatePrefs.getFloat("audio_output_rate", (float) 0)));
+                    data.put("@data8", String.format(Locale.getDefault(), "%.2fMB/s", audioInputRateMBps));
+                    data.put("@data9", String.format(Locale.getDefault(), "%.2fMB/s", audioOutputRateMBps));
                     data.put("@data10", String.format(Locale.getDefault(), "%.2fMB/s",
                             inputRateMBps
                                     + outputRateMBps
-                                    + simplifyTemplatePrefs.getFloat("audio_input_rate", (float) 0)
-                                    + simplifyTemplatePrefs.getFloat("audio_output_rate", (float) 0)
+                                    + audioInputRateMBps
+                                    + audioOutputRateMBps
                     ));
                     data.put("@data11", String.format(Locale.getDefault(), "%.2fMB/s", relinputRateMBps)); // 真实输入流量速率);
                     data.put("@data12", String.format(Locale.getDefault(), "%.2fMB/s", reloutputRateMBps)); // 真实输出流量速率);
@@ -1792,7 +1795,7 @@ public class MediaCodecDecoderRenderer extends VideoDecoderRenderer implements C
                 // Since we only need one frame buffered, we'll set the level as low as we can
                 // for known resolution combinations. Reference frame invalidation may need
                 // these, so leave them be for those decoders.
-                if (!refFrameInvalidationActive) {
+                if (!refFrameInvalidationActive && Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
                     if (initialWidth <= 720 && initialHeight <= 480 && refreshRate <= 60) {
                         // Max 5 buffered frames at 720x480x60
                         LimeLog.info("Patching level_idc to 31");
@@ -1989,7 +1992,9 @@ public class MediaCodecDecoderRenderer extends VideoDecoderRenderer implements C
                         }
                     } catch (Exception e) {
                         LimeLog.warning("Exception during CSD buffer submission, likely stopping: " + e.getMessage());
-                        return MoonBridge.DR_OK;
+                        // Request an IDR frame unless we are stopping, otherwise the decoder may be
+                        // left without valid CSD and show corruption until the host sends a new IDR.
+                        return stopping ? MoonBridge.DR_OK : MoonBridge.DR_NEED_IDR;
                     }
                 }
             }
@@ -2080,7 +2085,8 @@ public class MediaCodecDecoderRenderer extends VideoDecoderRenderer implements C
             }
         } catch (Exception e) {
             LimeLog.warning("Exception during submitDecodeUnit, likely stopping: " + e.getMessage());
-            return MoonBridge.DR_OK;
+            // A dropped frame breaks the reference chain, so ask for recovery unless we are stopping
+            return stopping ? MoonBridge.DR_OK : MoonBridge.DR_NEED_IDR;
         }
 
         return MoonBridge.DR_OK;
