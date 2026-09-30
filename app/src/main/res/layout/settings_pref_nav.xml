@@ -41,7 +41,7 @@
             android:layout_height="wrap_content"
             android:ellipsize="end"
             android:maxLines="1"
-            android:textColor="@color/settings_text_primary"
+            android:textColor="@color/settings_text_primary_selector"
             android:textSize="16sp"
             android:textStyle="bold" />
 
@@ -52,7 +52,7 @@
             android:layout_marginTop="3dp"
             android:ellipsize="end"
             android:maxLines="2"
-            android:textColor="@color/settings_text_secondary"
+            android:textColor="@color/settings_text_secondary_selector"
             android:textSize="13sp" />
     </LinearLayout>
 
@@ -62,7 +62,7 @@
         android:layout_marginStart="10dp"
         android:importantForAccessibility="no"
         android:src="@drawable/ic_settings_chevron"
-        android:tint="@color/settings_text_secondary" />
+        android:tint="@color/settings_text_secondary_selector" />
 
     <LinearLayout
         android:id="@android:id/widget_frame"
