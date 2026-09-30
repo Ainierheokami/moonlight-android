@@ -7,8 +7,6 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.content.res.Configuration;
-import android.graphics.Color;
-import android.graphics.drawable.ColorDrawable;
 import android.media.MediaCodecInfo;
 import android.os.Build;
 import android.os.Bundle;
@@ -580,23 +578,12 @@ public class StreamSettings extends Activity {
 
         @Override
         public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
-            View view = super.onCreateView(inflater, container, savedInstanceState);
-            view.setBackgroundColor(Color.TRANSPARENT);
+            // Our own list (instead of the framework layout) draws categories as grouped cards.
+            // PreferenceFragment only needs a ListView with the id android.R.id.list.
+            View view = inflater.inflate(R.layout.settings_list, container, false);
 
             ListView listView = view.findViewById(android.R.id.list);
             if (listView != null) {
-                listView.setBackgroundColor(Color.TRANSPARENT);
-                listView.setCacheColorHint(Color.TRANSPARENT);
-                listView.setDivider(new ColorDrawable(Color.TRANSPARENT));
-                listView.setDividerHeight(dp(6));
-                listView.setClipToPadding(false);
-                listView.setScrollBarStyle(View.SCROLLBARS_OUTSIDE_OVERLAY);
-
-                // Rows draw their own rounded background and ripple, so the list selector only
-                // shows a focus outline for D-pad/keyboard navigation.
-                listView.setSelector(R.drawable.settings_list_selector);
-                listView.setDrawSelectorOnTop(true);
-
                 applyListPadding(listView);
             }
 

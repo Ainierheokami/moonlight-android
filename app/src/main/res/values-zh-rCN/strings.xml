@@ -613,6 +613,8 @@
     <string name="update_open_link_failed">没有可打开更新链接的应用。</string>
     <string name="evdev_mouse_capture_unavailable">无法获取 Root 权限，鼠标捕获功能不可用。</string>
     <!-- 设置页重构 -->
+    <string name="seekbar_input_dialog_range">请输入数值，范围 %1$s - %2$s。</string>
+    <string name="seekbar_input_dialog_hint">点击输入数值</string>
     <string name="settings_navigate_back">返回</string>
     <string name="settings_group_streaming">串流</string>
     <string name="settings_group_input">输入</string>

@@ -5,6 +5,7 @@
     <color name="settings_surface">#141C25</color>
     <color name="settings_surface_pressed">#1E2A37</color>
     <color name="settings_stroke">#223040</color>
+    <color name="settings_divider">#1F2B38</color>
     <color name="settings_text_primary">#F5F8FC</color>
     <color name="settings_text_secondary">#8FA0B2</color>
     <color name="settings_accent">#38BDF8</color>

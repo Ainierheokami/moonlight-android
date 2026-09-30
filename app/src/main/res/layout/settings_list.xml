@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 设置页列表；PreferenceFragment 通过 @android:id/list 找到它 -->
+<com.limelight.preferences.GroupedPreferenceListView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@android:id/list"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:cacheColorHint="@android:color/transparent"
+    android:clipToPadding="false"
+    android:drawSelectorOnTop="true"
+    android:listSelector="@drawable/settings_list_selector"
+    android:scrollbarStyle="outsideOverlay" />

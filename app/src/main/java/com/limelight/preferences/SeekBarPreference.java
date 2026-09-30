@@ -6,7 +6,6 @@ import android.preference.DialogPreference;
 import android.util.AttributeSet;
 import android.view.Gravity;
 import android.view.View;
-import android.view.View.OnClickListener;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.LinearLayout;
@@ -16,6 +15,7 @@ import android.widget.TextView;
 import java.util.Locale;
 
 import com.limelight.R;
+import com.limelight.utils.AppToast;
 import com.limelight.utils.OverlayAlertDialog;
 
 // Based on a Stack Overflow example: http://stackoverflow.com/questions/1974193/slider-on-my-preferencescreen
@@ -24,8 +24,11 @@ public class SeekBarPreference extends DialogPreference
     private static final String ANDROID_SCHEMA_URL = "http://schemas.android.com/apk/res/android";
     private static final String SEEKBAR_SCHEMA_URL = "http://schemas.moonlight-stream.com/apk/res/seekbar";
 
-    private SeekBar seekBar;
-    private TextView valueText;
+    // java.util.function.IntConsumer requires API 24
+    private interface ValueConsumer {
+        void accept(int value);
+    }
+
     private final Context context;
 
     private final String dialogMessage;
@@ -95,79 +98,6 @@ public class SeekBarPreference extends DialogPreference
     }
 
     @Override
-    protected View onCreateDialogView() {
-
-        LinearLayout.LayoutParams params;
-        LinearLayout layout = new LinearLayout(context);
-        layout.setOrientation(LinearLayout.VERTICAL);
-        layout.setPadding(6, 6, 6, 6);
-
-        TextView splashText = new TextView(context);
-        splashText.setPadding(30, 10, 30, 10);
-        if (dialogMessage != null) {
-            splashText.setText(dialogMessage);
-        }
-        layout.addView(splashText);
-
-        valueText = new TextView(context);
-        valueText.setGravity(Gravity.CENTER_HORIZONTAL);
-        valueText.setTextSize(32);
-        // Default text for value; hides bug where OnSeekBarChangeListener isn't called when opacity is 0%
-        updateValueText(currentValue);
-        params = new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT);
-        layout.addView(valueText, params);
-
-        seekBar = new SeekBar(context);
-        seekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
-            @Override
-            public void onProgressChanged(SeekBar seekBar, int value, boolean b) {
-                int clampedValue = clampAndRoundValue(progressToValue(value));
-                int clampedProgress = valueToProgress(clampedValue);
-                if (clampedProgress != value) {
-                    seekBar.setProgress(clampedProgress);
-                    return;
-                }
-                currentValue = clampedValue;
-                updateValueText(currentValue);
-            }
-
-            @Override
-            public void onStartTrackingTouch(SeekBar seekBar) {}
-
-            @Override
-            public void onStopTrackingTouch(SeekBar seekBar) {}
-        });
-
-        layout.addView(seekBar, new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
-
-        valueText.setOnClickListener(view -> showValueInputDialog());
-
-        if (shouldPersist()) {
-            currentValue = getPersistedInt(defaultValue);
-        }
-
-        seekBar.setMax(valueToProgress(maxValue));
-        if (keyStepSize != 0) {
-            seekBar.setKeyProgressIncrement(keyStepSize);
-        }
-        seekBar.setProgress(valueToProgress(currentValue));
-
-        return layout;
-    }
-
-    @Override
-    protected void onBindDialogView(View v) {
-        super.onBindDialogView(v);
-        seekBar.setMax(valueToProgress(maxValue));
-        if (keyStepSize != 0) {
-            seekBar.setKeyProgressIncrement(keyStepSize);
-        }
-        seekBar.setProgress(valueToProgress(currentValue));
-    }
-
-    @Override
     protected void onSetInitialValue(boolean restore, Object defaultValue)
     {
         super.onSetInitialValue(restore, defaultValue);
@@ -179,35 +109,137 @@ public class SeekBarPreference extends DialogPreference
         }
     }
 
-    public void setProgress(int progress) {
-        this.currentValue = clampAndRoundValue(progress);
-        if (seekBar != null) {
-            seekBar.setProgress(valueToProgress(this.currentValue));
-        }
-        updateValueText(this.currentValue);
-    }
     public int getProgress() {
         return currentValue;
     }
 
+    /**
+     * Shows the slider dialog. The dialog edits a pending value that is only committed when
+     * the user presses OK, so cancelling never changes what the settings row displays.
+     */
     @Override
     public void showDialog(Bundle state) {
-        final View dialogView = onCreateDialogView();
-        onBindDialogView(dialogView);
+        if (shouldPersist()) {
+            currentValue = getPersistedInt(defaultValue);
+        }
+        final int[] pendingValue = { clampAndRoundValue(currentValue) };
+
+        LinearLayout layout = new LinearLayout(context);
+        layout.setOrientation(LinearLayout.VERTICAL);
+
+        if (dialogMessage != null) {
+            TextView messageText = new TextView(context);
+            messageText.setText(dialogMessage);
+            messageText.setTextColor(0xFFB8C4D2);
+            messageText.setTextSize(14);
+            layout.addView(messageText, new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT));
+        }
+
+        // Value row: [ - ]  value  [ + ]
+        LinearLayout valueRow = new LinearLayout(context);
+        valueRow.setOrientation(LinearLayout.HORIZONTAL);
+        valueRow.setGravity(Gravity.CENTER_VERTICAL);
+
+        Button minusButton = createStepButton("\u2212");
+        Button plusButton = createStepButton("+");
+
+        TextView valueView = new TextView(context);
+        valueView.setGravity(Gravity.CENTER);
+        valueView.setTextSize(30);
+        valueView.setTextColor(0xFFF5F8FC);
+        valueView.setTypeface(null, android.graphics.Typeface.BOLD);
+        valueView.setBackgroundResource(android.R.drawable.list_selector_background);
+        valueView.setContentDescription(context.getString(R.string.seekbar_input_dialog_hint));
+
+        valueRow.addView(minusButton, new LinearLayout.LayoutParams(dp(48), dp(48)));
+        valueRow.addView(valueView, new LinearLayout.LayoutParams(0,
+                LinearLayout.LayoutParams.WRAP_CONTENT, 1.0f));
+        valueRow.addView(plusButton, new LinearLayout.LayoutParams(dp(48), dp(48)));
+
+        LinearLayout.LayoutParams valueRowParams = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT);
+        valueRowParams.topMargin = dp(16);
+        layout.addView(valueRow, valueRowParams);
+
+        final SeekBar dialogSeekBar = new SeekBar(context);
+        dialogSeekBar.setMax(valueToProgress(maxValue));
+        // keyStep is expressed in value units, while the SeekBar counts steps
+        dialogSeekBar.setKeyProgressIncrement(Math.max(1, (keyStepSize != 0 ? keyStepSize : stepSize) / stepSize));
+        LinearLayout.LayoutParams seekBarParams = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT);
+        seekBarParams.topMargin = dp(12);
+        layout.addView(dialogSeekBar, seekBarParams);
+
+        final Runnable refresh = () -> {
+            valueView.setText(formatValue(pendingValue[0]));
+            minusButton.setEnabled(pendingValue[0] > minValue);
+            plusButton.setEnabled(pendingValue[0] < maxValue);
+        };
+
+        dialogSeekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar bar, int progress, boolean fromUser) {
+                pendingValue[0] = progressToValue(progress);
+                refresh.run();
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar bar) {}
+
+            @Override
+            public void onStopTrackingTouch(SeekBar bar) {}
+        });
+
+        final ValueConsumer setPending = value -> {
+            pendingValue[0] = clampAndRoundValue(value);
+            dialogSeekBar.setProgress(valueToProgress(pendingValue[0]));
+            refresh.run();
+        };
+
+        minusButton.setOnClickListener(v -> setPending.accept(pendingValue[0] - stepSize));
+        plusButton.setOnClickListener(v -> setPending.accept(pendingValue[0] + stepSize));
+        valueView.setOnClickListener(v -> showValueInputDialog(pendingValue[0], setPending));
+
+        setPending.accept(pendingValue[0]);
+
         new OverlayAlertDialog.Builder(context)
                 .setTitle(getTitle())
-                .setView(dialogView)
+                .setView(layout)
                 .setPositiveButton(android.R.string.ok, (dialogInterface, which) -> {
-                    if (shouldPersist()) {
-                        currentValue = progressToValue(seekBar.getProgress());
-                        persistInt(currentValue);
-                        callChangeListener(currentValue);
+                    int newValue = pendingValue[0];
+                    if (callChangeListener(newValue)) {
+                        currentValue = newValue;
+                        if (shouldPersist()) {
+                            persistInt(newValue);
+                        }
                         notifyChanged();
                     }
                 })
                 .setNegativeButton(android.R.string.cancel, null)
                 .setCancelable(true)
                 .show();
+    }
+
+    private Button createStepButton(String label) {
+        Button button = new Button(context);
+        button.setText(label);
+        button.setTextSize(20);
+        button.setAllCaps(false);
+        button.setMinWidth(0);
+        button.setMinHeight(0);
+        button.setPadding(0, 0, 0, 0);
+        button.setStateListAnimator(null);
+        button.setTextColor(0xFFF5F8FC);
+        button.setBackgroundResource(R.drawable.modern_dialog_secondary_button_background);
+        return button;
+    }
+
+    private int dp(int value) {
+        return (int) (value * context.getResources().getDisplayMetrics().density + 0.5f);
     }
 
     private int valueToProgress(int value) {
@@ -224,13 +256,6 @@ public class SeekBarPreference extends DialogPreference
         return Math.max(minValue, Math.min(maxValue, rounded));
     }
 
-    private void updateValueText(int value) {
-        if (valueText == null) {
-            return;
-        }
-        valueText.setText(formatValue(value));
-    }
-
     private String formatValue(int value) {
         String t;
         if (getKey() != null && getKey().equals("seekbar_background_reconnect_timeout") && value == 0) {
@@ -245,23 +270,41 @@ public class SeekBarPreference extends DialogPreference
         return suffix == null ? t : t.concat(suffix.length() > 1 ? " " + suffix : suffix);
     }
 
-    private void showValueInputDialog() {
+    // Manual entry uses the same unit that is displayed (e.g. Mbps for the bitrate), not the
+    // raw stored unit, and accepts decimals when the value has a divisor.
+    private void showValueInputDialog(int initialValue, ValueConsumer onValue) {
         OverlayAlertDialog.Builder dialog = new OverlayAlertDialog.Builder(context);
         EditText valueEditText = new EditText(context);
-        valueEditText.setInputType(android.text.InputType.TYPE_CLASS_NUMBER | android.text.InputType.TYPE_NUMBER_FLAG_SIGNED);
-        valueEditText.setText(String.valueOf(currentValue));
+        int inputType = android.text.InputType.TYPE_CLASS_NUMBER;
+        if (divisor != 1) {
+            inputType |= android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL;
+        }
+        valueEditText.setInputType(inputType);
+        valueEditText.setText(formatNumber(initialValue));
         valueEditText.setSelection(valueEditText.getText().length());
         dialog.setTitle(getTitle());
-        dialog.setMessage(context.getString(R.string.seekbar_input_dialog_message, minValue, maxValue));
+        dialog.setMessage(context.getString(R.string.seekbar_input_dialog_range,
+                formatValue(minValue), formatValue(maxValue)));
         dialog.setView(valueEditText);
         dialog.setPositiveButton(android.R.string.ok, (dialogInterface, i) -> {
             try {
-                setProgress(Integer.parseInt(valueEditText.getText().toString().trim()));
+                String text = valueEditText.getText().toString().trim().replace(',', '.');
+                onValue.accept(Math.round(Float.parseFloat(text) * divisor));
             } catch (NumberFormatException e) {
-                valueEditText.setError(context.getString(R.string.seekbar_input_number_error));
+                AppToast.makeText(context, R.string.seekbar_input_number_error, AppToast.LENGTH_SHORT).show();
             }
         });
         dialog.setNegativeButton(android.R.string.cancel, null);
         dialog.show();
+    }
+
+    private String formatNumber(int value) {
+        if (divisor == 1) {
+            return String.valueOf(value);
+        }
+        float displayValue = value / (float) divisor;
+        return displayValue == Math.round(displayValue) ?
+                String.valueOf(Math.round(displayValue)) :
+                String.format(Locale.US, "%.1f", displayValue);
     }
 }

@@ -310,6 +310,8 @@
     <string name="game_menu_section_order_drag_hint">拖曳即可移動這個分類。</string>
     <string name="game_menu_section_order_reset">恢復預設</string>
     <!-- 设置页重构 -->
+    <string name="seekbar_input_dialog_range">請輸入數值，範圍 %1$s - %2$s。</string>
+    <string name="seekbar_input_dialog_hint">點擊輸入數值</string>
     <string name="settings_navigate_back">返回</string>
     <string name="settings_group_streaming">串流</string>
     <string name="settings_group_input">輸入</string>

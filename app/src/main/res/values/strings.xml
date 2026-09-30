@@ -683,6 +683,8 @@
     <string name="update_open_link_failed">No app is available to open the update link.</string>
     <string name="evdev_mouse_capture_unavailable">Root access is unavailable. Mouse capture cannot be started.</string>
     <!-- 设置页重构 -->
+    <string name="seekbar_input_dialog_range">Enter a value between %1$s and %2$s.</string>
+    <string name="seekbar_input_dialog_hint">Tap to enter a value</string>
     <string name="settings_navigate_back">Back</string>
     <string name="settings_group_streaming">Streaming</string>
     <string name="settings_group_input">Input</string>

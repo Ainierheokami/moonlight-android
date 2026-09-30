@@ -91,7 +91,9 @@ public final class OverlayAlertDialog implements DialogInterface {
                 activity,
                 cardView,
                 MAX_WIDTH_DP,
-                MAX_HEIGHT_DP,
+                // Wrap the content; the card itself caps its height (see MaxHeightLinearLayout).
+                // Passing a max height here would make every dialog that tall.
+                0,
                 builder.cancelable,
                 builder.canceledOnTouchOutside,
                 this::cancel);
@@ -102,7 +104,9 @@ public final class OverlayAlertDialog implements DialogInterface {
     }
 
     private View buildCardView() {
-        LinearLayout card = new LinearLayout(activity);
+        int maxCardHeight = Math.min(dp(MAX_HEIGHT_DP),
+                activity.getResources().getDisplayMetrics().heightPixels - dp(48));
+        LinearLayout card = new MaxHeightLinearLayout(activity, maxCardHeight);
         card.setOrientation(LinearLayout.VERTICAL);
         card.setBackgroundResource(R.drawable.modern_dialog_background);
         int horizontalPadding = dp(CARD_HORIZONTAL_PADDING_DP);
@@ -169,7 +173,8 @@ public final class OverlayAlertDialog implements DialogInterface {
         }
         LinearLayout.LayoutParams viewParams = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT);
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                1.0f);
         viewParams.topMargin = dp(TextUtils.isEmpty(builder.title)
                 && TextUtils.isEmpty(builder.message) ? 0 : 12);
         card.addView(customView, viewParams);
@@ -220,6 +225,8 @@ public final class OverlayAlertDialog implements DialogInterface {
         listParams.topMargin = dp(TextUtils.isEmpty(builder.title)
                 && TextUtils.isEmpty(builder.message) ? 0 : 12);
         listParams.height = dp(Math.min(420, Math.max(120, builder.items.length * 52)));
+        // Let the list give up space first if the card reaches its maximum height
+        listParams.weight = 1.0f;
         card.addView(listView, listParams);
     }
 
@@ -468,6 +475,31 @@ public final class OverlayAlertDialog implements DialogInterface {
             OverlayAlertDialog dialog = create();
             dialog.show();
             return dialog;
+        }
+    }
+
+    /**
+     * Dialog card that wraps its content but never grows past a maximum height. Children with a
+     * layout weight (the custom view or list) shrink first, so the buttons stay on screen.
+     */
+    private static final class MaxHeightLinearLayout extends LinearLayout {
+        private final int maxHeight;
+
+        MaxHeightLinearLayout(Context context, int maxHeight) {
+            super(context);
+            this.maxHeight = maxHeight;
+        }
+
+        @Override
+        protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
+            if (maxHeight > 0) {
+                int mode = MeasureSpec.getMode(heightMeasureSpec);
+                int size = MeasureSpec.getSize(heightMeasureSpec);
+                if (mode == MeasureSpec.UNSPECIFIED || size > maxHeight) {
+                    heightMeasureSpec = MeasureSpec.makeMeasureSpec(maxHeight, MeasureSpec.AT_MOST);
+                }
+            }
+            super.onMeasure(widthMeasureSpec, heightMeasureSpec);
         }
     }
 
