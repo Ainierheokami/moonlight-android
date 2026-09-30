@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 设置页配色，与主界面深色工具栏保持一致 -->
+    <color name="settings_background">#0B1016</color>
+    <color name="settings_surface">#141C25</color>
+    <color name="settings_surface_pressed">#1E2A37</color>
+    <color name="settings_stroke">#223040</color>
+    <color name="settings_text_primary">#F5F8FC</color>
+    <color name="settings_text_secondary">#8FA0B2</color>
+    <color name="settings_accent">#38BDF8</color>
+    <color name="settings_accent_soft">#1F38BDF8</color>
+    <color name="settings_focus">#7DD3FC</color>
+    <color name="settings_track_off">#334155</color>
+    <color name="settings_thumb_off">#CBD5E1</color>
+    <color name="settings_disabled">#4B5968</color>
+</resources>

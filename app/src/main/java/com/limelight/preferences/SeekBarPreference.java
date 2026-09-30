@@ -67,6 +67,30 @@ public class SeekBarPreference extends DialogPreference
         stepSize = attrs.getAttributeIntValue(SEEKBAR_SCHEMA_URL, "step", 1);
         divisor = attrs.getAttributeIntValue(SEEKBAR_SCHEMA_URL, "divisor", 1);
         keyStepSize = attrs.getAttributeIntValue(SEEKBAR_SCHEMA_URL, "keyStep", 0);
+
+        // Show the current value on the right side of the settings row
+        setWidgetLayoutResource(R.layout.settings_pref_value);
+    }
+
+    @Override
+    protected void onBindView(View view) {
+        super.onBindView(view);
+
+        TextView rowValueText = view.findViewById(R.id.settings_value);
+        if (rowValueText != null) {
+            rowValueText.setText(formatValue(currentValue));
+        }
+    }
+
+    /**
+     * Reloads the value after it was written to SharedPreferences directly
+     * (for example when the bitrate is reset after a resolution change).
+     */
+    public void syncFromStorage() {
+        if (shouldPersist()) {
+            currentValue = getPersistedInt(defaultValue);
+            notifyChanged();
+        }
     }
 
     @Override
@@ -177,6 +201,7 @@ public class SeekBarPreference extends DialogPreference
                         currentValue = progressToValue(seekBar.getProgress());
                         persistInt(currentValue);
                         callChangeListener(currentValue);
+                        notifyChanged();
                     }
                 })
                 .setNegativeButton(android.R.string.cancel, null)
@@ -202,16 +227,21 @@ public class SeekBarPreference extends DialogPreference
         if (valueText == null) {
             return;
         }
+        valueText.setText(formatValue(value));
+    }
+
+    private String formatValue(int value) {
         String t;
         if (getKey() != null && getKey().equals("seekbar_background_reconnect_timeout") && value == 0) {
-            t = context.getString(R.string.seekbar_never_timeout);
+            // "Never" reads wrong with a unit suffix appended
+            return context.getString(R.string.seekbar_never_timeout);
         } else if (divisor != 1) {
             float floatValue = value / (float) divisor;
             t = String.format(Locale.getDefault(), "%.1f", floatValue);
         } else {
             t = String.valueOf(value);
         }
-        valueText.setText(suffix == null ? t : t.concat(suffix.length() > 1 ? " " + suffix : suffix));
+        return suffix == null ? t : t.concat(suffix.length() > 1 ? " " + suffix : suffix);
     }
 
     private void showValueInputDialog() {

@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 设置首页：每一项打开 preferences.xml 中对应的分区（见 StreamSettings.SECTIONS） -->
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <PreferenceCategory android:title="@string/settings_group_streaming">
+        <Preference
+            android:key="nav_video"
+            android:icon="@drawable/ic_settings_video"
+            android:layout="@layout/settings_pref_nav"
+            android:persistent="false"
+            android:summary="@string/settings_section_video_summary"
+            android:title="@string/settings_section_video" />
+        <Preference
+            android:key="nav_audio"
+            android:icon="@drawable/ic_settings_audio"
+            android:layout="@layout/settings_pref_nav"
+            android:persistent="false"
+            android:summary="@string/settings_section_audio_summary"
+            android:title="@string/settings_section_audio" />
+        <Preference
+            android:key="nav_host"
+            android:icon="@drawable/ic_settings_host"
+            android:layout="@layout/settings_pref_nav"
+            android:persistent="false"
+            android:summary="@string/settings_section_host_summary"
+            android:title="@string/settings_section_host" />
+    </PreferenceCategory>
+
+    <PreferenceCategory android:title="@string/settings_group_input">
+        <Preference
+            android:key="nav_gamepad"
+            android:icon="@drawable/ic_settings_gamepad"
+            android:layout="@layout/settings_pref_nav"
+            android:persistent="false"
+            android:summary="@string/settings_section_gamepad_summary"
+            android:title="@string/settings_section_gamepad" />
+        <Preference
+            android:key="nav_touch"
+            android:icon="@drawable/ic_settings_touch"
+            android:layout="@layout/settings_pref_nav"
+            android:persistent="false"
+            android:summary="@string/settings_section_touch_summary"
+            android:title="@string/settings_section_touch" />
+        <Preference
+            android:key="nav_onscreen"
+            android:icon="@drawable/ic_settings_keyboard"
+            android:layout="@layout/settings_pref_nav"
+            android:persistent="false"
+            android:summary="@string/settings_section_onscreen_summary"
+            android:title="@string/settings_section_onscreen" />
+    </PreferenceCategory>
+
+    <PreferenceCategory android:title="@string/settings_group_app">
+        <Preference
+            android:key="nav_overlay"
+            android:icon="@drawable/ic_settings_overlay"
+            android:layout="@layout/settings_pref_nav"
+            android:persistent="false"
+            android:summary="@string/settings_section_overlay_summary"
+            android:title="@string/settings_section_overlay" />
+        <Preference
+            android:key="nav_interface"
+            android:icon="@drawable/ic_settings_interface"
+            android:layout="@layout/settings_pref_nav"
+            android:persistent="false"
+            android:summary="@string/settings_section_interface_summary"
+            android:title="@string/settings_section_interface" />
+        <Preference
+            android:key="nav_maintenance"
+            android:icon="@drawable/ic_settings_maintenance"
+            android:layout="@layout/settings_pref_nav"
+            android:persistent="false"
+            android:summary="@string/settings_section_maintenance_summary"
+            android:title="@string/settings_section_maintenance" />
+    </PreferenceCategory>
+</PreferenceScreen>

@@ -122,6 +122,8 @@ jobs:
           ls -lh release-apks
 
       - name: Publish versioned GitHub Release
+        # Only master publishes releases; other branches (manual runs) just upload build artifacts
+        if: github.ref == 'refs/heads/master'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -143,6 +145,8 @@ jobs:
           gh release upload "${VERSION_TAG}" release-apks/*.apk --clobber
 
       - name: Publish latest GitHub Release
+        # Only master publishes releases; other branches (manual runs) just upload build artifacts
+        if: github.ref == 'refs/heads/master'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |

@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 28dp 高的拇指：22dp 圆点四周留 3dp，使其嵌在轨道内 -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_enabled="false">
+        <inset android:inset="3dp">
+            <shape android:shape="oval">
+                <solid android:color="#8094A3B8" />
+                <size android:width="22dp" android:height="22dp" />
+            </shape>
+        </inset>
+    </item>
+    <item android:state_checked="true">
+        <inset android:inset="3dp">
+            <shape android:shape="oval">
+                <solid android:color="#FFFFFFFF" />
+                <size android:width="22dp" android:height="22dp" />
+            </shape>
+        </inset>
+    </item>
+    <item>
+        <inset android:inset="3dp">
+            <shape android:shape="oval">
+                <solid android:color="@color/settings_thumb_off" />
+                <size android:width="22dp" android:height="22dp" />
+            </shape>
+        </inset>
+    </item>
+</selector>

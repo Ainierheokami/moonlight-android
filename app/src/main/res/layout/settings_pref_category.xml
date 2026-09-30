@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 分组标题：强调色小标题，不绘制卡片 -->
+<TextView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@android:id/title"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:paddingStart="18dp"
+    android:paddingTop="18dp"
+    android:paddingEnd="18dp"
+    android:paddingBottom="2dp"
+    android:letterSpacing="0.04"
+    android:textColor="@color/settings_accent"
+    android:textSize="13sp"
+    android:textStyle="bold" />

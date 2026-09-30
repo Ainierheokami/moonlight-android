@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 右侧显示当前值（列表选项、滑块数值） -->
+<TextView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/settings_value"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:ellipsize="end"
+    android:gravity="end"
+    android:maxLines="2"
+    android:maxWidth="150dp"
+    android:textColor="@color/settings_text_value"
+    android:textSize="14sp" />

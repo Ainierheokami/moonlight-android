@@ -140,6 +140,7 @@
         </activity>
         <activity
             android:name=".preferences.StreamSettings"
+            android:theme="@style/SettingsTheme"
             android:resizeableActivity="true"
             android:enableOnBackInvokedCallback="true"
             android:configChanges="mcc|mnc|touchscreen|keyboard|keyboardHidden|navigation|screenLayout|fontScale|uiMode|orientation|screenSize|smallestScreenSize|layoutDirection"

@@ -6,11 +6,10 @@ import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Build;
-import android.preference.ListPreference;
 import android.provider.Settings;
 import android.util.AttributeSet;
 
-public class LanguagePreference extends ListPreference {
+public class LanguagePreference extends SettingsListPreference {
     public LanguagePreference(Context context, AttributeSet attrs, int defStyleAttr, int defStyleRes) {
         super(context, attrs, defStyleAttr, defStyleRes);
     }

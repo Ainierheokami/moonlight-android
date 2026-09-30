@@ -1,5 +1,7 @@
 package com.limelight.preferences;
 
+import android.app.FragmentManager;
+import android.app.FragmentTransaction;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -14,18 +16,17 @@ import android.app.Activity;
 import android.os.Handler;
 import android.os.Vibrator;
 import android.preference.CheckBoxPreference;
-import android.preference.EditTextPreference;
 import android.preference.ListPreference;
 import android.preference.Preference;
-import android.preference.PreferenceCategory;
 import android.preference.PreferenceFragment;
+import android.preference.PreferenceGroup;
 import android.preference.PreferenceManager;
 import android.preference.PreferenceScreen;
 import android.util.DisplayMetrics;
 import android.util.Range;
+import android.util.TypedValue;
 import android.view.Display;
 import android.view.DisplayCutout;
-import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -35,6 +36,8 @@ import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.ScrollView;
 import android.widget.TextView;
+import android.window.OnBackInvokedCallback;
+import android.window.OnBackInvokedDispatcher;
 import com.limelight.utils.OverlayAlertDialog;
 
 import com.limelight.LimeLog;
@@ -46,26 +49,161 @@ import com.limelight.utils.Dialog;
 import com.limelight.utils.UiHelper;
 import com.limelight.utils.UpdateChecker;
 
-import java.lang.reflect.Method;
 import java.util.Arrays;
-import android.view.WindowManager;
-import android.view.Window;
+import java.util.HashSet;
+import java.util.Locale;
+import java.util.Set;
 
 public class StreamSettings extends Activity {
+    /**
+     * A page of the settings UI. The home page links to each section, and a section shows the
+     * categories of preferences.xml whose keys are listed here.
+     */
+    private static final class Section {
+        final String id;
+        final int titleRes;
+        final String[] categoryKeys;
+
+        Section(String id, int titleRes, String... categoryKeys) {
+            this.id = id;
+            this.titleRes = titleRes;
+            this.categoryKeys = categoryKeys;
+        }
+    }
+
+    private static final Section[] SECTIONS = {
+            new Section("video", R.string.settings_section_video,
+                    "category_video_quality", "category_video_latency", "category_video_display"),
+            new Section("audio", R.string.settings_section_audio,
+                    "category_audio_settings"),
+            new Section("host", R.string.settings_section_host,
+                    "category_host_session", "category_host_display", "category_host_clipboard",
+                    "category_host_reconnect"),
+            new Section("gamepad", R.string.settings_section_gamepad,
+                    "category_gamepad_settings", "category_gamepad_usb", "category_gamepad_mouse",
+                    "category_gamepad_feedback"),
+            new Section("touch", R.string.settings_section_touch,
+                    "category_input_settings", "category_mouse_input", "category_game_menu_gesture"),
+            new Section("onscreen", R.string.settings_section_onscreen,
+                    "category_onscreen_controls", "category_onscreen_keyboard",
+                    "category_onscreen_keyboard_profiles"),
+            new Section("overlay", R.string.settings_section_overlay,
+                    "category_perf_overlay", "category_debug"),
+            new Section("interface", R.string.settings_section_interface,
+                    "category_ui_settings"),
+            new Section("maintenance", R.string.settings_section_maintenance,
+                    "category_app_update", "category_backup_restore"),
+    };
+
+    private static final String STATE_CURRENT_SECTION = "currentSection";
+
     private PreferenceConfiguration previousPrefs;
     private int previousDisplayPixelCount;
 
+    // The section shown on top of the home page, or null when the home page is visible
+    private String currentSection;
+
+    // OnBackInvokedCallback on Android 13+ while a section is open (typed as Object for older APIs)
+    private Object sectionBackCallback;
+
+    private TextView toolbarTitle;
+    private TextView toolbarSubtitle;
+
     // HACK for Android 9
     static DisplayCutout displayCutoutP;
+
+    private static Section findSection(String id) {
+        for (Section section : SECTIONS) {
+            if (section.id.equals(id)) {
+                return section;
+            }
+        }
+        return null;
+    }
 
     void reloadSettings() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             Display.Mode mode = getWindowManager().getDefaultDisplay().getMode();
             previousDisplayPixelCount = mode.getPhysicalWidth() * mode.getPhysicalHeight();
         }
-        getFragmentManager().beginTransaction().replace(
-                R.id.stream_settings, new SettingsFragment()
+
+        // Rebuild the whole stack (home + the open section) so display-dependent values are
+        // recomputed without leaving a stale fragment behind the back stack.
+        String section = currentSection;
+        FragmentManager fragmentManager = getFragmentManager();
+        try {
+            fragmentManager.popBackStackImmediate(null, FragmentManager.POP_BACK_STACK_INCLUSIVE);
+        } catch (IllegalStateException e) {
+            // State already saved; the fragments will be recreated when we come back
+            return;
+        }
+
+        fragmentManager.beginTransaction().replace(
+                R.id.stream_settings, SettingsFragment.newInstance(null)
         ).commitAllowingStateLoss();
+
+        if (section != null && findSection(section) != null) {
+            openSection(section, false);
+        }
+        else {
+            currentSection = null;
+            updateToolbar();
+            updateSectionBackCallback();
+        }
+    }
+
+    void openSection(String sectionId) {
+        openSection(sectionId, true);
+    }
+
+    private void openSection(String sectionId, boolean animate) {
+        currentSection = sectionId;
+
+        FragmentTransaction transaction = getFragmentManager().beginTransaction();
+        if (animate) {
+            transaction.setCustomAnimations(
+                    R.animator.settings_section_enter, R.animator.settings_section_exit,
+                    R.animator.settings_section_pop_enter, R.animator.settings_section_pop_exit);
+        }
+        transaction.replace(R.id.stream_settings, SettingsFragment.newInstance(sectionId))
+                .addToBackStack(sectionId)
+                .commitAllowingStateLoss();
+
+        updateToolbar();
+        updateSectionBackCallback();
+    }
+
+    private void updateToolbar() {
+        Section section = currentSection != null ? findSection(currentSection) : null;
+        if (section != null) {
+            toolbarTitle.setText(section.titleRes);
+            toolbarSubtitle.setText(R.string.title_stream_settings);
+        }
+        else {
+            toolbarTitle.setText(R.string.title_stream_settings);
+            toolbarSubtitle.setText(R.string.subtitle_stream_settings);
+        }
+    }
+
+    // With android:enableOnBackInvokedCallback="true", onBackPressed() is not called on Android 13+,
+    // so a callback is needed to return from a section to the home page.
+    private void updateSectionBackCallback() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+            return;
+        }
+
+        boolean sectionOpen = currentSection != null;
+        if (sectionOpen && sectionBackCallback == null) {
+            OnBackInvokedCallback callback = () -> getFragmentManager().popBackStack();
+            getOnBackInvokedDispatcher().registerOnBackInvokedCallback(
+                    OnBackInvokedDispatcher.PRIORITY_DEFAULT, callback);
+            sectionBackCallback = callback;
+        }
+        else if (!sectionOpen && sectionBackCallback != null) {
+            getOnBackInvokedDispatcher().unregisterOnBackInvokedCallback(
+                    (OnBackInvokedCallback) sectionBackCallback);
+            sectionBackCallback = null;
+        }
     }
 
     @Override
@@ -78,6 +216,14 @@ public class StreamSettings extends Activity {
 
         setContentView(R.layout.activity_stream_settings);
 
+        toolbarTitle = findViewById(R.id.settingsTitle);
+        toolbarSubtitle = findViewById(R.id.settingsSubtitle);
+
+        if (savedInstanceState != null) {
+            currentSection = savedInstanceState.getString(STATE_CURRENT_SECTION);
+        }
+        updateToolbar();
+
         findViewById(R.id.settingsBackButton).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -85,7 +231,21 @@ public class StreamSettings extends Activity {
             }
         });
 
+        getFragmentManager().addOnBackStackChangedListener(() -> {
+            FragmentManager fragmentManager = getFragmentManager();
+            int count = fragmentManager.getBackStackEntryCount();
+            currentSection = count > 0 ? fragmentManager.getBackStackEntryAt(count - 1).getName() : null;
+            updateToolbar();
+            updateSectionBackCallback();
+        });
+
         UiHelper.notifyNewRootView(this);
+    }
+
+    @Override
+    protected void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+        outState.putString(STATE_CURRENT_SECTION, currentSection);
     }
 
     @Override
@@ -126,7 +286,13 @@ public class StreamSettings extends Activity {
 
     @Override
     // NOTE: This will NOT be called on Android 13+ with android:enableOnBackInvokedCallback="true"
+    // (except from the toolbar back button). Sections are closed by sectionBackCallback there.
     public void onBackPressed() {
+        if (getFragmentManager().getBackStackEntryCount() > 0) {
+            getFragmentManager().popBackStack();
+            return;
+        }
+
         finish();
 
         // Language changes are handled via configuration changes in Android 13+,
@@ -142,7 +308,24 @@ public class StreamSettings extends Activity {
         }
     }
 
-    public static class SettingsFragment extends PreferenceFragment {
+    public static class SettingsFragment extends PreferenceFragment
+            implements SharedPreferences.OnSharedPreferenceChangeListener {
+        private static final String ARG_SECTION = "section";
+
+        // Keep list content readable on tablets and landscape phones
+        private static final int MAX_CONTENT_WIDTH_DP = 760;
+
+        // null for the home page
+        private String section;
+
+        static SettingsFragment newInstance(String section) {
+            SettingsFragment fragment = new SettingsFragment();
+            Bundle args = new Bundle();
+            args.putString(ARG_SECTION, section);
+            fragment.setArguments(args);
+            return fragment;
+        }
+
         private int nativeResolutionStartIndex = Integer.MAX_VALUE;
         private boolean nativeFramerateShown = false;
 
@@ -381,6 +564,20 @@ public class StreamSettings extends Activity {
             dialog.show();
         }
 
+        private int dp(float value) {
+            return Math.round(TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, value,
+                    getResources().getDisplayMetrics()));
+        }
+
+        private void applyListPadding(ListView listView) {
+            int screenWidthDp = getResources().getConfiguration().screenWidthDp;
+            int sidePaddingDp = 4;
+            if (screenWidthDp > MAX_CONTENT_WIDTH_DP + 2 * sidePaddingDp) {
+                sidePaddingDp = (screenWidthDp - MAX_CONTENT_WIDTH_DP) / 2;
+            }
+            listView.setPaddingRelative(dp(sidePaddingDp), dp(4), dp(sidePaddingDp), dp(28));
+        }
+
         @Override
         public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
             View view = super.onCreateView(inflater, container, savedInstanceState);
@@ -391,20 +588,167 @@ public class StreamSettings extends Activity {
                 listView.setBackgroundColor(Color.TRANSPARENT);
                 listView.setCacheColorHint(Color.TRANSPARENT);
                 listView.setDivider(new ColorDrawable(Color.TRANSPARENT));
-                listView.setDividerHeight(8);
+                listView.setDividerHeight(dp(6));
                 listView.setClipToPadding(false);
-                listView.setPadding(0, 12, 0, 18);
+                listView.setScrollBarStyle(View.SCROLLBARS_OUTSIDE_OVERLAY);
+
+                // Rows draw their own rounded background and ripple, so the list selector only
+                // shows a focus outline for D-pad/keyboard navigation.
+                listView.setSelector(R.drawable.settings_list_selector);
+                listView.setDrawSelectorOnTop(true);
+
+                applyListPadding(listView);
             }
 
             return view;
         }
 
         @Override
+        public void onConfigurationChanged(Configuration newConfig) {
+            super.onConfigurationChanged(newConfig);
+
+            // The activity handles rotation itself, so the view isn't recreated
+            View view = getView();
+            ListView listView = view != null ? view.findViewById(android.R.id.list) : null;
+            if (listView != null) {
+                applyListPadding(listView);
+            }
+        }
+
+        @Override
+        public void onResume() {
+            super.onResume();
+            getPreferenceManager().getSharedPreferences().registerOnSharedPreferenceChangeListener(this);
+
+            if (section == null) {
+                updateHomeSummaries();
+            }
+        }
+
+        @Override
+        public void onPause() {
+            super.onPause();
+            getPreferenceManager().getSharedPreferences().unregisterOnSharedPreferenceChangeListener(this);
+        }
+
+        @Override
+        public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
+            if (key == null) {
+                return;
+            }
+
+            // Values like the bitrate can be rewritten from code (e.g. after changing resolution)
+            Preference preference = findPreference(key);
+            if (preference instanceof SeekBarPreference) {
+                ((SeekBarPreference) preference).syncFromStorage();
+            }
+        }
+
+        private void bindHomeNavigation() {
+            for (Section navSection : SECTIONS) {
+                Preference navPreference = findPreference("nav_" + navSection.id);
+                if (navPreference == null) {
+                    continue;
+                }
+
+                navPreference.setOnPreferenceClickListener(preference -> {
+                    StreamSettings activity = (StreamSettings) getActivity();
+                    if (activity != null) {
+                        activity.openSection(navSection.id);
+                    }
+                    return true;
+                });
+            }
+        }
+
+        private void updateHomeSummaries() {
+            Preference videoNav = findPreference("nav_video");
+            if (videoNav == null) {
+                return;
+            }
+
+            SharedPreferences prefs = getPreferenceManager().getSharedPreferences();
+            String resolution = prefs.getString(PreferenceConfiguration.RESOLUTION_PREF_STRING,
+                    PreferenceConfiguration.DEFAULT_RESOLUTION);
+            String fps = prefs.getString(PreferenceConfiguration.FPS_PREF_STRING,
+                    PreferenceConfiguration.DEFAULT_FPS);
+            int bitrateKbps = prefs.getInt(PreferenceConfiguration.BITRATE_PREF_STRING,
+                    PreferenceConfiguration.getDefaultBitrate(getActivity()));
+
+            String bitrateMbps = bitrateKbps % 1000 == 0 ?
+                    String.valueOf(bitrateKbps / 1000) :
+                    String.format(Locale.getDefault(), "%.1f", bitrateKbps / 1000f);
+
+            videoNav.setSummary(getString(R.string.settings_section_video_current,
+                    resolution.replace('x', '×'), fps, bitrateMbps));
+        }
+
+        private void retainSectionCategories(Section visibleSection) {
+            Set<String> visibleCategories = new HashSet<>(Arrays.asList(visibleSection.categoryKeys));
+            PreferenceScreen screen = getPreferenceScreen();
+            for (int i = screen.getPreferenceCount() - 1; i >= 0; i--) {
+                Preference category = screen.getPreference(i);
+                if (!visibleCategories.contains(category.getKey())) {
+                    screen.removePreference(category);
+                }
+            }
+        }
+
+        private static PreferenceGroup findParent(PreferenceGroup group, Preference target) {
+            for (int i = 0; i < group.getPreferenceCount(); i++) {
+                Preference child = group.getPreference(i);
+                if (child == target) {
+                    return group;
+                }
+                if (child instanceof PreferenceGroup) {
+                    PreferenceGroup parent = findParent((PreferenceGroup) child, target);
+                    if (parent != null) {
+                        return parent;
+                    }
+                }
+            }
+            return null;
+        }
+
+        // Removes a preference (or category) wherever it lives. Missing keys are ignored because
+        // each section only contains part of preferences.xml.
+        private void removePreferenceByKey(String key) {
+            Preference preference = findPreference(key);
+            if (preference == null) {
+                return;
+            }
+
+            PreferenceGroup parent = findParent(getPreferenceScreen(), preference);
+            if (parent != null) {
+                parent.removePreference(preference);
+            }
+        }
+
+        private void removeEmptyCategories() {
+            PreferenceScreen screen = getPreferenceScreen();
+            for (int i = screen.getPreferenceCount() - 1; i >= 0; i--) {
+                Preference child = screen.getPreference(i);
+                if (child instanceof PreferenceGroup && ((PreferenceGroup) child).getPreferenceCount() == 0) {
+                    screen.removePreference(child);
+                }
+            }
+        }
+
+        @Override
         public void onCreate(Bundle savedInstanceState) {
             super.onCreate(savedInstanceState);
 
+            section = getArguments() != null ? getArguments().getString(ARG_SECTION) : null;
+            Section visibleSection = section != null ? findSection(section) : null;
+            if (visibleSection == null) {
+                section = null;
+                addPreferencesFromResource(R.xml.settings_home);
+                bindHomeNavigation();
+                return;
+            }
+
             addPreferencesFromResource(R.xml.preferences);
-            PreferenceScreen screen = getPreferenceScreen();
+            retainSectionCategories(visibleSection);
 
             Preference updateNowPreference = findPreference("check_for_updates");
             if (updateNowPreference != null) {
@@ -416,81 +760,144 @@ public class StreamSettings extends Activity {
                 });
             }
 
+            PackageManager packageManager = getActivity().getPackageManager();
+
             // hide on-screen controls category on non touch screen devices
-            if (!getActivity().getPackageManager().hasSystemFeature(PackageManager.FEATURE_TOUCHSCREEN)) {
-                PreferenceCategory category =
-                        (PreferenceCategory) findPreference("category_onscreen_controls");
-                screen.removePreference(category);
+            if (!packageManager.hasSystemFeature(PackageManager.FEATURE_TOUCHSCREEN)) {
+                removePreferenceByKey("category_onscreen_controls");
             }
 
             // Hide remote desktop mouse mode on pre-Oreo (which doesn't have pointer capture)
             // and NVIDIA SHIELD devices (which support raw mouse input in pointer capture mode)
             if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O ||
-                    getActivity().getPackageManager().hasSystemFeature("com.nvidia.feature.shield")) {
-                PreferenceCategory category =
-                        (PreferenceCategory) findPreference("category_input_settings");
-                category.removePreference(findPreference("checkbox_absolute_mouse_mode"));
+                    packageManager.hasSystemFeature("com.nvidia.feature.shield")) {
+                removePreferenceByKey("checkbox_absolute_mouse_mode");
             }
 
             // Hide gamepad motion sensor option when running on OSes before Android 12.
             // Support for motion, LED, battery, and other extensions were introduced in S.
             if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
-                PreferenceCategory category =
-                        (PreferenceCategory) findPreference("category_gamepad_settings");
-                category.removePreference(findPreference("checkbox_gamepad_motion_sensors"));
+                removePreferenceByKey("checkbox_gamepad_motion_sensors");
             }
 
             // Hide gamepad motion sensor fallback option if the device has no gyro or accelerometer
-            if (!getActivity().getPackageManager().hasSystemFeature(PackageManager.FEATURE_SENSOR_ACCELEROMETER) &&
-                    !getActivity().getPackageManager().hasSystemFeature(PackageManager.FEATURE_SENSOR_GYROSCOPE)) {
-                PreferenceCategory category =
-                        (PreferenceCategory) findPreference("category_gamepad_settings");
-                category.removePreference(findPreference("checkbox_gamepad_motion_fallback"));
+            if (!packageManager.hasSystemFeature(PackageManager.FEATURE_SENSOR_ACCELEROMETER) &&
+                    !packageManager.hasSystemFeature(PackageManager.FEATURE_SENSOR_GYROSCOPE)) {
+                removePreferenceByKey("checkbox_gamepad_motion_fallback");
             }
 
             // Hide USB driver options on devices without USB host support
-            if (!getActivity().getPackageManager().hasSystemFeature(PackageManager.FEATURE_USB_HOST)) {
-                PreferenceCategory category =
-                        (PreferenceCategory) findPreference("category_gamepad_settings");
-                category.removePreference(findPreference("checkbox_usb_bind_all"));
-                category.removePreference(findPreference("checkbox_usb_driver"));
+            if (!packageManager.hasSystemFeature(PackageManager.FEATURE_USB_HOST)) {
+                removePreferenceByKey("checkbox_usb_bind_all");
+                removePreferenceByKey("checkbox_usb_driver");
             }
 
             // Remove PiP mode on devices pre-Oreo, where the feature is not available (some low RAM devices),
             // and on Fire OS where it violates the Amazon App Store guidelines for some reason.
             if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O ||
-                    !getActivity().getPackageManager().hasSystemFeature("android.software.picture_in_picture") ||
-                    getActivity().getPackageManager().hasSystemFeature("com.amazon.software.fireos")) {
-                PreferenceCategory category =
-                        (PreferenceCategory) findPreference("category_ui_settings");
-                category.removePreference(findPreference("checkbox_enable_pip"));
+                    !packageManager.hasSystemFeature("android.software.picture_in_picture") ||
+                    packageManager.hasSystemFeature("com.amazon.software.fireos")) {
+                removePreferenceByKey("checkbox_enable_pip");
             }
 
-            // Fire TV apps are not allowed to use WebViews or browsers, so hide the Help category
-            /*if (getActivity().getPackageManager().hasSystemFeature("amazon.hardware.fire_tv")) {
-                PreferenceCategory category =
-                        (PreferenceCategory) findPreference("category_help");
-                screen.removePreference(category);
-            }*/
-            PreferenceCategory category_gamepad_settings =
-                    (PreferenceCategory) findPreference("category_gamepad_settings");
             // Remove the vibration options if the device can't vibrate
-            if (!((Vibrator)getActivity().getSystemService(Context.VIBRATOR_SERVICE)).hasVibrator()) {
-                category_gamepad_settings.removePreference(findPreference("checkbox_vibrate_fallback"));
-                category_gamepad_settings.removePreference(findPreference("seekbar_vibrate_fallback_strength"));
-                // The entire OSC category may have already been removed by the touchscreen check above
-                PreferenceCategory category = (PreferenceCategory) findPreference("category_onscreen_controls");
-                if (category != null) {
-                    category.removePreference(findPreference("checkbox_vibrate_osc"));
-                }
+            Vibrator vibrator = (Vibrator) getActivity().getSystemService(Context.VIBRATOR_SERVICE);
+            if (!vibrator.hasVibrator()) {
+                removePreferenceByKey("checkbox_vibrate_fallback");
+                removePreferenceByKey("seekbar_vibrate_fallback_strength");
+                removePreferenceByKey("checkbox_vibrate_osc");
             }
-            else if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O ||
-                    !((Vibrator)getActivity().getSystemService(Context.VIBRATOR_SERVICE)).hasAmplitudeControl() ) {
+            else if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O || !vibrator.hasAmplitudeControl()) {
                 // Remove the vibration strength selector of the device doesn't have amplitude control
-                category_gamepad_settings.removePreference(findPreference("seekbar_vibrate_fallback_strength"));
+                removePreferenceByKey("seekbar_vibrate_fallback_strength");
             }
 
             Display display = getActivity().getWindowManager().getDefaultDisplay();
+
+            if (findPreference(PreferenceConfiguration.RESOLUTION_PREF_STRING) != null &&
+                    findPreference(PreferenceConfiguration.FPS_PREF_STRING) != null) {
+                configureResolutionAndFrameRate(display);
+            }
+
+            // Android L introduces the drop duplicate behavior of releaseOutputBuffer()
+            // that the unlock FPS option relies on to not massively increase latency.
+            Preference unlockFpsPref = findPreference(PreferenceConfiguration.UNLOCK_FPS_STRING);
+            if (unlockFpsPref != null) {
+                unlockFpsPref.setOnPreferenceChangeListener(new Preference.OnPreferenceChangeListener() {
+                    @Override
+                    public boolean onPreferenceChange(Preference preference, Object newValue) {
+                        // HACK: We need to let the preference change succeed before reinitializing to ensure
+                        // it's reflected in the new layout.
+                        final Handler h = new Handler();
+                        h.postDelayed(new Runnable() {
+                            @Override
+                            public void run() {
+                                // Ensure the activity is still open when this timeout expires
+                                StreamSettings settingsActivity = (StreamSettings) SettingsFragment.this.getActivity();
+                                if (settingsActivity != null) {
+                                    settingsActivity.reloadSettings();
+                                }
+                            }
+                        }, 500);
+
+                        // Allow the original preference change to take place
+                        return true;
+                    }
+                });
+            }
+
+            if (findPreference("checkbox_enable_hdr") != null) {
+                configureHdr(display);
+            }
+
+            Preference simplifyPerfOverlayPref = findPreference("edittext_simple_perf_overlay");
+            if (simplifyPerfOverlayPref != null) {
+                simplifyPerfOverlayPref.setOnPreferenceClickListener(preference -> {
+                    SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this.getActivity());
+                    showSimplifyPerfOverlayPref(prefs); // 调用自定义逻辑
+                    return true; // 返回 true 表示已处理点击事件，阻止系统行为
+                });
+            }
+
+            removeEmptyCategories();
+        }
+
+        private void configureHdr(Display display) {
+            // Remove HDR preference for devices below Nougat
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) {
+                LimeLog.info("Excluding HDR toggle based on OS");
+                removePreferenceByKey("checkbox_enable_hdr");
+                return;
+            }
+
+            Display.HdrCapabilities hdrCaps = display.getHdrCapabilities();
+
+            // We must now ensure our display is compatible with HDR10
+            boolean foundHdr10 = false;
+            if (hdrCaps != null) {
+                // getHdrCapabilities() returns null on Lenovo Lenovo Mirage Solo (vega), Android 8.0
+                for (int hdrType : hdrCaps.getSupportedHdrTypes()) {
+                    if (hdrType == Display.HdrCapabilities.HDR_TYPE_HDR10) {
+                        foundHdr10 = true;
+                        break;
+                    }
+                }
+            }
+
+            if (!foundHdr10) {
+                LimeLog.info("Excluding HDR toggle based on display capabilities");
+                removePreferenceByKey("checkbox_enable_hdr");
+            }
+            else if (PreferenceConfiguration.isShieldAtvFirmwareWithBrokenHdr()) {
+                LimeLog.info("Disabling HDR toggle on old broken SHIELD TV firmware");
+                CheckBoxPreference hdrPref = (CheckBoxPreference) findPreference("checkbox_enable_hdr");
+                hdrPref.setEnabled(false);
+                hdrPref.setChecked(false);
+                hdrPref.setSummary("Update the firmware on your NVIDIA SHIELD Android TV to enable HDR");
+            }
+        }
+
+        private void configureResolutionAndFrameRate(Display display) {
             float maxSupportedFps = display.getRefreshRate();
 
             // Hide non-supported resolution/FPS combinations
@@ -687,69 +1094,6 @@ public class StreamSettings extends Activity {
             }
             addNativeFrameRateEntry(maxSupportedFps);
 
-            // Android L introduces the drop duplicate behavior of releaseOutputBuffer()
-            // that the unlock FPS option relies on to not massively increase latency.
-            findPreference(PreferenceConfiguration.UNLOCK_FPS_STRING).setOnPreferenceChangeListener(new Preference.OnPreferenceChangeListener() {
-                @Override
-                public boolean onPreferenceChange(Preference preference, Object newValue) {
-                    // HACK: We need to let the preference change succeed before reinitializing to ensure
-                    // it's reflected in the new layout.
-                    final Handler h = new Handler();
-                    h.postDelayed(new Runnable() {
-                        @Override
-                        public void run() {
-                            // Ensure the activity is still open when this timeout expires
-                            StreamSettings settingsActivity = (StreamSettings) SettingsFragment.this.getActivity();
-                            if (settingsActivity != null) {
-                                settingsActivity.reloadSettings();
-                            }
-                        }
-                    }, 500);
-
-                    // Allow the original preference change to take place
-                    return true;
-                }
-            });
-
-            // Remove HDR preference for devices below Nougat
-            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) {
-                LimeLog.info("Excluding HDR toggle based on OS");
-                PreferenceCategory category =
-                        (PreferenceCategory) findPreference("category_advanced_settings");
-                category.removePreference(findPreference("checkbox_enable_hdr"));
-            }
-            else {
-                Display.HdrCapabilities hdrCaps = display.getHdrCapabilities();
-
-                // We must now ensure our display is compatible with HDR10
-                boolean foundHdr10 = false;
-                if (hdrCaps != null) {
-                    // getHdrCapabilities() returns null on Lenovo Lenovo Mirage Solo (vega), Android 8.0
-                    for (int hdrType : hdrCaps.getSupportedHdrTypes()) {
-                        if (hdrType == Display.HdrCapabilities.HDR_TYPE_HDR10) {
-                            foundHdr10 = true;
-                            break;
-                        }
-                    }
-                }
-
-                if (!foundHdr10) {
-                    LimeLog.info("Excluding HDR toggle based on display capabilities");
-                    PreferenceCategory category =
-                            (PreferenceCategory) findPreference("category_advanced_settings");
-                    category.removePreference(findPreference("checkbox_enable_hdr"));
-                }
-                else if (PreferenceConfiguration.isShieldAtvFirmwareWithBrokenHdr()) {
-                    LimeLog.info("Disabling HDR toggle on old broken SHIELD TV firmware");
-                    PreferenceCategory category =
-                            (PreferenceCategory) findPreference("category_advanced_settings");
-                    CheckBoxPreference hdrPref = (CheckBoxPreference) category.findPreference("checkbox_enable_hdr");
-                    hdrPref.setEnabled(false);
-                    hdrPref.setChecked(false);
-                    hdrPref.setSummary("Update the firmware on your NVIDIA SHIELD Android TV to enable HDR");
-                }
-            }
-
             // Add a listener to the FPS and resolution preference
             // so the bitrate can be auto-adjusted
             findPreference(PreferenceConfiguration.RESOLUTION_PREF_STRING).setOnPreferenceChangeListener(new Preference.OnPreferenceChangeListener() {
@@ -806,14 +1150,6 @@ public class StreamSettings extends Activity {
                     return true;
                 }
             });
-            Preference simplifyPerfOverlayPref = findPreference("edittext_simple_perf_overlay");
-            if (simplifyPerfOverlayPref != null) {
-                simplifyPerfOverlayPref.setOnPreferenceClickListener(preference -> {
-                    SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this.getActivity());
-                    showSimplifyPerfOverlayPref(prefs); // 调用自定义逻辑
-                    return true; // 返回 true 表示已处理点击事件，阻止系统行为
-                });
-            }
         }
     }
 }
