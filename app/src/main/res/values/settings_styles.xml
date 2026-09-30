@@ -1,38 +1,33 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!--
-        设置页主题：通过 preference*Style 把所有设置项（包括自定义 Preference 子类）
-        统一换成卡片布局，复选框统一显示为开关。
+        设置页主题：通过 preference*Style 把普通设置项、分组标题和复选框统一换成卡片布局，
+        复选框统一显示为开关。
+
+        框架自带的 Preference 样式是私有资源，不能作为父样式，所以这里的样式不继承任何父样式，
+        只写布局。弹窗类设置项（列表、滑块、文本输入等）不在这里覆盖，以保留框架默认的
+        确定/取消按钮和输入框，它们在代码或 XML 中单独指定 @layout/settings_pref_item。
     -->
     <style name="SettingsTheme" parent="AppTheme">
         <item name="android:windowBackground">@color/settings_background</item>
         <item name="android:colorAccent">@color/settings_accent</item>
         <item name="android:preferenceStyle">@style/SettingsPreference</item>
-        <item name="android:preferenceCategoryStyle">@style/SettingsPreference.Category</item>
-        <item name="android:checkBoxPreferenceStyle">@style/SettingsPreference.Switch</item>
-        <item name="android:dialogPreferenceStyle">@style/SettingsPreference.Dialog</item>
-        <item name="android:editTextPreferenceStyle">@style/SettingsPreference.EditText</item>
+        <item name="android:preferenceCategoryStyle">@style/SettingsPreferenceCategory</item>
+        <item name="android:checkBoxPreferenceStyle">@style/SettingsPreferenceSwitch</item>
     </style>
 
-    <style name="SettingsPreference" parent="@android:style/Preference">
+    <style name="SettingsPreference" parent="">
         <item name="android:layout">@layout/settings_pref_item</item>
     </style>
 
-    <style name="SettingsPreference.Category" parent="@android:style/Preference.Category">
+    <style name="SettingsPreferenceCategory" parent="">
         <item name="android:layout">@layout/settings_pref_category</item>
+        <!-- 分组本身不可点击，但标题不应显示为禁用色 -->
+        <item name="android:shouldDisableView">false</item>
     </style>
 
-    <style name="SettingsPreference.Switch" parent="@android:style/Preference.CheckBoxPreference">
+    <style name="SettingsPreferenceSwitch" parent="">
         <item name="android:layout">@layout/settings_pref_item</item>
         <item name="android:widgetLayout">@layout/settings_pref_switch</item>
-    </style>
-
-    <!-- 保留父样式中的确定/取消按钮文字，只替换布局 -->
-    <style name="SettingsPreference.Dialog" parent="@android:style/Preference.DialogPreference">
-        <item name="android:layout">@layout/settings_pref_item</item>
-    </style>
-
-    <style name="SettingsPreference.EditText" parent="@android:style/Preference.DialogPreference.EditTextPreference">
-        <item name="android:layout">@layout/settings_pref_item</item>
     </style>
 </resources>

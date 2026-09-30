@@ -15,21 +15,25 @@ import com.limelight.R;
 public class SettingsListPreference extends ListPreference {
     public SettingsListPreference(Context context, AttributeSet attrs, int defStyleAttr, int defStyleRes) {
         super(context, attrs, defStyleAttr, defStyleRes);
+        setLayoutResource(R.layout.settings_pref_item);
         setWidgetLayoutResource(R.layout.settings_pref_value);
     }
 
     public SettingsListPreference(Context context, AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
+        setLayoutResource(R.layout.settings_pref_item);
         setWidgetLayoutResource(R.layout.settings_pref_value);
     }
 
     public SettingsListPreference(Context context, AttributeSet attrs) {
         super(context, attrs);
+        setLayoutResource(R.layout.settings_pref_item);
         setWidgetLayoutResource(R.layout.settings_pref_value);
     }
 
     public SettingsListPreference(Context context) {
         super(context);
+        setLayoutResource(R.layout.settings_pref_item);
         setWidgetLayoutResource(R.layout.settings_pref_value);
     }
 

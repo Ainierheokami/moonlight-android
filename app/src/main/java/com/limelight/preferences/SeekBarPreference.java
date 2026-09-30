@@ -69,6 +69,7 @@ public class SeekBarPreference extends DialogPreference
         keyStepSize = attrs.getAttributeIntValue(SEEKBAR_SCHEMA_URL, "keyStep", 0);
 
         // Show the current value on the right side of the settings row
+        setLayoutResource(R.layout.settings_pref_item);
         setWidgetLayoutResource(R.layout.settings_pref_value);
     }
 
