@@ -14,25 +14,25 @@
         <item name="android:editTextPreferenceStyle">@style/SettingsPreference.EditText</item>
     </style>
 
-    <style name="SettingsPreference" parent="@android:style/Preference.Material">
+    <style name="SettingsPreference" parent="@android:style/Preference">
         <item name="android:layout">@layout/settings_pref_item</item>
     </style>
 
-    <style name="SettingsPreference.Category" parent="@android:style/Preference.Material.Category">
+    <style name="SettingsPreference.Category" parent="@android:style/Preference.Category">
         <item name="android:layout">@layout/settings_pref_category</item>
     </style>
 
-    <style name="SettingsPreference.Switch" parent="@android:style/Preference.Material.CheckBoxPreference">
+    <style name="SettingsPreference.Switch" parent="@android:style/Preference.CheckBoxPreference">
         <item name="android:layout">@layout/settings_pref_item</item>
         <item name="android:widgetLayout">@layout/settings_pref_switch</item>
     </style>
 
     <!-- 保留父样式中的确定/取消按钮文字，只替换布局 -->
-    <style name="SettingsPreference.Dialog" parent="@android:style/Preference.Material.DialogPreference">
+    <style name="SettingsPreference.Dialog" parent="@android:style/Preference.DialogPreference">
         <item name="android:layout">@layout/settings_pref_item</item>
     </style>
 
-    <style name="SettingsPreference.EditText" parent="@android:style/Preference.Material.DialogPreference.EditTextPreference">
+    <style name="SettingsPreference.EditText" parent="@android:style/Preference.DialogPreference.EditTextPreference">
         <item name="android:layout">@layout/settings_pref_item</item>
     </style>
 </resources>
