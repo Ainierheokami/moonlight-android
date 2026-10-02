@@ -1048,7 +1048,7 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
                         
                         // 如果应用在后台时间过长，给出更明确的提示
                         if (wasInBackground && (System.currentTimeMillis() - backgroundStartTime) > 5000) {
-                            errorMessage = "配对失败：应用在后台时间过长，请保持Moonlight在前台完成配对";
+                            errorMessage = getString(R.string.pairing_background_too_long);
                             Log.w(PAIRING_TAG, "配对失败原因：应用在后台时间过长");
                         }
                         

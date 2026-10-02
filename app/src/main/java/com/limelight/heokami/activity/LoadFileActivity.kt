@@ -24,7 +24,7 @@ class LoadFileActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.load_file_activity)
         val textView = findViewById<TextView>(R.id.message_text)
-        textView.text = "加载配置成功"
+        textView.setText(R.string.config_load_success)
         val button = findViewById<Button>(R.id.ok_button)
         button.setOnClickListener {
             finish()
@@ -38,12 +38,12 @@ class LoadFileActivity : AppCompatActivity() {
                     Log.d("pickFile", "文件内容: $content")
 
                     VirtualKeyboardConfigurationLoader.loadForFile(this@LoadFileActivity, content)
-                    AppToast.makeText(this@LoadFileActivity, "加载配置成功，应用即将自动重启...", AppToast.LENGTH_SHORT).show()
+                    AppToast.makeText(this@LoadFileActivity, getString(R.string.config_load_success_restart), AppToast.LENGTH_SHORT).show()
                     // 给应用内提示留出可读和复制调试信息的时间
                     restartApp()
                 } catch (e: Exception) {
                     Log.e("pickFile", "导入按键配置异常", e)
-                    AppToast.makeText(this@LoadFileActivity, "配置格式破损，无法导入虚拟键盘布局", AppToast.LENGTH_LONG).show()
+                    AppToast.makeText(this@LoadFileActivity, getString(R.string.config_import_broken), AppToast.LENGTH_LONG).show()
                     Handler(Looper.getMainLooper()).postDelayed({
                         this@LoadFileActivity.finish()
                     }, 3000)

@@ -775,7 +775,7 @@ public class VirtualKeyboard {
 
         // 提示文字
         editingTip = new TextView(context);
-        editingTip.setText("编辑模式中\n点击移动 长按缩放 双击设置");
+        editingTip.setText(context.getString(R.string.vk_editing_tip));
         editingTip.setTextColor(0xFFFFFFFF);
         editingTip.setTextSize(18);
         editingTip.setGravity(Gravity.CENTER);

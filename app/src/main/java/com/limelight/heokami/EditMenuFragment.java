@@ -52,7 +52,7 @@ public class EditMenuFragment extends Fragment {
         VirtualKeyboard activeVk = game != null ? game.getVirtualKeyboard() : null;
         if (activeVk == null) {
             if (game != null) {
-                game.postNotification("虚拟键盘未就绪", 2000);
+                game.postNotification(game.getString(R.string.vk_not_ready), 2000);
             }
             EditMenu.setMenuShowing(false);
             return root;

@@ -23,7 +23,7 @@ class SaveFileActivity : AppCompatActivity() {
         // 创建一个 AlertDialog
         setContentView(R.layout.load_file_activity)
         val textView = findViewById<TextView>(R.id.message_text)
-        textView.text = "保存配置成功"
+        textView.setText(R.string.config_save_success)
         val button = findViewById<Button>(R.id.ok_button)
         button.setOnClickListener {
             finish()
@@ -39,7 +39,7 @@ class SaveFileActivity : AppCompatActivity() {
         )
         if (savedUri != null) {
             Log.d("pickFile", "自动保存配置到: $savedUri")
-            AppToast.makeText(this, "配置已保存到 Download/Moonlight", AppToast.LENGTH_SHORT).show()
+            AppToast.makeText(this, getString(R.string.config_saved_to_download), AppToast.LENGTH_SHORT).show()
             Handler(Looper.getMainLooper()).postDelayed({ finish() }, 1800)
             return
         }

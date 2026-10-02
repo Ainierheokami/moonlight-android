@@ -1,5 +1,6 @@
 package com.limelight.portal;
 
+import com.limelight.R;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
@@ -576,14 +577,14 @@ public class PortalOverlayView extends View {
      */
     private void showPortalSettingsDialog() {
         OverlayAlertDialog.Builder builder = new OverlayAlertDialog.Builder(getContext());
-        builder.setTitle("画面映射设置 - " + config.name);
+        builder.setTitle(getContext().getString(R.string.portal_settings_title, config.name));
         String[] items = {
-                "删除画面映射",
-                "设置帧率限制",
-                "设置缩放比例",
-                "设置宽高比",
-                "切换编辑模式",
-                "取消"
+                getContext().getString(R.string.portal_action_delete),
+                getContext().getString(R.string.portal_set_fps_limit),
+                getContext().getString(R.string.portal_set_scale),
+                getContext().getString(R.string.portal_set_aspect),
+                getContext().getString(R.string.portal_toggle_edit_mode),
+                getContext().getString(android.R.string.cancel)
         };
         builder.setItems(items, (dialog, which) -> {
             switch (which) {
@@ -609,7 +610,7 @@ public class PortalOverlayView extends View {
                     break;
             }
         });
-        builder.setNegativeButton("关闭", null);
+        builder.setNegativeButton(getContext().getString(R.string.portal_close), null);
         builder.show();
     }
 
@@ -638,7 +639,7 @@ public class PortalOverlayView extends View {
         }
 
         new OverlayAlertDialog.Builder(getContext())
-                .setTitle("设置帧率限制")
+                .setTitle(getContext().getString(R.string.portal_set_fps_limit))
                 .setSingleChoiceItems(labels, checked, (dialog, which) -> {
                     config.frameRateLimit = fpsValues[which];
                     saveConfig();
@@ -686,14 +687,14 @@ public class PortalOverlayView extends View {
         });
 
         new OverlayAlertDialog.Builder(getContext())
-                .setTitle("设置缩放比例")
+                .setTitle(getContext().getString(R.string.portal_set_scale))
                 .setView(content)
                 .setPositiveButton(android.R.string.ok, (dialog, which) -> {
                     config.scale = 0.25f + seekBar.getProgress() / 100f;
                     saveConfig();
                     invalidate();
                 })
-                .setNeutralButton("重置", (dialog, which) -> {
+                .setNeutralButton(getContext().getString(R.string.portal_reset), (dialog, which) -> {
                     config.scale = 1.0f;
                     saveConfig();
                     invalidate();
@@ -703,10 +704,10 @@ public class PortalOverlayView extends View {
     }
 
     private void showAspectRatioDialog() {
-        String[] labels = new String[]{"拉伸填充", "保持源比例", "正方形"};
+        String[] labels = new String[]{getContext().getString(R.string.portal_aspect_stretch), getContext().getString(R.string.portal_aspect_keep_source), getContext().getString(R.string.portal_aspect_square)};
         int checked = Math.max(0, Math.min(labels.length - 1, config.aspectRatioMode));
         new OverlayAlertDialog.Builder(getContext())
-                .setTitle("设置宽高比")
+                .setTitle(getContext().getString(R.string.portal_set_aspect))
                 .setSingleChoiceItems(labels, checked, (dialog, which) -> {
                     config.aspectRatioMode = which;
                     saveConfig();

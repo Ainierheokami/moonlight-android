@@ -145,9 +145,9 @@ object StreamEnhanceMenu {
                 val displayNameToShow = matched?.toString() ?: if (tempDisplayName.isNotEmpty()) tempDisplayName else game.getString(R.string.stream_enhance_unknown)
                 
                 if (tempUseVdd) {
-                    primaryText = if (tempVddMode == "0") displayNameToShow else "物理主屏"
+                    primaryText = if (tempVddMode == "0") displayNameToShow else game.getString(R.string.display_physical_primary)
                 } else {
-                    primaryText = if (tempScreenMode == "0") displayNameToShow else "物理主屏"
+                    primaryText = if (tempScreenMode == "0") displayNameToShow else game.getString(R.string.display_physical_primary)
                 }
                 streamText = displayNameToShow
             }
@@ -320,7 +320,7 @@ object StreamEnhanceMenu {
                     lowerFriendly.contains("zako") || lowerFriendly.contains("virtual")
                 }
                 if (!hasVirtual) {
-                    displays.add(NvHTTP.DisplayInfo("virtual_fallback", "虚拟显示器 (强制激活)", ""))
+                    displays.add(NvHTTP.DisplayInfo("virtual_fallback", game.getString(R.string.display_virtual_forced), ""))
                 }
 
                 val hasPhysical = fetched.any {
@@ -330,7 +330,7 @@ object StreamEnhanceMenu {
                     !lowerFriendly.contains("zako") && !lowerFriendly.contains("virtual")
                 }
                 if (!hasPhysical && cachedGuid.isNotEmpty()) {
-                    displays.add(0, NvHTTP.DisplayInfo("\\\\.\\DISPLAY1", "物理主显示器", cachedGuid))
+                    displays.add(0, NvHTTP.DisplayInfo("\\\\.\\DISPLAY1", game.getString(R.string.display_physical_primary_host), cachedGuid))
                 }
 
                 rebuildDisplayList()

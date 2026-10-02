@@ -28,7 +28,7 @@ class LoadSystemSettingsActivity : AppCompatActivity() {
         setContentView(R.layout.load_file_activity)
         
         val textView = findViewById<TextView>(R.id.message_text)
-        textView.text = "正在导入系统设置..."
+        textView.setText(R.string.restore_in_progress)
         
         val button = findViewById<Button>(R.id.ok_button)
         button.setOnClickListener { finish() }
@@ -41,17 +41,17 @@ class LoadSystemSettingsActivity : AppCompatActivity() {
                     try {
                         val result = SystemSettingsBackupHelper.importSystemBackup(this@LoadSystemSettingsActivity, content)
                         if (result == 1) {
-                            textView.text = "同设备全量恢复成功"
+                            textView.setText(R.string.restore_same_device_success)
                             AppToast.makeText(
                                 this@LoadSystemSettingsActivity,
-                                "配对凭据与系统设置已完美全量恢复！应用即将自动重启...",
+                                this@LoadSystemSettingsActivity.getString(R.string.restore_same_device_toast),
                                 AppToast.LENGTH_LONG
                             ).show()
                         } else {
-                            textView.text = "跨机安全降级恢复成功"
+                            textView.setText(R.string.restore_cross_device_success)
                             AppToast.makeText(
                                 this@LoadSystemSettingsActivity,
-                                "跨设备导入成功！设置与电脑列表已恢复，凭证已安全隔离。应用即将自动重启...",
+                                this@LoadSystemSettingsActivity.getString(R.string.restore_cross_device_toast),
                                 AppToast.LENGTH_LONG
                             ).show()
                         }
@@ -59,10 +59,10 @@ class LoadSystemSettingsActivity : AppCompatActivity() {
                         restartApp()
                     } catch (e: Exception) {
                         Log.e("LoadSettingsActivity", "设置导入发生异常", e)
-                        textView.text = "设置恢复失败"
+                        textView.setText(R.string.restore_failed)
                         AppToast.makeText(
                             this@LoadSystemSettingsActivity,
-                            "配置文件损坏或非系统备份文件，无法恢复设置",
+                            this@LoadSystemSettingsActivity.getString(R.string.restore_invalid_file),
                             AppToast.LENGTH_LONG
                         ).show()
                         Handler(Looper.getMainLooper()).postDelayed({

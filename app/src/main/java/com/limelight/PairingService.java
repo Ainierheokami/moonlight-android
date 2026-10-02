@@ -72,10 +72,10 @@ public class PairingService extends Service {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             NotificationChannel channel = new NotificationChannel(
                 CHANNEL_ID,
-                "配对服务",
+                getString(R.string.pairing_service_channel),
                 NotificationManager.IMPORTANCE_LOW
             );
-            channel.setDescription("用于在后台执行配对过程");
+            channel.setDescription(getString(R.string.pairing_service_channel_desc));
             NotificationManager manager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
             if (manager != null) {
                 manager.createNotificationChannel(channel);
@@ -92,7 +92,7 @@ public class PairingService extends Service {
         }
         
         builder.setContentTitle("Moonlight")
-               .setContentText("正在配对中...")
+               .setContentText(getString(R.string.pairing_service_notification))
                .setSmallIcon(R.drawable.ic_computer)
                .setPriority(Notification.PRIORITY_LOW)
                .setOngoing(true);
@@ -198,7 +198,7 @@ public class PairingService extends Service {
                     if (pairState == PairState.PIN_WRONG) {
                         Log.e(TAG, "PIN码错误");
                         if (callback != null) {
-                            callback.onPairingFailed(computer, "PIN码错误");
+                            callback.onPairingFailed(computer, getString(R.string.pairing_err_wrong_pin));
                         }
                         break;
                     }
@@ -206,14 +206,14 @@ public class PairingService extends Service {
                         if (computer.runningGameId != 0) {
                             Log.e(TAG, "配对失败: PC正在游戏中");
                             if (callback != null) {
-                                callback.onPairingFailed(computer, "PC正在游戏中");
+                                callback.onPairingFailed(computer, getString(R.string.pairing_err_in_game));
                             }
                             break;
                         }
                         else {
                             Log.e(TAG, "配对失败");
                             if (callback != null) {
-                                callback.onPairingFailed(computer, "配对失败");
+                                callback.onPairingFailed(computer, getString(R.string.pairing_err_failed));
                             }
                             break;
                         }
@@ -221,7 +221,7 @@ public class PairingService extends Service {
                     else if (pairState == PairState.ALREADY_IN_PROGRESS) {
                         Log.e(TAG, "配对失败: 已有其他设备正在配对");
                         if (callback != null) {
-                            callback.onPairingFailed(computer, "已有其他设备正在配对");
+                            callback.onPairingFailed(computer, getString(R.string.pairing_err_already_pairing));
                         }
                         break;
                     }
@@ -247,23 +247,23 @@ public class PairingService extends Service {
                     else {
                         Log.e(TAG, "配对失败: 未知状态 " + pairState);
                         if (callback != null) {
-                            callback.onPairingFailed(computer, "配对失败");
+                            callback.onPairingFailed(computer, getString(R.string.pairing_err_failed));
                         }
                         break;
                     }
                 } catch (UnknownHostException e) {
                     if (callback != null) {
-                        callback.onPairingFailed(computer, "未知主机");
+                        callback.onPairingFailed(computer, getString(R.string.pairing_err_unknown_host));
                     }
                     break;
                 } catch (FileNotFoundException e) {
                     if (callback != null) {
-                        callback.onPairingFailed(computer, "服务器未找到");
+                        callback.onPairingFailed(computer, getString(R.string.pairing_err_server_not_found));
                     }
                     break;
                 } catch (XmlPullParserException e) {
                     if (callback != null) {
-                        callback.onPairingFailed(computer, "服务器响应错误");
+                        callback.onPairingFailed(computer, getString(R.string.pairing_err_server_response));
                     }
                     break;
                 } catch (IOException e) {
@@ -275,7 +275,7 @@ public class PairingService extends Service {
                         continue;
                     }
                     if (callback != null) {
-                        callback.onPairingFailed(computer, "网络错误: " + e.getMessage());
+                        callback.onPairingFailed(computer, getString(R.string.pairing_err_network, e.getMessage()));
                     }
                     break;
                 } catch (Exception e) {
@@ -283,7 +283,7 @@ public class PairingService extends Service {
                     Log.e(TAG, "配对过程中发生未知异常: " + e.getMessage());
                     LimeLog.warning(e);
                     if (callback != null) {
-                        callback.onPairingFailed(computer, "未知错误: " + e.getMessage());
+                        callback.onPairingFailed(computer, getString(R.string.pairing_err_unknown, e.getMessage()));
                     }
                     break;
                 }
