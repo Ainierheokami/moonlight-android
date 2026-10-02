@@ -580,4 +580,5 @@
     <string name="restore_credentials_toast">設定與配對憑證已還原，無需重新配對。應用程式即將自動重新啟動...</string>
     <string name="restore_settings_only_success">設定已還原</string>
     <string name="restore_settings_only_toast">設定與電腦清單已還原，配對憑證未還原，需要重新配對。應用程式即將自動重新啟動...</string>
+    <string name="vk_float_opacity_percent">%d%%</string>
 </resources>
