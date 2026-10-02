@@ -1,0 +1,7 @@
+- Redesigned settings with sectioned pages, cards and real slider values in the list
+- Relative mouse mode: resting-finger jitter filter with configurable hold time and tap-move range
+- Floating keyboard and stream touches now work at the same time
+- Decoder: enhanced low-latency decoding, higher media thread priority, better loss recovery
+- UI text externalized; added English, Simplified and Traditional Chinese translations
+- Security: auto backup no longer includes the client key, certificate or paired-host database (re-pair after moving devices)
+- Build: release resource shrinking, PR unit-test and lint checks
