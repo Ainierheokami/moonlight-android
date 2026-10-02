@@ -23,7 +23,7 @@
             android:id="@+id/btn_move_keyboard"
             style="@style/FunctionButtonEnhanced"
             android:src="@drawable/ic_move"
-            android:contentDescription="移动键盘"
+            android:contentDescription="@string/vk_float_move"
             android:layout_marginEnd="3dp" />
 
         <!-- 数字键盘切换 -->
@@ -31,7 +31,7 @@
             android:id="@+id/btn_toggle_numeric"
             style="@style/FunctionButtonEnhanced"
             android:src="@drawable/ic_numeric"
-            android:contentDescription="数字键盘"
+            android:contentDescription="@string/vk_float_numpad"
             android:layout_marginEnd="3dp" />
 
         <!-- 功能键切换 -->
@@ -39,7 +39,7 @@
             android:id="@+id/btn_toggle_function"
             style="@style/FunctionButtonEnhanced"
             android:src="@drawable/ic_function"
-            android:contentDescription="功能键"
+            android:contentDescription="@string/vk_float_function_keys"
             android:layout_marginEnd="3dp" />
 
         <!-- 透明度调整按钮 -->
@@ -47,7 +47,7 @@
             android:id="@+id/btn_opacity"
             style="@style/FunctionButtonEnhanced"
             android:src="@drawable/ic_opacity"
-            android:contentDescription="透明度"
+            android:contentDescription="@string/vk_float_opacity"
             android:layout_marginEnd="3dp" />
 
         <!-- 大小调整按钮 -->
@@ -55,7 +55,7 @@
             android:id="@+id/btn_resize_keyboard"
             style="@style/FunctionButtonEnhanced"
             android:src="@drawable/ic_resize"
-            android:contentDescription="调整大小"
+            android:contentDescription="@string/vk_float_resize"
             android:layout_marginEnd="3dp" />
 
         <!-- 弹性空间 -->
@@ -69,7 +69,7 @@
             android:id="@+id/btn_close_keyboard"
             style="@style/FunctionButtonEnhanced"
             android:src="@drawable/ic_close"
-            android:contentDescription="关闭键盘" />
+            android:contentDescription="@string/vk_float_close" />
 
     </LinearLayout>
 

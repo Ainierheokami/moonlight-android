@@ -1,5 +1,7 @@
 package com.limelight.heokami
 
+import com.limelight.R
+import androidx.annotation.RequiresApi
 import android.app.Activity
 import android.content.ContentValues
 import android.content.Intent
@@ -40,10 +42,10 @@ class FilePickerUtils(private val activity: AppCompatActivity) {
             result.data?.data?.let { uri ->
                 handleUri(uri)
             } ?: run {
-                callback?.onError("未能获取文件URI")
+                callback?.onError(activity.getString(R.string.file_picker_no_uri))
             }
         } else {
-            callback?.onError("文件选择取消")
+            callback?.onError(activity.getString(R.string.file_picker_cancelled))
         }
     }
 
@@ -113,7 +115,7 @@ class FilePickerUtils(private val activity: AppCompatActivity) {
             val content = readFileContent(uri)
             callback?.onCallBack(fileName, content, uri)
         } catch (e: Exception) {
-            callback?.onError("读取文件失败: ${e.message}")
+            callback?.onError(activity.getString(R.string.file_picker_read_failed, e.message ?: ""))
         }
     }
 
@@ -183,6 +185,7 @@ class FilePickerUtils(private val activity: AppCompatActivity) {
         }
     }
 
+    @RequiresApi(Build.VERSION_CODES.Q)
     private fun saveTextToMediaStoreDownloads(
         fileName: String,
         content: String,

@@ -153,8 +153,7 @@ android {
             resValue "string", "app_label", "Moonlight (Debug)"
             resValue "string", "app_label_root", "Moonlight (Root Debug)"
 
-            minifyEnabled true
-            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            minifyEnabled false
             signingConfig hasReleaseSigning ? signingConfigs.heokamiRelease : signingConfigs.debug
         }
         release {
@@ -193,6 +192,7 @@ android {
             resValue "string", "app_label_root", "Moonlight (Root)"
 
             minifyEnabled true
+            shrinkResources true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
             signingConfig hasReleaseSigning ? signingConfigs.heokamiRelease : signingConfigs.debug
         }

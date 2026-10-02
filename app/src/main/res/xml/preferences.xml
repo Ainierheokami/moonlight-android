@@ -327,6 +327,34 @@
             seekbar:keyStep="10"
             android:text="%"
             />
+        <CheckBoxPreference
+            android:key="checkbox_touch_jitter_filter"
+            android:title="@string/title_checkbox_touch_jitter_filter"
+            android:summary="@string/summary_checkbox_touch_jitter_filter"
+            android:defaultValue="true" />
+        <com.limelight.preferences.SeekBarPreference
+            android:key="seekbar_touch_hold_jitter_ms"
+            android:dependency="checkbox_touch_jitter_filter"
+            android:title="@string/title_seekbar_touch_hold_jitter_ms"
+            android:summary="@string/summary_seekbar_touch_hold_jitter_ms"
+            android:defaultValue="150"
+            android:max="500"
+            seekbar:min="50"
+            seekbar:step="10"
+            seekbar:keyStep="50"
+            android:text="ms"
+            />
+        <com.limelight.preferences.SeekBarPreference
+            android:key="seekbar_touch_tap_move_dp"
+            android:title="@string/title_seekbar_touch_tap_move_dp"
+            android:summary="@string/summary_seekbar_touch_tap_move_dp"
+            android:defaultValue="8"
+            android:max="24"
+            seekbar:min="4"
+            seekbar:step="1"
+            seekbar:keyStep="2"
+            android:text="dp"
+            />
     </PreferenceCategory>
 
     <PreferenceCategory

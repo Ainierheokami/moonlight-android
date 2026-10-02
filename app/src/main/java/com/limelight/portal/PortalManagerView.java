@@ -231,7 +231,7 @@ public class PortalManagerView extends FrameLayout {
 
             duplicate = copyConfig(source);
             duplicate.id = generateNewIdLocked();
-            duplicate.name = source.name + " 副本";
+            duplicate.name = getContext().getString(R.string.portal_copy_suffix, source.name);
             duplicate.editing = false;
             duplicate.editMode = 0;
             duplicate.dstRect.offset(32, 32);

@@ -1,5 +1,6 @@
 package com.limelight.grid.assets;
 
+import com.limelight.LimeLog;
 import android.content.res.Resources;
 import android.graphics.Bitmap;
 import android.graphics.drawable.BitmapDrawable;
@@ -128,7 +129,7 @@ public class CachedAppAssetLoader {
             try {
                 Thread.sleep((int) (1000 + (Math.random() * 500)));
             } catch (InterruptedException e) {
-                e.printStackTrace();
+                LimeLog.warning(e);
 
                 // InterruptedException clears the thread's interrupt status. Since we can't
                 // handle that here, we will re-interrupt the thread to set the interrupt

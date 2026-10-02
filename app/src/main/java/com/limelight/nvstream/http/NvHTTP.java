@@ -174,7 +174,7 @@ public class NvHTTP {
                         return true;
                     }
                 } catch (SSLPeerUnverifiedException e) {
-                    e.printStackTrace();
+                    LimeLog.warning(e);
                 }
 
                 // Fall back to default HostnameVerifier for validating CA-issued certs
@@ -564,7 +564,7 @@ public class NvHTTP {
         } catch (IOException e) {
             if (verbose && !path.equals("serverinfo")) {
                 LimeLog.warning(getCompleteUrl(baseUrl, path, query)+" -> "+e.getMessage());
-                e.printStackTrace();
+                LimeLog.warning(e);
             }
             
             throw e;
@@ -782,10 +782,10 @@ public class NvHTTP {
         try {
             return Integer.parseInt(getXmlString(serverInfo, "HttpsPort", true));
         } catch (XmlPullParserException e) {
-            e.printStackTrace();
+            LimeLog.warning(e);
             return DEFAULT_HTTPS_PORT;
         } catch (IOException e) {
-            e.printStackTrace();
+            LimeLog.warning(e);
             return DEFAULT_HTTPS_PORT;
         }
     }
@@ -799,7 +799,7 @@ public class NvHTTP {
             // Expected on non-Sunshine servers
             return baseUrlHttp.port();
         } catch (IOException e) {
-            e.printStackTrace();
+            LimeLog.warning(e);
             return baseUrlHttp.port();
         }
     }

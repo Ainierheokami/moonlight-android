@@ -22,7 +22,7 @@
             android:gravity="center"
             android:maxWidth="320dp"
             android:paddingBottom="20dp"
-            android:text="加载配置成功"
+            android:text="@string/config_load_success"
             android:textColor="#F5F8FC"
             android:textSize="18sp" />
 
@@ -34,7 +34,7 @@
             android:minHeight="0dp"
             android:minWidth="0dp"
             android:stateListAnimator="@null"
-            android:text="确定"
+            android:text="@android:string/ok"
             android:textAllCaps="false"
             android:textColor="#FFFFFF" />
     </LinearLayout>

@@ -441,7 +441,7 @@ public class MediaCodecHelper {
                 }
             } catch (Exception e) {
                 // Tolerate buggy codecs
-                e.printStackTrace();
+                LimeLog.warning(e);
             }
         }
 
@@ -467,7 +467,7 @@ public class MediaCodecHelper {
                 }
             } catch (Exception e) {
                 // Tolerate buggy codecs
-                e.printStackTrace();
+                LimeLog.warning(e);
             } finally {
                 if (testCodec != null) {
                     testCodec.release();
@@ -617,7 +617,7 @@ public class MediaCodecHelper {
             }
         } catch (Exception e) {
             // Tolerate buggy codecs
-            e.printStackTrace();
+            LimeLog.warning(e);
         }
 
         return false;
@@ -639,7 +639,7 @@ public class MediaCodecHelper {
             }
         } catch (Exception e) {
             // Tolerate buggy codecs
-            e.printStackTrace();
+            LimeLog.warning(e);
         }
 
         return false;
@@ -1007,7 +1007,7 @@ public class MediaCodecHelper {
                 return true;
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            LimeLog.warning(e);
         }
         
         try {
@@ -1022,7 +1022,7 @@ public class MediaCodecHelper {
                 }
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            LimeLog.warning(e);
         }
         
         return false;

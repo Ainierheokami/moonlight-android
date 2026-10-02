@@ -89,7 +89,7 @@ public class TvChannelHelper {
             } catch (IllegalArgumentException e) {
                 // This can happen on HarmonyOS devices which report to
                 // support Leanback APIs, yet don't implement this URI
-                e.printStackTrace();
+                LimeLog.warning(e);
                 return;
             }
 
@@ -110,7 +110,7 @@ public class TvChannelHelper {
                 outputStream.flush();
             } catch (SQLiteException | IOException e) {
                 LimeLog.warning("Failed to store the logo to the system content provider.");
-                e.printStackTrace();
+                LimeLog.warning(e);
             }
         } finally {
             logo.recycle();
@@ -164,7 +164,7 @@ public class TvChannelHelper {
             } catch (IllegalArgumentException e) {
                 // This can happen on HarmonyOS devices which report to
                 // support Leanback APIs, yet don't implement this URI
-                e.printStackTrace();
+                LimeLog.warning(e);
                 return;
             }
 

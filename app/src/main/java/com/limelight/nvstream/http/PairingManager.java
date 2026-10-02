@@ -76,7 +76,7 @@ public class PairingManager {
                 CertificateFactory cf = CertificateFactory.getInstance("X.509");
                 return (X509Certificate)cf.generateCertificate(new ByteArrayInputStream(certBytes));
             } catch (CertificateException e) {
-                e.printStackTrace();
+                LimeLog.warning(e);
                 throw new RuntimeException(e);
             }
         }
@@ -117,7 +117,7 @@ public class PairingManager {
             sig.update(data);
             return sig.verify(signature);
         } catch (NoSuchAlgorithmException | SignatureException | InvalidKeyException e) {
-            e.printStackTrace();
+            LimeLog.warning(e);
             throw new RuntimeException(e);
         }
     }
@@ -129,7 +129,7 @@ public class PairingManager {
             sig.update(data);
             return sig.sign();
         } catch (NoSuchAlgorithmException | SignatureException | InvalidKeyException e) {
-            e.printStackTrace();
+            LimeLog.warning(e);
             throw new RuntimeException(e);
         }
     }
@@ -309,7 +309,7 @@ public class PairingManager {
                 return md.digest(data);
             }
             catch (NoSuchAlgorithmException e) {
-                e.printStackTrace();
+                LimeLog.warning(e);
                 throw new RuntimeException(e);
             }
         }
@@ -326,7 +326,7 @@ public class PairingManager {
                 return md.digest(data);
             }
             catch (NoSuchAlgorithmException e) {
-                e.printStackTrace();
+                LimeLog.warning(e);
                 throw new RuntimeException(e);
             }
         }

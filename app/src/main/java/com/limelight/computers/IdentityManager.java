@@ -47,7 +47,7 @@ public class IdentityManager {
             return null;
         } catch (IOException e) {
             LimeLog.severe("Error while reading UID file");
-            e.printStackTrace();
+            LimeLog.warning(e);
             return null;
         }
     }
@@ -64,7 +64,7 @@ public class IdentityManager {
             LimeLog.info("UID written to disk");
         } catch (IOException e) {
             LimeLog.severe("Error while writing UID file");
-            e.printStackTrace();
+            LimeLog.warning(e);
         }
 
         // We can return a UID even if I/O fails

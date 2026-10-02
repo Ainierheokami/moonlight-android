@@ -1,5 +1,6 @@
 package com.limelight.grid.assets;
 
+import com.limelight.utils.AppExecutors;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -98,14 +99,14 @@ public class ComputerScreenshotCache {
                         return;
                     }
 
-                    new Thread(new Runnable() {
+                    AppExecutors.execute(new Runnable() {
                         @Override
                         public void run() {
                             saveScaledBitmap(computerUuid, captureBitmap);
                             captureBitmap.recycle();
                             LimeLog.info("Pre-cached computer screenshot for " + computerUuid);
                         }
-                    }, "ComputerScreenshotWriter").start();
+                    });
                 }
             }, new Handler(Looper.getMainLooper()));
         } catch (IllegalArgumentException e) {

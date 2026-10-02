@@ -44,8 +44,8 @@ class MacroAdapter(private val actions: MutableList<MacroAction>, private val di
 
         when(action.type){
             MacroType.KEY_DOWN.toString(), MacroType.KEY_UP.toString() -> dataText = VirtualKeyboardVkCode.getVKNameByCode(action.data)
-            MacroType.KEY_TOGGLE.toString() -> dataText = "按键id ${action.data}"
-            MacroType.KEY_TOGGLE_GROUP.toString() -> dataText = "组id ${action.data}"
+            MacroType.KEY_TOGGLE.toString() -> dataText = context.getString(R.string.macro_key_id, action.data)
+            MacroType.KEY_TOGGLE_GROUP.toString() -> dataText = context.getString(R.string.macro_group_id, action.data)
             MacroType.SLEEP.toString() -> dataText = "${action.data}ms"
             MacroType.TOUCH_TOGGLE.toString() ->
                 when(action.data){

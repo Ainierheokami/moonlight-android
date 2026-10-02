@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Ids for buttons created in code by StreamEnhanceMenu -->
+    <item name="btn_enhance_set_primary" type="id" />
+    <item name="btn_enhance_stream_only" type="id" />
+</resources>

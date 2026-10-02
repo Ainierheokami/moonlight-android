@@ -833,7 +833,7 @@ class FloatingVirtualKeyboardFragment private constructor(private val game: Game
             "Del" to 0x2E
         )
 
-                 functionKeys.forEach { (text, code) ->
+        functionKeys.forEach { (text, code) ->
              val button = Button(activity).apply {
                 this.text = text
                 tag = code.toString(16)

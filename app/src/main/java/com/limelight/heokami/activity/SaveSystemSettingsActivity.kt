@@ -25,7 +25,7 @@ class SaveSystemSettingsActivity : AppCompatActivity() {
         setContentView(R.layout.load_file_activity)
         
         val textView = findViewById<TextView>(R.id.message_text)
-        textView.text = "备份系统设置中..."
+        textView.setText(R.string.backup_in_progress)
         
         val button = findViewById<Button>(R.id.ok_button)
         button.setOnClickListener { finish() }
@@ -38,15 +38,15 @@ class SaveSystemSettingsActivity : AppCompatActivity() {
             SystemSettingsBackupHelper.exportSystemBackup(this@SaveSystemSettingsActivity)
         } catch (e: Exception) {
             Log.e("SaveSettingsActivity", "备份发生异常", e)
-            textView.text = "备份失败"
-            AppToast.makeText(this, "备份保存异常，请重试", AppToast.LENGTH_SHORT).show()
+            textView.setText(R.string.backup_failed)
+            AppToast.makeText(this, this@SaveSystemSettingsActivity.getString(R.string.backup_save_error_retry), AppToast.LENGTH_SHORT).show()
             finishAfterToast()
             return
         }
 
         if (backupData == null) {
-            textView.text = "备份失败：导出生成为空"
-            AppToast.makeText(this, "备份失败，配置生成为空", AppToast.LENGTH_SHORT).show()
+            textView.setText(R.string.backup_failed_empty_export)
+            AppToast.makeText(this, this@SaveSystemSettingsActivity.getString(R.string.backup_failed_empty_config), AppToast.LENGTH_SHORT).show()
             finishAfterToast()
             return
         }
@@ -54,8 +54,8 @@ class SaveSystemSettingsActivity : AppCompatActivity() {
         val savedUri = filePicker.saveTextToDownloadsFolder(defaultName, backupData)
         if (savedUri != null) {
             Log.d("SaveSettingsActivity", "自动保存系统设置到: $savedUri")
-            textView.text = "配对与设置备份成功"
-            AppToast.makeText(this, "备份已保存到 Download/Moonlight", AppToast.LENGTH_SHORT).show()
+            textView.setText(R.string.backup_success)
+            AppToast.makeText(this, this@SaveSystemSettingsActivity.getString(R.string.backup_saved_to_download), AppToast.LENGTH_SHORT).show()
             finishAfterToast()
             return
         }
@@ -66,12 +66,12 @@ class SaveSystemSettingsActivity : AppCompatActivity() {
                 override fun onCallBack(fileName: String, content: String, uri: Uri) {
                     try {
                         filePicker.saveToUri(uri, backupData)
-                        textView.text = "配对与设置备份成功"
-                        AppToast.makeText(this@SaveSystemSettingsActivity, "配对与设置备份成功", AppToast.LENGTH_SHORT).show()
+                        textView.setText(R.string.backup_success)
+                        AppToast.makeText(this@SaveSystemSettingsActivity, this@SaveSystemSettingsActivity.getString(R.string.backup_success), AppToast.LENGTH_SHORT).show()
                     } catch (e: Exception) {
                         Log.e("SaveSettingsActivity", "备份发生异常", e)
-                        textView.text = "备份失败"
-                        AppToast.makeText(this@SaveSystemSettingsActivity, "备份保存异常，请重试", AppToast.LENGTH_SHORT).show()
+                        textView.setText(R.string.backup_failed)
+                        AppToast.makeText(this@SaveSystemSettingsActivity, this@SaveSystemSettingsActivity.getString(R.string.backup_save_error_retry), AppToast.LENGTH_SHORT).show()
                     }
                     finishAfterToast()
                 }

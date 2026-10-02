@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- 通用设置项：卡片 + 标题/说明 + 右侧控件（开关、当前值等） -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:background="@drawable/settings_item_background"
@@ -20,7 +21,8 @@
         android:layout_marginEnd="16dp"
         android:importantForAccessibility="no"
         android:scaleType="fitCenter"
-        android:tint="@color/settings_icon_tint" />
+        android:tint="@color/settings_icon_tint"
+        tools:ignore="UseAppTint" />
 
     <LinearLayout
         android:layout_width="0dp"

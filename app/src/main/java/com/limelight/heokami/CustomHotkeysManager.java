@@ -188,7 +188,7 @@ public class CustomHotkeysManager {
             MacroEditor editor = new MacroEditor(game, json, null);
             editor.runMacroAction(vk);
         } catch (Exception e) {
-            AppToast.makeText(game, "执行自定义热键失败", AppToast.LENGTH_SHORT).show();
+            AppToast.makeText(game, game.getString(R.string.hotkey_run_failed), AppToast.LENGTH_SHORT).show();
             Log.e(TAG, "执行自定义热键失败: " + hotkey.name, e);
         }
     }
@@ -370,7 +370,7 @@ public class CustomHotkeysManager {
             }
             editor.showMacroEditor();
         } catch (Exception e) {
-            AppToast.makeText(game, "打开宏编辑器失败", AppToast.LENGTH_SHORT).show();
+            AppToast.makeText(game, game.getString(R.string.macro_editor_open_failed), AppToast.LENGTH_SHORT).show();
             Log.e(TAG, "为热键打开宏编辑器失败: " + hotkey.name, e);
         }
     }

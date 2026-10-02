@@ -145,9 +145,9 @@ object StreamEnhanceMenu {
                 val displayNameToShow = matched?.toString() ?: if (tempDisplayName.isNotEmpty()) tempDisplayName else game.getString(R.string.stream_enhance_unknown)
                 
                 if (tempUseVdd) {
-                    primaryText = if (tempVddMode == "0") displayNameToShow else "物理主屏"
+                    primaryText = if (tempVddMode == "0") displayNameToShow else game.getString(R.string.display_physical_primary)
                 } else {
-                    primaryText = if (tempScreenMode == "0") displayNameToShow else "物理主屏"
+                    primaryText = if (tempScreenMode == "0") displayNameToShow else game.getString(R.string.display_physical_primary)
                 }
                 streamText = displayNameToShow
             }
@@ -158,8 +158,8 @@ object StreamEnhanceMenu {
             for (i in 0 until childCount) {
                 val row = container.getChildAt(i) as? LinearLayout ?: continue
                 val displayInfo = row.tag as? NvHTTP.DisplayInfo ?: continue
-                val btnPrimary = row.findViewById<Button>(1001) ?: continue
-                val btnStream = row.findViewById<Button>(1002) ?: continue
+                val btnPrimary = row.findViewById<Button>(R.id.btn_enhance_set_primary) ?: continue
+                val btnStream = row.findViewById<Button>(R.id.btn_enhance_stream_only) ?: continue
 
                 val isThisVirtual = displayInfo.displayName.lowercase().contains("zako") || 
                                    displayInfo.displayName.lowercase().contains("virtual") || 
@@ -223,7 +223,7 @@ object StreamEnhanceMenu {
                 row.addView(tvName)
 
                 val btnPrimary = Button(game).apply {
-                    id = 1001
+                    id = R.id.btn_enhance_set_primary
                     text = game.getString(R.string.stream_enhance_set_primary)
                     setTextColor(0xFFFFFFFF.toInt())
                     textSize = 11f
@@ -254,7 +254,7 @@ object StreamEnhanceMenu {
                 row.addView(btnPrimary)
 
                 val btnStream = Button(game).apply {
-                    id = 1002
+                    id = R.id.btn_enhance_stream_only
                     text = game.getString(R.string.stream_enhance_stream_only)
                     setTextColor(0xFFFFFFFF.toInt())
                     textSize = 11f
@@ -320,7 +320,7 @@ object StreamEnhanceMenu {
                     lowerFriendly.contains("zako") || lowerFriendly.contains("virtual")
                 }
                 if (!hasVirtual) {
-                    displays.add(NvHTTP.DisplayInfo("virtual_fallback", "虚拟显示器 (强制激活)", ""))
+                    displays.add(NvHTTP.DisplayInfo("virtual_fallback", game.getString(R.string.display_virtual_forced), ""))
                 }
 
                 val hasPhysical = fetched.any {
@@ -330,7 +330,7 @@ object StreamEnhanceMenu {
                     !lowerFriendly.contains("zako") && !lowerFriendly.contains("virtual")
                 }
                 if (!hasPhysical && cachedGuid.isNotEmpty()) {
-                    displays.add(0, NvHTTP.DisplayInfo("\\\\.\\DISPLAY1", "物理主显示器", cachedGuid))
+                    displays.add(0, NvHTTP.DisplayInfo("\\\\.\\DISPLAY1", game.getString(R.string.display_physical_primary_host), cachedGuid))
                 }
 
                 rebuildDisplayList()

@@ -29,7 +29,8 @@
             android:preferKeepClear="true"
             android:scaleType="fitCenter"
             android:src="@drawable/ic_settings_back"
-            android:tint="@color/settings_text_primary" />
+            android:tint="@color/settings_text_primary"
+            tools:ignore="UseAppTint" />
 
         <LinearLayout
             android:layout_width="0dp"

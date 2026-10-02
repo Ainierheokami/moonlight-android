@@ -313,8 +313,8 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
                 try { @Suppress("DEPRECATION") setSelectedTabIndicatorHeight(dp(1)) } catch (_: Throwable) {}
             }
             fun addTab(text: String) { tabs.addTab(tabs.newTab().setText(text)) }
-            addTab("色板")
-            addTab("色轮")
+            addTab(context.getString(R.string.vkm_tab_palette))
+            addTab(context.getString(R.string.vkm_tab_wheel))
             root.addView(tabs)
 
             val paletteScroll = ScrollView(context)
@@ -476,8 +476,8 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
                 orientation = LinearLayout.VERTICAL
                 layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
             }
-            rightControls.addView(addLabeledSeek("明度", valSeek))
-            rightControls.addView(addLabeledSeek("透明度", alpSeek))
+            rightControls.addView(addLabeledSeek(context.getString(R.string.vkm_brightness), valSeek))
+            rightControls.addView(addLabeledSeek(context.getString(R.string.vkm_opacity), alpSeek))
 
             val wheelRow = LinearLayout(context).apply { orientation = LinearLayout.HORIZONTAL }
             wheelRow.addView(wheel)
@@ -503,7 +503,7 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
             })
 
             paletteDialog = OverlayAlertDialog.Builder(context)
-                .setTitle("选择颜色")
+                .setTitle(context.getString(R.string.vkm_pick_color))
                 .setView(ScrollView(context).apply { addView(root) })
                 .setNegativeButton(R.string.virtual_keyboard_menu_cancel_button, null)
                 .setPositiveButton(R.string.virtual_keyboard_menu_confirm_button) { _, _ ->
@@ -663,7 +663,7 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
         // 类型选择 Tabs
         var selectedButtonType = VirtualKeyboardElement.ButtonType.Button
         val typeTabLayout = TabLayout(ContextThemeWrapper(context, com.google.android.material.R.style.Theme_AppCompat))
-        val touchpadSectionTitle = TextView(context).apply { text = "触摸板灵敏度"; visibility = View.GONE }
+        val touchpadSectionTitle = TextView(context).apply { text = context.getString(R.string.vkm_touchpad_sensitivity); visibility = View.GONE }
         val touchpadSensitivityText = TextView(context).apply { text = "100"; visibility = View.GONE }
         val touchpadSensitivity = SeekBar(context).apply { max = 300; progress = 100; visibility = View.GONE }
         val rightClickNextTouchCheck = CheckBox(context).apply { text = context.getString(R.string.virtual_keyboard_right_click_next_touch); visibility = View.GONE }
@@ -730,7 +730,7 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
         val bgColorEdit = EditText(context).apply { hint = "#AARRGGBB" }
         val bgColorSwatch = View(context).apply { layoutParams = LinearLayout.LayoutParams(dp(28), dp(28)).apply { setMargins(dp(8), dp(4), 0, dp(4)) }; setBackgroundColor(Color.parseColor("#888888")) }
         val bgAlphaSeek = SeekBar(context).apply { max = 100; progress = 100 }
-        val bgAlphaLabel = TextView(context).apply { text = "背景透明度 100"; setPadding(dp(8), 0, 0, 0) }
+        val bgAlphaLabel = TextView(context).apply { text = context.getString(R.string.vkm_bg_alpha, 100); setPadding(dp(8), 0, 0, 0) }
         val bgLeft = LinearLayout(context).apply { orientation = LinearLayout.HORIZONTAL; layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f) }; bgLeft.addView(bgColorEdit, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)); bgLeft.addView(bgColorSwatch)
         val bgRight = LinearLayout(context).apply { orientation = LinearLayout.VERTICAL; layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f) }; bgRight.addView(bgAlphaLabel); bgRight.addView(bgAlphaSeek)
         bgRow.addView(bgLeft); bgRow.addView(bgRight); colorSection.addView(bgRow)
@@ -739,22 +739,22 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
         val bgPressedColorEdit = EditText(context).apply { hint = "#AARRGGBB" }
         val bgPressedColorSwatch = View(context).apply { layoutParams = LinearLayout.LayoutParams(dp(28), dp(28)).apply { setMargins(dp(8), dp(4), 0, dp(4)) }; setBackgroundColor(Color.parseColor("#0000FF")) }
         val bgPressedAlphaSeek = SeekBar(context).apply { max = 100; progress = 100 }
-        val bgPressedAlphaLabel = TextView(context).apply { text = "背景透明度 100"; setPadding(dp(8), 0, 0, 0) }
+        val bgPressedAlphaLabel = TextView(context).apply { text = context.getString(R.string.vkm_bg_alpha, 100); setPadding(dp(8), 0, 0, 0) }
         val bgPressedLeft = LinearLayout(context).apply { orientation = LinearLayout.HORIZONTAL; layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f) }; bgPressedLeft.addView(bgPressedColorEdit, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)); bgPressedLeft.addView(bgPressedColorSwatch)
         val bgPressedRight = LinearLayout(context).apply { orientation = LinearLayout.VERTICAL; layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f) }; bgPressedRight.addView(bgPressedAlphaLabel); bgPressedRight.addView(bgPressedAlphaSeek)
         bgPressedRow.addView(bgPressedLeft); bgPressedRow.addView(bgPressedRight); colorSection.addView(bgPressedRow)
 
         // 描边
         addSpacerTo(appearanceSection, 6)
-        val borderEnableCheck = CheckBox(context).apply { text = "启用描边"; isChecked = true }; appearanceSection.addView(borderEnableCheck)
-        val borderWidthText = TextView(context).apply { text = "描边大小" }; appearanceSection.addView(borderWidthText)
+        val borderEnableCheck = CheckBox(context).apply { text = context.getString(R.string.vkm_border_enable); isChecked = true }; appearanceSection.addView(borderEnableCheck)
+        val borderWidthText = TextView(context).apply { text = context.getString(R.string.vkm_border_width) }; appearanceSection.addView(borderWidthText)
         val borderWidthSeek = SeekBar(context).apply { max = 24; progress = (context.resources.displayMetrics.heightPixels*0.004f).toInt().coerceAtMost(24) }; appearanceSection.addView(borderWidthSeek)
-        appearanceSection.addView(TextView(context).apply { text = "描边颜色" })
+        appearanceSection.addView(TextView(context).apply { text = context.getString(R.string.vkm_border_color) })
         // 描边常态
         val borderRow = LinearLayout(context).apply { orientation = LinearLayout.HORIZONTAL }
         val borderColorEditText = EditText(context).apply { hint = "#AARRGGBB" }
         val borderColorSwatch = View(context).apply { layoutParams = LinearLayout.LayoutParams(dp(28), dp(28)).apply { setMargins(dp(8), dp(4), 0, dp(4)) }; setBackgroundColor(Color.parseColor("#888888")) }
-        val borderAlphaText = TextView(context).apply { text = "描边透明度 100" }
+        val borderAlphaText = TextView(context).apply { text = context.getString(R.string.vkm_border_alpha, 100) }
         val borderAlphaSeek = SeekBar(context).apply { max = 100; progress = 100 }
         val borderLeft = LinearLayout(context).apply { orientation = LinearLayout.HORIZONTAL; layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f) }; borderLeft.addView(borderColorEditText, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)); borderLeft.addView(borderColorSwatch)
         val borderRight = LinearLayout(context).apply { orientation = LinearLayout.VERTICAL; layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f) }; borderRight.addView(borderAlphaText); borderRight.addView(borderAlphaSeek)
@@ -763,7 +763,7 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
         val borderRowPressed = LinearLayout(context).apply { orientation = LinearLayout.HORIZONTAL }
         val borderColorEditTextPressed = EditText(context).apply { hint = "#AARRGGBB" }
         val borderColorSwatchPressed = View(context).apply { layoutParams = LinearLayout.LayoutParams(dp(28), dp(28)).apply { setMargins(dp(8), dp(4), 0, dp(4)) }; setBackgroundColor(Color.parseColor("#888888")) }
-        val borderAlphaTextPressed = TextView(context).apply { text = "描边透明度 100" }
+        val borderAlphaTextPressed = TextView(context).apply { text = context.getString(R.string.vkm_border_alpha, 100) }
         val borderAlphaSeekPressed = SeekBar(context).apply { max = 100; progress = 100 }
         val borderLeftPressed = LinearLayout(context).apply { orientation = LinearLayout.HORIZONTAL; layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f) }; borderLeftPressed.addView(borderColorEditTextPressed, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)); borderLeftPressed.addView(borderColorSwatchPressed)
         val borderRightPressed = LinearLayout(context).apply { orientation = LinearLayout.VERTICAL; layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f) }; borderRightPressed.addView(borderAlphaTextPressed); borderRightPressed.addView(borderAlphaSeekPressed)
@@ -777,11 +777,11 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
         setBorderSectionEnabled(borderEnableCheck.isChecked); borderEnableCheck.setOnCheckedChangeListener { _, checked -> setBorderSectionEnabled(checked) }
 
         // 字体
-        addSpacerTo(appearanceSection, 6); val textSection = LinearLayout(context).apply { orientation = LinearLayout.VERTICAL }; appearanceSection.addView(textSection); textSection.addView(TextView(context).apply { text = "字体" })
+        addSpacerTo(appearanceSection, 6); val textSection = LinearLayout(context).apply { orientation = LinearLayout.VERTICAL }; appearanceSection.addView(textSection); textSection.addView(TextView(context).apply { text = context.getString(R.string.vkm_font) })
         val textRow = LinearLayout(context).apply { orientation = LinearLayout.HORIZONTAL }
         val textColorEdit = EditText(context).apply { hint = "#AARRGGBB" }
         val textColorSwatch = View(context).apply { layoutParams = LinearLayout.LayoutParams(dp(28), dp(28)).apply { setMargins(dp(8), dp(4), 0, dp(4)) }; setBackgroundColor(Color.parseColor("#FFFFFFFF")) }
-        val textAlphaText = TextView(context).apply { text = "字体透明度 100" }
+        val textAlphaText = TextView(context).apply { text = context.getString(R.string.vkm_text_alpha, 100) }
         val textAlphaSeek = SeekBar(context).apply { max = 100; progress = 100 }
         val textLeft = LinearLayout(context).apply { orientation = LinearLayout.HORIZONTAL; layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f) }; textLeft.addView(textColorEdit, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)); textLeft.addView(textColorSwatch)
         val textRight = LinearLayout(context).apply { orientation = LinearLayout.VERTICAL; layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f) }; textRight.addView(textAlphaText); textRight.addView(textAlphaSeek)
@@ -789,23 +789,23 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
         val textRowPressed = LinearLayout(context).apply { orientation = LinearLayout.HORIZONTAL }
         val textColorEditPressed = EditText(context).apply { hint = "#AARRGGBB" }
         val textColorSwatchPressed = View(context).apply { layoutParams = LinearLayout.LayoutParams(dp(28), dp(28)).apply { setMargins(dp(8), dp(4), 0, dp(4)) }; setBackgroundColor(Color.parseColor("#FFFFFFFF")) }
-        val textAlphaTextPressed = TextView(context).apply { text = "字体透明度 100" }
+        val textAlphaTextPressed = TextView(context).apply { text = context.getString(R.string.vkm_text_alpha, 100) }
         val textAlphaSeekPressed = SeekBar(context).apply { max = 100; progress = 100 }
         val textLeftPressed = LinearLayout(context).apply { orientation = LinearLayout.HORIZONTAL; layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f) }; textLeftPressed.addView(textColorEditPressed, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)); textLeftPressed.addView(textColorSwatchPressed)
         val textRightPressed = LinearLayout(context).apply { orientation = LinearLayout.VERTICAL; layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f) }; textRightPressed.addView(textAlphaTextPressed); textRightPressed.addView(textAlphaSeekPressed)
         textRowPressed.addView(textLeftPressed); textRowPressed.addView(textRightPressed); textSection.addView(textRowPressed)
 
         // 其他
-        val othersSection = addCollapsibleSectionTo(appearanceTabContent, "其他", true)
-        val radiusTextView = TextView(context).apply { text = "整体圆角" }; othersSection.addView(radiusTextView)
+        val othersSection = addCollapsibleSectionTo(appearanceTabContent, context.getString(R.string.vkm_others), true)
+        val radiusTextView = TextView(context).apply { text = context.getString(R.string.vkm_corner_radius) }; othersSection.addView(radiusTextView)
         val radiusSeekBar = SeekBar(context).apply { max = 255; progress = 10 }; othersSection.addView(radiusSeekBar)
 
         // 样式管理
-        val styleActionsSection = addCollapsibleSectionTo(appearanceTabContent, "样式管理", true)
+        val styleActionsSection = addCollapsibleSectionTo(appearanceTabContent, context.getString(R.string.vkm_style_management), true)
         styleActionsSection.addView(Button(context).apply { text = context.getString(R.string.virtual_keyboard_menu_copy_appearance_style); setOnClickListener { VirtualKeyboardConfigurationLoader.copyAppearanceStyle(virtualKeyboard, element, context) } })
         styleActionsSection.addView(Button(context).apply { text = context.getString(R.string.virtual_keyboard_menu_paste_appearance_style); setOnClickListener { VirtualKeyboardConfigurationLoader.pasteAppearanceStyle(virtualKeyboard, element, context); virtualKeyboard.refreshLayout() } })
         styleActionsSection.addView(Button(context).apply { text = context.getString(R.string.virtual_keyboard_menu_apply_style_to_same_group); setOnClickListener { VirtualKeyboardConfigurationLoader.applyAppearanceStyleToSameGroup(virtualKeyboard, element, context); virtualKeyboard.refreshLayout() } })
-        styleActionsSection.addView(Button(context).apply { text = context.getString(R.string.virtual_keyboard_menu_paste_appearance_style_to_form); setOnClickListener { try { val style = VirtualKeyboardConfigurationLoader.getAppearanceStyleFromClipboard(context); if (style != null) AppToast.makeText(context, "样式已应用到表单", AppToast.LENGTH_SHORT).show() } catch (e: Exception) { AppToast.makeText(context, "粘贴失败", AppToast.LENGTH_SHORT).show() } } })
+        styleActionsSection.addView(Button(context).apply { text = context.getString(R.string.virtual_keyboard_menu_paste_appearance_style_to_form); setOnClickListener { try { val style = VirtualKeyboardConfigurationLoader.getAppearanceStyleFromClipboard(context); if (style != null) AppToast.makeText(context, context.getString(R.string.vkm_style_applied_to_form), AppToast.LENGTH_SHORT).show() } catch (e: Exception) { AppToast.makeText(context, context.getString(R.string.vkm_paste_failed), AppToast.LENGTH_SHORT).show() } } })
 
         // --- 实时预览：横屏时固定在左侧，减少切换页签的来回成本 ---
         fun buildSinglePreview(): Pair<FrameLayout, Pair<View, TextView>> {
@@ -947,12 +947,12 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
 
         radiusSeekBar.setOnSeekBarChangeListener(object: SeekBar.OnSeekBarChangeListener{ override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) { radiusTextView.text = context.getString(R.string.virtual_keyboard_menu_radius_hint) + " $progress"; updatePreview() }; override fun onStartTrackingTouch(seekBar: SeekBar?) {}; override fun onStopTrackingTouch(seekBar: SeekBar?) {} })
         borderWidthSeek.setOnSeekBarChangeListener(object: SeekBar.OnSeekBarChangeListener{ override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) { updatePreview() }; override fun onStartTrackingTouch(seekBar: SeekBar?) {}; override fun onStopTrackingTouch(seekBar: SeekBar?) {} })
-        bgAlphaSeek.setOnSeekBarChangeListener(object: SeekBar.OnSeekBarChangeListener{ override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) { bgAlphaLabel.text = "背景透明度 $progress"; updatePreview() }; override fun onStartTrackingTouch(seekBar: SeekBar?) {}; override fun onStopTrackingTouch(seekBar: SeekBar?) {} })
-        bgPressedAlphaSeek.setOnSeekBarChangeListener(object: SeekBar.OnSeekBarChangeListener{ override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) { bgPressedAlphaLabel.text = "背景透明度 $progress"; updatePreview() }; override fun onStartTrackingTouch(seekBar: SeekBar?) {}; override fun onStopTrackingTouch(seekBar: SeekBar?) {} })
-        textAlphaSeek.setOnSeekBarChangeListener(object: SeekBar.OnSeekBarChangeListener{ override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) { textAlphaText.text = "字体透明度 $progress"; updatePreview() }; override fun onStartTrackingTouch(seekBar: SeekBar?) {}; override fun onStopTrackingTouch(seekBar: SeekBar?) {} })
-        textAlphaSeekPressed.setOnSeekBarChangeListener(object: SeekBar.OnSeekBarChangeListener{ override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) { textAlphaTextPressed.text = "字体透明度 $progress"; updatePreview() }; override fun onStartTrackingTouch(seekBar: SeekBar?) {}; override fun onStopTrackingTouch(seekBar: SeekBar?) {} })
-        borderAlphaSeek.setOnSeekBarChangeListener(object: SeekBar.OnSeekBarChangeListener{ override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) { borderAlphaText.text = "描边透明度 $progress"; updatePreview() }; override fun onStartTrackingTouch(seekBar: SeekBar?) {}; override fun onStopTrackingTouch(seekBar: SeekBar?) {} })
-        borderAlphaSeekPressed.setOnSeekBarChangeListener(object: SeekBar.OnSeekBarChangeListener{ override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) { borderAlphaTextPressed.text = "描边透明度 $progress"; updatePreview() }; override fun onStartTrackingTouch(seekBar: SeekBar?) {}; override fun onStopTrackingTouch(seekBar: SeekBar?) {} })
+        bgAlphaSeek.setOnSeekBarChangeListener(object: SeekBar.OnSeekBarChangeListener{ override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) { bgAlphaLabel.text = context.getString(R.string.vkm_bg_alpha, progress); updatePreview() }; override fun onStartTrackingTouch(seekBar: SeekBar?) {}; override fun onStopTrackingTouch(seekBar: SeekBar?) {} })
+        bgPressedAlphaSeek.setOnSeekBarChangeListener(object: SeekBar.OnSeekBarChangeListener{ override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) { bgPressedAlphaLabel.text = context.getString(R.string.vkm_bg_alpha, progress); updatePreview() }; override fun onStartTrackingTouch(seekBar: SeekBar?) {}; override fun onStopTrackingTouch(seekBar: SeekBar?) {} })
+        textAlphaSeek.setOnSeekBarChangeListener(object: SeekBar.OnSeekBarChangeListener{ override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) { textAlphaText.text = context.getString(R.string.vkm_text_alpha, progress); updatePreview() }; override fun onStartTrackingTouch(seekBar: SeekBar?) {}; override fun onStopTrackingTouch(seekBar: SeekBar?) {} })
+        textAlphaSeekPressed.setOnSeekBarChangeListener(object: SeekBar.OnSeekBarChangeListener{ override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) { textAlphaTextPressed.text = context.getString(R.string.vkm_text_alpha, progress); updatePreview() }; override fun onStartTrackingTouch(seekBar: SeekBar?) {}; override fun onStopTrackingTouch(seekBar: SeekBar?) {} })
+        borderAlphaSeek.setOnSeekBarChangeListener(object: SeekBar.OnSeekBarChangeListener{ override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) { borderAlphaText.text = context.getString(R.string.vkm_border_alpha, progress); updatePreview() }; override fun onStartTrackingTouch(seekBar: SeekBar?) {}; override fun onStopTrackingTouch(seekBar: SeekBar?) {} })
+        borderAlphaSeekPressed.setOnSeekBarChangeListener(object: SeekBar.OnSeekBarChangeListener{ override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) { borderAlphaTextPressed.text = context.getString(R.string.vkm_border_alpha, progress); updatePreview() }; override fun onStartTrackingTouch(seekBar: SeekBar?) {}; override fun onStopTrackingTouch(seekBar: SeekBar?) {} })
 
         // 绑定 ShowColorPalette 点击事件 (现在 showColorPalette 已定义)
         bgColorSwatch.setOnClickListener { showColorPalette(bgColorEdit, bgColorSwatch) }
@@ -1146,7 +1146,7 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
                 virtualKeyboard.hideEdgeHotZonePreview()
             } catch (e: Exception) {
                 Log.e("vk", "save/add failed", e)
-                AppToast.makeText(context, "操作失败: ${e.message}", AppToast.LENGTH_SHORT).show()
+                AppToast.makeText(context, context.getString(R.string.vkm_operation_failed, e.message ?: ""), AppToast.LENGTH_SHORT).show()
             }
         }
     }
@@ -1467,7 +1467,7 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
                 )
             }
             linearLayout1.addView(TextView(context).apply {
-                text = "手柄方向(上)"
+                text = context.getString(R.string.vkm_gamepad_up)
             })
             val upEditText = EditText(context).apply {
                 layoutParams = LinearLayout.LayoutParams(
@@ -1493,7 +1493,7 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
                 )
             }
             linearLayout2.addView(TextView(context).apply {
-                text = "手柄方向(下)"
+                text = context.getString(R.string.vkm_gamepad_down)
             })
             val downEditText = EditText(context).apply {
                 layoutParams = LinearLayout.LayoutParams(
@@ -1519,7 +1519,7 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
                 )
             }
             linearLayout3.addView(TextView(context).apply {
-                text = "手柄方向(左)"
+                text = context.getString(R.string.vkm_gamepad_left)
             })
             val leftEditText = EditText(context).apply {
                 layoutParams = LinearLayout.LayoutParams(
@@ -1545,7 +1545,7 @@ class VirtualKeyboardMenu(private val context: Context, private val virtualKeybo
                 )
             }
             linearLayout4.addView(TextView(context).apply {
-                text = "手柄方向(左)"
+                text = context.getString(R.string.vkm_gamepad_right)
             })
             val rightEditText = EditText(context).apply {
                 layoutParams = LinearLayout.LayoutParams(

@@ -143,6 +143,13 @@ public class PreferenceConfiguration {
     private static final boolean DEFAULT_GAMEPAD_MOTION_SENSORS = true;
     // 默认触摸板灵敏度默认值（百分比）
     public static final int DEFAULT_TOUCHPAD_SENSITIVITY = 100;
+    // 触摸抖动过滤（相对鼠标模式）：长按时忽略手指静止产生的微小抖动
+    private static final String TOUCH_JITTER_FILTER_PREF_STRING = "checkbox_touch_jitter_filter";
+    private static final String TOUCH_HOLD_JITTER_MS_PREF_STRING = "seekbar_touch_hold_jitter_ms";
+    private static final String TOUCH_TAP_MOVE_DP_PREF_STRING = "seekbar_touch_tap_move_dp";
+    private static final boolean DEFAULT_TOUCH_JITTER_FILTER = true;
+    public static final int DEFAULT_TOUCH_HOLD_JITTER_MS = 150;
+    public static final int DEFAULT_TOUCH_TAP_MOVE_DP = 8;
     private static final boolean DEFAULT_GAMEPAD_MOTION_FALLBACK = false;
     private static final boolean DEFAULT_SHOW_OFFLINE_PCS = true;
     private static final boolean DEFAULT_STREAM_ENHANCE_USE_VDD = false;
@@ -227,6 +234,9 @@ public class PreferenceConfiguration {
     public boolean enableGameMenuGestureWake;
     // 默认触摸板灵敏度（应用于全局相对触摸）
     public int defaultTouchpadSensitivity;
+    public boolean touchJitterFilter;
+    public int touchHoldJitterMs;
+    public int touchTapMoveDp;
     
     // 后台切回自动重连设置
     public boolean backgroundReconnectEnabled;
@@ -758,6 +768,9 @@ public class PreferenceConfiguration {
         // 读取默认触摸板灵敏度（10-300），用于非虚拟键盘的默认相对触控
         config.defaultTouchpadSensitivity = Math.max(10, Math.min(300, prefs.getInt(DEFAULT_TOUCHPAD_SENSITIVITY_PREF_STRING, DEFAULT_TOUCHPAD_SENSITIVITY)));
         config.multiTouchScreen = prefs.getBoolean(MULTITOUCH_SCREEN_PREF_STRING, DEFAULT_MULTITOUCH_SCREEN);
+        config.touchJitterFilter = prefs.getBoolean(TOUCH_JITTER_FILTER_PREF_STRING, DEFAULT_TOUCH_JITTER_FILTER);
+        config.touchHoldJitterMs = Math.max(50, Math.min(500, prefs.getInt(TOUCH_HOLD_JITTER_MS_PREF_STRING, DEFAULT_TOUCH_HOLD_JITTER_MS)));
+        config.touchTapMoveDp = Math.max(4, Math.min(24, prefs.getInt(TOUCH_TAP_MOVE_DP_PREF_STRING, DEFAULT_TOUCH_TAP_MOVE_DP)));
         config.enableGridLayout = prefs.getBoolean(ENABLE_GRID_LAYOUT_PREF_STRING, DEFAULT_ENABLE_GRID_LAYOUT);
         config.enableGroupMove = prefs.getBoolean(ENABLE_GROUP_MOVE_PREF_STRING, DEFAULT_ENABLE_GROUP_MOVE);
         config.enableNewSettingButton = prefs.getBoolean(ENABLE_NEW_SETTING_BUTTON_PREF_STRING, DEFAULT_ENABLE_NEW_SETTING_BUTTON);

@@ -1,5 +1,6 @@
 package com.limelight.utils;
 
+import com.limelight.LimeLog;
 import android.app.Activity;
 import android.content.Intent;
 import com.limelight.utils.AppToast;
@@ -75,7 +76,7 @@ public class ServerHelper {
                 intent.putExtra(Game.EXTRA_SERVER_CERT, computer.serverCert.getEncoded());
             }
         } catch (CertificateEncodingException e) {
-            e.printStackTrace();
+            LimeLog.warning(e);
         }
         return intent;
     }
@@ -98,7 +99,7 @@ public class ServerHelper {
     }
 
     public static void doNetworkTest(final Activity parent) {
-        new Thread(new Runnable() {
+        AppExecutors.execute(new Runnable() {
             @Override
             public void run() {
                 SpinnerDialog spinnerDialog = SpinnerDialog.displayDialog(parent,
@@ -126,7 +127,7 @@ public class ServerHelper {
                         dialogSummary,
                         false);
             }
-        }).start();
+        });
     }
 
     public static void doQuit(final Activity parent,
@@ -135,7 +136,7 @@ public class ServerHelper {
                               final ComputerManagerService.ComputerManagerBinder managerBinder,
                               final Runnable onComplete) {
         AppToast.makeText(parent, parent.getResources().getString(R.string.applist_quit_app) + " " + app.getAppName() + "...", AppToast.LENGTH_SHORT).show();
-        new Thread(new Runnable() {
+        AppExecutors.execute(new Runnable() {
             @Override
             public void run() {
                 NvHTTP httpConn;
@@ -163,7 +164,7 @@ public class ServerHelper {
                     message = parent.getResources().getString(R.string.error_404);
                 } catch (IOException | XmlPullParserException e) {
                     message = e.getMessage();
-                    e.printStackTrace();
+                    LimeLog.warning(e);
                 } finally {
                     if (onComplete != null) {
                         onComplete.run();
@@ -178,6 +179,6 @@ public class ServerHelper {
                     }
                 });
             }
-        }).start();
+        });
     }
 }

@@ -1,5 +1,6 @@
 package com.limelight.heokami;
 
+import com.limelight.utils.AppExecutors;
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.animation.ObjectAnimator;
@@ -208,78 +209,6 @@ public class GameMenuFragment extends Fragment {
         setupBottomButtons();
     }
 
-    private enum MenuSection {
-        STREAM(R.string.game_menu_section_stream),
-        INPUT(R.string.game_menu_section_input_controls),
-        HOTKEYS(R.string.game_menu_section_hotkeys),
-        OVERLAY(R.string.game_menu_section_screen_overlay),
-        PORTALS(R.string.game_menu_section_portals),
-        CUSTOM(R.string.game_menu_section_custom_hotkeys);
-
-        final int titleRes;
-        MenuSection(int titleRes) {
-            this.titleRes = titleRes;
-        }
-    }
-
-    private static final class MenuAction {
-        final String id;
-        final int titleRes;
-        final int iconRes;
-        final MenuSection section;
-        final int priority;
-        final boolean danger;
-        final boolean visible;
-        final boolean enabled;
-        final View.OnClickListener onClick;
-        final String overrideTitle;
-
-        MenuAction(String id, int titleRes, int iconRes, MenuSection section, int priority,
-                   boolean danger, boolean visible, boolean enabled, View.OnClickListener onClick) {
-            this(id, titleRes, iconRes, section, priority, danger, visible, enabled, onClick, null);
-        }
-
-        MenuAction(String id, int titleRes, int iconRes, MenuSection section, int priority,
-                   boolean danger, boolean visible, boolean enabled, View.OnClickListener onClick,
-                   String overrideTitle) {
-            this.id = id;
-            this.titleRes = titleRes;
-            this.iconRes = iconRes;
-            this.section = section;
-            this.priority = priority;
-            this.danger = danger;
-            this.visible = visible;
-            this.enabled = enabled;
-            this.onClick = onClick;
-            this.overrideTitle = overrideTitle;
-        }
-    }
-
-    private interface SliderApplyCallback {
-        void apply(int value);
-    }
-
-    private static final class MenuSlider {
-        final int titleRes;
-        final int min;
-        final int max;
-        final int step;
-        final int defaultValue;
-        final int currentValue;
-        final SliderApplyCallback applyCallback;
-
-        MenuSlider(int titleRes, int min, int max, int step, int defaultValue,
-                   int currentValue, SliderApplyCallback applyCallback) {
-            this.titleRes = titleRes;
-            this.min = min;
-            this.max = max;
-            this.step = step;
-            this.defaultValue = defaultValue;
-            this.currentValue = currentValue;
-            this.applyCallback = applyCallback;
-        }
-    }
-
     private int dp(int value) {
         android.content.res.Resources resources = game != null ? game.getResources() : getResources();
         return (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, value, resources.getDisplayMetrics());
@@ -293,27 +222,28 @@ public class GameMenuFragment extends Fragment {
         addStatusChip(getString(R.string.game_menu_change_touch), getTouchModeName());
         
         // 2. 串流画质 (分辨率与帧率)
-        String quality = "未知";
+        String quality = game.getString(R.string.menu_unknown);
         if (game.getPrefConfig() != null) {
-            quality = game.getPrefConfig().width + "x" + game.getPrefConfig().height + "  " + game.getPrefConfig().fps + "帧";
+            quality = game.getString(R.string.menu_status_quality_fps,
+                    game.getPrefConfig().width + "x" + game.getPrefConfig().height, game.getPrefConfig().fps);
         }
-        addStatusChip("串流画质", quality);
+        addStatusChip(game.getString(R.string.menu_status_quality), quality);
         
         // 3. 视频码率
-        String bitrate = "未知";
+        String bitrate = game.getString(R.string.menu_unknown);
         if (conn != null) {
             bitrate = String.format(java.util.Locale.getDefault(), "%.1f Mbps", conn.getCurrentBitrate() / 1000f);
         } else if (game.getPrefConfig() != null) {
             bitrate = String.format(java.util.Locale.getDefault(), "%.1f Mbps", game.getPrefConfig().bitrate / 1000f);
         }
-        addStatusChip("视频码率", bitrate);
+        addStatusChip(game.getString(R.string.menu_status_bitrate), bitrate);
 
         // 4. 串流音量（客户端播放增益，按主机保存）
         addStatusChip(getString(R.string.game_menu_audio_volume_short), game.getStreamAudioGainLabel());
         
         // 5. 当前时间
         String currentTime = new java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault()).format(new java.util.Date());
-        addStatusChip("当前时间", currentTime);
+        addStatusChip(game.getString(R.string.menu_status_time), currentTime);
     }
 
     private void addStatusChip(String label, String value) {
@@ -337,24 +267,24 @@ public class GameMenuFragment extends Fragment {
         if (dashboardContainer == null) return;
         dashboardContainer.removeAllViews();
 
-        List<MenuAction> actions = buildMenuActions();
-        for (MenuSection section : getOrderedSections()) {
-            List<MenuAction> sectionActions = new ArrayList<>();
-            for (MenuAction action : actions) {
+        List<GameMenuAction> actions = buildMenuActions();
+        for (GameMenuSection section : getOrderedSections()) {
+            List<GameMenuAction> sectionActions = new ArrayList<>();
+            for (GameMenuAction action : actions) {
                 if (action.visible && action.section == section) {
                     sectionActions.add(action);
                 }
             }
             if (sectionActions.isEmpty()) continue;
-            sectionActions.sort(Comparator.comparingInt(a -> a.priority));
+            java.util.Collections.sort(sectionActions, (a, b) -> Integer.compare(a.priority, b.priority));
             addSection(section, sectionActions);
         }
     }
 
-    private List<MenuSlider> buildMenuSliders(MenuSection section) {
-        List<MenuSlider> sliders = new ArrayList<>();
-        if (section == MenuSection.STREAM) {
-            sliders.add(new MenuSlider(
+    private List<GameMenuSlider> buildMenuSliders(GameMenuSection section) {
+        List<GameMenuSlider> sliders = new ArrayList<>();
+        if (section == GameMenuSection.STREAM) {
+            sliders.add(new GameMenuSlider(
                     R.string.game_menu_audio_volume,
                     Game.STREAM_AUDIO_GAIN_MIN_PERCENT,
                     Game.STREAM_AUDIO_GAIN_MAX_PERCENT,
@@ -366,8 +296,8 @@ public class GameMenuFragment extends Fragment {
                         renderStatusBar();
                     }));
         }
-        else if (section == MenuSection.INPUT) {
-            sliders.add(new MenuSlider(
+        else if (section == GameMenuSection.INPUT) {
+            sliders.add(new GameMenuSlider(
                     R.string.game_menu_touchpad_sensitivity,
                     10,
                     300,
@@ -382,30 +312,30 @@ public class GameMenuFragment extends Fragment {
         return sliders;
     }
 
-    private List<MenuAction> buildMenuActions() {
-        List<MenuAction> actions = new ArrayList<>();
-        actions.add(new MenuAction("bitrate", R.string.game_menu_adjust_bitrate_short, 0, MenuSection.STREAM, 10, false, true, true, v -> {
+    private List<GameMenuAction> buildMenuActions() {
+        List<GameMenuAction> actions = new ArrayList<>();
+        actions.add(new GameMenuAction("bitrate", R.string.game_menu_adjust_bitrate_short, 0, GameMenuSection.STREAM, 10, false, true, true, v -> {
             hideMenuWithAnimation();
             StreamBitrateMenu.show(game, conn);
         }));
-        actions.add(new MenuAction("presets", R.string.game_menu_stream_presets_short, 0, MenuSection.STREAM, 30, false, true, true, v -> {
+        actions.add(new GameMenuAction("presets", R.string.game_menu_stream_presets_short, 0, GameMenuSection.STREAM, 30, false, true, true, v -> {
             hideMenuWithAnimation();
             StreamPresetMenu.show(game, conn);
         }));
-        actions.add(new MenuAction("stream_enhance", R.string.game_menu_stream_enhance, 0, MenuSection.STREAM, 40, false, true, true, v -> {
+        actions.add(new GameMenuAction("stream_enhance", R.string.game_menu_stream_enhance, 0, GameMenuSection.STREAM, 40, false, true, true, v -> {
             hideMenuWithAnimation();
             StreamEnhanceMenu.show(game, conn);
         }));
-        actions.add(new MenuAction("switch_display", 0, 0, MenuSection.STREAM, 50, false, true, true, v -> {
+        actions.add(new GameMenuAction("switch_display", 0, 0, GameMenuSection.STREAM, 50, false, true, true, v -> {
             hideMenuWithAnimation();
             showSwitchDisplayDialog();
-        }, "实时切换屏幕"));
+        }, game.getString(R.string.menu_switch_display_title)));
 
-        actions.add(new MenuAction("ime", R.string.game_menu_enable_keyboard, R.drawable.ic_keyboard, MenuSection.INPUT, 10, false, true, true, v -> {
+        actions.add(new GameMenuAction("ime", R.string.game_menu_enable_keyboard, R.drawable.ic_keyboard, GameMenuSection.INPUT, 10, false, true, true, v -> {
             hideMenuWithAnimation();
             enableKeyboard();
         }));
-        actions.add(new MenuAction("floating_keyboard", R.string.game_menu_floating_keyboard, R.drawable.ic_floating_keyboard, MenuSection.INPUT, 20, false, true, true, v -> {
+        actions.add(new GameMenuAction("floating_keyboard", R.string.game_menu_floating_keyboard, R.drawable.ic_floating_keyboard, GameMenuSection.INPUT, 20, false, true, true, v -> {
             hideMenuWithAnimation();
             try {
                 FloatingVirtualKeyboardFragment.Companion.show(game);
@@ -413,52 +343,52 @@ public class GameMenuFragment extends Fragment {
                 Log.e("GameMenuFragment", "Error showing floating keyboard", e);
             }
         }));
-        actions.add(new MenuAction("full_keyboard", R.string.game_menu_full_keyboard, R.drawable.ic_full_keyboard, MenuSection.INPUT, 30, false, true, true, v -> {
+        actions.add(new GameMenuAction("full_keyboard", R.string.game_menu_full_keyboard, R.drawable.ic_full_keyboard, GameMenuSection.INPUT, 30, false, true, true, v -> {
             hideMenuWithAnimation();
             VirtualKeyboardDialogFragment.show(game);
         }));
-        actions.add(new MenuAction("send_clipboard", R.string.game_menu_send_clipboard_content, R.drawable.ic_clipboard, MenuSection.INPUT, 40, false, true, true, v -> {
+        actions.add(new GameMenuAction("send_clipboard", R.string.game_menu_send_clipboard_content, R.drawable.ic_clipboard, GameMenuSection.INPUT, 40, false, true, true, v -> {
             hideMenuWithAnimation();
             conn.sendUtf8Text(getClipboardContentAsString(game, new int[]{3}, new long[]{30}));
         }));
 
-        actions.add(new MenuAction("copy", R.string.game_menu_copy, R.drawable.ic_copy, MenuSection.HOTKEYS, 10, false, true, true, v -> runHotkey(new short[]{(short) VirtualKeyboardVkCode.VKCode.VK_LCONTROL.getCode(), (short) VirtualKeyboardVkCode.VKCode.VK_C.getCode()})));
-        actions.add(new MenuAction("paste", R.string.game_menu_paste, R.drawable.ic_paste, MenuSection.HOTKEYS, 20, false, true, true, v -> runHotkey(new short[]{(short) VirtualKeyboardVkCode.VKCode.VK_LCONTROL.getCode(), (short) VirtualKeyboardVkCode.VKCode.VK_V.getCode()})));
-        actions.add(new MenuAction("screen_keyboard", R.string.game_menu_virtual_keyboard_short, R.drawable.ic_keyboard, MenuSection.HOTKEYS, 30, false, true, true, v -> runHotkey(new short[]{(short) VirtualKeyboardVkCode.VKCode.VK_LCONTROL.getCode(), (short) VirtualKeyboardVkCode.VKCode.VK_LWIN.getCode(), (short) VirtualKeyboardVkCode.VKCode.VK_O.getCode()})));
-        actions.add(new MenuAction("alt_tab", R.string.game_menu_switch_window_short, R.drawable.ic_switch_window, MenuSection.HOTKEYS, 40, false, true, true, v -> runHotkey(new short[]{(short) VirtualKeyboardVkCode.VKCode.VK_LWIN.getCode(), (short) VirtualKeyboardVkCode.VKCode.VK_TAB.getCode()})));
-        actions.add(new MenuAction("home", R.string.game_menu_hotkey_home, R.drawable.ic_home, MenuSection.HOTKEYS, 50, false, true, true, v -> runHotkey(new short[]{(short) VirtualKeyboardVkCode.VKCode.VK_LWIN.getCode(), (short) VirtualKeyboardVkCode.VKCode.VK_D.getCode()})));
+        actions.add(new GameMenuAction("copy", R.string.game_menu_copy, R.drawable.ic_copy, GameMenuSection.HOTKEYS, 10, false, true, true, v -> runHotkey(new short[]{(short) VirtualKeyboardVkCode.VKCode.VK_LCONTROL.getCode(), (short) VirtualKeyboardVkCode.VKCode.VK_C.getCode()})));
+        actions.add(new GameMenuAction("paste", R.string.game_menu_paste, R.drawable.ic_paste, GameMenuSection.HOTKEYS, 20, false, true, true, v -> runHotkey(new short[]{(short) VirtualKeyboardVkCode.VKCode.VK_LCONTROL.getCode(), (short) VirtualKeyboardVkCode.VKCode.VK_V.getCode()})));
+        actions.add(new GameMenuAction("screen_keyboard", R.string.game_menu_virtual_keyboard_short, R.drawable.ic_keyboard, GameMenuSection.HOTKEYS, 30, false, true, true, v -> runHotkey(new short[]{(short) VirtualKeyboardVkCode.VKCode.VK_LCONTROL.getCode(), (short) VirtualKeyboardVkCode.VKCode.VK_LWIN.getCode(), (short) VirtualKeyboardVkCode.VKCode.VK_O.getCode()})));
+        actions.add(new GameMenuAction("alt_tab", R.string.game_menu_switch_window_short, R.drawable.ic_switch_window, GameMenuSection.HOTKEYS, 40, false, true, true, v -> runHotkey(new short[]{(short) VirtualKeyboardVkCode.VKCode.VK_LWIN.getCode(), (short) VirtualKeyboardVkCode.VKCode.VK_TAB.getCode()})));
+        actions.add(new GameMenuAction("home", R.string.game_menu_hotkey_home, R.drawable.ic_home, GameMenuSection.HOTKEYS, 50, false, true, true, v -> runHotkey(new short[]{(short) VirtualKeyboardVkCode.VKCode.VK_LWIN.getCode(), (short) VirtualKeyboardVkCode.VKCode.VK_D.getCode()})));
 
-        actions.add(new MenuAction("controller", R.string.game_menu_toggle_virtual_controller, 0, MenuSection.OVERLAY, 10, false, true, true, v -> {
+        actions.add(new GameMenuAction("controller", R.string.game_menu_toggle_virtual_controller, 0, GameMenuSection.OVERLAY, 10, false, true, true, v -> {
             hideMenuWithAnimation();
             game.toggleVirtualController();
         }));
-        actions.add(new MenuAction("virtual_keyboard", R.string.game_menu_toggle_virtual_keyboard, 0, MenuSection.OVERLAY, 20, false, true, true, v -> {
+        actions.add(new GameMenuAction("virtual_keyboard", R.string.game_menu_toggle_virtual_keyboard, 0, GameMenuSection.OVERLAY, 20, false, true, true, v -> {
             hideMenuWithAnimation();
             game.toggleVirtualKeyboard();
             AppToast.makeText(game, game.getString(R.string.game_menu_toggle_virtual_keyboard_toast), AppToast.LENGTH_SHORT).show();
         }));
-        actions.add(new MenuAction("edit_virtual_keyboard", R.string.game_menu_edit_virtual_keyboard, 0, MenuSection.OVERLAY, 30, false, true, true, v -> openVirtualKeyboardEditor()));
-        actions.add(new MenuAction("perf", R.string.game_menu_toggle_perf_overlay, 0, MenuSection.OVERLAY, 40, false, true, true, v -> {
+        actions.add(new GameMenuAction("edit_virtual_keyboard", R.string.game_menu_edit_virtual_keyboard, 0, GameMenuSection.OVERLAY, 30, false, true, true, v -> openVirtualKeyboardEditor()));
+        actions.add(new GameMenuAction("perf", R.string.game_menu_toggle_perf_overlay, 0, GameMenuSection.OVERLAY, 40, false, true, true, v -> {
             hideMenuWithAnimation();
             game.togglePerfOverlay();
         }));
 
-        actions.add(new MenuAction("portal_toggle", game.arePortalsEnabled() ? R.string.game_menu_portal_disable : R.string.game_menu_portal_enable, 0, MenuSection.PORTALS, 10, false, true, game.getPortalManagerView() != null, v -> togglePortals()));
-        actions.add(new MenuAction("portal_add", R.string.game_menu_portal_add, 0, MenuSection.PORTALS, 20, false, true, game.getPortalManagerView() != null, v -> addPortal()));
-        actions.add(new MenuAction("portal_edit", R.string.game_menu_portal_toggle_edit, 0, MenuSection.PORTALS, 30, false, true, game.getPortalManagerView() != null, v -> togglePortalEditMode()));
-        actions.add(new MenuAction("portal_manage", R.string.game_menu_portal_manage, 0, MenuSection.PORTALS, 40, false, true, game.getPortalManagerView() != null, v -> showPortalManagerDialog()));
+        actions.add(new GameMenuAction("portal_toggle", game.arePortalsEnabled() ? R.string.game_menu_portal_disable : R.string.game_menu_portal_enable, 0, GameMenuSection.PORTALS, 10, false, true, game.getPortalManagerView() != null, v -> togglePortals()));
+        actions.add(new GameMenuAction("portal_add", R.string.game_menu_portal_add, 0, GameMenuSection.PORTALS, 20, false, true, game.getPortalManagerView() != null, v -> addPortal()));
+        actions.add(new GameMenuAction("portal_edit", R.string.game_menu_portal_toggle_edit, 0, GameMenuSection.PORTALS, 30, false, true, game.getPortalManagerView() != null, v -> togglePortalEditMode()));
+        actions.add(new GameMenuAction("portal_manage", R.string.game_menu_portal_manage, 0, GameMenuSection.PORTALS, 40, false, true, game.getPortalManagerView() != null, v -> showPortalManagerDialog()));
 
-        actions.add(new MenuAction("section_order", R.string.game_menu_section_order, 0, MenuSection.CUSTOM, 5, false, true, true, v -> showSectionOrderDialog()));
-        actions.add(new MenuAction("edit_hotkeys", R.string.game_menu_edit_hotkeys, 0, MenuSection.CUSTOM, 10, false, true, true, v -> openCustomHotkeyManager()));
+        actions.add(new GameMenuAction("section_order", R.string.game_menu_section_order, 0, GameMenuSection.CUSTOM, 5, false, true, true, v -> showSectionOrderDialog()));
+        actions.add(new GameMenuAction("edit_hotkeys", R.string.game_menu_edit_hotkeys, 0, GameMenuSection.CUSTOM, 10, false, true, true, v -> openCustomHotkeyManager()));
         List<CustomHotkeysManager.CustomHotkey> customItems = CustomHotkeysManager.load(game);
         int priority = 20;
         for (CustomHotkeysManager.CustomHotkey item : customItems) {
-            actions.add(new MenuAction("custom_" + item.name, 0, 0, MenuSection.CUSTOM, priority++, false, true, true, v -> runCustomHotkey(item), item.name));
+            actions.add(new GameMenuAction("custom_" + item.name, 0, 0, GameMenuSection.CUSTOM, priority++, false, true, true, v -> runCustomHotkey(item), item.name));
         }
         return actions;
     }
 
-    private void addSection(MenuSection section, List<MenuAction> actions) {
+    private void addSection(GameMenuSection section, List<GameMenuAction> actions) {
         TextView title = new TextView(game);
         title.setText(section.titleRes);
         title.setTextColor(0xFFB8B8B8);
@@ -467,7 +397,7 @@ public class GameMenuFragment extends Fragment {
         title.setPadding(dp(4), dp(8), dp(4), dp(4));
         dashboardContainer.addView(title);
 
-        for (MenuSlider slider : buildMenuSliders(section)) {
+        for (GameMenuSlider slider : buildMenuSliders(section)) {
             dashboardContainer.addView(createSliderRow(slider));
         }
 
@@ -475,12 +405,12 @@ public class GameMenuFragment extends Fragment {
         grid.setColumnCount(2);
         dashboardContainer.addView(grid, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
 
-        for (MenuAction action : actions) {
+        for (GameMenuAction action : actions) {
             grid.addView(createActionButton(action));
         }
     }
 
-    private View createSliderRow(MenuSlider slider) {
+    private View createSliderRow(GameMenuSlider slider) {
         LinearLayout row = new LinearLayout(game);
         row.setOrientation(LinearLayout.HORIZONTAL);
         row.setGravity(android.view.Gravity.CENTER_VERTICAL);
@@ -523,7 +453,9 @@ public class GameMenuFragment extends Fragment {
         View.OnClickListener editSliderValue = v -> showSliderValueDialog(slider, seekBar, label, currentValue);
         label.setOnClickListener(editSliderValue);
         label.setClickable(true);
-        label.setForeground(getSelectableItemBackground());
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+            label.setForeground(getSelectableItemBackground());
+        }
         seekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
@@ -549,16 +481,16 @@ public class GameMenuFragment extends Fragment {
         return row;
     }
 
-    private int valueToProgress(MenuSlider slider, int value) {
+    private int valueToProgress(GameMenuSlider slider, int value) {
         int clampedValue = Math.max(slider.min, Math.min(slider.max, value));
         return (clampedValue - slider.min) / slider.step;
     }
 
-    private int progressToValue(MenuSlider slider, int progress) {
+    private int progressToValue(GameMenuSlider slider, int progress) {
         return Math.max(slider.min, Math.min(slider.max, slider.min + progress * slider.step));
     }
 
-    private void updateSliderLabel(TextView label, MenuSlider slider, int value) {
+    private void updateSliderLabel(TextView label, GameMenuSlider slider, int value) {
         label.setText(getString(slider.titleRes) + "\n" + value + "%");
     }
 
@@ -568,7 +500,7 @@ public class GameMenuFragment extends Fragment {
         return game.getResources().getDrawable(outValue.resourceId);
     }
 
-    private void showSliderValueDialog(MenuSlider slider, SeekBar seekBar, TextView label, int[] currentValue) {
+    private void showSliderValueDialog(GameMenuSlider slider, SeekBar seekBar, TextView label, int[] currentValue) {
         EditText input = new EditText(game);
         input.setInputType(InputType.TYPE_CLASS_NUMBER);
         input.setSingleLine(true);
@@ -614,22 +546,22 @@ public class GameMenuFragment extends Fragment {
         input.requestFocus();
     }
 
-    private int normalizeSliderValue(MenuSlider slider, int value) {
+    private int normalizeSliderValue(GameMenuSlider slider, int value) {
         int clamped = Math.max(slider.min, Math.min(slider.max, value));
         int offset = clamped - slider.min;
         int roundedSteps = Math.round(offset / (float) slider.step);
         return Math.max(slider.min, Math.min(slider.max, slider.min + roundedSteps * slider.step));
     }
 
-    private List<MenuSection> getOrderedSections() {
-        List<MenuSection> ordered = new ArrayList<>();
+    private List<GameMenuSection> getOrderedSections() {
+        List<GameMenuSection> ordered = new ArrayList<>();
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(game);
         String savedOrder = prefs.getString(PREF_GAME_MENU_SECTION_ORDER, null);
         if (savedOrder != null) {
             String[] names = savedOrder.split(",");
             for (String name : names) {
                 try {
-                    MenuSection section = MenuSection.valueOf(name);
+                    GameMenuSection section = GameMenuSection.valueOf(name);
                     if (!ordered.contains(section)) {
                         ordered.add(section);
                     }
@@ -638,7 +570,7 @@ public class GameMenuFragment extends Fragment {
             }
         }
 
-        for (MenuSection section : MenuSection.values()) {
+        for (GameMenuSection section : GameMenuSection.values()) {
             if (!ordered.contains(section)) {
                 ordered.add(section);
             }
@@ -646,9 +578,9 @@ public class GameMenuFragment extends Fragment {
         return ordered;
     }
 
-    private void saveSectionOrder(List<MenuSection> sections) {
+    private void saveSectionOrder(List<GameMenuSection> sections) {
         StringBuilder builder = new StringBuilder();
-        for (MenuSection section : sections) {
+        for (GameMenuSection section : sections) {
             if (builder.length() > 0) {
                 builder.append(',');
             }
@@ -668,7 +600,7 @@ public class GameMenuFragment extends Fragment {
     }
 
     private void showSectionOrderDialog() {
-        List<MenuSection> sections = new ArrayList<>(getOrderedSections());
+        List<GameMenuSection> sections = new ArrayList<>(getOrderedSections());
         View dialogView = LayoutInflater.from(game).inflate(R.layout.dialog_section_order, null);
         TextView subtitle = dialogView.findViewById(R.id.sectionOrderSubtitle);
         RecyclerView recyclerView = dialogView.findViewById(R.id.sectionOrderList);
@@ -738,16 +670,16 @@ public class GameMenuFragment extends Fragment {
 
     public static List<String> debugSectionOrderTitles() {
         List<String> titles = new ArrayList<>();
-        for (MenuSection section : MenuSection.values()) {
+        for (GameMenuSection section : GameMenuSection.values()) {
             titles.add(section.name());
         }
         return titles;
     }
 
     private final class SectionOrderAdapter extends RecyclerView.Adapter<SectionOrderAdapter.SectionViewHolder> {
-        private final List<MenuSection> sections;
+        private final List<GameMenuSection> sections;
 
-        SectionOrderAdapter(List<MenuSection> sections) {
+        SectionOrderAdapter(List<GameMenuSection> sections) {
             this.sections = sections;
         }
 
@@ -759,7 +691,7 @@ public class GameMenuFragment extends Fragment {
 
         @Override
         public void onBindViewHolder(SectionViewHolder holder, int position) {
-            MenuSection section = sections.get(position);
+            GameMenuSection section = sections.get(position);
             holder.titleView.setText(getString(section.titleRes));
             holder.subtitleView.setText(position == 0
                     ? getString(R.string.game_menu_section_order_first)
@@ -782,7 +714,7 @@ public class GameMenuFragment extends Fragment {
             if (from < 0 || to < 0 || from >= sections.size() || to >= sections.size() || from == to) {
                 return;
             }
-            MenuSection section = sections.remove(from);
+            GameMenuSection section = sections.remove(from);
             sections.add(to, section);
             notifyItemMoved(from, to);
             notifyItemRangeChanged(Math.min(from, to), Math.abs(from - to) + 1);
@@ -804,7 +736,7 @@ public class GameMenuFragment extends Fragment {
         }
     }
 
-    private Button createActionButton(MenuAction action) {
+    private Button createActionButton(GameMenuAction action) {
         Button button = new Button(game);
         button.setAllCaps(false);
         button.setText(action.overrideTitle != null ? action.overrideTitle : getString(action.titleRes));
@@ -843,7 +775,7 @@ public class GameMenuFragment extends Fragment {
             vk.enterEditMode();
             new Handler(Looper.getMainLooper()).postDelayed(() -> new EditMenu(game, vk), ANIMATION_DURATION + 50);
         } else {
-            AppToast.makeText(game, "无法进入编辑模式：虚拟键盘未就绪", AppToast.LENGTH_SHORT).show();
+            AppToast.makeText(game, game.getString(R.string.menu_vk_not_ready_enter_edit), AppToast.LENGTH_SHORT).show();
         }
     }
 
@@ -852,7 +784,7 @@ public class GameMenuFragment extends Fragment {
         new Handler(Looper.getMainLooper()).postDelayed(() -> {
             VirtualKeyboard vk = game.getVirtualKeyboard();
             if (vk == null) {
-                AppToast.makeText(game, "无法编辑：虚拟键盘未就绪", AppToast.LENGTH_SHORT).show();
+                AppToast.makeText(game, game.getString(R.string.menu_vk_not_ready_edit), AppToast.LENGTH_SHORT).show();
                 return;
             }
             CustomHotkeysManager.showManageDialog(game, vk, this::renderDashboard);
@@ -863,7 +795,7 @@ public class GameMenuFragment extends Fragment {
         hideMenuWithAnimation();
         VirtualKeyboard vk = game.getVirtualKeyboard();
         if (vk == null) {
-            AppToast.makeText(game, "无法执行：虚拟键盘未就绪", AppToast.LENGTH_SHORT).show();
+            AppToast.makeText(game, game.getString(R.string.menu_vk_not_ready_run), AppToast.LENGTH_SHORT).show();
             return;
         }
         CustomHotkeysManager.runCustomHotkey(game, vk, item);
@@ -932,7 +864,7 @@ public class GameMenuFragment extends Fragment {
                         originalTextColor = btnDisconnect.getCurrentTextColor();
                         
                         // 1. 改变文案为“退出串流”
-                        String quitText = "zh".equals(java.util.Locale.getDefault().getLanguage()) ? "退出串流" : "Quit Stream";
+                        String quitText = game.getString(R.string.menu_quit_stream);
                         btnDisconnect.setText(quitText);
                         btnDisconnect.setTextColor(originalTextColor);
                         btnDisconnect.setBackgroundResource(R.drawable.button_background_warning_dark);
@@ -1129,7 +1061,7 @@ public class GameMenuFragment extends Fragment {
             boolean enabled = portalManager.togglePortalsEnabled();
             game.postNotification(enabled ? getString(R.string.game_menu_portal_enable) : getString(R.string.game_menu_portal_disable), 2000);
         } else {
-            AppToast.makeText(game, "portalManager 为空", AppToast.LENGTH_SHORT).show();
+            AppToast.makeText(game, game.getString(R.string.portal_manager_null), AppToast.LENGTH_SHORT).show();
         }
     }
 
@@ -1137,7 +1069,7 @@ public class GameMenuFragment extends Fragment {
         hideMenuWithAnimation();
         PortalManagerView portalManager = game.getPortalManagerView();
         if (portalManager == null) {
-            AppToast.makeText(game, "portalManager 为空", AppToast.LENGTH_SHORT).show();
+            AppToast.makeText(game, game.getString(R.string.portal_manager_null), AppToast.LENGTH_SHORT).show();
             return;
         }
         PortalConfig config = new PortalConfig();
@@ -1145,13 +1077,13 @@ public class GameMenuFragment extends Fragment {
         config.srcRect = new RectF(0.2f, 0.2f, 0.4f, 0.4f);
         config.dstRect = createDefaultPortalTargetRect();
         config.enabled = true;
-        config.name = "画面映射 " + config.id;
+        config.name = game.getString(R.string.portal_default_name, config.id);
         if (!portalManager.arePortalsEnabled()) {
             portalManager.setPortalsEnabled(true);
         }
         portalManager.addPortal(config);
         portalManager.setPortalEditingMode(config.id, 1);
-        game.postNotification("已添加画面映射，请调整源区域", 2000);
+        game.postNotification(game.getString(R.string.portal_added_adjust_source), 2000);
     }
 
     private RectF createDefaultPortalTargetRect() {
@@ -1175,7 +1107,7 @@ public class GameMenuFragment extends Fragment {
         PortalManagerView portalManager = game.getPortalManagerView();
         if (portalManager == null) return;
         if (portalManager.getPortalCount() == 0) {
-            game.postNotification("请先添加画面映射", 2000);
+            game.postNotification(game.getString(R.string.portal_add_first), 2000);
             return;
         }
         int currentMode = portalManager.getCurrentEditMode();
@@ -1193,16 +1125,16 @@ public class GameMenuFragment extends Fragment {
         hideMenuWithAnimation();
         PortalManagerView portalManager = game.getPortalManagerView();
         if (portalManager == null) {
-            AppToast.makeText(game, "portalManager 为空", AppToast.LENGTH_SHORT).show();
+            AppToast.makeText(game, game.getString(R.string.portal_manager_null), AppToast.LENGTH_SHORT).show();
             return;
         }
 
         List<PortalConfig> portals = portalManager.getPortalConfigsSnapshot();
         if (portals.isEmpty()) {
             new OverlayAlertDialog.Builder(game)
-                    .setTitle("管理画面映射")
-                    .setMessage("还没有画面映射。请先添加一个画面映射，再调整源区域和显示位置。")
-                    .setPositiveButton("添加画面映射", (dialog, which) -> addPortal())
+                    .setTitle(game.getString(R.string.portal_manage_title))
+                    .setMessage(game.getString(R.string.portal_none_message))
+                    .setPositiveButton(game.getString(R.string.portal_add_full), (dialog, which) -> addPortal())
                     .setNegativeButton(android.R.string.cancel, null)
                     .show();
             return;
@@ -1212,15 +1144,15 @@ public class GameMenuFragment extends Fragment {
         for (int i = 0; i < portals.size(); i++) {
             PortalConfig config = portals.get(i);
             String mode = config.editing
-                    ? (config.editMode == 1 ? "编辑源区域" : "编辑目标区域")
-                    : "未编辑";
-            items[i] = config.name + " · " + (config.enabled ? "开启" : "关闭") + " · " + mode;
+                    ? (config.editMode == 1 ? game.getString(R.string.portal_edit_source) : game.getString(R.string.portal_edit_target))
+                    : game.getString(R.string.portal_not_editing);
+            items[i] = config.name + " · " + (config.enabled ? game.getString(R.string.portal_on) : game.getString(R.string.portal_off)) + " · " + mode;
         }
 
         new OverlayAlertDialog.Builder(game)
-                .setTitle("管理画面映射")
+                .setTitle(game.getString(R.string.portal_manage_title))
                 .setItems(items, (dialog, which) -> showPortalActionsDialog(portals.get(which).id))
-                .setPositiveButton("添加", (dialog, which) -> addPortal())
+                .setPositiveButton(game.getString(R.string.portal_add_short), (dialog, which) -> addPortal())
                 .setNegativeButton(android.R.string.cancel, null)
                 .show();
     }
@@ -1239,16 +1171,16 @@ public class GameMenuFragment extends Fragment {
             }
         }
         if (selected == null) {
-            game.postNotification("画面映射已不存在", 2000);
+            game.postNotification(game.getString(R.string.portal_gone), 2000);
             return;
         }
 
         String[] actions = new String[] {
-                "编辑源区域",
-                "编辑目标区域",
-                selected.enabled ? "关闭画面映射" : "开启画面映射",
-                "复制画面映射",
-                "删除画面映射"
+                game.getString(R.string.portal_edit_source),
+                game.getString(R.string.portal_edit_target),
+                selected.enabled ? game.getString(R.string.portal_action_disable) : game.getString(R.string.portal_action_enable),
+                game.getString(R.string.portal_action_duplicate),
+                game.getString(R.string.portal_action_delete)
         };
 
         PortalConfig finalSelected = selected;
@@ -1258,21 +1190,21 @@ public class GameMenuFragment extends Fragment {
                     switch (which) {
                         case 0:
                             portalManager.setPortalEditingMode(portalId, 1);
-                            game.postNotification("正在编辑源区域", 2000);
+                            game.postNotification(game.getString(R.string.portal_editing_source), 2000);
                             break;
                         case 1:
                             portalManager.setPortalEditingMode(portalId, 2);
-                            game.postNotification("正在编辑目标区域", 2000);
+                            game.postNotification(game.getString(R.string.portal_editing_target), 2000);
                             break;
                         case 2:
                             portalManager.setPortalEnabled(portalId, !finalSelected.enabled);
-                            game.postNotification(finalSelected.enabled ? "已关闭画面映射" : "已开启画面映射", 2000);
+                            game.postNotification(finalSelected.enabled ? game.getString(R.string.portal_disabled_toast) : game.getString(R.string.portal_enabled_toast), 2000);
                             break;
                         case 3:
                             PortalConfig duplicate = portalManager.duplicatePortal(portalId);
                             if (duplicate != null) {
                                 portalManager.setPortalEditingMode(duplicate.id, 2);
-                                game.postNotification("已复制画面映射，请调整目标区域", 2000);
+                                game.postNotification(game.getString(R.string.portal_duplicated_toast), 2000);
                             }
                             break;
                         case 4:
@@ -1291,11 +1223,11 @@ public class GameMenuFragment extends Fragment {
         }
 
         new OverlayAlertDialog.Builder(game)
-                .setTitle("删除画面映射")
-                .setMessage("确定删除 " + portalName + "？")
-                .setPositiveButton("删除", (dialog, which) -> {
+                .setTitle(game.getString(R.string.portal_action_delete))
+                .setMessage(game.getString(R.string.portal_confirm_delete, portalName))
+                .setPositiveButton(game.getString(R.string.portal_delete), (dialog, which) -> {
                     portalManager.removePortal(portalId);
-                    game.postNotification("已删除画面映射", 2000);
+                    game.postNotification(game.getString(R.string.portal_deleted_toast), 2000);
                 })
                 .setNegativeButton(android.R.string.cancel, null)
                 .show();
@@ -1403,7 +1335,7 @@ public class GameMenuFragment extends Fragment {
     }
 
     private void sendKeys(short[] keys, int delayMs) {
-        new Thread(() -> {
+        AppExecutors.execute(() -> {
             final byte[] modifier = {(byte) 0};
 
             for (short key : keys) {
@@ -1420,7 +1352,7 @@ public class GameMenuFragment extends Fragment {
                 conn.sendKeyboardInput(key, KeyboardPacket.KEY_UP, modifier[0], (byte) 0);
                 try { Thread.sleep(15); } catch (InterruptedException ignored) {}
             }
-        }).start();
+        });
     }
 
     /**
@@ -1453,8 +1385,8 @@ public class GameMenuFragment extends Fragment {
     }
 
     private void showSwitchDisplayDialog() {
-        AppToast.makeText(game, "正在获取屏幕列表...", AppToast.LENGTH_SHORT).show();
-        new Thread(() -> {
+        AppToast.makeText(game, game.getString(R.string.display_loading_list), AppToast.LENGTH_SHORT).show();
+        AppExecutors.execute(() -> {
             try {
                 final List<NvHTTP.DisplayInfo> rawDisplays = conn.getDisplays();
                 new Handler(Looper.getMainLooper()).post(() -> {
@@ -1481,10 +1413,10 @@ public class GameMenuFragment extends Fragment {
                             .getString("cached_physical_display_guid", "");
                             
                     if (!hasPhysical) {
-                        displays.add(0, new NvHTTP.DisplayInfo("\\\\.\\DISPLAY1", "物理主显示器", cachedGuid));
+                        displays.add(0, new NvHTTP.DisplayInfo("\\\\.\\DISPLAY1", game.getString(R.string.display_physical_primary_host), cachedGuid));
                     }
                     if (!hasVirtual) {
-                        displays.add(new NvHTTP.DisplayInfo("virtual_fallback", "虚拟显示器 (强制激活)", ""));
+                        displays.add(new NvHTTP.DisplayInfo("virtual_fallback", game.getString(R.string.display_virtual_forced), ""));
                     }
                     
                     // 获取当前正在串流的显示器配置
@@ -1520,13 +1452,13 @@ public class GameMenuFragment extends Fragment {
                         currentDeviceIdText = getDisplayIdentifier(currentInfo);
                     } else {
                         if (currentConfigUseVdd) {
-                            currentDisplayNameText = !isBlank(currentConfigLabel) ? currentConfigLabel : "虚拟显示器 (强制激活)";
+                            currentDisplayNameText = !isBlank(currentConfigLabel) ? currentConfigLabel : game.getString(R.string.display_virtual_forced);
                             currentDeviceIdText = "VDD";
                         } else if (currentConfigDisplay == null || currentConfigDisplay.trim().isEmpty()) {
-                            currentDisplayNameText = !isBlank(currentConfigLabel) ? currentConfigLabel : "物理主屏幕";
+                            currentDisplayNameText = !isBlank(currentConfigLabel) ? currentConfigLabel : game.getString(R.string.display_physical_primary);
                             currentDeviceIdText = (cachedGuid != null && !cachedGuid.trim().isEmpty()) ? cachedGuid : "\\\\.\\DISPLAY1";
                         } else {
-                            currentDisplayNameText = !isBlank(currentConfigLabel) ? currentConfigLabel : "自定义显示器";
+                            currentDisplayNameText = !isBlank(currentConfigLabel) ? currentConfigLabel : game.getString(R.string.display_custom);
                             currentDeviceIdText = currentConfigDisplay;
                         }
                     }
@@ -1537,7 +1469,7 @@ public class GameMenuFragment extends Fragment {
                     layout.setPadding(dp(24), dp(16), dp(24), dp(12));
                     
                     TextView tvStatus = new TextView(game);
-                    tvStatus.setText("当前串流：" + currentDisplayNameText + "\n设备 ID：" + currentDeviceIdText);
+                    tvStatus.setText(game.getString(R.string.display_current_status, currentDisplayNameText, currentDeviceIdText));
                     tvStatus.setTextColor(0xFFB0B0B0);
                     tvStatus.setTextSize(13);
                     tvStatus.setLineSpacing(0, 1.2f);
@@ -1551,7 +1483,7 @@ public class GameMenuFragment extends Fragment {
                     layout.addView(divider, dividerLp);
                     
                     OverlayAlertDialog.Builder builder = new OverlayAlertDialog.Builder(game);
-                    builder.setTitle("切换显示器");
+                    builder.setTitle(game.getString(R.string.display_switch_title));
                     builder.setView(layout);
                     builder.setNegativeButton(android.R.string.cancel, null);
                     
@@ -1594,7 +1526,7 @@ public class GameMenuFragment extends Fragment {
                             
                             String toastText = getDisplayNickname(selected);
                             rememberDisplayLabel(toastText);
-                            AppToast.makeText(game, "正在切换到: " + toastText + "，请稍候...", AppToast.LENGTH_SHORT).show();
+                            AppToast.makeText(game, game.getString(R.string.display_switching_to, toastText), AppToast.LENGTH_SHORT).show();
                             game.recreateConnectionWithDisplay(targetValue, isVirtual);
                             dialog.dismiss();
                         });
@@ -1605,7 +1537,7 @@ public class GameMenuFragment extends Fragment {
                     
                     if (addedItems == 0) {
                         TextView itemEmpty = new TextView(game);
-                        itemEmpty.setText("无其他可用显示器");
+                        itemEmpty.setText(game.getString(R.string.display_none_other));
                         itemEmpty.setTextColor(0xFF7D8797);
                         itemEmpty.setTextSize(14);
                         itemEmpty.setGravity(android.view.Gravity.CENTER);
@@ -1622,7 +1554,7 @@ public class GameMenuFragment extends Fragment {
                     }
                 });
             }
-        }).start();
+        });
     }
 
     private void showFallbackSwitchDisplayDialog() {
@@ -1631,34 +1563,34 @@ public class GameMenuFragment extends Fragment {
         }
 
         OverlayAlertDialog.Builder builder = new OverlayAlertDialog.Builder(game);
-        builder.setTitle("切换显示器 (未能自动获取列表，请选择常用项)");
+        builder.setTitle(game.getString(R.string.display_switch_fallback_title));
         
-        final String[] items = new String[]{"物理主屏幕 (\\\\.\\DISPLAY1)", "虚拟显示器 (强制激活)", "手动输入名称..."};
+        final String[] items = new String[]{game.getString(R.string.display_physical_primary_with_id), game.getString(R.string.display_virtual_forced), game.getString(R.string.display_enter_manually)};
         builder.setItems(items, (dialog, which) -> {
             if (which == 0) {
                 String cachedGuid = android.preference.PreferenceManager.getDefaultSharedPreferences(game)
                         .getString("cached_physical_display_guid", "");
                 String targetDisplay = (cachedGuid != null && !cachedGuid.trim().isEmpty()) ? cachedGuid : "\\\\.\\DISPLAY1";
-                rememberDisplayLabel("物理主屏幕");
-                AppToast.makeText(game, "正在切换到: " + targetDisplay + "，请稍候...", AppToast.LENGTH_SHORT).show();
+                rememberDisplayLabel(game.getString(R.string.display_physical_primary));
+                AppToast.makeText(game, game.getString(R.string.display_switching_to, targetDisplay), AppToast.LENGTH_SHORT).show();
                 game.recreateConnectionWithDisplay(targetDisplay, false);
             } else if (which == 1) {
-                rememberDisplayLabel("虚拟显示器 (强制激活)");
-                AppToast.makeText(game, "正在激活并切换到虚拟显示器，请稍候...", AppToast.LENGTH_SHORT).show();
+                rememberDisplayLabel(game.getString(R.string.display_virtual_forced));
+                AppToast.makeText(game, game.getString(R.string.display_activating_virtual), AppToast.LENGTH_SHORT).show();
                 game.recreateConnectionWithDisplay("", true);
             } else {
                 OverlayAlertDialog.Builder inputBuilder = new OverlayAlertDialog.Builder(game);
-                inputBuilder.setTitle("输入显示器名称");
+                inputBuilder.setTitle(game.getString(R.string.display_enter_name_title));
                 final android.widget.EditText input = new android.widget.EditText(game);
-                input.setHint("Windows 示例: \\\\.\\DISPLAY2\nLinux 示例: DP-1");
+                input.setHint(game.getString(R.string.display_name_hint));
                 inputBuilder.setView(input);
-                inputBuilder.setPositiveButton("确定", (dialog1, which1) -> {
+                inputBuilder.setPositiveButton(android.R.string.ok, (dialog1, which1) -> {
                     String customDisplay = input.getText().toString().trim();
                     if (!customDisplay.isEmpty()) {
                         boolean isVirtual = customDisplay.toLowerCase(java.util.Locale.ROOT).contains("zako")
                                 || customDisplay.toLowerCase(java.util.Locale.ROOT).contains("virtual");
                         rememberDisplayLabel(customDisplay);
-                        AppToast.makeText(game, "正在切换到: " + customDisplay + "，请稍候...", AppToast.LENGTH_SHORT).show();
+                        AppToast.makeText(game, game.getString(R.string.display_switching_to, customDisplay), AppToast.LENGTH_SHORT).show();
                         game.recreateConnectionWithDisplay(customDisplay, isVirtual);
                     }
                 });
@@ -1687,11 +1619,11 @@ public class GameMenuFragment extends Fragment {
 
     private String getDisplayNickname(NvHTTP.DisplayInfo info) {
         if (info == null) {
-            return "未知显示器";
+            return game.getString(R.string.display_unknown);
         }
 
         if ("virtual_fallback".equals(info.displayName)) {
-            return "虚拟显示器 (强制激活)";
+            return game.getString(R.string.display_virtual_forced);
         }
 
         String friendlyName = normalizeDisplayName(info.friendlyName);
@@ -1701,10 +1633,10 @@ public class GameMenuFragment extends Fragment {
         }
 
         if (isVirtualDisplayInfo(info)) {
-            return "虚拟显示器";
+            return game.getString(R.string.display_virtual);
         }
 
-        return displayName.isEmpty() ? "物理显示器" : displayName;
+        return displayName.isEmpty() ? game.getString(R.string.display_physical) : displayName;
     }
 
     private String getDisplayIdentifier(NvHTTP.DisplayInfo info) {

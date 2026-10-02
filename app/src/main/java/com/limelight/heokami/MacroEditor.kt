@@ -135,7 +135,7 @@ class MacroEditor(private val context: Context, private var jsonData: JSONObject
                 }
             }
         } catch (e: Exception) {
-            AppToast.makeText(context, "加载宏失败: ${e.message}", AppToast.LENGTH_SHORT).show()
+            AppToast.makeText(context, context.getString(R.string.macro_load_failed, e.message ?: ""), AppToast.LENGTH_SHORT).show()
             Log.e("MacroEditor", "加载宏失败: ${e.message}", e)
         }
         Log.d("MacroEditor", "--- loadMacro finished, actions count: ${actions.size} ---")
@@ -191,7 +191,7 @@ class MacroEditor(private val context: Context, private var jsonData: JSONObject
             Log.d("MacroEditor", "--- saveMacro finished ---")
 
         } catch (e: Exception) {
-            AppToast.makeText(context, "保存宏失败: ${e.message}", AppToast.LENGTH_SHORT).show()
+            AppToast.makeText(context, context.getString(R.string.macro_save_failed, e.message ?: ""), AppToast.LENGTH_SHORT).show()
             Log.e("MacroEditor", "保存宏失败: ${e.message}", e)
         }
     }
@@ -396,7 +396,7 @@ class MacroEditor(private val context: Context, private var jsonData: JSONObject
             HotkeyUi.styleButton(this, false)
         }
         val idButton = Button(context).apply {
-            text = "已有按键"
+            text = context.getString(R.string.macro_existing_key)
             layoutParams = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.WRAP_CONTENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT

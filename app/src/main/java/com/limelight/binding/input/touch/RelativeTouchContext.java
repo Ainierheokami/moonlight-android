@@ -2,7 +2,6 @@ package com.limelight.binding.input.touch;
 
 import android.os.Handler;
 import android.os.Looper;
-import android.util.Log;
 import android.view.View;
 
 import com.limelight.nvstream.NvConnection;
@@ -88,8 +87,19 @@ public class RelativeTouchContext implements TouchContext {
             }
     };
 
-    private static final int TAP_MOVEMENT_THRESHOLD = 20;
-    private static final int TAP_DISTANCE_THRESHOLD = 25;
+    // Tap bounds are configured in dp (see PreferenceConfiguration) so they behave the same on
+    // dense screens; the accumulated path distance allows 25% more than the displacement.
+    private static final float TAP_DISTANCE_FACTOR = 1.25f;
+    // Once the finger has rested this long without leaving the tap bounds, we treat further
+    // sub-threshold motion as finger jitter (long press) and stop forwarding it to the host,
+    // where it would be amplified by the host/phone resolution ratio.
+    // Accumulated path length only counts as "move" during this initial window; afterwards
+    // resting-finger jitter would otherwise add up and cancel a long press / drag.
+    private static final int PATH_DISTANCE_WINDOW_MS = 200;
+    private final int tapMovementThreshold;
+    private final int tapDistanceThreshold;
+    private final boolean jitterFilterEnabled;
+    private final int holdJitterTimeMs;
     private static final int TAP_TIME_THRESHOLD = 250;
     private static final int DRAG_TIME_THRESHOLD = 650;
 
@@ -114,6 +124,13 @@ public class RelativeTouchContext implements TouchContext {
         this.targetView = view;
         this.prefConfig = prefConfig;
         this.handler = new Handler(Looper.getMainLooper());
+
+        float density = view != null ? view.getResources().getDisplayMetrics().density : 1f;
+        int moveDp = prefConfig != null ? prefConfig.touchTapMoveDp : PreferenceConfiguration.DEFAULT_TOUCH_TAP_MOVE_DP;
+        this.tapMovementThreshold = Math.max(1, Math.round(moveDp * density));
+        this.tapDistanceThreshold = Math.round(tapMovementThreshold * TAP_DISTANCE_FACTOR);
+        this.jitterFilterEnabled = prefConfig == null || prefConfig.touchJitterFilter;
+        this.holdJitterTimeMs = prefConfig != null ? prefConfig.touchHoldJitterMs : PreferenceConfiguration.DEFAULT_TOUCH_HOLD_JITTER_MS;
 
         // 初始化默认触摸板灵敏度（全局设置），虚拟键盘元素会在各自构造/设置时覆盖该值
         try {
@@ -142,8 +159,8 @@ public class RelativeTouchContext implements TouchContext {
     {
         int xDelta = Math.abs(touchX - originalTouchX);
         int yDelta = Math.abs(touchY - originalTouchY);
-        return xDelta <= TAP_MOVEMENT_THRESHOLD &&
-                yDelta <= TAP_MOVEMENT_THRESHOLD;
+        return xDelta <= tapMovementThreshold &&
+                yDelta <= tapMovementThreshold;
     }
 
     private boolean isTap(long eventTime)
@@ -240,7 +257,7 @@ public class RelativeTouchContext implements TouchContext {
         handler.removeCallbacks(dragTimerRunnable);
     }
 
-    private void checkForConfirmedMove(int eventX, int eventY) {
+    private void checkForConfirmedMove(int eventX, int eventY, long eventTime) {
         // If we've already confirmed something, get out now
         if (confirmedMove || confirmedDrag) {
             return;
@@ -253,9 +270,13 @@ public class RelativeTouchContext implements TouchContext {
             return;
         }
 
-        // Check if we've exceeded the maximum distance moved
-        distanceMoved += Math.sqrt(Math.pow(eventX - lastTouchX, 2) + Math.pow(eventY - lastTouchY, 2));
-        if (distanceMoved >= TAP_DISTANCE_THRESHOLD) {
+        // Check if we've exceeded the maximum distance moved. Only accumulate path length early
+        // in the gesture so a resting finger's jitter can't turn a long press into a move.
+        if (eventTime - originalTouchTime > PATH_DISTANCE_WINDOW_MS) {
+            return;
+        }
+        distanceMoved += Math.hypot(eventX - lastTouchX, eventY - lastTouchY);
+        if (distanceMoved >= tapDistanceThreshold) {
             confirmedMove = true;
             cancelDragTimer();
             return;
@@ -266,7 +287,6 @@ public class RelativeTouchContext implements TouchContext {
         // Enter scrolling mode if we've already left the tap zone
         // and we have 2 fingers on screen. Leave scroll mode if
         // we no longer have 2 fingers on screen
-        Log.d("Touch", String.format("checkForConfirmedScroll %s, %s, %s", actionIndex, pointerCount, confirmedMove));
         confirmedScroll = (actionIndex == 0 && pointerCount == 2 && confirmedMove);
     }
 
@@ -274,14 +294,22 @@ public class RelativeTouchContext implements TouchContext {
     public boolean touchMoveEvent(int eventX, int eventY, long eventTime)
     {
         if (cancelled) {
-            Log.d("Touch", "touchMoveEvent cancelled");
             return true;
         }
 
         if (eventX != lastTouchX || eventY != lastTouchY)
         {
-            checkForConfirmedMove(eventX, eventY);
+            checkForConfirmedMove(eventX, eventY, eventTime);
             checkForConfirmedScroll();
+
+            // Long press on a high-resolution host: swallow jitter from a resting finger.
+            // lastTouch is intentionally not updated, so once real movement is confirmed the
+            // full displacement is still delivered and no sensitivity is lost.
+            if (jitterFilterEnabled && actionIndex == 0 && pointerCount == 1 &&
+                    !confirmedMove && !confirmedDrag &&
+                    eventTime - originalTouchTime > holdJitterTimeMs) {
+                return true;
+            }
 
             // We only send moves and drags for the primary touch point
             if (actionIndex == 0) {
@@ -302,13 +330,13 @@ public class RelativeTouchContext implements TouchContext {
                 } else {
                     if (prefConfig.absoluteMouseMode) {
                         conn.sendMouseMoveAsMousePosition(
-                                (short) deltaX,
-                                (short) deltaY,
+                                clampToShort(deltaX),
+                                clampToShort(deltaY),
                                 (short) targetView.getWidth(),
                                 (short) targetView.getHeight());
                     }
                     else {
-                        conn.sendMouseMove((short) deltaX, (short) deltaY);
+                        conn.sendMouseMove(clampToShort(deltaX), clampToShort(deltaY));
                     }
                 }
 
@@ -329,6 +357,10 @@ public class RelativeTouchContext implements TouchContext {
         }
 
         return true;
+    }
+
+    private static short clampToShort(int value) {
+        return (short) Math.max(Short.MIN_VALUE, Math.min(Short.MAX_VALUE, value));
     }
 
     @Override
