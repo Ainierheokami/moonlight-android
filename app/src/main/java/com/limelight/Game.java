@@ -4116,9 +4116,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
                 Log.i("MoonReconnect", "[Game] surfaceDestroyed: forcing suspendConnection");
                 
                 // 如果有 pending 的延迟任务，取消它，直接执行
-                if (disconnectHandler.hasCallbacks(delayedSuspendRunnable)) {
-                    disconnectHandler.removeCallbacks(delayedSuspendRunnable);
-                }
+                disconnectHandler.removeCallbacks(delayedSuspendRunnable);
                 suspendConnection();
             }
         }

@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- 设置首页的分区入口：图标气泡 + 标题/摘要 + 箭头 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:background="@drawable/settings_item_background"
@@ -26,7 +27,8 @@
             android:layout_gravity="center"
             android:importantForAccessibility="no"
             android:scaleType="fitCenter"
-            android:tint="@color/settings_icon_tint" />
+            android:tint="@color/settings_icon_tint"
+            tools:ignore="UseAppTint" />
     </FrameLayout>
 
     <LinearLayout
@@ -62,10 +64,12 @@
         android:layout_marginStart="10dp"
         android:importantForAccessibility="no"
         android:src="@drawable/ic_settings_chevron"
-        android:tint="@color/settings_text_secondary_selector" />
+        android:tint="@color/settings_text_secondary_selector"
+        tools:ignore="UseAppTint" />
 
     <LinearLayout
         android:id="@android:id/widget_frame"
+        android:orientation="horizontal"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:visibility="gone" />

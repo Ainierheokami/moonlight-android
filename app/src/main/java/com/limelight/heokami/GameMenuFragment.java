@@ -276,7 +276,7 @@ public class GameMenuFragment extends Fragment {
                 }
             }
             if (sectionActions.isEmpty()) continue;
-            sectionActions.sort(Comparator.comparingInt(a -> a.priority));
+            java.util.Collections.sort(sectionActions, (a, b) -> Integer.compare(a.priority, b.priority));
             addSection(section, sectionActions);
         }
     }
@@ -453,7 +453,9 @@ public class GameMenuFragment extends Fragment {
         View.OnClickListener editSliderValue = v -> showSliderValueDialog(slider, seekBar, label, currentValue);
         label.setOnClickListener(editSliderValue);
         label.setClickable(true);
-        label.setForeground(getSelectableItemBackground());
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+            label.setForeground(getSelectableItemBackground());
+        }
         seekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
