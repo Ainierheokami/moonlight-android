@@ -740,4 +740,6 @@
     <string name="summary_backup_system_settings">Export paired PCs, streaming settings and credentials (bound to this device)</string>
     <string name="title_restore_system_settings">Restore pairing and settings</string>
     <string name="summary_restore_system_settings">Restore paired PCs and streaming settings (imports from other devices are isolated automatically)</string>
+    <string name="hint_simple_perf_overlay_template">请输入文本</string>
+    <string name="title_simple_perf_overlay_template">修改精简实时信息模板</string>
 </resources>

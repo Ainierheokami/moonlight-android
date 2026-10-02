@@ -499,7 +499,7 @@ public class StreamSettings extends Activity {
             // 创建并设置 EditText
             final EditText input = new EditText(context);
             input.setText(template);
-            input.setHint("请输入文本");
+            input.setHint(context.getString(R.string.hint_simple_perf_overlay_template));
             input.setPadding(32, input.getPaddingTop(), 32, input.getPaddingBottom()); // 增加左右内边距
 //            input.setMinLines(3);
 //            input.setMaxLines(5);
@@ -519,7 +519,7 @@ public class StreamSettings extends Activity {
 
             // 构建对话框
             OverlayAlertDialog.Builder builder = new OverlayAlertDialog.Builder(context);
-            OverlayAlertDialog dialog = builder.setTitle("修改精简实时信息模板")
+            OverlayAlertDialog dialog = builder.setTitle(context.getString(R.string.title_simple_perf_overlay_template))
                     .setView(scrollView)
                     .setCancelable(true) // 允许通过返回键关闭
                     .setPositiveButton(context.getString(R.string.default_button), (dialogInterface, which) -> {
