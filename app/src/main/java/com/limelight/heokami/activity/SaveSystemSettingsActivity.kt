@@ -109,7 +109,6 @@ class SaveSystemSettingsActivity : AppCompatActivity() {
             defaultFileName = defaultName
         )
     }
-    }
 
     private fun finishAfterToast() {
         Handler(Looper.getMainLooper()).postDelayed({ finish() }, 1800)
