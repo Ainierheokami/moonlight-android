@@ -20,6 +20,8 @@ jobs:
         uses: actions/checkout@v4
         with:
           submodules: recursive
+          # Full history and tags: the release notes list commits since the previous build.
+          fetch-depth: 0
 
       - name: Set up JDK
         uses: actions/setup-java@v4
@@ -121,6 +123,60 @@ jobs:
           echo "VERSION_TITLE=Moonlight ${version_name}" >> "$GITHUB_ENV"
           ls -lh release-apks
 
+      - name: Generate release notes
+        # Must run before the `latest` tag is moved below: it marks the previous build.
+        if: github.ref == 'refs/heads/master'
+        run: |
+          version_code="$(grep -oE 'versionCode *= *[0-9]+' app/build.gradle | grep -oE '[0-9]+' | head -n 1)"
+
+          # Newest fastlane changelog whose number is <= versionCode.
+          pick_changelog() {
+            dir="fastlane/metadata/android/$1/changelogs"
+            [ -d "$dir" ] || return 0
+            n="$(ls "$dir" | sed -n 's/^\([0-9][0-9]*\)\.txt$/\1/p' | sort -n | awk -v c="$version_code" '$1 <= c' | tail -n 1)"
+            [ -n "$n" ] && echo "$dir/$n.txt"
+          }
+          zh_file="$(pick_changelog zh-CN)"
+          en_file="$(pick_changelog en-US)"
+
+          prev="$(git rev-parse -q --verify 'refs/tags/latest^{commit}' || true)"
+          if [ -n "$prev" ] && [ "$prev" != "${GITHUB_SHA}" ] && git merge-base --is-ancestor "$prev" "${GITHUB_SHA}"; then
+            commits="$(git log --no-merges --pretty='- %s' "$prev..${GITHUB_SHA}" | head -n 30)"
+          else
+            commits="$(git log --no-merges --pretty='- %s' -n 15 "${GITHUB_SHA}")"
+          fi
+
+          {
+            # The app picks the section matching the device language between these markers
+            # (see ReleaseNotes.java); GitHub hides the HTML comments on the release page.
+            if [ -n "$zh_file" ] || [ -n "$en_file" ]; then
+              if [ -n "$zh_file" ]; then
+                echo "<!-- notes:zh-CN -->"
+                echo "## 更新内容"
+                cat "$zh_file"
+                echo
+              fi
+              if [ -n "$en_file" ]; then
+                echo "<!-- notes:en -->"
+                echo "## What's new"
+                cat "$en_file"
+                echo
+              fi
+              echo "<!-- notes:end -->"
+              echo
+            fi
+            if [ -n "$commits" ]; then
+              echo "### Commits since the previous build"
+              printf '%s\n' "$commits"
+              echo
+            fi
+            # Machine-readable commit id; the in-app update check reads this first.
+            echo "<!-- build-commit: ${GITHUB_SHA} -->"
+            echo "Automated APK build from commit ${GITHUB_SHA}."
+          } > release-notes.md
+
+          cat release-notes.md
+
       - name: Publish versioned GitHub Release
         # Only master publishes releases; other branches (manual runs) just upload build artifacts
         if: github.ref == 'refs/heads/master'
@@ -135,11 +191,11 @@ jobs:
           if gh release view "${VERSION_TAG}" >/dev/null 2>&1; then
             gh release edit "${VERSION_TAG}" \
               --title "${VERSION_TITLE}" \
-              --notes "Automated APK build from commit ${GITHUB_SHA}."
+              --notes-file release-notes.md
           else
             gh release create "${VERSION_TAG}" \
               --title "${VERSION_TITLE}" \
-              --notes "Automated APK build from commit ${GITHUB_SHA}."
+              --notes-file release-notes.md
           fi
 
           gh release upload "${VERSION_TAG}" release-apks/*.apk --clobber
@@ -158,11 +214,11 @@ jobs:
           if gh release view latest >/dev/null 2>&1; then
             gh release edit latest \
               --title "Latest Android APK" \
-              --notes "Automated APK build from commit ${GITHUB_SHA}."
+              --notes-file release-notes.md
           else
             gh release create latest \
               --title "Latest Android APK" \
-              --notes "Automated APK build from commit ${GITHUB_SHA}."
+              --notes-file release-notes.md
           fi
 
           gh release view latest --json assets --jq '.assets[].name | select(endswith(".apk"))' | while read -r asset; do

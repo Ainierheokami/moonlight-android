@@ -681,6 +681,11 @@
     <string name="update_later">Later</string>
     <string name="update_no_update_title">Moonlight is up to date</string>
     <string name="update_no_update_message">You are running %1$s.</string>
+    <string name="title_view_changelog">What\'s new</string>
+    <string name="summary_view_changelog">See what changed in the latest release</string>
+    <string name="update_changelog_title">What\'s new</string>
+    <string name="update_changelog_current_message">Current version: %1$s\nLatest release: %2$s</string>
+    <string name="update_notes_unavailable">No release notes were published for this build. Open the release page for details.</string>
     <string name="update_check_failed_title">Unable to check for updates</string>
     <string name="update_check_failed_message">Check your network connection and try again.</string>
     <string name="update_download_title">Downloading Moonlight %1$s</string>

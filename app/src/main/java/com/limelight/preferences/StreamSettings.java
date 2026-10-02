@@ -747,6 +747,14 @@ public class StreamSettings extends Activity {
                 });
             }
 
+            Preference changelogPreference = findPreference("view_changelog");
+            if (changelogPreference != null) {
+                changelogPreference.setOnPreferenceClickListener(preference -> {
+                    UpdateChecker.showChangelog(getActivity());
+                    return true;
+                });
+            }
+
             PackageManager packageManager = getActivity().getPackageManager();
 
             // hide on-screen controls category on non touch screen devices

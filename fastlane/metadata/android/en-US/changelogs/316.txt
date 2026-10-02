@@ -1,6 +1,9 @@
 - Redesigned settings with sectioned pages, cards and real slider values in the list
 - Relative mouse mode: resting-finger jitter filter with configurable hold time and tap-move range
 - Floating keyboard and stream touches now work at the same time
+- Floating keyboard now uses a 75% layout: Ins/Del/Home/End/PgUp/PgDn on the right and inverted-T arrow keys at the bottom right
+- Floating keyboard opacity is now set with a slider bubble instead of cycling presets
+- The update prompt now shows what changed, there is a new "What's new" entry in settings, and GitHub releases carry the notes too
 - Decoder: enhanced low-latency decoding, higher media thread priority, better loss recovery
 - UI text externalized; added English, Simplified and Traditional Chinese translations
 - Security: system auto backup no longer includes the client key, certificate or host database
