@@ -2,8 +2,6 @@ package com.limelight.heokami
 
 import android.app.Activity
 import android.content.SharedPreferences
-import android.os.Handler
-import android.os.Looper
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.MotionEvent
@@ -12,8 +10,6 @@ import android.view.ViewGroup
 import android.widget.Button
 import android.widget.ImageButton
 import android.widget.LinearLayout
-import android.widget.SeekBar
-import android.widget.TextView
 import android.content.Context
 import android.graphics.Color
 import android.text.SpannableString
@@ -53,9 +49,6 @@ class FloatingVirtualKeyboardFragment private constructor(private val game: Game
     private var isNumericMode = false
     private var isFunctionMode = false
     private var currentOpacity = 0.95f
-    private var opacityBubbleHandle: OverlayContainer.DialogHandle? = null
-    private val bubbleHandler = Handler(Looper.getMainLooper())
-    private val hideOpacityBubbleRunnable = Runnable { hideOpacityBubble() }
     
     // 移动相关变量
     private var isDragging = false
@@ -99,10 +92,6 @@ class FloatingVirtualKeyboardFragment private constructor(private val game: Game
         private const val KEY_NUMERIC_MODE = "numeric_mode"
         private const val KEY_FUNCTION_MODE = "function_mode"
         private const val KEY_OPACITY = "opacity"
-        private const val MIN_OPACITY_PERCENT = 20  // 再低键盘就看不见了
-        private const val OPACITY_BUBBLE_WIDTH_DP = 240
-        private const val OPACITY_BUBBLE_HEIGHT_DP = 44
-        private const val OPACITY_BUBBLE_IDLE_MS = 3000L
         private const val KEY_DRAGGING_MODE = "dragging_mode"
         private const val KEY_RESIZE_ENABLED = "resize_enabled"
         private const val KEY_KEYBOARD_WIDTH = "keyboard_width"
@@ -217,7 +206,6 @@ class FloatingVirtualKeyboardFragment private constructor(private val game: Game
         if (overlayHandle == null && rootView == null) {
             return
         }
-        hideOpacityBubble()
         saveCurrentStates()
         resetAllModifierKeys()
         overlayHandle?.remove()
@@ -237,8 +225,6 @@ class FloatingVirtualKeyboardFragment private constructor(private val game: Game
 
     override fun onActivityDestroyed(activity: Activity) {
         if (activity === game) {
-            bubbleHandler.removeCallbacks(hideOpacityBubbleRunnable)
-            opacityBubbleHandle = null
             saveCurrentStates()
             resetAllModifierKeys()
             overlayHandle = null
@@ -288,8 +274,9 @@ class FloatingVirtualKeyboardFragment private constructor(private val game: Game
         }
 
         // 透明度调整按钮
-        view.findViewById<ImageButton>(R.id.btn_opacity)?.setOnClickListener { button ->
-            toggleOpacityBubble(button, view)
+        view.findViewById<ImageButton>(R.id.btn_opacity)?.setOnClickListener {
+            Log.d("FloatingKeyboard", "Opacity button clicked")
+            adjustOpacity(view)
         } ?: Log.e("FloatingKeyboard", "btn_opacity not found in layout")
 
         // 大小调整按钮
@@ -338,7 +325,6 @@ class FloatingVirtualKeyboardFragment private constructor(private val game: Game
         button.setOnTouchListener { _, event ->
             when (event.actionMasked) {
                 MotionEvent.ACTION_DOWN -> {
-                    hideOpacityBubble()
                     handleKeyPress(button, true)
                     button.isSelected = true
                     true
@@ -571,7 +557,6 @@ class FloatingVirtualKeyboardFragment private constructor(private val game: Game
     private fun handleMoveTouch(event: MotionEvent): Boolean {
         when (event.action) {
             MotionEvent.ACTION_DOWN -> {
-                hideOpacityBubble()
                 // 记录触摸开始位置
                 lastX = event.rawX
                 lastY = event.rawY
@@ -639,7 +624,6 @@ class FloatingVirtualKeyboardFragment private constructor(private val game: Game
                 // 检测触摸位置，确定调整模式
                 resizeMode = detectResizeMode(event.x, event.y)
                 if (resizeMode != ResizeMode.NONE) {
-                    hideOpacityBubble()
                     isResizing = true
                     resizeStartX = event.rawX
                     resizeStartY = event.rawY
@@ -961,76 +945,25 @@ class FloatingVirtualKeyboardFragment private constructor(private val game: Game
     }
 
     /**
-     * 点击透明度按钮弹出小气泡，左右滑动实时调节；再次点击、触碰按键、拖动/调整大小或空闲 3 秒后收起。
-     * 气泡与键盘一样挂在 Activity 自己的视图层里，不使用独立 Window。
+     * 调整透明度
      */
-    private fun toggleOpacityBubble(anchor: View, keyboardView: View) {
-        if (opacityBubbleHandle?.isShowing == true) {
-            hideOpacityBubble()
-            return
+    private fun adjustOpacity(view: View) {
+        val oldOpacity = currentOpacity
+        
+        // 循环切换透明度: 0.95 -> 0.8 -> 0.6 -> 0.4 -> 0.95
+        currentOpacity = when {
+            currentOpacity > 0.9f -> 0.8f
+            currentOpacity > 0.7f -> 0.6f
+            currentOpacity > 0.5f -> 0.4f
+            else -> 0.95f
         }
-        val overlayManager = OverlayManager.getInstance()
-        val container = overlayManager.getContainer(game) ?: return
-
-        val bubble = LayoutInflater.from(game).inflate(R.layout.floating_opacity_bubble, null, false)
-        val seekBar = bubble.findViewById<SeekBar>(R.id.opacity_seekbar)
-        val valueText = bubble.findViewById<TextView>(R.id.opacity_value)
-
-        val percent = Math.round(currentOpacity * 100).coerceIn(MIN_OPACITY_PERCENT, 100)
-        seekBar.max = 100 - MIN_OPACITY_PERCENT
-        seekBar.progress = percent - MIN_OPACITY_PERCENT
-        valueText.text = game.getString(R.string.vk_float_opacity_percent, percent)
-
-        seekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
-            override fun onProgressChanged(bar: SeekBar, progress: Int, fromUser: Boolean) {
-                val value = progress + MIN_OPACITY_PERCENT
-                currentOpacity = value / 100f
-                valueText.text = game.getString(R.string.vk_float_opacity_percent, value)
-                applyOpacity(keyboardView)
-                if (fromUser) scheduleOpacityBubbleHide()
-            }
-
-            override fun onStartTrackingTouch(bar: SeekBar) {
-                bubbleHandler.removeCallbacks(hideOpacityBubbleRunnable)
-            }
-
-            override fun onStopTrackingTouch(bar: SeekBar) {
-                prefs.edit().putFloat(KEY_OPACITY, currentOpacity).apply()
-                scheduleOpacityBubbleHide()
-            }
-        })
-
-        // 气泡定位在按钮正下方并水平居中，下方放不下时改放上方
-        val bubbleWidth = dpToPx(OPACITY_BUBBLE_WIDTH_DP)
-        val bubbleHeight = dpToPx(OPACITY_BUBBLE_HEIGHT_DP)
-        val gap = dpToPx(6)
-        val anchorPos = IntArray(2).also { anchor.getLocationOnScreen(it) }
-        val containerPos = IntArray(2).also { container.getLocationOnScreen(it) }
-        val screen = game.resources.displayMetrics
-        val relX = anchorPos[0] - containerPos[0]
-        val relY = anchorPos[1] - containerPos[1]
-        val left = (relX + anchor.width / 2 - bubbleWidth / 2)
-            .coerceIn(0, (screen.widthPixels - bubbleWidth).coerceAtLeast(0))
-        var top = relY + anchor.height + gap
-        if (top + bubbleHeight > screen.heightPixels) {
-            top = (relY - bubbleHeight - gap).coerceAtLeast(0)
-        }
-
-        opacityBubbleHandle = overlayManager.showOverlay(
-            game, bubble, bubbleWidth, 0, left, top, false, null
-        )
-        scheduleOpacityBubbleHide()
-    }
-
-    private fun scheduleOpacityBubbleHide() {
-        bubbleHandler.removeCallbacks(hideOpacityBubbleRunnable)
-        bubbleHandler.postDelayed(hideOpacityBubbleRunnable, OPACITY_BUBBLE_IDLE_MS)
-    }
-
-    private fun hideOpacityBubble() {
-        bubbleHandler.removeCallbacks(hideOpacityBubbleRunnable)
-        opacityBubbleHandle?.remove()
-        opacityBubbleHandle = null
+        
+        Log.d("FloatingKeyboard", "Opacity changed from $oldOpacity to $currentOpacity")
+        applyOpacity(view)
+        
+        // 立即保存新的透明度设置
+        prefs.edit().putFloat(KEY_OPACITY, currentOpacity).apply()
+        Log.d("FloatingKeyboard", "Opacity saved to preferences")
     }
 
     /**

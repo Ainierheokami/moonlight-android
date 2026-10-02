@@ -219,5 +219,4 @@
     <string name="restore_credentials_toast">Settings and pairing credentials restored. No re-pairing needed. The app will restart...</string>
     <string name="restore_settings_only_success">Settings restored</string>
     <string name="restore_settings_only_toast">Settings and PC list restored. Pairing credentials were not restored, so you need to pair again. The app will restart...</string>
-    <string name="vk_float_opacity_percent">%d%%</string>
 </resources>

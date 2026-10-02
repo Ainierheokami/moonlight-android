@@ -875,5 +875,4 @@
     <string name="restore_credentials_toast">设置与配对凭据已还原，无需重新配对。应用即将自动重启...</string>
     <string name="restore_settings_only_success">设置已还原</string>
     <string name="restore_settings_only_toast">设置与电脑列表已还原，配对凭据未还原，需要重新配对。应用即将自动重启...</string>
-    <string name="vk_float_opacity_percent">%d%%</string>
 </resources>
