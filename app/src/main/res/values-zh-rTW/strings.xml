@@ -361,4 +361,10 @@
     <string name="summary_backup_system_settings">匯出已配對的電腦、串流參數與安全憑證（綁定裝置指紋）</string>
     <string name="title_restore_system_settings">還原配對與系統設定</string>
     <string name="summary_restore_system_settings">還原已配對電腦與串流參數（跨裝置匯入自動安全隔離）</string>
+    <string name="title_checkbox_touch_jitter_filter">長按防抖</string>
+    <string name="summary_checkbox_touch_jitter_filter">滑鼠模式下，手指按住不動時忽略細微抖動，避免高解析度串流時游標亂跳（不影響真實滑動的靈敏度）</string>
+    <string name="title_seekbar_touch_hold_jitter_ms">防抖生效時間</string>
+    <string name="summary_seekbar_touch_hold_jitter_ms">手指按住超過該時間後開始過濾抖動。調小更早生效，調大則起手更靈敏</string>
+    <string name="title_seekbar_touch_tap_move_dp">點擊/長按移動範圍</string>
+    <string name="summary_seekbar_touch_tap_move_dp">手指移出該範圍才算開始移動，同時決定點擊與長按的判定。高解析度或手指容易抖時調大，想要更靈敏就調小</string>
 </resources>

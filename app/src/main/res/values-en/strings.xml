@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="title_checkbox_touch_jitter_filter">Long-press jitter filter</string>
+    <string name="summary_checkbox_touch_jitter_filter">In mouse mode, ignore tiny movements of a resting finger so the cursor doesn\'t jump when streaming a high-resolution host (real swipes keep full sensitivity)</string>
+    <string name="title_seekbar_touch_hold_jitter_ms">Filter activation time</string>
+    <string name="summary_seekbar_touch_hold_jitter_ms">Start filtering jitter after the finger has rested this long. Lower filters sooner; higher keeps swipe starts more responsive</string>
+    <string name="title_seekbar_touch_tap_move_dp">Tap / long-press movement range</string>
+    <string name="summary_seekbar_touch_tap_move_dp">The finger must leave this range before it counts as moving; it also defines taps and long presses. Raise it for high-resolution hosts or a shaky finger, lower it for more sensitivity</string>
+</resources>
