@@ -661,9 +661,9 @@
     <string name="category_ui_general">常规</string>
     <string name="category_backup_restore">备份与还原</string>
     <string name="title_backup_system_settings">备份配对与系统设置</string>
-    <string name="summary_backup_system_settings">导出配对的电脑、串流参数与安全凭据（绑定设备指纹）</string>
+    <string name="summary_backup_system_settings">导出设置与已配对电脑。设置密码后还可包含配对凭据，换设备无需重新配对</string>
     <string name="title_restore_system_settings">还原配对与系统设置</string>
-    <string name="summary_restore_system_settings">还原配对电脑与串流参数（跨设备导入自动安全隔离）</string>
+    <string name="summary_restore_system_settings">还原设置与已配对电脑。输入备份密码后可一并还原配对凭据</string>
     <string name="title_checkbox_touch_jitter_filter">长按防抖</string>
     <string name="summary_checkbox_touch_jitter_filter">鼠标模式下，手指按住不动时忽略微小抖动，避免高分辨率串流时光标乱跳（不影响真实滑动的灵敏度）</string>
     <string name="title_seekbar_touch_hold_jitter_ms">防抖生效时间</string>
@@ -852,10 +852,6 @@
     <string name="backup_success">配对与设置备份成功</string>
     <string name="backup_saved_to_download">备份已保存到 Download/Moonlight</string>
     <string name="restore_in_progress">正在导入系统设置...</string>
-    <string name="restore_same_device_success">同设备全量恢复成功</string>
-    <string name="restore_same_device_toast">配对凭据与系统设置已完美全量恢复！应用即将自动重启...</string>
-    <string name="restore_cross_device_success">跨机安全降级恢复成功</string>
-    <string name="restore_cross_device_toast">跨设备导入成功！设置与电脑列表已恢复，凭证已安全隔离。应用即将自动重启...</string>
     <string name="restore_failed">设置恢复失败</string>
     <string name="restore_invalid_file">配置文件损坏或非系统备份文件，无法恢复设置</string>
     <string name="vk_float_move">移动键盘</string>
@@ -864,4 +860,19 @@
     <string name="vk_float_opacity">透明度</string>
     <string name="vk_float_resize">调整大小</string>
     <string name="vk_float_close">关闭键盘</string>
+    <string name="backup_password_title">备份密码</string>
+    <string name="backup_password_message">设置密码后，备份会包含配对凭据，换设备恢复时无需重新配对。两项都留空则只备份设置和电脑列表（恢复后需要重新配对）。忘记密码将无法找回凭据。</string>
+    <string name="backup_password_hint">密码</string>
+    <string name="backup_password_confirm_hint">确认密码</string>
+    <string name="backup_password_mismatch">两次输入的密码不一致</string>
+    <string name="backup_action_backup">备份</string>
+    <string name="restore_password_title">输入备份密码</string>
+    <string name="restore_password_message">此备份包含受密码保护的配对凭据。选择“仅还原设置”可跳过凭据。</string>
+    <string name="restore_password_wrong">密码错误，请重试</string>
+    <string name="restore_action_restore">还原</string>
+    <string name="restore_skip_credentials">仅还原设置</string>
+    <string name="restore_credentials_success">配对凭据与设置已还原</string>
+    <string name="restore_credentials_toast">设置与配对凭据已还原，无需重新配对。应用即将自动重启...</string>
+    <string name="restore_settings_only_success">设置已还原</string>
+    <string name="restore_settings_only_toast">设置与电脑列表已还原，配对凭据未还原，需要重新配对。应用即将自动重启...</string>
 </resources>

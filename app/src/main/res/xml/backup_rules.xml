@@ -2,4 +2,7 @@
 <full-backup-content>
     <!-- Don't sync preferences because it often contains device-specific data -->
     <exclude domain="sharedpref" path="."/>
+    <!-- client.key / client.crt and the paired-host database must never leave the device -->
+    <exclude domain="file" path="."/>
+    <exclude domain="database" path="."/>
 </full-backup-content>

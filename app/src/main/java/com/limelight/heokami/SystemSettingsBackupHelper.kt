@@ -21,8 +21,15 @@ import javax.crypto.spec.IvParameterSpec
 import javax.crypto.spec.SecretKeySpec
 
 /**
- * 首席架构师定制版：系统设置与配对关系备份还原助手。
- * 实现虚拟串流参数、配对电脑 SQLite 以及安全证书私钥的指纹加密存取，提供异机降级隔离免冲突保护。
+ * 系统设置与配对关系备份还原助手。
+ *
+ * 备份分两层：
+ *  - 偏好设置与主机列表：明文 JSON，不含任何密钥材料。
+ *  - 配对凭据（client.key / client.crt / uniqueid）：仅当用户设置了备份密码时导出，
+ *    使用 [BackupCrypto]（PBKDF2-HMAC-SHA256 + AES-256-GCM）加密，可在任意设备上用密码还原。
+ *    不设密码则只备份偏好设置，换设备后需重新配对。
+ *
+ * 旧版（设备指纹加密）备份只保留读取能力：旧版把密钥指纹明文写进了文件，不再生成。
  */
 object SystemSettingsBackupHelper {
     private const val TAG = "SettingsBackupHelper"
@@ -32,7 +39,7 @@ object SystemSettingsBackupHelper {
         "game_menu_prefs"
     )
     
-    // 加密配置：使用 AES-256-CBC 配合 16 字节静态 IV，保证物理指纹密文的完美对称解密
+    // 仅用于读取旧版备份（AES-256-CBC + 静态 IV + 设备指纹密钥）
     private const val AES_ALGORITHM = "AES/CBC/PKCS5Padding"
     private val STATIC_IV = byteArrayOf(10, 23, 85, 41, -102, 12, 9, 88, 77, 33, 99, -110, 4, 18, 56, 92)
 
@@ -50,14 +57,6 @@ object SystemSettingsBackupHelper {
             Log.e(TAG, "物理设备指纹密钥生成失败", e)
             ByteArray(32) // 容灾兜底
         }
-    }
-
-    private fun encrypt(data: String, key: ByteArray): String {
-        val secretKey = SecretKeySpec(key, "AES")
-        val cipher = Cipher.getInstance(AES_ALGORITHM)
-        cipher.init(Cipher.ENCRYPT_MODE, secretKey, IvParameterSpec(STATIC_IV))
-        val encrypted = cipher.doFinal(data.toByteArray(StandardCharsets.UTF_8))
-        return Base64.encodeToString(encrypted, Base64.NO_WRAP)
     }
 
     private fun decrypt(encryptedData: String, key: ByteArray): String {
@@ -166,9 +165,10 @@ object SystemSettingsBackupHelper {
 
     /**
      * 全量系统配置导出。
-     * 包括：SharedPreferences 设置参数、Computers 数据库、以及基于物理设备指纹 AES 加密处理的证书和 UniqueID。
+     * 包括：SharedPreferences 设置参数、Computers 数据库；若提供了 [password]，另含用该密码加密的证书、私钥和 UniqueID。
+     * 注意：调用含 PBKDF2，较耗时，不要在主线程执行。
      */
-    fun exportSystemBackup(context: Context): String? {
+    fun exportSystemBackup(context: Context, password: CharArray? = null): String? {
         try {
             val root = JSONObject()
             
@@ -177,10 +177,7 @@ object SystemSettingsBackupHelper {
             metadata.put("app_id", "com.limelight.heokami")
             metadata.put("backup_time", System.currentTimeMillis())
             metadata.put("type", "pairing_and_settings")
-            
-            // 记录当前物理设备的指纹 Base64，用作后期校验标识
-            val fingerprint = getDeviceFingerprint(context)
-            metadata.put("fingerprint_signature", Base64.encodeToString(fingerprint, Base64.NO_WRAP))
+            metadata.put("format_version", 2)
             root.put("metadata", metadata)
 
             // 2. 导出所有串流设置 Preferences (比特率、帧率、辅助模式开关等)
@@ -230,28 +227,21 @@ object SystemSettingsBackupHelper {
             }
             root.put("computers", computersArray)
 
-            // 4. 读取极为敏感的设备 UniqueID 和 RSA 私钥及证书，混合加密
-            val credentials = JSONObject()
-            val dataPath = context.filesDir.absolutePath
-            val uniqueIdFile = File("$dataPath/uniqueid")
-            val certFile = File("$dataPath/client.crt")
-            val keyFile = File("$dataPath/client.key")
+            // 4. 仅在用户设置了密码时导出配对凭据，且只以密文形式写入
+            if (password != null && password.isNotEmpty()) {
+                val dataPath = context.filesDir.absolutePath
+                val uniqueIdBytes = readFileBytesSafe(File("$dataPath/uniqueid"))
+                val certBytes = readFileBytesSafe(File("$dataPath/client.crt"))
+                val keyBytes = readFileBytesSafe(File("$dataPath/client.key"))
 
-            val uniqueIdBytes = readFileBytesSafe(uniqueIdFile)
-            val certBytes = readFileBytesSafe(certFile)
-            val keyBytes = readFileBytesSafe(keyFile)
-
-            if (uniqueIdBytes != null && certBytes != null && keyBytes != null) {
-                val uniqueIdStr = String(uniqueIdBytes, StandardCharsets.UTF_8).trim()
-                val certStr = String(certBytes, StandardCharsets.UTF_8)
-                val keyBase64 = Base64.encodeToString(keyBytes, Base64.NO_WRAP)
-
-                // 💥 关键防线：利用本机物理指纹 AES-256 对敏感数据执行加密，公钥证书公开发送
-                credentials.put("enc_uniqueid", encrypt(uniqueIdStr, fingerprint))
-                credentials.put("enc_client_key", encrypt(keyBase64, fingerprint))
-                credentials.put("client_crt", certStr)
-                
-                root.put("credentials", credentials)
+                if (uniqueIdBytes != null && certBytes != null && keyBytes != null) {
+                    val secrets = JSONObject()
+                    secrets.put("uniqueid", String(uniqueIdBytes, StandardCharsets.UTF_8).trim())
+                    secrets.put("client_crt", String(certBytes, StandardCharsets.UTF_8))
+                    secrets.put("client_key_b64", Base64.encodeToString(keyBytes, Base64.NO_WRAP))
+                    val blob = BackupCrypto.encrypt(password, secrets.toString().toByteArray(StandardCharsets.UTF_8))
+                    root.put("credentials_enc", Base64.encodeToString(blob, Base64.NO_WRAP))
+                }
             }
 
             // 输出 4 格美化 JSON
@@ -262,16 +252,44 @@ object SystemSettingsBackupHelper {
         return null
     }
 
+    enum class RestoreResult { CREDENTIALS_RESTORED, PREFERENCES_ONLY }
+
+    class BackupInfo(val needsPassword: Boolean, val hasLegacyCredentials: Boolean)
+
+    private class Credentials(val uniqueId: String, val certPem: String, val keyBytes: ByteArray)
+
+    /** 解析备份文件，判断是否包含需要密码才能还原的配对凭据；文件无效时抛出 [InvalidBackupException]。 */
+    fun inspectBackup(data: String): BackupInfo {
+        try {
+            val root = JSONObject(data)
+            if (!root.has("preferences") && !root.has("computers")) {
+                throw InvalidBackupException("Not a Moonlight backup file")
+            }
+            return BackupInfo(
+                needsPassword = root.has("credentials_enc"),
+                hasLegacyCredentials = root.has("credentials")
+            )
+        } catch (e: org.json.JSONException) {
+            throw InvalidBackupException("Not a valid backup file", e)
+        }
+    }
+
     /**
-     * 系统配置一键恢复。
-     * 支持自适应指纹校验：
-     *   - 指纹解密成功（本设备复原）：全量恢复所有参数、主机表及安全私钥（用户免重新配对直连）。
-     *   - 指纹解密失败（跨设备导入）：自适应安全降级自愈，只导入通用 Preferences 参数与电脑列表，主动丢弃 UniqueID 和私钥证书。
-     * @return 导入执行状态代码。1: 同机全量恢复；2: 跨设备降级安全导入。
+     * 系统配置一键恢复。凭据先解密校验，全部通过后才开始写入，密码错误时不会改动任何现有数据。
+     *
+     * @param password 备份密码；为 null 表示跳过配对凭据，只还原偏好设置与主机列表。
+     * @throws WrongPasswordException 文件含加密凭据、提供了密码但验证失败
+     * @throws InvalidBackupException 文件损坏或格式不支持
      */
-    fun importSystemBackup(context: Context, data: String): Int {
-        val root = JSONObject(data)
-        
+    fun importSystemBackup(context: Context, data: String, password: CharArray?): RestoreResult {
+        val root = try {
+            JSONObject(data)
+        } catch (e: org.json.JSONException) {
+            throw InvalidBackupException("Not a valid backup file", e)
+        }
+
+        val credentials = resolveCredentials(context, root, password)
+
         // 1. 恢复主要 Preferences 设置参数
         if (root.has("preferences")) {
             val prefsObj = root.getJSONObject("preferences")
@@ -332,7 +350,8 @@ object SystemSettingsBackupHelper {
                     pc.ipv6Address = ComputerDatabaseManager.tupleFromJson(addrObj, "ipv6")
                 }
                 
-                if (pcObj.has("server_cert_b64")) {
+                // 服务器证书只有在客户端凭据一并还原时才有意义；否则保留它会让主机显示"已配对"但实际被拒绝
+                if (credentials != null && pcObj.has("server_cert_b64")) {
                     try {
                         val certBytes = Base64.decode(pcObj.getString("server_cert_b64"), Base64.NO_WRAP)
                         pc.serverCert = certFactory.generateCertificate(java.io.ByteArrayInputStream(certBytes)) as java.security.cert.X509Certificate
@@ -342,41 +361,69 @@ object SystemSettingsBackupHelper {
                 dbManager.updateComputer(pc)
             }
             dbManager.close()
-            Log.i(TAG, "已成功批量恢复配对主机表 SQLite 数据库")
+            Log.i(TAG, "已成功批量恢复主机表 SQLite 数据库")
         }
 
-        // 3. 校验并解密核心安全凭据
+        // 3. 写入配对凭据
+        if (credentials != null) {
+            val dataPath = context.filesDir.absolutePath
+            FileOutputStream(File("$dataPath/uniqueid")).use { it.write(credentials.uniqueId.toByteArray(StandardCharsets.UTF_8)) }
+            FileOutputStream(File("$dataPath/client.crt")).use { it.write(credentials.certPem.toByteArray(StandardCharsets.UTF_8)) }
+            FileOutputStream(File("$dataPath/client.key")).use { it.write(credentials.keyBytes) }
+            Log.i(TAG, "配对凭据已还原，无需重新配对")
+            return RestoreResult.CREDENTIALS_RESTORED
+        }
+        return RestoreResult.PREFERENCES_ONLY
+    }
+
+    /** 在不修改任何现有数据的前提下取得并校验凭据；返回 null 表示这次不还原凭据。 */
+    private fun resolveCredentials(context: Context, root: JSONObject, password: CharArray?): Credentials? {
+        if (root.has("credentials_enc")) {
+            if (password == null) return null
+            val blob = try {
+                Base64.decode(root.getString("credentials_enc"), Base64.NO_WRAP)
+            } catch (e: IllegalArgumentException) {
+                throw InvalidBackupException("Corrupted credentials block", e)
+            }
+            val secrets = try {
+                JSONObject(String(BackupCrypto.decrypt(password, blob), StandardCharsets.UTF_8))
+            } catch (e: org.json.JSONException) {
+                throw InvalidBackupException("Corrupted credentials block", e)
+            }
+            return validated(
+                secrets.getString("uniqueid"),
+                secrets.getString("client_crt"),
+                Base64.decode(secrets.getString("client_key_b64"), Base64.NO_WRAP)
+            )
+        }
+
+        // 旧版备份：只有在同一台设备（指纹一致）上才能解开，跨设备一律跳过
         if (root.has("credentials")) {
-            val credentials = root.getJSONObject("credentials")
-            val fingerprint = getDeviceFingerprint(context)
-            
-            try {
-                // 尝试用当前本机的物理设备指纹密钥进行解密
-                val encUniqueId = credentials.getString("enc_uniqueid")
-                val encClientKey = credentials.getString("enc_client_key")
-                val certStr = credentials.getString("client_crt")
-
-                // 物理指纹匹配校验：若是非本机导入，该步骤解密必定会抛出解密 padding 破损异常
-                val decryptedUniqueId = decrypt(encUniqueId, fingerprint)
-                val decryptedKeyB64 = decrypt(encClientKey, fingerprint)
-                val decryptedKeyBytes = Base64.decode(decryptedKeyB64, Base64.NO_WRAP)
-
-                // 密码学解密成功 -> 说明是本台设备恢复，全量自愈还原，免二次配对
-                val dataPath = context.filesDir.absolutePath
-                
-                FileOutputStream(File("$dataPath/uniqueid")).use { it.write(decryptedUniqueId.toByteArray(StandardCharsets.UTF_8)) }
-                FileOutputStream(File("$dataPath/client.crt")).use { it.write(certStr.toByteArray(StandardCharsets.UTF_8)) }
-                FileOutputStream(File("$dataPath/client.key")).use { it.write(decryptedKeyBytes) }
-                
-                Log.i(TAG, "同机指纹解密校验通过，证书与配对 UniqueID 全量原样复原！")
-                return 1
+            val legacy = root.getJSONObject("credentials")
+            return try {
+                val fingerprint = getDeviceFingerprint(context)
+                validated(
+                    decrypt(legacy.getString("enc_uniqueid"), fingerprint),
+                    legacy.getString("client_crt"),
+                    Base64.decode(decrypt(legacy.getString("enc_client_key"), fingerprint), Base64.NO_WRAP)
+                )
             } catch (e: Exception) {
-                // 指纹不匹配 -> 自动触发安全降级（Downgrade Policy）
-                // 仅仅还原串流 Preference 和 Computers，坚决不重写 UniqueID 和 client.key，保障隔离安全
-                Log.w(TAG, "指纹密文解密失败 (异机导入或指纹变化)，安全保护激活：已跳过覆盖本机 UniqueID 和私钥", e)
+                Log.w(TAG, "旧版备份凭据无法在本设备解密，已跳过", e)
+                null
             }
         }
+        return null
+    }
 
-        return 2 // 异机安全降级导入
+    private fun validated(uniqueId: String, certPem: String, keyBytes: ByteArray): Credentials {
+        try {
+            java.security.cert.CertificateFactory.getInstance("X.509")
+                .generateCertificate(java.io.ByteArrayInputStream(certPem.toByteArray(StandardCharsets.UTF_8)))
+            java.security.KeyFactory.getInstance("RSA")
+                .generatePrivate(java.security.spec.PKCS8EncodedKeySpec(keyBytes))
+        } catch (e: Exception) {
+            throw InvalidBackupException("Credentials in backup are not a valid certificate/key pair", e)
+        }
+        return Credentials(uniqueId, certPem, keyBytes)
     }
 }

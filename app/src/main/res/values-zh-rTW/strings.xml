@@ -358,9 +358,9 @@
     <string name="category_ui_general">一般</string>
     <string name="category_backup_restore">備份與還原</string>
     <string name="title_backup_system_settings">備份配對與系統設定</string>
-    <string name="summary_backup_system_settings">匯出已配對的電腦、串流參數與安全憑證（綁定裝置指紋）</string>
+    <string name="summary_backup_system_settings">匯出設定與已配對電腦。設定密碼後還可包含配對憑證，換裝置無需重新配對</string>
     <string name="title_restore_system_settings">還原配對與系統設定</string>
-    <string name="summary_restore_system_settings">還原已配對電腦與串流參數（跨裝置匯入自動安全隔離）</string>
+    <string name="summary_restore_system_settings">還原設定與已配對電腦。輸入備份密碼後可一併還原配對憑證</string>
     <string name="title_checkbox_touch_jitter_filter">長按防抖</string>
     <string name="summary_checkbox_touch_jitter_filter">滑鼠模式下，手指按住不動時忽略細微抖動，避免高解析度串流時游標亂跳（不影響真實滑動的靈敏度）</string>
     <string name="title_seekbar_touch_hold_jitter_ms">防抖生效時間</string>
@@ -557,10 +557,6 @@
     <string name="backup_success">配對與設定備份成功</string>
     <string name="backup_saved_to_download">備份已儲存到 Download/Moonlight</string>
     <string name="restore_in_progress">正在匯入系統設定...</string>
-    <string name="restore_same_device_success">同裝置完整還原成功</string>
-    <string name="restore_same_device_toast">配對憑證與系統設定已完整還原！應用程式即將自動重新啟動...</string>
-    <string name="restore_cross_device_success">跨裝置安全降級還原成功</string>
-    <string name="restore_cross_device_toast">跨裝置匯入成功！設定與電腦清單已還原，憑證已安全隔離。應用程式即將自動重新啟動...</string>
     <string name="restore_failed">設定還原失敗</string>
     <string name="restore_invalid_file">設定檔已損壞或不是系統備份檔，無法還原設定</string>
     <string name="vk_float_move">移動鍵盤</string>
@@ -569,4 +565,19 @@
     <string name="vk_float_opacity">透明度</string>
     <string name="vk_float_resize">調整大小</string>
     <string name="vk_float_close">關閉鍵盤</string>
+    <string name="backup_password_title">備份密碼</string>
+    <string name="backup_password_message">設定密碼後，備份會包含配對憑證，換裝置還原時無需重新配對。兩欄都留空則只備份設定和電腦清單（還原後需要重新配對）。忘記密碼將無法找回憑證。</string>
+    <string name="backup_password_hint">密碼</string>
+    <string name="backup_password_confirm_hint">確認密碼</string>
+    <string name="backup_password_mismatch">兩次輸入的密碼不一致</string>
+    <string name="backup_action_backup">備份</string>
+    <string name="restore_password_title">輸入備份密碼</string>
+    <string name="restore_password_message">此備份包含受密碼保護的配對憑證。選擇「僅還原設定」可略過憑證。</string>
+    <string name="restore_password_wrong">密碼錯誤，請重試</string>
+    <string name="restore_action_restore">還原</string>
+    <string name="restore_skip_credentials">僅還原設定</string>
+    <string name="restore_credentials_success">配對憑證與設定已還原</string>
+    <string name="restore_credentials_toast">設定與配對憑證已還原，無需重新配對。應用程式即將自動重新啟動...</string>
+    <string name="restore_settings_only_success">設定已還原</string>
+    <string name="restore_settings_only_toast">設定與電腦清單已還原，配對憑證未還原，需要重新配對。應用程式即將自動重新啟動...</string>
 </resources>

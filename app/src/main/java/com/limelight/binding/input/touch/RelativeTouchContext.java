@@ -157,10 +157,8 @@ public class RelativeTouchContext implements TouchContext {
 
     private boolean isWithinTapBounds(int touchX, int touchY)
     {
-        int xDelta = Math.abs(touchX - originalTouchX);
-        int yDelta = Math.abs(touchY - originalTouchY);
-        return xDelta <= tapMovementThreshold &&
-                yDelta <= tapMovementThreshold;
+        return TouchGestureRules.isWithinTapBounds(
+                touchX - originalTouchX, touchY - originalTouchY, tapMovementThreshold);
     }
 
     private boolean isTap(long eventTime)
@@ -272,7 +270,7 @@ public class RelativeTouchContext implements TouchContext {
 
         // Check if we've exceeded the maximum distance moved. Only accumulate path length early
         // in the gesture so a resting finger's jitter can't turn a long press into a move.
-        if (eventTime - originalTouchTime > PATH_DISTANCE_WINDOW_MS) {
+        if (!TouchGestureRules.shouldAccumulatePath(eventTime - originalTouchTime, PATH_DISTANCE_WINDOW_MS)) {
             return;
         }
         distanceMoved += Math.hypot(eventX - lastTouchX, eventY - lastTouchY);
@@ -305,9 +303,8 @@ public class RelativeTouchContext implements TouchContext {
             // Long press on a high-resolution host: swallow jitter from a resting finger.
             // lastTouch is intentionally not updated, so once real movement is confirmed the
             // full displacement is still delivered and no sensitivity is lost.
-            if (jitterFilterEnabled && actionIndex == 0 && pointerCount == 1 &&
-                    !confirmedMove && !confirmedDrag &&
-                    eventTime - originalTouchTime > holdJitterTimeMs) {
+            if (TouchGestureRules.shouldSwallowJitter(jitterFilterEnabled, actionIndex, pointerCount,
+                    confirmedMove, confirmedDrag, eventTime - originalTouchTime, holdJitterTimeMs)) {
                 return true;
             }
 

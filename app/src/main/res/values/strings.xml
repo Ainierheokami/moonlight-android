@@ -737,9 +737,9 @@
     <string name="category_ui_general">General</string>
     <string name="category_backup_restore">Backup &amp; restore</string>
     <string name="title_backup_system_settings">Back up pairing and settings</string>
-    <string name="summary_backup_system_settings">Export paired PCs, streaming settings and credentials (bound to this device)</string>
+    <string name="summary_backup_system_settings">Export settings and paired PCs. Set a password to also include pairing credentials, so a new device needs no re-pairing</string>
     <string name="title_restore_system_settings">Restore pairing and settings</string>
-    <string name="summary_restore_system_settings">Restore paired PCs and streaming settings (imports from other devices are isolated automatically)</string>
+    <string name="summary_restore_system_settings">Restore settings and paired PCs. Enter the backup password to restore pairing credentials too</string>
     <string name="hint_simple_perf_overlay_template">请输入文本</string>
     <string name="title_simple_perf_overlay_template">修改精简实时信息模板</string>
     <string name="menu_unknown">未知</string>
@@ -880,10 +880,6 @@
     <string name="backup_success">配对与设置备份成功</string>
     <string name="backup_saved_to_download">备份已保存到 Download/Moonlight</string>
     <string name="restore_in_progress">正在导入系统设置...</string>
-    <string name="restore_same_device_success">同设备全量恢复成功</string>
-    <string name="restore_same_device_toast">配对凭据与系统设置已完美全量恢复！应用即将自动重启...</string>
-    <string name="restore_cross_device_success">跨机安全降级恢复成功</string>
-    <string name="restore_cross_device_toast">跨设备导入成功！设置与电脑列表已恢复，凭证已安全隔离。应用即将自动重启...</string>
     <string name="restore_failed">设置恢复失败</string>
     <string name="restore_invalid_file">配置文件损坏或非系统备份文件，无法恢复设置</string>
     <string name="vk_float_move">移动键盘</string>
@@ -892,4 +888,19 @@
     <string name="vk_float_opacity">透明度</string>
     <string name="vk_float_resize">调整大小</string>
     <string name="vk_float_close">关闭键盘</string>
+    <string name="backup_password_title">Backup password</string>
+    <string name="backup_password_message">Set a password to include pairing credentials, so you won\'t need to re-pair on a new device. Leave both fields empty to back up only settings and the PC list (you will need to re-pair). If you forget the password the credentials cannot be recovered.</string>
+    <string name="backup_password_hint">Password</string>
+    <string name="backup_password_confirm_hint">Confirm password</string>
+    <string name="backup_password_mismatch">Passwords don\'t match</string>
+    <string name="backup_action_backup">Back up</string>
+    <string name="restore_password_title">Enter backup password</string>
+    <string name="restore_password_message">This backup contains pairing credentials protected by a password. Choose "Settings only" to skip them.</string>
+    <string name="restore_password_wrong">Wrong password, please try again</string>
+    <string name="restore_action_restore">Restore</string>
+    <string name="restore_skip_credentials">Settings only</string>
+    <string name="restore_credentials_success">Restored with pairing credentials</string>
+    <string name="restore_credentials_toast">Settings and pairing credentials restored. No re-pairing needed. The app will restart...</string>
+    <string name="restore_settings_only_success">Settings restored</string>
+    <string name="restore_settings_only_toast">Settings and PC list restored. Pairing credentials were not restored, so you need to pair again. The app will restart...</string>
 </resources>

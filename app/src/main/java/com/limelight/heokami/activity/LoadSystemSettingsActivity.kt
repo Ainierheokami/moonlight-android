@@ -14,10 +14,12 @@ import com.limelight.PcView
 import com.limelight.R
 import com.limelight.heokami.FilePickerUtils
 import com.limelight.heokami.SystemSettingsBackupHelper
+import com.limelight.heokami.WrongPasswordException
+import com.limelight.utils.AppExecutors
 
 /**
  * 全量配对与设置还原的 Activity。
- * SAF 调起，并在回调中对数据流进行解密与恢复，支持异机自适应安全降级提示。
+ * SAF 调起；备份含加密配对凭据时要求输入密码（验证通过前不改动任何现有数据），也可选择只还原设置。
  * 导入成功后自动重启应用以确保所有 Preference 变更即时生效。
  */
 class LoadSystemSettingsActivity : AppCompatActivity() {
@@ -38,36 +40,17 @@ class LoadSystemSettingsActivity : AppCompatActivity() {
             mimeType = "*/*",
             callback = object : FilePickerUtils.FilePickerCallback {
                 override fun onCallBack(fileName: String, content: String, uri: Uri) {
-                    try {
-                        val result = SystemSettingsBackupHelper.importSystemBackup(this@LoadSystemSettingsActivity, content)
-                        if (result == 1) {
-                            textView.setText(R.string.restore_same_device_success)
-                            AppToast.makeText(
-                                this@LoadSystemSettingsActivity,
-                                this@LoadSystemSettingsActivity.getString(R.string.restore_same_device_toast),
-                                AppToast.LENGTH_LONG
-                            ).show()
-                        } else {
-                            textView.setText(R.string.restore_cross_device_success)
-                            AppToast.makeText(
-                                this@LoadSystemSettingsActivity,
-                                this@LoadSystemSettingsActivity.getString(R.string.restore_cross_device_toast),
-                                AppToast.LENGTH_LONG
-                            ).show()
-                        }
-                        // 给应用内提示留出可读和复制调试信息的时间
-                        restartApp()
+                    val info = try {
+                        SystemSettingsBackupHelper.inspectBackup(content)
                     } catch (e: Exception) {
                         Log.e("LoadSettingsActivity", "设置导入发生异常", e)
-                        textView.setText(R.string.restore_failed)
-                        AppToast.makeText(
-                            this@LoadSystemSettingsActivity,
-                            this@LoadSystemSettingsActivity.getString(R.string.restore_invalid_file),
-                            AppToast.LENGTH_LONG
-                        ).show()
-                        Handler(Looper.getMainLooper()).postDelayed({
-                            this@LoadSystemSettingsActivity.finish()
-                        }, 3000)
+                        showInvalidFile(textView)
+                        return
+                    }
+                    if (info.needsPassword) {
+                        promptPassword(content, textView, wrongPassword = false)
+                    } else {
+                        restore(content, null, textView)
                     }
                 }
 
@@ -79,6 +62,62 @@ class LoadSystemSettingsActivity : AppCompatActivity() {
             saveMode = false,
             intentLaunch = (savedInstanceState == null)
         )
+    }
+
+    private fun promptPassword(content: String, textView: TextView, wrongPassword: Boolean) {
+        BackupPasswordDialog.askExistingPassword(
+            this,
+            wrongPassword,
+            onPassword = { password -> restore(content, password, textView) },
+            onSkip = { restore(content, null, textView) },
+            onCancel = { finish() }
+        )
+    }
+
+    /** [password] == null restores settings and the PC list only. Runs off the main thread (PBKDF2). */
+    private fun restore(content: String, password: CharArray?, textView: TextView) {
+        textView.setText(R.string.restore_in_progress)
+        AppExecutors.execute {
+            var result: SystemSettingsBackupHelper.RestoreResult? = null
+            var wrongPassword = false
+            try {
+                result = SystemSettingsBackupHelper.importSystemBackup(this, content, password)
+            } catch (e: WrongPasswordException) {
+                wrongPassword = true
+            } catch (e: Exception) {
+                Log.e("LoadSettingsActivity", "设置导入发生异常", e)
+            } finally {
+                password?.fill('\u0000')
+            }
+            val restored = result
+            val badPassword = wrongPassword
+            runOnUiThread {
+                if (isFinishing || isDestroyed) return@runOnUiThread
+                when {
+                    badPassword -> promptPassword(content, textView, wrongPassword = true)
+                    restored == null -> showInvalidFile(textView)
+                    else -> showRestored(restored, textView)
+                }
+            }
+        }
+    }
+
+    private fun showRestored(result: SystemSettingsBackupHelper.RestoreResult, textView: TextView) {
+        val full = result == SystemSettingsBackupHelper.RestoreResult.CREDENTIALS_RESTORED
+        textView.setText(if (full) R.string.restore_credentials_success else R.string.restore_settings_only_success)
+        AppToast.makeText(
+            this,
+            getString(if (full) R.string.restore_credentials_toast else R.string.restore_settings_only_toast),
+            AppToast.LENGTH_LONG
+        ).show()
+        // 给应用内提示留出可读和复制调试信息的时间
+        restartApp()
+    }
+
+    private fun showInvalidFile(textView: TextView) {
+        textView.setText(R.string.restore_failed)
+        AppToast.makeText(this, getString(R.string.restore_invalid_file), AppToast.LENGTH_LONG).show()
+        Handler(Looper.getMainLooper()).postDelayed({ finish() }, 3000)
     }
 
     /**
