@@ -11,11 +11,12 @@ import androidx.appcompat.app.AppCompatActivity
 import com.limelight.R
 import com.limelight.heokami.FilePickerUtils
 import com.limelight.heokami.SystemSettingsBackupHelper
+import com.limelight.utils.AppExecutors
 import com.limelight.utils.AppToast
 
 /**
  * 全量配对与设置备份的 Activity。
- * SAF 调起，并将指纹加密后的备份内容保存到指定 URI。
+ * 先询问备份密码（留空则只备份设置），再导出并保存到 Download 或用户指定的 URI。
  */
 class SaveSystemSettingsActivity : AppCompatActivity() {
     private lateinit var filePicker: FilePickerUtils
@@ -30,19 +31,41 @@ class SaveSystemSettingsActivity : AppCompatActivity() {
         val button = findViewById<Button>(R.id.ok_button)
         button.setOnClickListener { finish() }
 
-        val timeStamp = java.text.SimpleDateFormat("yyyyMMdd_HHmmss", java.util.Locale.getDefault()).format(java.util.Date())
-        val defaultName = "Moonlight_System_Backup_$timeStamp.json"
-
         filePicker = FilePickerUtils(this)
-        val backupData = try {
-            SystemSettingsBackupHelper.exportSystemBackup(this@SaveSystemSettingsActivity)
-        } catch (e: Exception) {
-            Log.e("SaveSettingsActivity", "备份发生异常", e)
-            textView.setText(R.string.backup_failed)
-            AppToast.makeText(this, this@SaveSystemSettingsActivity.getString(R.string.backup_save_error_retry), AppToast.LENGTH_SHORT).show()
-            finishAfterToast()
+        if (savedInstanceState != null) {
+            // Activity was recreated while the password prompt / picker was up; start over.
+            finish()
             return
         }
+
+        BackupPasswordDialog.askNewPassword(
+            this,
+            onResult = { password -> exportInBackground(password, textView) },
+            onCancel = { finish() }
+        )
+    }
+
+    private fun exportInBackground(password: CharArray, textView: TextView) {
+        textView.setText(R.string.backup_in_progress)
+        AppExecutors.execute {
+            val result = try {
+                SystemSettingsBackupHelper.exportSystemBackup(this, password)
+            } catch (e: Exception) {
+                Log.e("SaveSettingsActivity", "备份发生异常", e)
+                null
+            } finally {
+                password.fill('\u0000')
+            }
+            runOnUiThread {
+                if (isFinishing || isDestroyed) return@runOnUiThread
+                saveBackup(result, textView)
+            }
+        }
+    }
+
+    private fun saveBackup(backupData: String?, textView: TextView) {
+        val timeStamp = java.text.SimpleDateFormat("yyyyMMdd_HHmmss", java.util.Locale.getDefault()).format(java.util.Date())
+        val defaultName = "Moonlight_System_Backup_$timeStamp.json"
 
         if (backupData == null) {
             textView.setText(R.string.backup_failed_empty_export)
@@ -82,9 +105,10 @@ class SaveSystemSettingsActivity : AppCompatActivity() {
                 }
             },
             saveMode = true,
-            intentLaunch = (savedInstanceState == null),
+            intentLaunch = true,
             defaultFileName = defaultName
         )
+    }
     }
 
     private fun finishAfterToast() {

@@ -3,5 +3,7 @@
 - Floating keyboard and stream touches now work at the same time
 - Decoder: enhanced low-latency decoding, higher media thread priority, better loss recovery
 - UI text externalized; added English, Simplified and Traditional Chinese translations
-- Security: auto backup no longer includes the client key, certificate or paired-host database (re-pair after moving devices)
+- Security: system auto backup no longer includes the client key, certificate or host database
+- Backup/restore now supports a password: pairing credentials are encrypted (PBKDF2 + AES-256-GCM) so a new device can restore them with the password and skip re-pairing; without a password only settings and the PC list are backed up
+- Fixed legacy backups embedding their own decryption key; old backups can still be restored on the original device
 - Build: release resource shrinking, PR unit-test and lint checks

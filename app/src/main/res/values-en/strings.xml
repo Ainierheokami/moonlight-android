@@ -196,10 +196,6 @@
     <string name="backup_success">Pairing and settings backed up</string>
     <string name="backup_saved_to_download">Backup saved to Download/Moonlight</string>
     <string name="restore_in_progress">Importing system settings...</string>
-    <string name="restore_same_device_success">Full restore on the same device succeeded</string>
-    <string name="restore_same_device_toast">Pairing credentials and system settings fully restored! The app will restart automatically...</string>
-    <string name="restore_cross_device_success">Cross-device safe restore succeeded</string>
-    <string name="restore_cross_device_toast">Cross-device import succeeded! Settings and the PC list were restored, and credentials were safely isolated. The app will restart automatically...</string>
     <string name="restore_failed">Settings restore failed</string>
     <string name="restore_invalid_file">The file is corrupted or isn\'t a system backup, so settings can\'t be restored</string>
     <string name="vk_float_move">Move keyboard</string>
@@ -208,4 +204,19 @@
     <string name="vk_float_opacity">Opacity</string>
     <string name="vk_float_resize">Resize</string>
     <string name="vk_float_close">Close keyboard</string>
+    <string name="backup_password_title">Backup password</string>
+    <string name="backup_password_message">Set a password to include pairing credentials, so you won\'t need to re-pair on a new device. Leave both fields empty to back up only settings and the PC list (you will need to re-pair). If you forget the password the credentials cannot be recovered.</string>
+    <string name="backup_password_hint">Password</string>
+    <string name="backup_password_confirm_hint">Confirm password</string>
+    <string name="backup_password_mismatch">Passwords don\'t match</string>
+    <string name="backup_action_backup">Back up</string>
+    <string name="restore_password_title">Enter backup password</string>
+    <string name="restore_password_message">This backup contains pairing credentials protected by a password. Choose "Settings only" to skip them.</string>
+    <string name="restore_password_wrong">Wrong password, please try again</string>
+    <string name="restore_action_restore">Restore</string>
+    <string name="restore_skip_credentials">Settings only</string>
+    <string name="restore_credentials_success">Restored with pairing credentials</string>
+    <string name="restore_credentials_toast">Settings and pairing credentials restored. No re-pairing needed. The app will restart...</string>
+    <string name="restore_settings_only_success">Settings restored</string>
+    <string name="restore_settings_only_toast">Settings and PC list restored. Pairing credentials were not restored, so you need to pair again. The app will restart...</string>
 </resources>
