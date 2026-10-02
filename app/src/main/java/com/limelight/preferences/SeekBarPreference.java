@@ -80,6 +80,10 @@ public class SeekBarPreference extends DialogPreference
     protected void onBindView(View view) {
         super.onBindView(view);
 
+        // The framework only calls onSetInitialValue() when a value is already stored, so a
+        // setting that was never changed would otherwise show 0 until its dialog is opened.
+        loadCurrentValue();
+
         TextView rowValueText = view.findViewById(R.id.settings_value);
         if (rowValueText != null) {
             rowValueText.setText(formatValue(currentValue));
@@ -92,8 +96,15 @@ public class SeekBarPreference extends DialogPreference
      */
     public void syncFromStorage() {
         if (shouldPersist()) {
-            currentValue = getPersistedInt(defaultValue);
+            loadCurrentValue();
             notifyChanged();
+        }
+    }
+
+    // Stored value if there is one, otherwise the default declared in XML
+    private void loadCurrentValue() {
+        if (shouldPersist()) {
+            currentValue = getPersistedInt(defaultValue);
         }
     }
 
@@ -102,10 +113,10 @@ public class SeekBarPreference extends DialogPreference
     {
         super.onSetInitialValue(restore, defaultValue);
         if (restore) {
-            currentValue = shouldPersist() ? getPersistedInt(this.defaultValue) : 0;
+            currentValue = shouldPersist() ? getPersistedInt(this.defaultValue) : this.defaultValue;
         }
         else {
-            currentValue = (Integer) defaultValue;
+            currentValue = defaultValue instanceof Integer ? (Integer) defaultValue : this.defaultValue;
         }
     }
 
@@ -119,9 +130,7 @@ public class SeekBarPreference extends DialogPreference
      */
     @Override
     public void showDialog(Bundle state) {
-        if (shouldPersist()) {
-            currentValue = getPersistedInt(defaultValue);
-        }
+        loadCurrentValue();
         final int[] pendingValue = { clampAndRoundValue(currentValue) };
 
         LinearLayout layout = new LinearLayout(context);
