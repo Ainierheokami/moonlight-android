@@ -41,10 +41,7 @@ jobs:
       - name: Unit tests
         run: ./gradlew :app:testNonRootDebugUnitTest --stacktrace
 
-      # The project has pre-existing lint errors (e.g. MissingClass in the manifest), so lint
-      # is advisory until a baseline is generated; the report is uploaded for review.
       - name: Lint
-        continue-on-error: true
         run: ./gradlew :app:lintNonRootDebug --stacktrace
 
       - name: Upload lint report
