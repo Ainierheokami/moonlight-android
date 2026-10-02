@@ -152,9 +152,22 @@ public final class OverlayContainer extends FrameLayout {
         dialogView.setFocusable(true);
         dialogView.setFocusableInTouchMode(true);
         dialogView.setElevation(dp(16));
-        dialogLayer.addView(dialogView, layoutParams);
 
-        DialogEntry entry = new DialogEntry(dialogView, cancelable, cancelOnTouchOutside,
+        // Non-modal floating panels are hosted next to this container (below it) instead of
+        // inside it. This container covers the whole screen, so if it owned a pointer that is
+        // held on a panel (e.g. holding Alt on the floating keyboard), any further pointer that
+        // lands inside its bounds would be assigned to it too and never reach the stream view.
+        // Hosting the panel directly keeps the touch target limited to the panel's own bounds.
+        ViewGroup host = dialogLayer;
+        if (!dimBehind && getParent() instanceof ViewGroup) {
+            host = (ViewGroup) getParent();
+            host.addView(dialogView, Math.max(0, host.indexOfChild(this)), layoutParams);
+        }
+        else {
+            dialogLayer.addView(dialogView, layoutParams);
+        }
+
+        DialogEntry entry = new DialogEntry(dialogView, host, cancelable, cancelOnTouchOutside,
                 onDismiss, dimBehind);
         dialogEntries.add(entry);
 
@@ -220,8 +233,8 @@ public final class OverlayContainer extends FrameLayout {
             return;
         }
 
-        if (entry.view.getParent() == dialogLayer) {
-            dialogLayer.removeView(entry.view);
+        if (entry.view.getParent() == entry.host) {
+            entry.host.removeView(entry.view);
         }
         handle.entry = null;
 
@@ -330,7 +343,7 @@ public final class OverlayContainer extends FrameLayout {
         }
 
         public boolean isShowing() {
-            return entry != null && entry.view.getParent() == owner.dialogLayer;
+            return entry != null && entry.view.getParent() == entry.host;
         }
 
         /** Updates a freely positioned overlay view without creating another Window. */
@@ -357,15 +370,18 @@ public final class OverlayContainer extends FrameLayout {
 
     private static final class DialogEntry {
         private final View view;
+        private final ViewGroup host;
         private final boolean cancelable;
         private final boolean cancelOnTouchOutside;
         private final Runnable onBackPressed;
         private final boolean dimBehind;
         private DialogHandle handle;
 
-        private DialogEntry(View view, boolean cancelable, boolean cancelOnTouchOutside,
-                            Runnable onBackPressed, boolean dimBehind) {
+        private DialogEntry(View view, ViewGroup host, boolean cancelable,
+                            boolean cancelOnTouchOutside, Runnable onBackPressed,
+                            boolean dimBehind) {
             this.view = view;
+            this.host = host;
             this.cancelable = cancelable;
             this.cancelOnTouchOutside = cancelOnTouchOutside;
             this.onBackPressed = onBackPressed;
