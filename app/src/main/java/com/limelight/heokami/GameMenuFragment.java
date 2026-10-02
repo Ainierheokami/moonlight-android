@@ -209,78 +209,6 @@ public class GameMenuFragment extends Fragment {
         setupBottomButtons();
     }
 
-    private enum MenuSection {
-        STREAM(R.string.game_menu_section_stream),
-        INPUT(R.string.game_menu_section_input_controls),
-        HOTKEYS(R.string.game_menu_section_hotkeys),
-        OVERLAY(R.string.game_menu_section_screen_overlay),
-        PORTALS(R.string.game_menu_section_portals),
-        CUSTOM(R.string.game_menu_section_custom_hotkeys);
-
-        final int titleRes;
-        MenuSection(int titleRes) {
-            this.titleRes = titleRes;
-        }
-    }
-
-    private static final class MenuAction {
-        final String id;
-        final int titleRes;
-        final int iconRes;
-        final MenuSection section;
-        final int priority;
-        final boolean danger;
-        final boolean visible;
-        final boolean enabled;
-        final View.OnClickListener onClick;
-        final String overrideTitle;
-
-        MenuAction(String id, int titleRes, int iconRes, MenuSection section, int priority,
-                   boolean danger, boolean visible, boolean enabled, View.OnClickListener onClick) {
-            this(id, titleRes, iconRes, section, priority, danger, visible, enabled, onClick, null);
-        }
-
-        MenuAction(String id, int titleRes, int iconRes, MenuSection section, int priority,
-                   boolean danger, boolean visible, boolean enabled, View.OnClickListener onClick,
-                   String overrideTitle) {
-            this.id = id;
-            this.titleRes = titleRes;
-            this.iconRes = iconRes;
-            this.section = section;
-            this.priority = priority;
-            this.danger = danger;
-            this.visible = visible;
-            this.enabled = enabled;
-            this.onClick = onClick;
-            this.overrideTitle = overrideTitle;
-        }
-    }
-
-    private interface SliderApplyCallback {
-        void apply(int value);
-    }
-
-    private static final class MenuSlider {
-        final int titleRes;
-        final int min;
-        final int max;
-        final int step;
-        final int defaultValue;
-        final int currentValue;
-        final SliderApplyCallback applyCallback;
-
-        MenuSlider(int titleRes, int min, int max, int step, int defaultValue,
-                   int currentValue, SliderApplyCallback applyCallback) {
-            this.titleRes = titleRes;
-            this.min = min;
-            this.max = max;
-            this.step = step;
-            this.defaultValue = defaultValue;
-            this.currentValue = currentValue;
-            this.applyCallback = applyCallback;
-        }
-    }
-
     private int dp(int value) {
         android.content.res.Resources resources = game != null ? game.getResources() : getResources();
         return (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, value, resources.getDisplayMetrics());
@@ -338,10 +266,10 @@ public class GameMenuFragment extends Fragment {
         if (dashboardContainer == null) return;
         dashboardContainer.removeAllViews();
 
-        List<MenuAction> actions = buildMenuActions();
-        for (MenuSection section : getOrderedSections()) {
-            List<MenuAction> sectionActions = new ArrayList<>();
-            for (MenuAction action : actions) {
+        List<GameMenuAction> actions = buildMenuActions();
+        for (GameMenuSection section : getOrderedSections()) {
+            List<GameMenuAction> sectionActions = new ArrayList<>();
+            for (GameMenuAction action : actions) {
                 if (action.visible && action.section == section) {
                     sectionActions.add(action);
                 }
@@ -352,10 +280,10 @@ public class GameMenuFragment extends Fragment {
         }
     }
 
-    private List<MenuSlider> buildMenuSliders(MenuSection section) {
-        List<MenuSlider> sliders = new ArrayList<>();
-        if (section == MenuSection.STREAM) {
-            sliders.add(new MenuSlider(
+    private List<GameMenuSlider> buildMenuSliders(GameMenuSection section) {
+        List<GameMenuSlider> sliders = new ArrayList<>();
+        if (section == GameMenuSection.STREAM) {
+            sliders.add(new GameMenuSlider(
                     R.string.game_menu_audio_volume,
                     Game.STREAM_AUDIO_GAIN_MIN_PERCENT,
                     Game.STREAM_AUDIO_GAIN_MAX_PERCENT,
@@ -367,8 +295,8 @@ public class GameMenuFragment extends Fragment {
                         renderStatusBar();
                     }));
         }
-        else if (section == MenuSection.INPUT) {
-            sliders.add(new MenuSlider(
+        else if (section == GameMenuSection.INPUT) {
+            sliders.add(new GameMenuSlider(
                     R.string.game_menu_touchpad_sensitivity,
                     10,
                     300,
@@ -383,30 +311,30 @@ public class GameMenuFragment extends Fragment {
         return sliders;
     }
 
-    private List<MenuAction> buildMenuActions() {
-        List<MenuAction> actions = new ArrayList<>();
-        actions.add(new MenuAction("bitrate", R.string.game_menu_adjust_bitrate_short, 0, MenuSection.STREAM, 10, false, true, true, v -> {
+    private List<GameMenuAction> buildMenuActions() {
+        List<GameMenuAction> actions = new ArrayList<>();
+        actions.add(new GameMenuAction("bitrate", R.string.game_menu_adjust_bitrate_short, 0, GameMenuSection.STREAM, 10, false, true, true, v -> {
             hideMenuWithAnimation();
             StreamBitrateMenu.show(game, conn);
         }));
-        actions.add(new MenuAction("presets", R.string.game_menu_stream_presets_short, 0, MenuSection.STREAM, 30, false, true, true, v -> {
+        actions.add(new GameMenuAction("presets", R.string.game_menu_stream_presets_short, 0, GameMenuSection.STREAM, 30, false, true, true, v -> {
             hideMenuWithAnimation();
             StreamPresetMenu.show(game, conn);
         }));
-        actions.add(new MenuAction("stream_enhance", R.string.game_menu_stream_enhance, 0, MenuSection.STREAM, 40, false, true, true, v -> {
+        actions.add(new GameMenuAction("stream_enhance", R.string.game_menu_stream_enhance, 0, GameMenuSection.STREAM, 40, false, true, true, v -> {
             hideMenuWithAnimation();
             StreamEnhanceMenu.show(game, conn);
         }));
-        actions.add(new MenuAction("switch_display", 0, 0, MenuSection.STREAM, 50, false, true, true, v -> {
+        actions.add(new GameMenuAction("switch_display", 0, 0, GameMenuSection.STREAM, 50, false, true, true, v -> {
             hideMenuWithAnimation();
             showSwitchDisplayDialog();
         }, "实时切换屏幕"));
 
-        actions.add(new MenuAction("ime", R.string.game_menu_enable_keyboard, R.drawable.ic_keyboard, MenuSection.INPUT, 10, false, true, true, v -> {
+        actions.add(new GameMenuAction("ime", R.string.game_menu_enable_keyboard, R.drawable.ic_keyboard, GameMenuSection.INPUT, 10, false, true, true, v -> {
             hideMenuWithAnimation();
             enableKeyboard();
         }));
-        actions.add(new MenuAction("floating_keyboard", R.string.game_menu_floating_keyboard, R.drawable.ic_floating_keyboard, MenuSection.INPUT, 20, false, true, true, v -> {
+        actions.add(new GameMenuAction("floating_keyboard", R.string.game_menu_floating_keyboard, R.drawable.ic_floating_keyboard, GameMenuSection.INPUT, 20, false, true, true, v -> {
             hideMenuWithAnimation();
             try {
                 FloatingVirtualKeyboardFragment.Companion.show(game);
@@ -414,52 +342,52 @@ public class GameMenuFragment extends Fragment {
                 Log.e("GameMenuFragment", "Error showing floating keyboard", e);
             }
         }));
-        actions.add(new MenuAction("full_keyboard", R.string.game_menu_full_keyboard, R.drawable.ic_full_keyboard, MenuSection.INPUT, 30, false, true, true, v -> {
+        actions.add(new GameMenuAction("full_keyboard", R.string.game_menu_full_keyboard, R.drawable.ic_full_keyboard, GameMenuSection.INPUT, 30, false, true, true, v -> {
             hideMenuWithAnimation();
             VirtualKeyboardDialogFragment.show(game);
         }));
-        actions.add(new MenuAction("send_clipboard", R.string.game_menu_send_clipboard_content, R.drawable.ic_clipboard, MenuSection.INPUT, 40, false, true, true, v -> {
+        actions.add(new GameMenuAction("send_clipboard", R.string.game_menu_send_clipboard_content, R.drawable.ic_clipboard, GameMenuSection.INPUT, 40, false, true, true, v -> {
             hideMenuWithAnimation();
             conn.sendUtf8Text(getClipboardContentAsString(game, new int[]{3}, new long[]{30}));
         }));
 
-        actions.add(new MenuAction("copy", R.string.game_menu_copy, R.drawable.ic_copy, MenuSection.HOTKEYS, 10, false, true, true, v -> runHotkey(new short[]{(short) VirtualKeyboardVkCode.VKCode.VK_LCONTROL.getCode(), (short) VirtualKeyboardVkCode.VKCode.VK_C.getCode()})));
-        actions.add(new MenuAction("paste", R.string.game_menu_paste, R.drawable.ic_paste, MenuSection.HOTKEYS, 20, false, true, true, v -> runHotkey(new short[]{(short) VirtualKeyboardVkCode.VKCode.VK_LCONTROL.getCode(), (short) VirtualKeyboardVkCode.VKCode.VK_V.getCode()})));
-        actions.add(new MenuAction("screen_keyboard", R.string.game_menu_virtual_keyboard_short, R.drawable.ic_keyboard, MenuSection.HOTKEYS, 30, false, true, true, v -> runHotkey(new short[]{(short) VirtualKeyboardVkCode.VKCode.VK_LCONTROL.getCode(), (short) VirtualKeyboardVkCode.VKCode.VK_LWIN.getCode(), (short) VirtualKeyboardVkCode.VKCode.VK_O.getCode()})));
-        actions.add(new MenuAction("alt_tab", R.string.game_menu_switch_window_short, R.drawable.ic_switch_window, MenuSection.HOTKEYS, 40, false, true, true, v -> runHotkey(new short[]{(short) VirtualKeyboardVkCode.VKCode.VK_LWIN.getCode(), (short) VirtualKeyboardVkCode.VKCode.VK_TAB.getCode()})));
-        actions.add(new MenuAction("home", R.string.game_menu_hotkey_home, R.drawable.ic_home, MenuSection.HOTKEYS, 50, false, true, true, v -> runHotkey(new short[]{(short) VirtualKeyboardVkCode.VKCode.VK_LWIN.getCode(), (short) VirtualKeyboardVkCode.VKCode.VK_D.getCode()})));
+        actions.add(new GameMenuAction("copy", R.string.game_menu_copy, R.drawable.ic_copy, GameMenuSection.HOTKEYS, 10, false, true, true, v -> runHotkey(new short[]{(short) VirtualKeyboardVkCode.VKCode.VK_LCONTROL.getCode(), (short) VirtualKeyboardVkCode.VKCode.VK_C.getCode()})));
+        actions.add(new GameMenuAction("paste", R.string.game_menu_paste, R.drawable.ic_paste, GameMenuSection.HOTKEYS, 20, false, true, true, v -> runHotkey(new short[]{(short) VirtualKeyboardVkCode.VKCode.VK_LCONTROL.getCode(), (short) VirtualKeyboardVkCode.VKCode.VK_V.getCode()})));
+        actions.add(new GameMenuAction("screen_keyboard", R.string.game_menu_virtual_keyboard_short, R.drawable.ic_keyboard, GameMenuSection.HOTKEYS, 30, false, true, true, v -> runHotkey(new short[]{(short) VirtualKeyboardVkCode.VKCode.VK_LCONTROL.getCode(), (short) VirtualKeyboardVkCode.VKCode.VK_LWIN.getCode(), (short) VirtualKeyboardVkCode.VKCode.VK_O.getCode()})));
+        actions.add(new GameMenuAction("alt_tab", R.string.game_menu_switch_window_short, R.drawable.ic_switch_window, GameMenuSection.HOTKEYS, 40, false, true, true, v -> runHotkey(new short[]{(short) VirtualKeyboardVkCode.VKCode.VK_LWIN.getCode(), (short) VirtualKeyboardVkCode.VKCode.VK_TAB.getCode()})));
+        actions.add(new GameMenuAction("home", R.string.game_menu_hotkey_home, R.drawable.ic_home, GameMenuSection.HOTKEYS, 50, false, true, true, v -> runHotkey(new short[]{(short) VirtualKeyboardVkCode.VKCode.VK_LWIN.getCode(), (short) VirtualKeyboardVkCode.VKCode.VK_D.getCode()})));
 
-        actions.add(new MenuAction("controller", R.string.game_menu_toggle_virtual_controller, 0, MenuSection.OVERLAY, 10, false, true, true, v -> {
+        actions.add(new GameMenuAction("controller", R.string.game_menu_toggle_virtual_controller, 0, GameMenuSection.OVERLAY, 10, false, true, true, v -> {
             hideMenuWithAnimation();
             game.toggleVirtualController();
         }));
-        actions.add(new MenuAction("virtual_keyboard", R.string.game_menu_toggle_virtual_keyboard, 0, MenuSection.OVERLAY, 20, false, true, true, v -> {
+        actions.add(new GameMenuAction("virtual_keyboard", R.string.game_menu_toggle_virtual_keyboard, 0, GameMenuSection.OVERLAY, 20, false, true, true, v -> {
             hideMenuWithAnimation();
             game.toggleVirtualKeyboard();
             AppToast.makeText(game, game.getString(R.string.game_menu_toggle_virtual_keyboard_toast), AppToast.LENGTH_SHORT).show();
         }));
-        actions.add(new MenuAction("edit_virtual_keyboard", R.string.game_menu_edit_virtual_keyboard, 0, MenuSection.OVERLAY, 30, false, true, true, v -> openVirtualKeyboardEditor()));
-        actions.add(new MenuAction("perf", R.string.game_menu_toggle_perf_overlay, 0, MenuSection.OVERLAY, 40, false, true, true, v -> {
+        actions.add(new GameMenuAction("edit_virtual_keyboard", R.string.game_menu_edit_virtual_keyboard, 0, GameMenuSection.OVERLAY, 30, false, true, true, v -> openVirtualKeyboardEditor()));
+        actions.add(new GameMenuAction("perf", R.string.game_menu_toggle_perf_overlay, 0, GameMenuSection.OVERLAY, 40, false, true, true, v -> {
             hideMenuWithAnimation();
             game.togglePerfOverlay();
         }));
 
-        actions.add(new MenuAction("portal_toggle", game.arePortalsEnabled() ? R.string.game_menu_portal_disable : R.string.game_menu_portal_enable, 0, MenuSection.PORTALS, 10, false, true, game.getPortalManagerView() != null, v -> togglePortals()));
-        actions.add(new MenuAction("portal_add", R.string.game_menu_portal_add, 0, MenuSection.PORTALS, 20, false, true, game.getPortalManagerView() != null, v -> addPortal()));
-        actions.add(new MenuAction("portal_edit", R.string.game_menu_portal_toggle_edit, 0, MenuSection.PORTALS, 30, false, true, game.getPortalManagerView() != null, v -> togglePortalEditMode()));
-        actions.add(new MenuAction("portal_manage", R.string.game_menu_portal_manage, 0, MenuSection.PORTALS, 40, false, true, game.getPortalManagerView() != null, v -> showPortalManagerDialog()));
+        actions.add(new GameMenuAction("portal_toggle", game.arePortalsEnabled() ? R.string.game_menu_portal_disable : R.string.game_menu_portal_enable, 0, GameMenuSection.PORTALS, 10, false, true, game.getPortalManagerView() != null, v -> togglePortals()));
+        actions.add(new GameMenuAction("portal_add", R.string.game_menu_portal_add, 0, GameMenuSection.PORTALS, 20, false, true, game.getPortalManagerView() != null, v -> addPortal()));
+        actions.add(new GameMenuAction("portal_edit", R.string.game_menu_portal_toggle_edit, 0, GameMenuSection.PORTALS, 30, false, true, game.getPortalManagerView() != null, v -> togglePortalEditMode()));
+        actions.add(new GameMenuAction("portal_manage", R.string.game_menu_portal_manage, 0, GameMenuSection.PORTALS, 40, false, true, game.getPortalManagerView() != null, v -> showPortalManagerDialog()));
 
-        actions.add(new MenuAction("section_order", R.string.game_menu_section_order, 0, MenuSection.CUSTOM, 5, false, true, true, v -> showSectionOrderDialog()));
-        actions.add(new MenuAction("edit_hotkeys", R.string.game_menu_edit_hotkeys, 0, MenuSection.CUSTOM, 10, false, true, true, v -> openCustomHotkeyManager()));
+        actions.add(new GameMenuAction("section_order", R.string.game_menu_section_order, 0, GameMenuSection.CUSTOM, 5, false, true, true, v -> showSectionOrderDialog()));
+        actions.add(new GameMenuAction("edit_hotkeys", R.string.game_menu_edit_hotkeys, 0, GameMenuSection.CUSTOM, 10, false, true, true, v -> openCustomHotkeyManager()));
         List<CustomHotkeysManager.CustomHotkey> customItems = CustomHotkeysManager.load(game);
         int priority = 20;
         for (CustomHotkeysManager.CustomHotkey item : customItems) {
-            actions.add(new MenuAction("custom_" + item.name, 0, 0, MenuSection.CUSTOM, priority++, false, true, true, v -> runCustomHotkey(item), item.name));
+            actions.add(new GameMenuAction("custom_" + item.name, 0, 0, GameMenuSection.CUSTOM, priority++, false, true, true, v -> runCustomHotkey(item), item.name));
         }
         return actions;
     }
 
-    private void addSection(MenuSection section, List<MenuAction> actions) {
+    private void addSection(GameMenuSection section, List<GameMenuAction> actions) {
         TextView title = new TextView(game);
         title.setText(section.titleRes);
         title.setTextColor(0xFFB8B8B8);
@@ -468,7 +396,7 @@ public class GameMenuFragment extends Fragment {
         title.setPadding(dp(4), dp(8), dp(4), dp(4));
         dashboardContainer.addView(title);
 
-        for (MenuSlider slider : buildMenuSliders(section)) {
+        for (GameMenuSlider slider : buildMenuSliders(section)) {
             dashboardContainer.addView(createSliderRow(slider));
         }
 
@@ -476,12 +404,12 @@ public class GameMenuFragment extends Fragment {
         grid.setColumnCount(2);
         dashboardContainer.addView(grid, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
 
-        for (MenuAction action : actions) {
+        for (GameMenuAction action : actions) {
             grid.addView(createActionButton(action));
         }
     }
 
-    private View createSliderRow(MenuSlider slider) {
+    private View createSliderRow(GameMenuSlider slider) {
         LinearLayout row = new LinearLayout(game);
         row.setOrientation(LinearLayout.HORIZONTAL);
         row.setGravity(android.view.Gravity.CENTER_VERTICAL);
@@ -550,16 +478,16 @@ public class GameMenuFragment extends Fragment {
         return row;
     }
 
-    private int valueToProgress(MenuSlider slider, int value) {
+    private int valueToProgress(GameMenuSlider slider, int value) {
         int clampedValue = Math.max(slider.min, Math.min(slider.max, value));
         return (clampedValue - slider.min) / slider.step;
     }
 
-    private int progressToValue(MenuSlider slider, int progress) {
+    private int progressToValue(GameMenuSlider slider, int progress) {
         return Math.max(slider.min, Math.min(slider.max, slider.min + progress * slider.step));
     }
 
-    private void updateSliderLabel(TextView label, MenuSlider slider, int value) {
+    private void updateSliderLabel(TextView label, GameMenuSlider slider, int value) {
         label.setText(getString(slider.titleRes) + "\n" + value + "%");
     }
 
@@ -569,7 +497,7 @@ public class GameMenuFragment extends Fragment {
         return game.getResources().getDrawable(outValue.resourceId);
     }
 
-    private void showSliderValueDialog(MenuSlider slider, SeekBar seekBar, TextView label, int[] currentValue) {
+    private void showSliderValueDialog(GameMenuSlider slider, SeekBar seekBar, TextView label, int[] currentValue) {
         EditText input = new EditText(game);
         input.setInputType(InputType.TYPE_CLASS_NUMBER);
         input.setSingleLine(true);
@@ -615,22 +543,22 @@ public class GameMenuFragment extends Fragment {
         input.requestFocus();
     }
 
-    private int normalizeSliderValue(MenuSlider slider, int value) {
+    private int normalizeSliderValue(GameMenuSlider slider, int value) {
         int clamped = Math.max(slider.min, Math.min(slider.max, value));
         int offset = clamped - slider.min;
         int roundedSteps = Math.round(offset / (float) slider.step);
         return Math.max(slider.min, Math.min(slider.max, slider.min + roundedSteps * slider.step));
     }
 
-    private List<MenuSection> getOrderedSections() {
-        List<MenuSection> ordered = new ArrayList<>();
+    private List<GameMenuSection> getOrderedSections() {
+        List<GameMenuSection> ordered = new ArrayList<>();
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(game);
         String savedOrder = prefs.getString(PREF_GAME_MENU_SECTION_ORDER, null);
         if (savedOrder != null) {
             String[] names = savedOrder.split(",");
             for (String name : names) {
                 try {
-                    MenuSection section = MenuSection.valueOf(name);
+                    GameMenuSection section = GameMenuSection.valueOf(name);
                     if (!ordered.contains(section)) {
                         ordered.add(section);
                     }
@@ -639,7 +567,7 @@ public class GameMenuFragment extends Fragment {
             }
         }
 
-        for (MenuSection section : MenuSection.values()) {
+        for (GameMenuSection section : GameMenuSection.values()) {
             if (!ordered.contains(section)) {
                 ordered.add(section);
             }
@@ -647,9 +575,9 @@ public class GameMenuFragment extends Fragment {
         return ordered;
     }
 
-    private void saveSectionOrder(List<MenuSection> sections) {
+    private void saveSectionOrder(List<GameMenuSection> sections) {
         StringBuilder builder = new StringBuilder();
-        for (MenuSection section : sections) {
+        for (GameMenuSection section : sections) {
             if (builder.length() > 0) {
                 builder.append(',');
             }
@@ -669,7 +597,7 @@ public class GameMenuFragment extends Fragment {
     }
 
     private void showSectionOrderDialog() {
-        List<MenuSection> sections = new ArrayList<>(getOrderedSections());
+        List<GameMenuSection> sections = new ArrayList<>(getOrderedSections());
         View dialogView = LayoutInflater.from(game).inflate(R.layout.dialog_section_order, null);
         TextView subtitle = dialogView.findViewById(R.id.sectionOrderSubtitle);
         RecyclerView recyclerView = dialogView.findViewById(R.id.sectionOrderList);
@@ -739,16 +667,16 @@ public class GameMenuFragment extends Fragment {
 
     public static List<String> debugSectionOrderTitles() {
         List<String> titles = new ArrayList<>();
-        for (MenuSection section : MenuSection.values()) {
+        for (GameMenuSection section : GameMenuSection.values()) {
             titles.add(section.name());
         }
         return titles;
     }
 
     private final class SectionOrderAdapter extends RecyclerView.Adapter<SectionOrderAdapter.SectionViewHolder> {
-        private final List<MenuSection> sections;
+        private final List<GameMenuSection> sections;
 
-        SectionOrderAdapter(List<MenuSection> sections) {
+        SectionOrderAdapter(List<GameMenuSection> sections) {
             this.sections = sections;
         }
 
@@ -760,7 +688,7 @@ public class GameMenuFragment extends Fragment {
 
         @Override
         public void onBindViewHolder(SectionViewHolder holder, int position) {
-            MenuSection section = sections.get(position);
+            GameMenuSection section = sections.get(position);
             holder.titleView.setText(getString(section.titleRes));
             holder.subtitleView.setText(position == 0
                     ? getString(R.string.game_menu_section_order_first)
@@ -783,7 +711,7 @@ public class GameMenuFragment extends Fragment {
             if (from < 0 || to < 0 || from >= sections.size() || to >= sections.size() || from == to) {
                 return;
             }
-            MenuSection section = sections.remove(from);
+            GameMenuSection section = sections.remove(from);
             sections.add(to, section);
             notifyItemMoved(from, to);
             notifyItemRangeChanged(Math.min(from, to), Math.abs(from - to) + 1);
@@ -805,7 +733,7 @@ public class GameMenuFragment extends Fragment {
         }
     }
 
-    private Button createActionButton(MenuAction action) {
+    private Button createActionButton(GameMenuAction action) {
         Button button = new Button(game);
         button.setAllCaps(false);
         button.setText(action.overrideTitle != null ? action.overrideTitle : getString(action.titleRes));
