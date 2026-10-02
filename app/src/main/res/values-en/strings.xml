@@ -202,6 +202,7 @@
     <string name="vk_float_numpad">Number pad</string>
     <string name="vk_float_function_keys">Function keys</string>
     <string name="vk_float_opacity">Opacity</string>
+    <string name="vk_float_opacity_percent">%d%%</string>
     <string name="vk_float_resize">Resize</string>
     <string name="vk_float_close">Close keyboard</string>
     <string name="backup_password_title">Backup password</string>

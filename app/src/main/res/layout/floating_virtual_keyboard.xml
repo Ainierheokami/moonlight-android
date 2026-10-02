@@ -86,7 +86,7 @@
             android:orientation="vertical"
             android:baselineAligned="false">
 
-            <!-- 第一行：ESC F1-F12 -->
+            <!-- 第一行：Esc、F1-F12、空隙、Ins、Del（总权重 16） -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -184,9 +184,30 @@
                     android:tag="0x7B"
                     android:text="F12" />
 
+                <View
+                    android:layout_width="0dp"
+                    android:layout_height="1dp"
+                    android:layout_weight="1" />
+
+                <Button
+                    style="@style/FloatingKeyboardButtonEnhanced"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:tag="0x2D"
+                    android:textSize="8sp"
+                    android:text="Ins" />
+
+                <Button
+                    style="@style/FloatingKeyboardButtonEnhanced"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:tag="0x2E"
+                    android:textSize="8sp"
+                    android:text="Del" />
+
             </LinearLayout>
 
-            <!-- 第二行：数字键 -->
+            <!-- 第二行：数字键 + Backspace + Home（总权重 16） -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -287,13 +308,21 @@
                 <Button
                     style="@style/FloatingKeyboardButtonEnhanced"
                     android:layout_width="0dp"
-                    android:layout_weight="1.5"
+                    android:layout_weight="2"
                     android:tag="0x08"
-                    android:text="←" />
+                    android:text="Bksp" />
+
+                <Button
+                    style="@style/FloatingKeyboardButtonEnhanced"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:tag="0x24"
+                    android:textSize="8sp"
+                    android:text="Home" />
 
             </LinearLayout>
 
-            <!-- 第三行：QWERTY -->
+            <!-- 第三行：Tab + QWERTY + PgUp（总权重 16） -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -303,7 +332,7 @@
                 <Button
                     style="@style/FloatingKeyboardButtonEnhanced"
                     android:layout_width="0dp"
-                    android:layout_weight="1.2"
+                    android:layout_weight="1.5"
                     android:tag="0x09"
                     android:text="Tab" />
 
@@ -394,13 +423,21 @@
                 <Button
                     style="@style/FloatingKeyboardButtonEnhanced"
                     android:layout_width="0dp"
-                    android:layout_weight="1"
+                    android:layout_weight="1.5"
                     android:tag="0xDC"
                     android:text="\\" />
 
+                <Button
+                    style="@style/FloatingKeyboardButtonEnhanced"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:tag="0x21"
+                    android:textSize="8sp"
+                    android:text="PgUp" />
+
             </LinearLayout>
 
-            <!-- 第四行：ASDF -->
+            <!-- 第四行：Caps + ASDF + Enter + PgDn（总权重 16） -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -410,7 +447,7 @@
                 <Button
                     style="@style/FloatingKeyboardButtonEnhanced"
                     android:layout_width="0dp"
-                    android:layout_weight="1.4"
+                    android:layout_weight="1.75"
                     android:tag="0x14"
                     android:text="Caps" />
 
@@ -494,13 +531,21 @@
                 <Button
                     style="@style/FloatingKeyboardButtonEnhanced"
                     android:layout_width="0dp"
-                    android:layout_weight="1.6"
+                    android:layout_weight="2.25"
                     android:tag="0x0D"
                     android:text="Enter" />
 
+                <Button
+                    style="@style/FloatingKeyboardButtonEnhanced"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:tag="0x22"
+                    android:textSize="8sp"
+                    android:text="PgDn" />
+
             </LinearLayout>
 
-            <!-- 第五行：ZXCV -->
+            <!-- 第五行：Shift + ZXCV + Shift + ↑ + End（总权重 16） -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -510,7 +555,7 @@
                 <Button
                     style="@style/FloatingKeyboardButtonEnhanced"
                     android:layout_width="0dp"
-                    android:layout_weight="1.6"
+                    android:layout_weight="2.25"
                     android:tag="0xA0"
                     android:text="Shift" />
 
@@ -587,13 +632,28 @@
                 <Button
                     style="@style/FloatingKeyboardButtonEnhanced"
                     android:layout_width="0dp"
-                    android:layout_weight="1.6"
+                    android:layout_weight="1.75"
                     android:tag="0xA1"
                     android:text="Shift" />
 
+                <Button
+                    style="@style/FloatingKeyboardButtonEnhanced"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:tag="0x26"
+                    android:text="↑" />
+
+                <Button
+                    style="@style/FloatingKeyboardButtonEnhanced"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:tag="0x23"
+                    android:textSize="8sp"
+                    android:text="End" />
+
             </LinearLayout>
 
-            <!-- 第六行：空格行 -->
+            <!-- 第六行：空格行 + ← ↓ →（与上一行的 ↑ 组成倒 T 方向键）（总权重 16） -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -603,28 +663,28 @@
                 <Button
                     style="@style/FloatingKeyboardButtonEnhanced"
                     android:layout_width="0dp"
-                    android:layout_weight="1.2"
+                    android:layout_weight="1.25"
                     android:tag="0xA2"
                     android:text="Ctrl" />
 
                 <Button
                     style="@style/FloatingKeyboardButtonEnhanced"
                     android:layout_width="0dp"
-                    android:layout_weight="1"
+                    android:layout_weight="1.25"
                     android:tag="0x5B"
                     android:text="Win" />
 
                 <Button
                     style="@style/FloatingKeyboardButtonEnhanced"
                     android:layout_width="0dp"
-                    android:layout_weight="1"
+                    android:layout_weight="1.25"
                     android:tag="0xA4"
                     android:text="Alt" />
 
                 <Button
                     style="@style/FloatingKeyboardButtonEnhanced"
                     android:layout_width="0dp"
-                    android:layout_weight="6"
+                    android:layout_weight="6.25"
                     android:tag="0x20"
                     android:text="Space" />
 
@@ -645,24 +705,9 @@
                 <Button
                     style="@style/FloatingKeyboardButtonEnhanced"
                     android:layout_width="0dp"
-                    android:layout_weight="1.2"
+                    android:layout_weight="1"
                     android:tag="0xA3"
                     android:text="Ctrl" />
-
-            </LinearLayout>
-
-            <!-- 第七行：方向键 -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:baselineAligned="false"
-                android:gravity="center">
-
-                <View
-                    android:layout_width="0dp"
-                    android:layout_height="1dp"
-                    android:layout_weight="3" />
 
                 <Button
                     style="@style/FloatingKeyboardButtonEnhanced"
@@ -682,20 +727,8 @@
                     style="@style/FloatingKeyboardButtonEnhanced"
                     android:layout_width="0dp"
                     android:layout_weight="1"
-                    android:tag="0x26"
-                    android:text="↑" />
-
-                <Button
-                    style="@style/FloatingKeyboardButtonEnhanced"
-                    android:layout_width="0dp"
-                    android:layout_weight="1"
                     android:tag="0x27"
                     android:text="→" />
-
-                <View
-                    android:layout_width="0dp"
-                    android:layout_height="1dp"
-                    android:layout_weight="3" />
 
             </LinearLayout>
 
