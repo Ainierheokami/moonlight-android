@@ -247,6 +247,12 @@
     <!-- 默认触摸板速度设置 -->
     <string name="title_seekbar_default_touchpad_sensitivity">默认触摸板速度</string>
     <string name="summary_seekbar_default_touchpad_sensitivity">调节触摸板相对移动速度（10% - 300%）</string>
+    <string name="title_checkbox_touch_jitter_filter">长按防抖</string>
+    <string name="summary_checkbox_touch_jitter_filter">鼠标模式下，手指按住不动时忽略微小抖动，避免高分辨率串流时光标乱跳（不影响真实滑动的灵敏度）</string>
+    <string name="title_seekbar_touch_hold_jitter_ms">防抖生效时间</string>
+    <string name="summary_seekbar_touch_hold_jitter_ms">手指按住超过该时间后开始过滤抖动。调小更早生效，调大则起手更灵敏</string>
+    <string name="title_seekbar_touch_tap_move_dp">点击/长按移动范围</string>
+    <string name="summary_seekbar_touch_tap_move_dp">手指移出该范围才算开始移动，同时决定点击与长按的判定。高分辨率或手指容易抖时调大，想要更灵敏就调小</string>
 
     <string name="category_host_settings">Host Settings</string>
     <string name="title_checkbox_enable_sops">Optimize game settings</string>

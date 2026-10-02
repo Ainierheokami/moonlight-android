@@ -87,20 +87,19 @@ public class RelativeTouchContext implements TouchContext {
             }
     };
 
-    // Minimum thresholds in raw touch pixels; scaled up on dense screens via dp (see constructor)
-    private static final int TAP_MOVEMENT_THRESHOLD_MIN_PX = 20;
-    private static final int TAP_DISTANCE_THRESHOLD_MIN_PX = 25;
-    private static final float TAP_MOVEMENT_THRESHOLD_DP = 8f;
-    private static final float TAP_DISTANCE_THRESHOLD_DP = 10f;
+    // Tap bounds are configured in dp (see PreferenceConfiguration) so they behave the same on
+    // dense screens; the accumulated path distance allows 25% more than the displacement.
+    private static final float TAP_DISTANCE_FACTOR = 1.25f;
     // Once the finger has rested this long without leaving the tap bounds, we treat further
     // sub-threshold motion as finger jitter (long press) and stop forwarding it to the host,
     // where it would be amplified by the host/phone resolution ratio.
-    private static final int HOLD_JITTER_TIME_MS = 150;
     // Accumulated path length only counts as "move" during this initial window; afterwards
     // resting-finger jitter would otherwise add up and cancel a long press / drag.
     private static final int PATH_DISTANCE_WINDOW_MS = 200;
     private final int tapMovementThreshold;
     private final int tapDistanceThreshold;
+    private final boolean jitterFilterEnabled;
+    private final int holdJitterTimeMs;
     private static final int TAP_TIME_THRESHOLD = 250;
     private static final int DRAG_TIME_THRESHOLD = 650;
 
@@ -127,10 +126,11 @@ public class RelativeTouchContext implements TouchContext {
         this.handler = new Handler(Looper.getMainLooper());
 
         float density = view != null ? view.getResources().getDisplayMetrics().density : 1f;
-        this.tapMovementThreshold = Math.max(TAP_MOVEMENT_THRESHOLD_MIN_PX,
-                Math.round(TAP_MOVEMENT_THRESHOLD_DP * density));
-        this.tapDistanceThreshold = Math.max(TAP_DISTANCE_THRESHOLD_MIN_PX,
-                Math.round(TAP_DISTANCE_THRESHOLD_DP * density));
+        int moveDp = prefConfig != null ? prefConfig.touchTapMoveDp : PreferenceConfiguration.DEFAULT_TOUCH_TAP_MOVE_DP;
+        this.tapMovementThreshold = Math.max(1, Math.round(moveDp * density));
+        this.tapDistanceThreshold = Math.round(tapMovementThreshold * TAP_DISTANCE_FACTOR);
+        this.jitterFilterEnabled = prefConfig == null || prefConfig.touchJitterFilter;
+        this.holdJitterTimeMs = prefConfig != null ? prefConfig.touchHoldJitterMs : PreferenceConfiguration.DEFAULT_TOUCH_HOLD_JITTER_MS;
 
         // 初始化默认触摸板灵敏度（全局设置），虚拟键盘元素会在各自构造/设置时覆盖该值
         try {
@@ -305,8 +305,9 @@ public class RelativeTouchContext implements TouchContext {
             // Long press on a high-resolution host: swallow jitter from a resting finger.
             // lastTouch is intentionally not updated, so once real movement is confirmed the
             // full displacement is still delivered and no sensitivity is lost.
-            if (actionIndex == 0 && pointerCount == 1 && !confirmedMove && !confirmedDrag &&
-                    eventTime - originalTouchTime > HOLD_JITTER_TIME_MS) {
+            if (jitterFilterEnabled && actionIndex == 0 && pointerCount == 1 &&
+                    !confirmedMove && !confirmedDrag &&
+                    eventTime - originalTouchTime > holdJitterTimeMs) {
                 return true;
             }
 
