@@ -644,7 +644,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         } catch (SecurityException e) {
             // Some Samsung Galaxy S10+/S10e devices throw a SecurityException from
             // WifiLock.acquire() even though we have android.permission.WAKE_LOCK in our manifest.
-            e.printStackTrace();
+            LimeLog.warning(e);
         }
 
         appName = Game.this.getIntent().getStringExtra(EXTRA_APP_NAME);
@@ -667,7 +667,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
                         .generateCertificate(new ByteArrayInputStream(derCertData));
             }
         } catch (CertificateException e) {
-            e.printStackTrace();
+            LimeLog.warning(e);
         }
 
         if (appId == StreamConfiguration.INVALID_APP_ID) {
@@ -1170,7 +1170,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
                     // than crashing.
                     enterPictureInPictureMode(getPictureInPictureParams(false));
                 } catch (Exception e) {
-                    e.printStackTrace();
+                    LimeLog.warning(e);
                 }
             }
         }
@@ -1590,7 +1590,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
             UiHelper.notifyStreamEnteringPiP(this);
         } catch (Exception e) {
             Log.e("MoonReconnect", "[Game] suspendConnection: exception during background suspension: " + e.getMessage());
-            e.printStackTrace();
+            LimeLog.warning(e);
         }
         
         // 确保遮罩层保持显示（因为已经断开），直到Resume时淡出
@@ -5101,7 +5101,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
                     .generateCertificate(new ByteArrayInputStream(lastServCert));
             }
         } catch (CertificateException e) {
-            e.printStackTrace();
+            LimeLog.warning(e);
         }
 
         conn = new NvConnection(getApplicationContext(),
@@ -5259,7 +5259,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
                             java.security.cert.CertificateFactory cf = java.security.cert.CertificateFactory.getInstance("X.509");
                             serverCert = (java.security.cert.X509Certificate) cf.generateCertificate(new java.io.ByteArrayInputStream(certBytes));
                         } catch (Exception e) {
-                            e.printStackTrace();
+                            LimeLog.warning(e);
                         }
                     }
                     
@@ -5278,7 +5278,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
                     }
                 } catch (Exception e) {
                     LimeLog.severe("Failed to send quitApp request: " + e.getMessage());
-                    e.printStackTrace();
+                    LimeLog.warning(e);
                 }
             }
         }).start();

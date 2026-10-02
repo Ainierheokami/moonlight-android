@@ -1,0 +1,40 @@
+name: PR Check
+
+on:
+  pull_request:
+
+jobs:
+  check:
+    name: Unit tests and lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Install Android packages
+        run: |
+          yes | sdkmanager --licenses >/dev/null
+          sdkmanager --install "platforms;android-35" "build-tools;35.0.0" "ndk;27.0.12077973"
+
+      - name: Normalize CI Gradle properties
+        run: |
+          sed -i '/^systemProp\.http\.proxy/d' gradle.properties
+          sed -i '/^systemProp\.https\.proxy/d' gradle.properties
+
+      - run: chmod +x ./gradlew
+
+      - name: Unit tests
+        run: ./gradlew :app:testNonRootDebugUnitTest --stacktrace
+
+      - name: Lint
+        run: ./gradlew :app:lintNonRootDebug --stacktrace

@@ -103,7 +103,7 @@ public class ShortcutTrampoline extends Activity {
                                 } catch (IOException e) {
                                     // If we got an exception, we couldn't send a single WoL packet,
                                     // so fallthrough into the offline error path.
-                                    e.printStackTrace();
+                                    LimeLog.warning(e);
                                 }
                             }
 

@@ -622,13 +622,13 @@ public class ControllerHandler implements InputManager.InputDeviceListener, UsbD
             try {
                 return (Boolean) dev.getClass().getMethod("hasButtonUnderPad").invoke(dev);
             } catch (NoSuchMethodException e) {
-                e.printStackTrace();
+                LimeLog.warning(e);
             } catch (IllegalAccessException e) {
-                e.printStackTrace();
+                LimeLog.warning(e);
             } catch (InvocationTargetException e) {
-                e.printStackTrace();
+                LimeLog.warning(e);
             } catch (ClassCastException e) {
-                e.printStackTrace();
+                LimeLog.warning(e);
             }
         }
 
@@ -667,13 +667,13 @@ public class ControllerHandler implements InputManager.InputDeviceListener, UsbD
                 // Landroid/view/InputDevice;->isExternal()Z is on the light graylist in Android P
                 return (Boolean)dev.getClass().getMethod("isExternal").invoke(dev);
             } catch (NoSuchMethodException e) {
-                e.printStackTrace();
+                LimeLog.warning(e);
             } catch (IllegalAccessException e) {
-                e.printStackTrace();
+                LimeLog.warning(e);
             } catch (InvocationTargetException e) {
-                e.printStackTrace();
+                LimeLog.warning(e);
             } catch (ClassCastException e) {
-                e.printStackTrace();
+                LimeLog.warning(e);
             }
         }
 
@@ -2383,7 +2383,7 @@ public class ControllerHandler implements InputManager.InputDeviceListener, UsbD
             try {
                 Thread.sleep(ControllerHandler.MINIMUM_BUTTON_DOWN_TIME_MS - buttonDownTime);
             } catch (InterruptedException e) {
-                e.printStackTrace();
+                LimeLog.warning(e);
 
                 // InterruptedException clears the thread's interrupt status. Since we can't
                 // handle that here, we will re-interrupt the thread to set the interrupt

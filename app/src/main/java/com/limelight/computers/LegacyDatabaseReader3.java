@@ -1,5 +1,6 @@
 package com.limelight.computers;
 
+import com.limelight.LimeLog;
 import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
@@ -79,7 +80,7 @@ public class LegacyDatabaseReader3 {
                         .generateCertificate(new ByteArrayInputStream(derCertData));
             }
         } catch (CertificateException e) {
-            e.printStackTrace();
+            LimeLog.warning(e);
         }
 
         // This signifies we don't have dynamic state (like pair state)

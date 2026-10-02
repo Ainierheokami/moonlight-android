@@ -99,7 +99,7 @@ public class NvConnection {
 
             return keyGen.generateKey();
         } catch (NoSuchAlgorithmException e) {
-            e.printStackTrace();
+            LimeLog.warning(e);
             throw new RuntimeException(e);
         }
     }
@@ -140,14 +140,14 @@ public class NvConnection {
                     LimeLog.info("Bridge cleaned up");
                 } catch (Exception e) {
                     LimeLog.severe("Exception during connection stop: " + e.getMessage());
-                    e.printStackTrace();
+                    LimeLog.warning(e);
                 }
             }
 
             releaseConnectionPermit();
         } catch (Exception e) {
             LimeLog.severe("Exception in stop method: " + e.getMessage());
-            e.printStackTrace();
+            LimeLog.warning(e);
 
             releaseConnectionPermit();
         }
@@ -170,7 +170,7 @@ public class NvConnection {
                 s.connect(new InetSocketAddress(addr, context.serverAddress.port), 1000);
                 return addr;
             } catch (IOException e) {
-                e.printStackTrace();
+                LimeLog.warning(e);
             }
         }
 
@@ -210,7 +210,7 @@ public class NvConnection {
                     try {
                         serverAddress = resolveServerAddress();
                     } catch (IOException e) {
-                        e.printStackTrace();
+                        LimeLog.warning(e);
 
                         // We can't decide without being able to resolve the server address
                         return StreamConfiguration.STREAM_CFG_AUTO;
@@ -571,13 +571,13 @@ public class NvConnection {
                     }
                     context.connListener.stageComplete(appName);
                 } catch (HostHttpResponseException e) {
-                    e.printStackTrace();
+                    LimeLog.warning(e);
                     LimeLog.severe("HostHttpResponseException: " + e.getMessage() + " (Error code: " + e.getErrorCode() + ")");
                     context.connListener.displayMessage(e.getMessage());
                     context.connListener.stageFailed(appName, 0, e.getErrorCode());
                     return;
                 } catch (XmlPullParserException | IOException e) {
-                    e.printStackTrace();
+                    LimeLog.warning(e);
                     LimeLog.severe("XmlPullParserException or IOException: " + e.getMessage());
                     context.connListener.displayMessage(e.getMessage());
                     context.connListener.stageFailed(appName, MoonBridge.ML_PORT_FLAG_TCP_47984 | MoonBridge.ML_PORT_FLAG_TCP_47989, 0);
@@ -603,7 +603,7 @@ public class NvConnection {
                         return;
                     }
                 } catch (InterruptedException e) {
-                    e.printStackTrace();
+                    LimeLog.warning(e);
                     LimeLog.severe("InterruptedException while acquiring connection semaphore: " + e.getMessage());
                     context.connListener.displayMessage(e.getMessage());
                     context.connListener.stageFailed(appName, 0, 0);
@@ -643,7 +643,7 @@ public class NvConnection {
                         LimeLog.info("Connection started successfully");
                     } catch (Exception e) {
                         LimeLog.severe("Exception during connection start: " + e.getMessage());
-                        e.printStackTrace();
+                        LimeLog.warning(e);
                         releaseConnectionPermit();
                         context.connListener.displayMessage("Connection error: " + e.getMessage());
                         context.connListener.stageFailed(appName, 0, -1);

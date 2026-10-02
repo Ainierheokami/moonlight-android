@@ -1,5 +1,6 @@
 package com.limelight.utils;
 
+import com.limelight.LimeLog;
 import android.app.Activity;
 import android.content.Intent;
 import com.limelight.utils.AppToast;
@@ -75,7 +76,7 @@ public class ServerHelper {
                 intent.putExtra(Game.EXTRA_SERVER_CERT, computer.serverCert.getEncoded());
             }
         } catch (CertificateEncodingException e) {
-            e.printStackTrace();
+            LimeLog.warning(e);
         }
         return intent;
     }
@@ -163,7 +164,7 @@ public class ServerHelper {
                     message = parent.getResources().getString(R.string.error_404);
                 } catch (IOException | XmlPullParserException e) {
                     message = e.getMessage();
-                    e.printStackTrace();
+                    LimeLog.warning(e);
                 } finally {
                     if (onComplete != null) {
                         onComplete.run();

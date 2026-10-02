@@ -1,6 +1,8 @@
 package com.limelight;
 
 import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.util.ArrayDeque;
 import java.util.logging.FileHandler;
 import java.util.logging.Logger;
@@ -21,6 +23,12 @@ public class LimeLog {
     
     public static void severe(String msg) {
         log("SEVERE", msg);
+    }
+
+    public static void warning(Throwable t) {
+        StringWriter sw = new StringWriter();
+        t.printStackTrace(new PrintWriter(sw));
+        log("WARNING", sw.toString());
     }
 
     private static void log(String level, String msg) {

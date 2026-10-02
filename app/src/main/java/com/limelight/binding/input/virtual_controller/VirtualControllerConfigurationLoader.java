@@ -4,6 +4,7 @@
 
 package com.limelight.binding.input.virtual_controller;
 
+import com.limelight.LimeLog;
 import android.app.Activity;
 import android.content.Context;
 import android.content.SharedPreferences;
@@ -359,7 +360,7 @@ public class VirtualControllerConfigurationLoader {
             try {
                 prefEditor.putString(prefKey, element.getConfiguration().toString());
             } catch (JSONException e) {
-                e.printStackTrace();
+                LimeLog.warning(e);
             }
         }
 
@@ -377,7 +378,7 @@ public class VirtualControllerConfigurationLoader {
                 try {
                     element.loadConfiguration(new JSONObject(jsonConfig));
                 } catch (JSONException e) {
-                    e.printStackTrace();
+                    LimeLog.warning(e);
 
                     // Remove the corrupt element from the preferences
                     pref.edit().remove(prefKey).apply();

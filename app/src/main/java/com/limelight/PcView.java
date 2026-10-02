@@ -992,7 +992,7 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
                     return new PairingResult(false, getResources().getString(R.string.pairing_interrupted), httpConn);
                 } catch (Exception e) {
                     // 其他未知异常
-                    e.printStackTrace();
+                    LimeLog.warning(e);
                     return new PairingResult(false, getResources().getString(R.string.pairing_unknown_error) + ": " + e.getMessage(), httpConn);
                 }
             }
@@ -1151,7 +1151,7 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
                     message = getResources().getString(R.string.error_404);
                 } catch (XmlPullParserException | IOException e) {
                     message = e.getMessage();
-                    e.printStackTrace();
+                    LimeLog.warning(e);
                 }
 
                 final String toastMessage = message;

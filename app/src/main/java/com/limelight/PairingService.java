@@ -281,7 +281,7 @@ public class PairingService extends Service {
                 } catch (Exception e) {
                     // 其他未知异常
                     Log.e(TAG, "配对过程中发生未知异常: " + e.getMessage());
-                    e.printStackTrace();
+                    LimeLog.warning(e);
                     if (callback != null) {
                         callback.onPairingFailed(computer, "未知错误: " + e.getMessage());
                     }
