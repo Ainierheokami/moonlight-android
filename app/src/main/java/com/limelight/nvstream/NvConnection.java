@@ -1,5 +1,6 @@
 package com.limelight.nvstream;
 
+import com.limelight.utils.AppExecutors;
 import android.app.ActivityManager;
 import android.content.Context;
 import android.net.ConnectivityManager;
@@ -554,7 +555,7 @@ public class NvConnection {
 
     public void start(final AudioRenderer audioRenderer, final VideoDecoderRenderer videoDecoderRenderer, final NvConnectionListener connectionListener)
     {
-        new Thread(new Runnable() {
+        AppExecutors.execute(new Runnable() {
             public void run() {
                 context.connListener = connectionListener;
                 context.videoCapabilities = videoDecoderRenderer.getCapabilities();
@@ -651,7 +652,7 @@ public class NvConnection {
                     }
                 }
             }
-        }).start();
+        });
     }
 
     public interface BitrateAdjustmentCallback {
@@ -681,7 +682,7 @@ public class NvConnection {
     }
 
     public void setBitrate(final int bitrateKbps, final BitrateAdjustmentCallback callback) {
-        new Thread(new Runnable() {
+        AppExecutors.execute(new Runnable() {
             @Override
             public void run() {
                 try {
@@ -707,11 +708,11 @@ public class NvConnection {
                     callback.onComplete(false, e.getMessage());
                 }
             }
-        }).start();
+        });
     }
 
     public void rotateDisplay(final int angle, final DisplayRotationCallback callback) {
-        new Thread(new Runnable() {
+        AppExecutors.execute(new Runnable() {
             @Override
             public void run() {
                 try {
@@ -727,7 +728,7 @@ public class NvConnection {
                     callback.onComplete(false, e.getMessage());
                 }
             }
-        }).start();
+        });
     }
     
     public void sendMouseMove(final short deltaX, final short deltaY)

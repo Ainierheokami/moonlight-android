@@ -1,5 +1,6 @@
 package com.limelight;
 
+import com.limelight.utils.AppExecutors;
 import java.io.IOException;
 import java.io.FileOutputStream;
 import java.io.StringReader;
@@ -92,7 +93,7 @@ public class AppView extends Activity implements AdapterFragmentCallbacks {
                     ((ComputerManagerService.ComputerManagerBinder)binder);
 
             // Wait in a separate thread to avoid stalling the UI
-            new Thread() {
+            AppExecutors.execute(new Runnable() {
                 @Override
                 public void run() {
                     // Wait for the binder to be ready
@@ -173,7 +174,7 @@ public class AppView extends Activity implements AdapterFragmentCallbacks {
                         }
                     });
                 }
-            }.start();
+            });
         }
 
         public void onServiceDisconnected(ComponentName className) {

@@ -99,7 +99,7 @@ public class ServerHelper {
     }
 
     public static void doNetworkTest(final Activity parent) {
-        new Thread(new Runnable() {
+        AppExecutors.execute(new Runnable() {
             @Override
             public void run() {
                 SpinnerDialog spinnerDialog = SpinnerDialog.displayDialog(parent,
@@ -127,7 +127,7 @@ public class ServerHelper {
                         dialogSummary,
                         false);
             }
-        }).start();
+        });
     }
 
     public static void doQuit(final Activity parent,
@@ -136,7 +136,7 @@ public class ServerHelper {
                               final ComputerManagerService.ComputerManagerBinder managerBinder,
                               final Runnable onComplete) {
         AppToast.makeText(parent, parent.getResources().getString(R.string.applist_quit_app) + " " + app.getAppName() + "...", AppToast.LENGTH_SHORT).show();
-        new Thread(new Runnable() {
+        AppExecutors.execute(new Runnable() {
             @Override
             public void run() {
                 NvHTTP httpConn;
@@ -179,6 +179,6 @@ public class ServerHelper {
                     }
                 });
             }
-        }).start();
+        });
     }
 }

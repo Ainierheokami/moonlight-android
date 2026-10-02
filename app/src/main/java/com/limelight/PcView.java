@@ -1,5 +1,6 @@
 package com.limelight;
 
+import com.limelight.utils.AppExecutors;
 import java.io.FileNotFoundException;
 import java.io.File;
 import java.io.IOException;
@@ -125,7 +126,7 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
                     ((ComputerManagerService.ComputerManagerBinder)binder);
 
             // Wait in a separate thread to avoid stalling the UI
-            new Thread() {
+            AppExecutors.execute(new Runnable() {
                 @Override
                 public void run() {
                     // Wait for the binder to be ready
@@ -140,7 +141,7 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
                     // Force a keypair to be generated early to avoid discovery delays
                     new AndroidCryptoProvider(PcView.this).getClientCertificate();
                 }
-            }.start();
+            });
         }
 
         public void onServiceDisconnected(ComponentName className) {
@@ -1091,7 +1092,7 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
             return;
         }
 
-        new Thread(new Runnable() {
+        AppExecutors.execute(new Runnable() {
             @Override
             public void run() {
                 String message;
@@ -1110,7 +1111,7 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
                     }
                 });
             }
-        }).start();
+        });
     }
 
     private void doUnpair(final ComputerDetails computer) {
@@ -1124,7 +1125,7 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
         }
 
         AppToast.makeText(PcView.this, getResources().getString(R.string.unpairing), AppToast.LENGTH_SHORT).show();
-        new Thread(new Runnable() {
+        AppExecutors.execute(new Runnable() {
             @Override
             public void run() {
                 NvHTTP httpConn;
@@ -1162,7 +1163,7 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
                     }
                 });
             }
-        }).start();
+        });
     }
 
     public void doAppList(ComputerObject computer, boolean newlyPaired, boolean showHiddenGames) {

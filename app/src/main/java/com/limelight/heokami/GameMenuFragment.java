@@ -1,5 +1,6 @@
 package com.limelight.heokami;
 
+import com.limelight.utils.AppExecutors;
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.animation.ObjectAnimator;
@@ -1403,7 +1404,7 @@ public class GameMenuFragment extends Fragment {
     }
 
     private void sendKeys(short[] keys, int delayMs) {
-        new Thread(() -> {
+        AppExecutors.execute(() -> {
             final byte[] modifier = {(byte) 0};
 
             for (short key : keys) {
@@ -1420,7 +1421,7 @@ public class GameMenuFragment extends Fragment {
                 conn.sendKeyboardInput(key, KeyboardPacket.KEY_UP, modifier[0], (byte) 0);
                 try { Thread.sleep(15); } catch (InterruptedException ignored) {}
             }
-        }).start();
+        });
     }
 
     /**
@@ -1454,7 +1455,7 @@ public class GameMenuFragment extends Fragment {
 
     private void showSwitchDisplayDialog() {
         AppToast.makeText(game, "正在获取屏幕列表...", AppToast.LENGTH_SHORT).show();
-        new Thread(() -> {
+        AppExecutors.execute(() -> {
             try {
                 final List<NvHTTP.DisplayInfo> rawDisplays = conn.getDisplays();
                 new Handler(Looper.getMainLooper()).post(() -> {
@@ -1622,7 +1623,7 @@ public class GameMenuFragment extends Fragment {
                     }
                 });
             }
-        }).start();
+        });
     }
 
     private void showFallbackSwitchDisplayDialog() {

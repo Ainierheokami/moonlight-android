@@ -1,5 +1,6 @@
 package com.limelight;
 
+import com.limelight.utils.AppExecutors;
 
 import com.limelight.binding.PlatformBinding;
 import com.limelight.binding.audio.AndroidAudioRenderer;
@@ -3359,7 +3360,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         updatePipAutoEnter();
         UiHelper.notifyStreamConnecting(Game.this);
 
-        new Thread(new Runnable() {
+        AppExecutors.execute(new Runnable() {
             @Override
             public void run() {
                 if (failedConnection != null) {
@@ -3385,7 +3386,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
                     }
                 });
             }
-        }, "Moonlight connection cleanup").start();
+        });
     }
 
     private void startPendingAutomaticReconnect(int generation) {
@@ -3490,11 +3491,11 @@ public class Game extends Activity implements SurfaceHolder.Callback,
             // thread to keep things smooth for the UI. Inside moonlight-common,
             // we prevent another thread from starting a connection before and
             // during the process of stopping this one.
-            new Thread() {
+            AppExecutors.execute(new Runnable() {
                 public void run() {
                     conn.stop();
                 }
-            }.start();
+            });
         }
     }
 
@@ -5244,7 +5245,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
      * 强力强杀 PC 端当前会话并退出串流
      */
     public void quitAndDisconnect() {
-        new Thread(new Runnable() {
+        AppExecutors.execute(new Runnable() {
             @Override
             public void run() {
                 try {
@@ -5281,7 +5282,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
                     LimeLog.warning(e);
                 }
             }
-        }).start();
+        });
 
         // 强退时执行 Activity 销毁
         finish();

@@ -1,5 +1,6 @@
 package com.limelight;
 
+import com.limelight.utils.AppExecutors;
 import android.app.Activity;
 import android.app.Service;
 import android.content.ComponentName;
@@ -47,7 +48,7 @@ public class ShortcutTrampoline extends Activity {
                     ((ComputerManagerService.ComputerManagerBinder)binder);
 
             // Wait in a separate thread to avoid stalling the UI
-            new Thread() {
+            AppExecutors.execute(new Runnable() {
                 @Override
                 public void run() {
                     // Wait for the binder to be ready
@@ -214,7 +215,7 @@ public class ShortcutTrampoline extends Activity {
                         }
                     });
                 }
-            }.start();
+            });
         }
 
         public void onServiceDisconnected(ComponentName className) {
