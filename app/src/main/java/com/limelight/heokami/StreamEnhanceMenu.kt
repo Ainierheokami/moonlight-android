@@ -1,7 +1,6 @@
 package com.limelight.heokami
 
 import android.app.Activity
-import androidx.annotation.IdRes
 import android.os.Handler
 import android.os.Looper
 import android.preference.PreferenceManager
@@ -28,9 +27,6 @@ import com.limelight.nvstream.http.NvHTTP
  * 串流增强菜单
  * 管理默认与自定义串流屏幕及主副屏拓扑切换
  */
-@IdRes private const val ID_BTN_PRIMARY = 1001
-@IdRes private const val ID_BTN_STREAM = 1002
-
 object StreamEnhanceMenu {
     private const val USE_VDD = "checkbox_stream_enhance_use_vdd"
     private const val SCREEN_MODE = "list_stream_enhance_screen_mode"
@@ -162,8 +158,8 @@ object StreamEnhanceMenu {
             for (i in 0 until childCount) {
                 val row = container.getChildAt(i) as? LinearLayout ?: continue
                 val displayInfo = row.tag as? NvHTTP.DisplayInfo ?: continue
-                val btnPrimary = row.findViewById<Button>(ID_BTN_PRIMARY) ?: continue
-                val btnStream = row.findViewById<Button>(ID_BTN_STREAM) ?: continue
+                val btnPrimary = row.findViewById<Button>(R.id.btn_enhance_set_primary) ?: continue
+                val btnStream = row.findViewById<Button>(R.id.btn_enhance_stream_only) ?: continue
 
                 val isThisVirtual = displayInfo.displayName.lowercase().contains("zako") || 
                                    displayInfo.displayName.lowercase().contains("virtual") || 
@@ -227,7 +223,7 @@ object StreamEnhanceMenu {
                 row.addView(tvName)
 
                 val btnPrimary = Button(game).apply {
-                    id = ID_BTN_PRIMARY
+                    id = R.id.btn_enhance_set_primary
                     text = game.getString(R.string.stream_enhance_set_primary)
                     setTextColor(0xFFFFFFFF.toInt())
                     textSize = 11f
@@ -258,7 +254,7 @@ object StreamEnhanceMenu {
                 row.addView(btnPrimary)
 
                 val btnStream = Button(game).apply {
-                    id = ID_BTN_STREAM
+                    id = R.id.btn_enhance_stream_only
                     text = game.getString(R.string.stream_enhance_stream_only)
                     setTextColor(0xFFFFFFFF.toInt())
                     textSize = 11f
