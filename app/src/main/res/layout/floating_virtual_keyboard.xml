@@ -651,59 +651,18 @@
 
             </LinearLayout>
 
-            <!-- 第七行：编辑/导航键在左，方向键在右下（总权重 13.5，与数字行等宽） -->
+            <!-- 第七行：方向键 -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
-                android:baselineAligned="false">
-
-                <Button
-                    style="@style/FloatingKeyboardButtonEnhanced"
-                    android:layout_width="0dp"
-                    android:layout_weight="1"
-                    android:tag="0x2D"
-                    android:text="Ins" />
-
-                <Button
-                    style="@style/FloatingKeyboardButtonEnhanced"
-                    android:layout_width="0dp"
-                    android:layout_weight="1"
-                    android:tag="0x2E"
-                    android:text="Del" />
-
-                <Button
-                    style="@style/FloatingKeyboardButtonEnhanced"
-                    android:layout_width="0dp"
-                    android:layout_weight="1"
-                    android:tag="0x24"
-                    android:text="Home" />
-
-                <Button
-                    style="@style/FloatingKeyboardButtonEnhanced"
-                    android:layout_width="0dp"
-                    android:layout_weight="1"
-                    android:tag="0x23"
-                    android:text="End" />
-
-                <Button
-                    style="@style/FloatingKeyboardButtonEnhanced"
-                    android:layout_width="0dp"
-                    android:layout_weight="1"
-                    android:tag="0x21"
-                    android:text="PgUp" />
-
-                <Button
-                    style="@style/FloatingKeyboardButtonEnhanced"
-                    android:layout_width="0dp"
-                    android:layout_weight="1"
-                    android:tag="0x22"
-                    android:text="PgDn" />
+                android:baselineAligned="false"
+                android:gravity="center">
 
                 <View
                     android:layout_width="0dp"
                     android:layout_height="1dp"
-                    android:layout_weight="3.5" />
+                    android:layout_weight="3" />
 
                 <Button
                     style="@style/FloatingKeyboardButtonEnhanced"
@@ -732,6 +691,11 @@
                     android:layout_weight="1"
                     android:tag="0x27"
                     android:text="→" />
+
+                <View
+                    android:layout_width="0dp"
+                    android:layout_height="1dp"
+                    android:layout_weight="3" />
 
             </LinearLayout>
 
