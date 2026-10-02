@@ -567,6 +567,7 @@
     <string name="vk_float_numpad">數字鍵盤</string>
     <string name="vk_float_function_keys">功能鍵</string>
     <string name="vk_float_opacity">透明度</string>
+    <string name="vk_float_opacity_percent">%d%%</string>
     <string name="vk_float_resize">調整大小</string>
     <string name="vk_float_close">關閉鍵盤</string>
 </resources>

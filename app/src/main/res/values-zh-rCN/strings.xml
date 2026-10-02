@@ -862,6 +862,7 @@
     <string name="vk_float_numpad">数字键盘</string>
     <string name="vk_float_function_keys">功能键</string>
     <string name="vk_float_opacity">透明度</string>
+    <string name="vk_float_opacity_percent">%d%%</string>
     <string name="vk_float_resize">调整大小</string>
     <string name="vk_float_close">关闭键盘</string>
 </resources>
