@@ -577,6 +577,10 @@
             android:key="check_for_updates"
             android:title="@string/title_check_for_updates"
             android:summary="@string/summary_check_for_updates_default" />
+        <Preference
+            android:key="view_changelog"
+            android:title="@string/title_view_changelog"
+            android:summary="@string/summary_view_changelog" />
     </PreferenceCategory>
 
     <PreferenceCategory

@@ -581,4 +581,9 @@
     <string name="restore_credentials_toast">設定與配對憑證已還原，無需重新配對。應用程式即將自動重新啟動...</string>
     <string name="restore_settings_only_success">設定已還原</string>
     <string name="restore_settings_only_toast">設定與電腦清單已還原，配對憑證未還原，需要重新配對。應用程式即將自動重新啟動...</string>
+    <string name="title_view_changelog">更新日誌</string>
+    <string name="summary_view_changelog">查看最新版本的更新內容</string>
+    <string name="update_changelog_title">更新日誌</string>
+    <string name="update_changelog_current_message">目前版本：%1$s\n最新發佈：%2$s</string>
+    <string name="update_notes_unavailable">此版本沒有發佈更新說明，可開啟發佈頁查看詳情。</string>
 </resources>

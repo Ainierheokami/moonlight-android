@@ -8,6 +8,10 @@ import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.Environment;
 import android.preference.PreferenceManager;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.widget.Button;
+import android.widget.TextView;
 import com.limelight.utils.AppToast;
 
 import com.limelight.BuildConfig;
@@ -45,6 +49,10 @@ public final class UpdateChecker {
     private static final Pattern NUMBER_PATTERN = Pattern.compile("\\d+");
     private static final Pattern COMMIT_PATTERN = Pattern.compile(
             "\\bcommit\\s+([0-9a-f]{7,40})\\b", Pattern.CASE_INSENSITIVE);
+    // Written by the release workflow; preferred over the free-text pattern above because the
+    // notes may legitimately contain commit subjects that mention "commit <hex>".
+    private static final Pattern BUILD_COMMIT_MARKER = Pattern.compile(
+            "<!--\\s*build-commit:\\s*([0-9a-f]{7,40})\\s*-->", Pattern.CASE_INSENSITIVE);
     private static final Pattern APK_NAME_PATTERN = Pattern.compile(
             "^Moonlight-(.+)-(debug|release)\\.apk$", Pattern.CASE_INSENSITIVE);
     private static final AtomicBoolean CHECK_IN_PROGRESS = new AtomicBoolean(false);
@@ -57,6 +65,16 @@ public final class UpdateChecker {
     }
 
     public static void checkForUpdates(Activity activity, boolean userInitiated) {
+        fetchLatestRelease(activity, userInitiated, false);
+    }
+
+    /** Shows the latest release notes, even when this build is already up to date. */
+    public static void showChangelog(Activity activity) {
+        fetchLatestRelease(activity, true, true);
+    }
+
+    private static void fetchLatestRelease(Activity activity, boolean userInitiated,
+                                           boolean changelogRequested) {
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(activity);
         if (!userInitiated) {
             if (!prefs.getBoolean(AUTO_CHECK_PREF, true)) {
@@ -107,7 +125,7 @@ public final class UpdateChecker {
                     if (BuildConfig.ROOT_BUILD) {
                         // The repository's release workflow currently publishes NonRoot APKs only.
                         release = new ReleaseInfo(parsedRelease.versionName, parsedRelease.releasePageUrl,
-                                null, null, parsedRelease.commitId);
+                                null, null, parsedRelease.commitId, parsedRelease.releaseBody);
                     }
                     else {
                         release = parsedRelease;
@@ -121,6 +139,9 @@ public final class UpdateChecker {
 
                         if (isNewerRelease(BuildConfig.VERSION_NAME, BuildConfig.BUILD_COMMIT, release)) {
                             showUpdateDialog(activity, release);
+                        }
+                        else if (changelogRequested) {
+                            showReleaseNotesDialog(activity, release, false);
                         }
                         else if (userInitiated) {
                             OverlayDialog.show(
@@ -170,6 +191,10 @@ public final class UpdateChecker {
     }
 
     private static void showUpdateDialog(Activity activity, ReleaseInfo release) {
+        if (ReleaseNotes.select(release.releaseBody, currentLanguage(), currentCountry()) != null) {
+            showReleaseNotesDialog(activity, release, true);
+            return;
+        }
         OverlayDialog.show(
                 activity,
                 activity.getString(R.string.update_available_title),
@@ -187,6 +212,71 @@ public final class UpdateChecker {
                 release.apkDownloadUrl == null
                         ? null : () -> downloadApk(activity, release),
                 true);
+    }
+
+    private static String currentLanguage() {
+        return Locale.getDefault().getLanguage();
+    }
+
+    private static String currentCountry() {
+        return Locale.getDefault().getCountry();
+    }
+
+    /**
+     * Release notes in a scrollable dialog. With {@code updateAvailable} it offers the download;
+     * otherwise it is a plain "what's new" view of the latest release.
+     */
+    private static void showReleaseNotesDialog(Activity activity, ReleaseInfo release,
+                                               boolean updateAvailable) {
+        View content = LayoutInflater.from(activity).inflate(R.layout.dialog_release_notes, null, false);
+        ((TextView) content.findViewById(R.id.dialogTitleText)).setText(updateAvailable
+                ? R.string.update_available_title : R.string.update_changelog_title);
+
+        String subtitle = updateAvailable
+                ? activity.getString(R.string.update_available_message,
+                        BuildConfig.VERSION_NAME, release.versionName)
+                : activity.getString(R.string.update_changelog_current_message,
+                        BuildConfig.VERSION_NAME, release.versionName);
+        ((TextView) content.findViewById(R.id.dialogSubtitleText)).setText(subtitle);
+
+        String notes = ReleaseNotes.select(release.releaseBody, currentLanguage(), currentCountry());
+        ((TextView) content.findViewById(R.id.dialogNotesText)).setText(
+                notes != null ? notes : activity.getString(R.string.update_notes_unavailable));
+        ((MaxHeightScrollView) content.findViewById(R.id.dialogNotesScroll)).setMaxHeightPx(
+                (int) (activity.getResources().getDisplayMetrics().heightPixels * 0.5f));
+
+        final OverlayContainer.DialogHandle[] handle = new OverlayContainer.DialogHandle[1];
+        bindDialogButton(content.findViewById(R.id.dialogHelpButton),
+                activity.getString(updateAvailable ? R.string.update_later : android.R.string.ok),
+                null, handle);
+        bindDialogButton(content.findViewById(R.id.dialogNeutralButton),
+                activity.getString(R.string.update_view_release),
+                () -> openUrl(activity, release.releasePageUrl), handle);
+        bindDialogButton(content.findViewById(R.id.dialogOkButton),
+                updateAvailable && release.apkDownloadUrl != null
+                        ? activity.getString(R.string.update_download) : null,
+                () -> downloadApk(activity, release), handle);
+
+        handle[0] = OverlayDialog.showCustom(activity, content, 560, 0, true, true, null);
+    }
+
+    private static void bindDialogButton(View view, String text, Runnable action,
+                                         OverlayContainer.DialogHandle[] handle) {
+        Button button = (Button) view;
+        if (text == null) {
+            button.setVisibility(View.GONE);
+            return;
+        }
+        button.setVisibility(View.VISIBLE);
+        button.setText(text);
+        button.setOnClickListener(v -> {
+            if (handle[0] != null) {
+                handle[0].remove();
+            }
+            if (action != null) {
+                action.run();
+            }
+        });
     }
 
     private static void downloadApk(Activity activity, ReleaseInfo release) {
@@ -237,8 +327,9 @@ public final class UpdateChecker {
         String fileName = selectedAsset.getString("name");
         String downloadUrl = requireHttpsUrl(selectedAsset.getString("browser_download_url"));
         String versionName = extractVersionFromAssetName(fileName);
-        String commitId = extractCommitId(root.optString("body", ""));
-        return new ReleaseInfo(versionName, releasePageUrl, downloadUrl, fileName, commitId);
+        String body = root.optString("body", "");
+        String commitId = extractCommitId(body);
+        return new ReleaseInfo(versionName, releasePageUrl, downloadUrl, fileName, commitId, body);
     }
 
     private static JSONObject selectApkAsset(JSONArray assets, boolean debugBuild) throws JSONException {
@@ -282,8 +373,13 @@ public final class UpdateChecker {
         return isNewerVersion(currentVersion, candidate.versionName);
     }
 
-    private static String extractCommitId(String releaseBody) {
-        Matcher matcher = COMMIT_PATTERN.matcher(releaseBody == null ? "" : releaseBody);
+    static String extractCommitId(String releaseBody) {
+        String body = releaseBody == null ? "" : releaseBody;
+        Matcher marker = BUILD_COMMIT_MARKER.matcher(body);
+        if (marker.find()) {
+            return marker.group(1);
+        }
+        Matcher matcher = COMMIT_PATTERN.matcher(body);
         return matcher.find() ? matcher.group(1) : null;
     }
 
@@ -340,9 +436,16 @@ public final class UpdateChecker {
         final String apkDownloadUrl;
         final String apkFileName;
         final String commitId;
+        final String releaseBody;
 
         ReleaseInfo(String versionName, String releasePageUrl, String apkDownloadUrl,
                     String apkFileName, String commitId) {
+            this(versionName, releasePageUrl, apkDownloadUrl, apkFileName, commitId, null);
+        }
+
+        ReleaseInfo(String versionName, String releasePageUrl, String apkDownloadUrl,
+                    String apkFileName, String commitId, String releaseBody) {
+            this.releaseBody = releaseBody;
             this.versionName = versionName;
             this.releasePageUrl = releasePageUrl;
             this.apkDownloadUrl = apkDownloadUrl;
