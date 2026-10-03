@@ -368,9 +368,8 @@
     <string name="summary_seekbar_edge_menu_hot_zone">从屏幕左/右边缘向内计算，手指可从多宽的区域开始滑动。</string>
     <string name="title_seekbar_edge_menu_swipe_threshold">滑动菜单触发距离</string>
     <string name="summary_seekbar_edge_menu_swipe_threshold">从边缘向内滑动多远后唤出游戏菜单。</string>
-    <string name="title_edge_menu_preview">预览滑动菜单手势</string>
-    <string name="summary_edge_menu_preview">用图示查看边缘响应热区和需要滑动的距离。</string>
-    <string name="edge_menu_preview_message">从左/右边缘的透明色块内按下，再向屏幕内滑过箭头距离即可打开游戏菜单。\n\n当前响应热区：%1$d dp\n当前触发距离：%2$d dp</string>
+    <string name="title_edge_menu_preview">测试滑动菜单手势</string>
+    <string name="summary_edge_menu_preview">在模拟的串流画面上试用真实手势，并告诉你这次滑动为什么触发或没触发。</string>
     <string name="game_menu_toggle_virtual_keyboard">切换屏幕虚拟键盘</string>
     <string name="controller_mode_move_buttons">进入配置模式（移动按钮）</string>
     <string name="controller_mode_resize_buttons">进入配置模式（调整大小按钮）</string>
@@ -881,4 +880,24 @@
     <string name="restore_credentials_toast">设置与配对凭据已还原，无需重新配对。应用即将自动重启...</string>
     <string name="restore_settings_only_success">设置已还原</string>
     <string name="restore_settings_only_toast">设置与电脑列表已还原，配对凭据未还原，需要重新配对。应用即将自动重启...</string>
+    <string name="edge_test_title">边缘手势测试</string>
+    <string name="edge_test_params">热区 %1$d dp · 触发距离 %2$d dp</string>
+    <string name="edge_test_exclusion_on">系统返回手势排除区：每侧 %1$d dp</string>
+    <string name="edge_test_exclusion_off">系统返回手势排除区不可用（需要 Android 10+）</string>
+    <string name="edge_test_gesture_off">边缘手势唤醒未开启，串流时需先打开才能使用此手势。</string>
+    <string name="edge_test_state_idle">从左侧或右侧边缘向内滑动</string>
+    <string name="edge_test_state_candidate">已在热区按下，继续向内滑动</string>
+    <string name="edge_test_state_consuming">已识别为菜单手势 · 还差 %1$d dp</string>
+    <string name="edge_test_state_triggered">此刻会打开菜单</string>
+    <string name="edge_test_result_open_left">从左侧边缘打开</string>
+    <string name="edge_test_result_open_right">从右侧边缘打开</string>
+    <string name="edge_test_miss_zone">未触发：起点不在热区内</string>
+    <string name="edge_test_miss_direction">未触发：要向屏幕内滑，不是向边缘外</string>
+    <string name="edge_test_miss_vertical">未触发：纵向幅度太大，请更水平地滑动</string>
+    <string name="edge_test_miss_short">未触发：再多滑 %1$d dp</string>
+    <string name="edge_test_miss_multitouch">已取消：有第二根手指触摸了屏幕</string>
+    <string name="edge_test_system_back">系统返回手势被触发：这次滑动被系统抢走了</string>
+    <string name="edge_test_menu_here">菜单会从这里滑出</string>
+    <string name="edge_test_stream_label">模拟串流画面</string>
+    <string name="edge_test_exit">退出测试</string>
 </resources>

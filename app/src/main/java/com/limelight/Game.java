@@ -121,6 +121,7 @@ import android.graphics.drawable.GradientDrawable;
 import android.graphics.Color;
 
 // 2024-11-27 17:36:10 返回菜单
+import com.limelight.heokami.EdgeSwipeDetector;
 import com.limelight.heokami.GameMenu;
 import com.limelight.heokami.EditMenu;
 
@@ -243,16 +244,13 @@ public class Game extends Activity implements SurfaceHolder.Callback,
     private View backgroundTouchView;
     private TextView edgeMenuDebugOverlay;
     private EdgeMenuTrailOverlay edgeMenuTrailOverlay;
-    private float edgeMenuDownX = -1;
-    private float edgeMenuDownY = -1;
-    private boolean edgeMenuCandidate = false;
-    private boolean edgeMenuConsuming = false;
+    private final EdgeSwipeDetector edgeSwipeDetector = new EdgeSwipeDetector();
     private Object gameMenuBackCallback;
     private boolean gameMenuBackCallbackRegistered = false;
     private boolean pendingGameMenuWake = false;
     private int systemGestureExclusionGeneration = 0;
-    private static final int EDGE_MENU_INTENT_THRESHOLD_DP = 10;
-    private static final int EDGE_MENU_SYSTEM_GESTURE_EXCLUSION_WIDTH_DP = 32;
+    private static final int EDGE_MENU_INTENT_THRESHOLD_DP = EdgeSwipeDetector.INTENT_THRESHOLD_CAP_DP;
+    private static final int EDGE_MENU_SYSTEM_GESTURE_EXCLUSION_WIDTH_DP = EdgeSwipeDetector.SYSTEM_GESTURE_EXCLUSION_MIN_DP;
     private PortalManagerView portalManagerView; // 传送门管理器
     private OrientationEventListener streamRotationListener;
     private final Handler streamRotationHandler = new Handler();
@@ -2904,36 +2902,40 @@ public class Game extends Activity implements SurfaceHolder.Callback,
     private boolean handleEdgeMenuGesture(MotionEvent event) {
         View gestureView = getEdgeMenuGestureView();
         if (!isEdgeGameMenuGestureEnabled()) {
-            if (edgeMenuCandidate || edgeMenuConsuming) {
-                boolean wasConsuming = edgeMenuConsuming;
-                resetEdgeMenuGesture();
-                return wasConsuming;
+            if (edgeSwipeDetector.isCandidate() || edgeSwipeDetector.isConsuming()) {
+                return resetEdgeMenuGesture();
             }
             return false;
         }
         if (gestureView == null || GameMenu.isMenuShowing() || com.limelight.heokami.EditMenu.isMenuShowing()) {
-            boolean wasConsuming = edgeMenuConsuming;
-            setEdgeMenuDebugText("blocked view/menu action=" + event.getActionMasked());
-            resetEdgeMenuGesture();
-            return wasConsuming;
+            if (BuildConfig.DEBUG) {
+                setEdgeMenuDebugText("blocked view/menu action=" + event.getActionMasked());
+            }
+            return resetEdgeMenuGesture();
         }
 
-        if ((edgeMenuCandidate || edgeMenuConsuming) && event.getPointerCount() != 1) {
-            boolean wasConsuming = edgeMenuConsuming;
-            setEdgeMenuDebugText("blocked pointers=" + event.getPointerCount() + " action=" + event.getActionMasked());
+        if ((edgeSwipeDetector.isCandidate() || edgeSwipeDetector.isConsuming()) && event.getPointerCount() != 1) {
+            if (BuildConfig.DEBUG) {
+                setEdgeMenuDebugText("blocked pointers=" + event.getPointerCount() + " action=" + event.getActionMasked());
+            }
+            boolean wasConsuming = edgeSwipeDetector.cancelForMultiTouch();
             resetEdgeMenuGesture();
             return wasConsuming;
         }
 
         if (event.getPointerCount() != 1) {
-            setEdgeMenuDebugText("ignore pointers=" + event.getPointerCount() + " action=" + event.getActionMasked());
+            if (BuildConfig.DEBUG) {
+                setEdgeMenuDebugText("ignore pointers=" + event.getPointerCount() + " action=" + event.getActionMasked());
+            }
             return false;
         }
 
         int action = event.getActionMasked();
         int width = gestureView.getWidth();
         if (width <= 0) {
-            setEdgeMenuDebugText("invalid width=0 action=" + action);
+            if (BuildConfig.DEBUG) {
+                setEdgeMenuDebugText("invalid width=0 action=" + action);
+            }
             resetEdgeMenuGesture();
             return false;
         }
@@ -2943,98 +2945,104 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         }
         int edgeZone = dp(prefConfig.edgeMenuHotZoneDp);
         int threshold = dp(prefConfig.edgeMenuSwipeThresholdDp);
-        int intentThreshold = Math.min(threshold, dp(EDGE_MENU_INTENT_THRESHOLD_DP));
+        edgeSwipeDetector.configure(edgeZone, threshold,
+                EdgeSwipeDetector.intentThresholdFor(threshold, dp(EDGE_MENU_INTENT_THRESHOLD_DP)));
 
         switch (action) {
-            case MotionEvent.ACTION_DOWN:
-                edgeMenuDownX = event.getX();
-                edgeMenuDownY = event.getY();
-                edgeMenuCandidate = edgeMenuDownX <= edgeZone || edgeMenuDownX >= width - edgeZone;
-                edgeMenuConsuming = false;
-                if (BuildConfig.DEBUG && edgeMenuTrailOverlay != null) {
-                    edgeMenuTrailOverlay.beginGesture(event.getX(), event.getY(), width, gestureView.getHeight(),
-                            edgeZone, threshold, edgeMenuCandidate);
-                }
-                setEdgeMenuDebugText(String.format(java.util.Locale.US,
-                        "DOWN x=%.1f y=%.1f raw=%.1f,%.1f w=%d zone=%d thr=%d cand=%s",
-                        edgeMenuDownX, edgeMenuDownY, event.getRawX(), event.getRawY(),
-                        width, edgeZone, threshold, edgeMenuCandidate));
-                return false;
-            case MotionEvent.ACTION_MOVE:
-                if (!edgeMenuCandidate && !edgeMenuConsuming) {
-                    if (BuildConfig.DEBUG && edgeMenuTrailOverlay != null) {
-                        edgeMenuTrailOverlay.addPoint(event.getX(), event.getY(), false, false);
+            case MotionEvent.ACTION_DOWN: {
+                boolean candidate = edgeSwipeDetector.down(event.getX(), event.getY(), width);
+                if (BuildConfig.DEBUG) {
+                    if (edgeMenuTrailOverlay != null) {
+                        edgeMenuTrailOverlay.beginGesture(event.getX(), event.getY(), width, gestureView.getHeight(),
+                                edgeZone, threshold, candidate);
                     }
                     setEdgeMenuDebugText(String.format(java.util.Locale.US,
-                            "MOVE ignored x=%.1f y=%.1f raw=%.1f,%.1f",
-                            event.getX(), event.getY(), event.getRawX(), event.getRawY()));
-                    return false;
+                            "DOWN x=%.1f y=%.1f raw=%.1f,%.1f w=%d zone=%d thr=%d cand=%s",
+                            event.getX(), event.getY(), event.getRawX(), event.getRawY(),
+                            width, edgeZone, threshold, candidate));
+                }
+                return false;
+            }
+            case MotionEvent.ACTION_MOVE: {
+                boolean consumingBefore = edgeSwipeDetector.isConsuming();
+                EdgeSwipeDetector.MoveResult result = edgeSwipeDetector.move(event.getX(), event.getY());
+                if (BuildConfig.DEBUG) {
+                    debugEdgeMenuMove(event, result);
                 }
 
-                float travelX = event.getX() - edgeMenuDownX;
-                float travelY = event.getY() - edgeMenuDownY;
-                float absTravelX = Math.abs(travelX);
-                float absTravelY = Math.abs(travelY);
-                boolean startedLeft = edgeMenuDownX <= edgeZone;
-                boolean startedRight = edgeMenuDownX >= width - edgeZone;
-                boolean fromLeftIntent = startedLeft && travelX > intentThreshold;
-                boolean fromRightIntent = startedRight && travelX < -intentThreshold;
-                boolean horizontalIntent = absTravelX > absTravelY * 1.2f;
-                if (BuildConfig.DEBUG && edgeMenuTrailOverlay != null) {
-                    edgeMenuTrailOverlay.addPoint(event.getX(), event.getY(), edgeMenuCandidate, edgeMenuConsuming);
-                    edgeMenuTrailOverlay.setGestureState(edgeMenuCandidate, edgeMenuConsuming, startedLeft, edgeZone, threshold);
+                switch (result) {
+                    case NOT_TRACKING:
+                    case PENDING:
+                        return false;
+                    case TAKEOVER:
+                        cancelStreamTouchesForEdgeMenu();
+                        return true;
+                    case TRIGGERED_LEFT:
+                    case TRIGGERED_RIGHT:
+                        if (!consumingBefore) {
+                            // One event went straight from "candidate" to "open"; the stream
+                            // still has to be told to drop the touch that started at the edge.
+                            cancelStreamTouchesForEdgeMenu();
+                        }
+                        showMenu(result == EdgeSwipeDetector.MoveResult.TRIGGERED_LEFT
+                                ? GameMenu.Side.LEFT : GameMenu.Side.RIGHT);
+                        return true;
+                    case CONSUMING:
+                    default:
+                        return true;
                 }
-                setEdgeMenuDebugText(String.format(java.util.Locale.US,
-                        "MOVE dx=%.1f dy=%.1f raw=%.1f,%.1f absdx=%.1f absdy=%.1f cand=%s cons=%s left=%s right=%s intent=%s horiz=%s",
-                        travelX, travelY, event.getRawX(), event.getRawY(), absTravelX, absTravelY, edgeMenuCandidate, edgeMenuConsuming,
-                        fromLeftIntent, fromRightIntent, (fromLeftIntent || fromRightIntent), horizontalIntent));
-
-                if (!edgeMenuConsuming && (fromLeftIntent || fromRightIntent) && horizontalIntent) {
-                    edgeMenuConsuming = true;
-                    setEdgeMenuDebugText("TAKEOVER");
-                    cancelStreamTouchesForEdgeMenu();
-                }
-
-                if (!edgeMenuConsuming) {
-                    return false;
-                }
-
-                boolean fromLeft = startedLeft && travelX > threshold;
-                boolean fromRight = startedRight && travelX < -threshold;
-                if ((fromLeft || fromRight) && horizontalIntent) {
-                    edgeMenuCandidate = false;
-                    setEdgeMenuDebugText("OPEN side=" + (fromLeft ? "LEFT" : "RIGHT"));
-                    showMenu(fromLeft ? GameMenu.Side.LEFT : GameMenu.Side.RIGHT);
-                }
-                return true;
+            }
             case MotionEvent.ACTION_UP:
-            case MotionEvent.ACTION_CANCEL:
-                boolean wasConsuming = edgeMenuConsuming;
-                if (BuildConfig.DEBUG && edgeMenuTrailOverlay != null) {
-                    edgeMenuTrailOverlay.finishGesture(event.getX(), event.getY(), wasConsuming);
+            case MotionEvent.ACTION_CANCEL: {
+                boolean wasConsuming = edgeSwipeDetector.up();
+                if (BuildConfig.DEBUG) {
+                    if (edgeMenuTrailOverlay != null) {
+                        edgeMenuTrailOverlay.finishGesture(event.getX(), event.getY(), wasConsuming);
+                    }
+                    setEdgeMenuDebugText("END action=" + action + " consuming=" + wasConsuming
+                            + " miss=" + edgeSwipeDetector.getLastMiss());
                 }
-                setEdgeMenuDebugText("END action=" + action + " consuming=" + wasConsuming);
                 resetEdgeMenuGesture(true);
                 return wasConsuming;
+            }
             default:
-                setEdgeMenuDebugText("DEFAULT action=" + action + " consuming=" + edgeMenuConsuming);
-                return edgeMenuConsuming;
+                if (BuildConfig.DEBUG) {
+                    setEdgeMenuDebugText("DEFAULT action=" + action + " consuming=" + edgeSwipeDetector.isConsuming());
+                }
+                return edgeSwipeDetector.isConsuming();
         }
     }
 
-    private void resetEdgeMenuGesture() {
-        resetEdgeMenuGesture(false);
+    /** Debug-only: trail overlay and text for a MOVE. Never called in release builds. */
+    private void debugEdgeMenuMove(MotionEvent event, EdgeSwipeDetector.MoveResult result) {
+        if (edgeMenuTrailOverlay != null) {
+            edgeMenuTrailOverlay.addPoint(event.getX(), event.getY(),
+                    edgeSwipeDetector.isCandidate(), edgeSwipeDetector.isConsuming());
+            if (result != EdgeSwipeDetector.MoveResult.NOT_TRACKING) {
+                edgeMenuTrailOverlay.setGestureState(edgeSwipeDetector.isCandidate(),
+                        edgeSwipeDetector.isConsuming(), edgeSwipeDetector.startedInLeftZone(),
+                        edgeSwipeDetector.getEdgeZonePx(), edgeSwipeDetector.getThresholdPx());
+            }
+        }
+        setEdgeMenuDebugText(String.format(java.util.Locale.US,
+                "MOVE %s dx=%.1f dy=%.1f raw=%.1f,%.1f cand=%s cons=%s horiz=%s remaining=%.0f",
+                result, edgeSwipeDetector.getTravelX(), edgeSwipeDetector.getTravelY(),
+                event.getRawX(), event.getRawY(), edgeSwipeDetector.isCandidate(),
+                edgeSwipeDetector.isConsuming(), edgeSwipeDetector.isHorizontal(),
+                edgeSwipeDetector.remainingPx()));
     }
 
-    private void resetEdgeMenuGesture(boolean preserveTrail) {
-        edgeMenuCandidate = false;
-        edgeMenuConsuming = false;
-        edgeMenuDownX = -1;
-        edgeMenuDownY = -1;
+    private boolean resetEdgeMenuGesture() {
+        return resetEdgeMenuGesture(false);
+    }
+
+    private boolean resetEdgeMenuGesture(boolean preserveTrail) {
+        boolean wasConsuming = edgeSwipeDetector.reset();
         if (!preserveTrail && BuildConfig.DEBUG && edgeMenuTrailOverlay != null) {
             edgeMenuTrailOverlay.hideSoon();
         }
         setEdgeMenuDebugText("reset");
+        return wasConsuming;
     }
 
     private void setEdgeMenuDebugText(String text) {
@@ -4682,9 +4690,9 @@ public class Game extends Activity implements SurfaceHolder.Callback,
                 return;
             }
 
-            int edgeWidth = Math.min(
-                    Math.max(dp(EDGE_MENU_SYSTEM_GESTURE_EXCLUSION_WIDTH_DP), dp(prefConfig != null ? prefConfig.edgeMenuHotZoneDp : EDGE_MENU_SYSTEM_GESTURE_EXCLUSION_WIDTH_DP)),
-                    Math.max(1, width / 3));
+            int edgeWidth = EdgeSwipeDetector.systemGestureExclusionWidthPx(
+                    dp(prefConfig != null ? prefConfig.edgeMenuHotZoneDp : EDGE_MENU_SYSTEM_GESTURE_EXCLUSION_WIDTH_DP),
+                    dp(EDGE_MENU_SYSTEM_GESTURE_EXCLUSION_WIDTH_DP), width);
             java.util.ArrayList<Rect> exclusionRects = new java.util.ArrayList<>(2);
             exclusionRects.add(new Rect(0, 0, Math.min(edgeWidth, width), height));
             exclusionRects.add(new Rect(Math.max(0, width - edgeWidth), 0, width, height));
