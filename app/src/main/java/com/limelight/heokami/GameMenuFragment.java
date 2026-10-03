@@ -150,10 +150,9 @@ public class GameMenuFragment extends Fragment {
         // 获取当前屏幕方向
         int orientation = getResources().getConfiguration().orientation;
         
+        int menuWidth = GameMenuGeometry.panelWidthPx(screenWidth, screenHeight,
+                getResources().getDisplayMetrics().density);
         int maxWidthPx = (int) (480 * getResources().getDisplayMetrics().density);
-        int minWidthPx = (int) (320 * getResources().getDisplayMetrics().density);
-        int targetWidth = (int) (screenWidth * (screenWidth > screenHeight ? 0.38f : 0.86f));
-        int menuWidth = Math.min(Math.max(targetWidth, minWidthPx), Math.min(screenWidth, maxWidthPx));
         
         android.util.Log.d("GameMenu", "Screen width: " + screenWidth + ", Screen height: " + screenHeight + 
                           ", Orientation: " + orientation + ", Max width px: " + maxWidthPx + 

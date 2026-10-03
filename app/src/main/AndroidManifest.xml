@@ -224,6 +224,11 @@
             android:theme="@style/Theme.AppCompat.Dialog">
         </activity>
         <activity
+            android:name=".heokami.activity.EdgeMenuTestActivity"
+            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|smallestScreenSize"
+            android:excludeFromRecents="true"
+            android:theme="@style/StreamTheme" />
+        <activity
             android:name=".heokami.activity.LoadSystemSettingsActivity"
             android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|smallestScreenSize"
             android:theme="@style/Theme.AppCompat.Dialog">
