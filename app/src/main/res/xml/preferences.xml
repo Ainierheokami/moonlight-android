@@ -486,6 +486,9 @@
     <PreferenceCategory
         android:key="category_onscreen_keyboard_profiles"
         android:title="@string/category_onscreen_keyboard_profiles">
+        <com.limelight.heokami.pref.LayoutProfilesPreference
+            android:title="@string/layout_pref_title"
+            android:summary="@string/layout_pref_summary" />
         <com.limelight.heokami.pref.SaveFilePreference
             android:title="@string/virtual_keyboard_menu_save_profile"
             android:summary="@string/virtual_keyboard_menu_save_profile_summary"

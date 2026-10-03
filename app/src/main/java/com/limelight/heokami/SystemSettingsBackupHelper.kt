@@ -8,6 +8,7 @@ import android.provider.Settings
 import android.util.Base64
 import android.util.Log
 import com.limelight.computers.ComputerDatabaseManager
+import com.limelight.heokami.layout.LayoutProfileManager
 import com.limelight.nvstream.http.ComputerDetails
 import org.json.JSONArray
 import org.json.JSONObject
@@ -194,6 +195,13 @@ object SystemSettingsBackupHelper {
             }
             root.put("extra_preferences", extraPrefs)
 
+            // 键盘布局配置（多套布局及其绑定）。不含密钥，明文即可。
+            try {
+                root.put("layout_profiles", LayoutProfileManager.exportForBackup(context))
+            } catch (e: Exception) {
+                Log.w(TAG, "键盘布局配置导出失败，已跳过", e)
+            }
+
             // 3. 导出已配对电脑数据库列表 (SQLite computers4.db -> JSON)
             val computersArray = JSONArray()
             val dbManager = ComputerDatabaseManager(context)
@@ -312,6 +320,15 @@ object SystemSettingsBackupHelper {
                 editor.apply()
             }
             Log.i(TAG, "已成功恢复虚拟键盘、悬浮键盘与自定义热键配置")
+        }
+
+        if (root.has("layout_profiles")) {
+            try {
+                LayoutProfileManager.importFromBackup(context, root.getJSONObject("layout_profiles"))
+                Log.i(TAG, "已成功恢复键盘布局配置")
+            } catch (e: Exception) {
+                Log.w(TAG, "键盘布局配置恢复失败，保留当前布局", e)
+            }
         }
 
         // 2. 批量将已存电脑表恢复写入 SQLite computers4.db
