@@ -122,6 +122,7 @@ import android.graphics.Color;
 
 // 2024-11-27 17:36:10 返回菜单
 import com.limelight.heokami.EdgeSwipeDetector;
+import com.limelight.heokami.GameMenuHost;
 import com.limelight.heokami.layout.LayoutProfileDialogs;
 import com.limelight.heokami.layout.LayoutProfileManager;
 import kotlin.Unit;
@@ -136,7 +137,7 @@ import org.slf4j.LoggerFactory;
 public class Game extends Activity implements SurfaceHolder.Callback,
         OnGenericMotionListener, OnTouchListener, NvConnectionListener, EvdevListener,
         OnSystemUiVisibilityChangeListener, GameGestures, StreamView.InputCallbacks,
-        PerfOverlayListener, UsbDriverService.UsbDriverStateListener, View.OnKeyListener {
+        PerfOverlayListener, UsbDriverService.UsbDriverStateListener, View.OnKeyListener, GameMenuHost {
     private static final Logger log = LoggerFactory.getLogger(Game.class);
     private int lastButtonState = 0;
 
@@ -4349,6 +4350,28 @@ public class Game extends Activity implements SurfaceHolder.Callback,
 
     public String getTouchpadSensitivityLabel() {
         return getTouchpadSensitivityPercent() + "%";
+    }
+
+    // ---- GameMenuHost: the real stream is the menu's host
+
+    @Override
+    public Activity menuActivity() {
+        return this;
+    }
+
+    @Override
+    public Game getStreamGame() {
+        return this;
+    }
+
+    @Override
+    public boolean isMenuDemo() {
+        return false;
+    }
+
+    @Override
+    public NvConnection getMenuConnection() {
+        return conn;
     }
 
     /** Rebuilds the on-screen keyboard from the (just switched) active layout, if it is in use. */

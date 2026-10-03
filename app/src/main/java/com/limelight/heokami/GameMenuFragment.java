@@ -24,6 +24,7 @@ import android.view.MotionEvent;
 import android.view.animation.AccelerateDecelerateInterpolator;
 import com.limelight.utils.AppToast;
 
+import android.app.Activity;
 import android.app.Fragment;
 
 import android.widget.Button;
@@ -70,7 +71,11 @@ public class GameMenuFragment extends Fragment {
     private static final String PREF_LAST_STREAM_DISPLAY_LABEL = "last_stream_display_label";
     private static final String PREF_GAME_MENU_SECTION_ORDER = "game_menu_section_order";
 
-    private Game game;
+    private GameMenuHost host;
+    // Activity used for views, strings, dialogs and toasts: the stream, or the test-mode screen.
+    private Activity game;
+    // The stream itself; null when the menu is shown by the settings test mode.
+    private Game realGame;
     private NvConnection conn;
     private View menuPanel;
     private View backgroundView;
@@ -142,11 +147,26 @@ public class GameMenuFragment extends Fragment {
     }
 
     public static GameMenuFragment newInstance(Game game, NvConnection conn, boolean showFromLeft) {
+        return newInstance((GameMenuHost) game, showFromLeft);
+    }
+
+    public static GameMenuFragment newInstance(GameMenuHost host, boolean showFromLeft) {
         GameMenuFragment fragment = new GameMenuFragment();
-        fragment.game = game;
-        fragment.conn = conn;
+        fragment.host = host;
+        fragment.game = host.menuActivity();
+        fragment.realGame = host.getStreamGame();
+        fragment.conn = host.getMenuConnection();
         fragment.showFromLeft = showFromLeft;
         return fragment;
+    }
+
+    private boolean isDemo() {
+        return host != null && host.isMenuDemo();
+    }
+
+    /** In the settings test mode actions that need a stream only explain themselves. */
+    private void showDemoNotice() {
+        AppToast.makeText(game, R.string.game_menu_demo_notice, AppToast.LENGTH_SHORT).show();
     }
 
     @Override
@@ -342,9 +362,9 @@ public class GameMenuFragment extends Fragment {
         
         // 2. 串流画质 (分辨率与帧率)
         String quality = game.getString(R.string.menu_unknown);
-        if (game.getPrefConfig() != null) {
+        if (host.getPrefConfig() != null) {
             quality = game.getString(R.string.menu_status_quality_fps,
-                    game.getPrefConfig().width + "x" + game.getPrefConfig().height, game.getPrefConfig().fps);
+                    host.getPrefConfig().width + "x" + host.getPrefConfig().height, host.getPrefConfig().fps);
         }
         addStatusChip(game.getString(R.string.menu_status_quality), quality);
         
@@ -352,13 +372,13 @@ public class GameMenuFragment extends Fragment {
         String bitrate = game.getString(R.string.menu_unknown);
         if (conn != null) {
             bitrate = String.format(java.util.Locale.getDefault(), "%.1f Mbps", conn.getCurrentBitrate() / 1000f);
-        } else if (game.getPrefConfig() != null) {
-            bitrate = String.format(java.util.Locale.getDefault(), "%.1f Mbps", game.getPrefConfig().bitrate / 1000f);
+        } else if (host.getPrefConfig() != null) {
+            bitrate = String.format(java.util.Locale.getDefault(), "%.1f Mbps", host.getPrefConfig().bitrate / 1000f);
         }
         addStatusChip(game.getString(R.string.menu_status_bitrate), bitrate);
 
         // 4. 串流音量（客户端播放增益，按主机保存）
-        addStatusChip(getString(R.string.game_menu_audio_volume_short), game.getStreamAudioGainLabel());
+        addStatusChip(getString(R.string.game_menu_audio_volume_short), host.getStreamAudioGainLabel());
         
         // 5. 当前时间
         String currentTime = new java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault()).format(new java.util.Date());
@@ -504,7 +524,7 @@ public class GameMenuFragment extends Fragment {
         TextView add = createPill("\uFF0B", false);
         add.setOnClickListener(v -> {
             hideMenuWithAnimation();
-            LayoutProfileDialogs.showNew(game, game.createKeyboardLayoutContext());
+            LayoutProfileDialogs.showNew(game, host.createKeyboardLayoutContext());
         });
         row.addView(add, pillParams());
         return wrap;
@@ -512,7 +532,7 @@ public class GameMenuFragment extends Fragment {
 
     private void switchKeyboardLayout(String id) {
         if (LayoutProfileManager.INSTANCE.switchTo(game, id)) {
-            game.reloadVirtualKeyboardLayout();
+            host.reloadVirtualKeyboardLayout();
             renderDashboard();
         }
     }
@@ -526,9 +546,9 @@ public class GameMenuFragment extends Fragment {
                     Game.STREAM_AUDIO_GAIN_MAX_PERCENT,
                     10,
                     Game.STREAM_AUDIO_GAIN_DEFAULT_PERCENT,
-                    game.getStreamAudioGainPercent(),
+                    host.getStreamAudioGainPercent(),
                     value -> {
-                        game.setStreamAudioGainPercent(value);
+                        host.setStreamAudioGainPercent(value);
                         renderStatusBar();
                     }));
         }
@@ -539,9 +559,9 @@ public class GameMenuFragment extends Fragment {
                     300,
                     5,
                     PreferenceConfiguration.DEFAULT_TOUCHPAD_SENSITIVITY,
-                    game.getTouchpadSensitivityPercent(),
+                    host.getTouchpadSensitivityPercent(),
                     value -> {
-                        game.setTouchpadSensitivityPercent(value);
+                        host.setTouchpadSensitivityPercent(value);
                         renderStatusBar();
                     }));
         }
@@ -552,15 +572,15 @@ public class GameMenuFragment extends Fragment {
         List<GameMenuAction> actions = new ArrayList<>();
         actions.add(new GameMenuAction("bitrate", R.string.game_menu_adjust_bitrate_short, 0, GameMenuSection.STREAM, 10, false, true, true, v -> {
             hideMenuWithAnimation();
-            StreamBitrateMenu.show(game, conn);
+            StreamBitrateMenu.show(realGame, conn);
         }));
         actions.add(new GameMenuAction("presets", R.string.game_menu_stream_presets_short, 0, GameMenuSection.STREAM, 30, false, true, true, v -> {
             hideMenuWithAnimation();
-            StreamPresetMenu.show(game, conn);
+            StreamPresetMenu.show(realGame, conn);
         }));
         actions.add(new GameMenuAction("stream_enhance", R.string.game_menu_stream_enhance, 0, GameMenuSection.STREAM, 40, false, true, true, v -> {
             hideMenuWithAnimation();
-            StreamEnhanceMenu.show(game, conn);
+            StreamEnhanceMenu.show(realGame, conn);
         }));
         actions.add(new GameMenuAction("switch_display", 0, 0, GameMenuSection.STREAM, 50, false, true, true, v -> {
             hideMenuWithAnimation();
@@ -574,18 +594,18 @@ public class GameMenuFragment extends Fragment {
         actions.add(new GameMenuAction("floating_keyboard", R.string.game_menu_floating_keyboard, R.drawable.ic_floating_keyboard, GameMenuSection.INPUT, 20, false, true, true, v -> {
             hideMenuWithAnimation();
             try {
-                FloatingVirtualKeyboardFragment.Companion.show(game);
+                FloatingVirtualKeyboardFragment.Companion.show(realGame);
             } catch (Exception e) {
                 Log.e("GameMenuFragment", "Error showing floating keyboard", e);
             }
         }));
         actions.add(new GameMenuAction("full_keyboard", R.string.game_menu_full_keyboard, R.drawable.ic_full_keyboard, GameMenuSection.INPUT, 30, false, true, true, v -> {
             hideMenuWithAnimation();
-            VirtualKeyboardDialogFragment.show(game);
+            VirtualKeyboardDialogFragment.show(realGame);
         }));
         actions.add(new GameMenuAction("send_clipboard", R.string.game_menu_send_clipboard_content, R.drawable.ic_clipboard, GameMenuSection.INPUT, 40, false, true, true, v -> {
             hideMenuWithAnimation();
-            conn.sendUtf8Text(getClipboardContentAsString(game, new int[]{3}, new long[]{30}));
+            conn.sendUtf8Text(getClipboardContentAsString(realGame, new int[]{3}, new long[]{30}));
         }));
 
         actions.add(new GameMenuAction("copy", R.string.game_menu_copy, R.drawable.ic_copy, GameMenuSection.HOTKEYS, 10, false, true, true, v -> runHotkey(new short[]{(short) VirtualKeyboardVkCode.VKCode.VK_LCONTROL.getCode(), (short) VirtualKeyboardVkCode.VKCode.VK_C.getCode()})));
@@ -596,27 +616,27 @@ public class GameMenuFragment extends Fragment {
 
         actions.add(new GameMenuAction("controller", R.string.game_menu_toggle_virtual_controller, 0, GameMenuSection.OVERLAY, 10, false, true, true, v -> {
             hideMenuWithAnimation();
-            game.toggleVirtualController();
+            host.toggleVirtualController();
         }));
         actions.add(new GameMenuAction("virtual_keyboard", R.string.game_menu_toggle_virtual_keyboard, 0, GameMenuSection.LAYOUT, 20, false, true, true, v -> {
             hideMenuWithAnimation();
-            game.toggleVirtualKeyboard();
+            host.toggleVirtualKeyboard();
             AppToast.makeText(game, game.getString(R.string.game_menu_toggle_virtual_keyboard_toast), AppToast.LENGTH_SHORT).show();
         }));
         actions.add(new GameMenuAction("keyboard_layout", 0, 0, GameMenuSection.LAYOUT, 30, false, true, true, v -> {
             hideMenuWithAnimation();
-            LayoutProfileDialogs.show(game, game.createKeyboardLayoutContext());
+            LayoutProfileDialogs.show(game, host.createKeyboardLayoutContext());
         }, game.getString(R.string.game_menu_manage_layouts)));
         actions.add(new GameMenuAction("edit_virtual_keyboard", R.string.game_menu_edit_virtual_keyboard, 0, GameMenuSection.LAYOUT, 10, false, true, true, v -> openVirtualKeyboardEditor()));
         actions.add(new GameMenuAction("perf", R.string.game_menu_toggle_perf_overlay, 0, GameMenuSection.OVERLAY, 40, false, true, true, v -> {
             hideMenuWithAnimation();
-            game.togglePerfOverlay();
+            host.togglePerfOverlay();
         }));
 
-        actions.add(new GameMenuAction("portal_toggle", game.arePortalsEnabled() ? R.string.game_menu_portal_disable : R.string.game_menu_portal_enable, 0, GameMenuSection.PORTALS, 10, false, true, game.getPortalManagerView() != null, v -> togglePortals()));
-        actions.add(new GameMenuAction("portal_add", R.string.game_menu_portal_add, 0, GameMenuSection.PORTALS, 20, false, true, game.getPortalManagerView() != null, v -> addPortal()));
-        actions.add(new GameMenuAction("portal_edit", R.string.game_menu_portal_toggle_edit, 0, GameMenuSection.PORTALS, 30, false, true, game.getPortalManagerView() != null, v -> togglePortalEditMode()));
-        actions.add(new GameMenuAction("portal_manage", R.string.game_menu_portal_manage, 0, GameMenuSection.PORTALS, 40, false, true, game.getPortalManagerView() != null, v -> showPortalManagerDialog()));
+        actions.add(new GameMenuAction("portal_toggle", host.arePortalsEnabled() ? R.string.game_menu_portal_disable : R.string.game_menu_portal_enable, 0, GameMenuSection.PORTALS, 10, false, true, host.getPortalManagerView() != null, v -> togglePortals()));
+        actions.add(new GameMenuAction("portal_add", R.string.game_menu_portal_add, 0, GameMenuSection.PORTALS, 20, false, true, host.getPortalManagerView() != null, v -> addPortal()));
+        actions.add(new GameMenuAction("portal_edit", R.string.game_menu_portal_toggle_edit, 0, GameMenuSection.PORTALS, 30, false, true, host.getPortalManagerView() != null, v -> togglePortalEditMode()));
+        actions.add(new GameMenuAction("portal_manage", R.string.game_menu_portal_manage, 0, GameMenuSection.PORTALS, 40, false, true, host.getPortalManagerView() != null, v -> showPortalManagerDialog()));
 
         actions.add(new GameMenuAction("section_order", R.string.game_menu_section_order, 0, GameMenuSection.CUSTOM, 5, false, true, true, v -> showSectionOrderDialog()));
         actions.add(new GameMenuAction("edit_hotkeys", R.string.game_menu_edit_hotkeys, 0, GameMenuSection.CUSTOM, 10, false, true, true, v -> openCustomHotkeyManager()));
@@ -995,7 +1015,11 @@ public class GameMenuFragment extends Fragment {
             button.setCompoundDrawablesWithIntrinsicBounds(action.iconRes, 0, 0, 0);
             button.setCompoundDrawablePadding(dp(8));
         }
-        button.setOnClickListener(action.onClick);
+        if (isDemo() && !"section_order".equals(action.id)) {
+            button.setOnClickListener(v -> showDemoNotice());
+        } else {
+            button.setOnClickListener(action.onClick);
+        }
         GridLayout.LayoutParams lp = new GridLayout.LayoutParams();
         lp.width = 0;
         lp.height = dp(42);
@@ -1012,11 +1036,11 @@ public class GameMenuFragment extends Fragment {
 
     private void openVirtualKeyboardEditor() {
         hideMenuWithAnimation();
-        VirtualKeyboard vk = game.getVirtualKeyboard();
+        VirtualKeyboard vk = host.getVirtualKeyboard();
         if (vk != null) {
             vk.show();
             vk.enterEditMode();
-            new Handler(Looper.getMainLooper()).postDelayed(() -> new EditMenu(game, vk), ANIMATION_DURATION + 50);
+            new Handler(Looper.getMainLooper()).postDelayed(() -> new EditMenu(realGame, vk), ANIMATION_DURATION + 50);
         } else {
             AppToast.makeText(game, game.getString(R.string.menu_vk_not_ready_enter_edit), AppToast.LENGTH_SHORT).show();
         }
@@ -1025,23 +1049,23 @@ public class GameMenuFragment extends Fragment {
     private void openCustomHotkeyManager() {
         hideMenuWithAnimation();
         new Handler(Looper.getMainLooper()).postDelayed(() -> {
-            VirtualKeyboard vk = game.getVirtualKeyboard();
+            VirtualKeyboard vk = host.getVirtualKeyboard();
             if (vk == null) {
                 AppToast.makeText(game, game.getString(R.string.menu_vk_not_ready_edit), AppToast.LENGTH_SHORT).show();
                 return;
             }
-            CustomHotkeysManager.showManageDialog(game, vk, this::renderDashboard);
+            CustomHotkeysManager.showManageDialog(realGame, vk, this::renderDashboard);
         }, ANIMATION_DURATION + 50);
     }
 
     private void runCustomHotkey(CustomHotkeysManager.CustomHotkey item) {
         hideMenuWithAnimation();
-        VirtualKeyboard vk = game.getVirtualKeyboard();
+        VirtualKeyboard vk = host.getVirtualKeyboard();
         if (vk == null) {
             AppToast.makeText(game, game.getString(R.string.menu_vk_not_ready_run), AppToast.LENGTH_SHORT).show();
             return;
         }
-        CustomHotkeysManager.runCustomHotkey(game, vk, item);
+        CustomHotkeysManager.runCustomHotkey(realGame, vk, item);
     }
 
     /**
@@ -1093,7 +1117,7 @@ public class GameMenuFragment extends Fragment {
                                 @Override
                                 public void run() {
                                     hideMenuWithAnimation();
-                                    game.quitAndDisconnect();
+                                    host.quitAndDisconnect();
                                 }
                             })
                             .start();
@@ -1233,7 +1257,7 @@ public class GameMenuFragment extends Fragment {
         if (touchModeCurrentView == null || game == null) {
             return;
         }
-        int mode = game.getCurrentTouchMode();
+        int mode = host.getCurrentTouchMode();
         String modeName;
         if (mode == 0) {
             modeName = getString(R.string.game_menu_touch_mode_multi_touch);
@@ -1246,7 +1270,7 @@ public class GameMenuFragment extends Fragment {
     }
 
     private String getTouchModeName() {
-        int mode = game.getCurrentTouchMode();
+        int mode = host.getCurrentTouchMode();
         if (mode == 0) return getString(R.string.game_menu_touch_mode_multi_touch);
         if (mode == 1) return getString(R.string.game_menu_touch_mode_trackpad);
         return getString(R.string.game_menu_touch_mode_mouse);
@@ -1268,9 +1292,9 @@ public class GameMenuFragment extends Fragment {
         button.setTextColor(0xFFFFFFFF);
         button.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
         button.setMaxLines(1);
-        button.setBackgroundResource(game.getCurrentTouchMode() == mode ? R.drawable.menu_header_background : R.drawable.button_background_dark);
+        button.setBackgroundResource(host.getCurrentTouchMode() == mode ? R.drawable.menu_header_background : R.drawable.button_background_dark);
         button.setOnClickListener(v -> {
-            game.changeTouchMode(mode);
+            host.changeTouchMode(mode);
             renderStatusBar();
             renderTouchModeOptions();
             if (touchModePanel != null) touchModePanel.setVisibility(View.GONE);
@@ -1299,10 +1323,10 @@ public class GameMenuFragment extends Fragment {
 
     private void togglePortals() {
         hideMenuWithAnimation();
-        PortalManagerView portalManager = game.getPortalManagerView();
+        PortalManagerView portalManager = host.getPortalManagerView();
         if (portalManager != null) {
             boolean enabled = portalManager.togglePortalsEnabled();
-            game.postNotification(enabled ? getString(R.string.game_menu_portal_enable) : getString(R.string.game_menu_portal_disable), 2000);
+            host.postNotification(enabled ? getString(R.string.game_menu_portal_enable) : getString(R.string.game_menu_portal_disable), 2000);
         } else {
             AppToast.makeText(game, game.getString(R.string.portal_manager_null), AppToast.LENGTH_SHORT).show();
         }
@@ -1310,7 +1334,7 @@ public class GameMenuFragment extends Fragment {
 
     private void addPortal() {
         hideMenuWithAnimation();
-        PortalManagerView portalManager = game.getPortalManagerView();
+        PortalManagerView portalManager = host.getPortalManagerView();
         if (portalManager == null) {
             AppToast.makeText(game, game.getString(R.string.portal_manager_null), AppToast.LENGTH_SHORT).show();
             return;
@@ -1326,11 +1350,11 @@ public class GameMenuFragment extends Fragment {
         }
         portalManager.addPortal(config);
         portalManager.setPortalEditingMode(config.id, 1);
-        game.postNotification(game.getString(R.string.portal_added_adjust_source), 2000);
+        host.postNotification(game.getString(R.string.portal_added_adjust_source), 2000);
     }
 
     private RectF createDefaultPortalTargetRect() {
-        View streamView = game.getStreamView();
+        View streamView = host.getStreamView();
         int width = streamView != null && streamView.getWidth() > 0 ? streamView.getWidth() : game.getResources().getDisplayMetrics().widthPixels;
         int height = streamView != null && streamView.getHeight() > 0 ? streamView.getHeight() : game.getResources().getDisplayMetrics().heightPixels;
         int[] location = new int[2];
@@ -1347,10 +1371,10 @@ public class GameMenuFragment extends Fragment {
 
     private void togglePortalEditMode() {
         hideMenuWithAnimation();
-        PortalManagerView portalManager = game.getPortalManagerView();
+        PortalManagerView portalManager = host.getPortalManagerView();
         if (portalManager == null) return;
         if (portalManager.getPortalCount() == 0) {
-            game.postNotification(game.getString(R.string.portal_add_first), 2000);
+            host.postNotification(game.getString(R.string.portal_add_first), 2000);
             return;
         }
         int currentMode = portalManager.getCurrentEditMode();
@@ -1361,12 +1385,12 @@ public class GameMenuFragment extends Fragment {
                 : nextMode == 2
                 ? getString(R.string.game_menu_portal_edit_target)
                 : getString(R.string.game_menu_portal_exit_edit);
-        game.postNotification(notificationText, 2000);
+        host.postNotification(notificationText, 2000);
     }
 
     private void showPortalManagerDialog() {
         hideMenuWithAnimation();
-        PortalManagerView portalManager = game.getPortalManagerView();
+        PortalManagerView portalManager = host.getPortalManagerView();
         if (portalManager == null) {
             AppToast.makeText(game, game.getString(R.string.portal_manager_null), AppToast.LENGTH_SHORT).show();
             return;
@@ -1401,7 +1425,7 @@ public class GameMenuFragment extends Fragment {
     }
 
     private void showPortalActionsDialog(int portalId) {
-        PortalManagerView portalManager = game.getPortalManagerView();
+        PortalManagerView portalManager = host.getPortalManagerView();
         if (portalManager == null) {
             return;
         }
@@ -1414,7 +1438,7 @@ public class GameMenuFragment extends Fragment {
             }
         }
         if (selected == null) {
-            game.postNotification(game.getString(R.string.portal_gone), 2000);
+            host.postNotification(game.getString(R.string.portal_gone), 2000);
             return;
         }
 
@@ -1433,21 +1457,21 @@ public class GameMenuFragment extends Fragment {
                     switch (which) {
                         case 0:
                             portalManager.setPortalEditingMode(portalId, 1);
-                            game.postNotification(game.getString(R.string.portal_editing_source), 2000);
+                            host.postNotification(game.getString(R.string.portal_editing_source), 2000);
                             break;
                         case 1:
                             portalManager.setPortalEditingMode(portalId, 2);
-                            game.postNotification(game.getString(R.string.portal_editing_target), 2000);
+                            host.postNotification(game.getString(R.string.portal_editing_target), 2000);
                             break;
                         case 2:
                             portalManager.setPortalEnabled(portalId, !finalSelected.enabled);
-                            game.postNotification(finalSelected.enabled ? game.getString(R.string.portal_disabled_toast) : game.getString(R.string.portal_enabled_toast), 2000);
+                            host.postNotification(finalSelected.enabled ? game.getString(R.string.portal_disabled_toast) : game.getString(R.string.portal_enabled_toast), 2000);
                             break;
                         case 3:
                             PortalConfig duplicate = portalManager.duplicatePortal(portalId);
                             if (duplicate != null) {
                                 portalManager.setPortalEditingMode(duplicate.id, 2);
-                                game.postNotification(game.getString(R.string.portal_duplicated_toast), 2000);
+                                host.postNotification(game.getString(R.string.portal_duplicated_toast), 2000);
                             }
                             break;
                         case 4:
@@ -1460,7 +1484,7 @@ public class GameMenuFragment extends Fragment {
     }
 
     private void confirmDeletePortal(int portalId, String portalName) {
-        PortalManagerView portalManager = game.getPortalManagerView();
+        PortalManagerView portalManager = host.getPortalManagerView();
         if (portalManager == null) {
             return;
         }
@@ -1470,7 +1494,7 @@ public class GameMenuFragment extends Fragment {
                 .setMessage(game.getString(R.string.portal_confirm_delete, portalName))
                 .setPositiveButton(game.getString(R.string.portal_delete), (dialog, which) -> {
                     portalManager.removePortal(portalId);
-                    game.postNotification(game.getString(R.string.portal_deleted_toast), 2000);
+                    host.postNotification(game.getString(R.string.portal_deleted_toast), 2000);
                 })
                 .setNegativeButton(android.R.string.cancel, null)
                 .show();
@@ -1484,7 +1508,7 @@ public class GameMenuFragment extends Fragment {
         
         isMenuVisible = true;
         if (game != null) {
-            game.onGameMenuShown();
+            host.onGameMenuShown();
         }
         
         // 确保菜单面板可见并开始动画
@@ -1533,7 +1557,7 @@ public class GameMenuFragment extends Fragment {
                 // 更新菜单显示状态
                 GameMenu.setMenuShowing(false);
                 if (game != null) {
-                    game.onGameMenuHidden();
+                    host.onGameMenuHidden();
                 }
 
                 if (getFragmentManager() != null) {
@@ -1557,7 +1581,7 @@ public class GameMenuFragment extends Fragment {
         super.onDestroyView();
         GameMenu.setMenuShowing(false);
         if (game != null) {
-            game.onGameMenuHidden();
+            host.onGameMenuHidden();
         }
     }
 
@@ -1579,7 +1603,7 @@ public class GameMenuFragment extends Fragment {
      * 启用输入法
      */
     private void enableKeyboard() {
-        runWithGameFocus(game::toggleKeyboard);
+        runWithGameFocus(host::toggleKeyboard);
     }
 
     /**
@@ -1787,7 +1811,7 @@ public class GameMenuFragment extends Fragment {
                             String toastText = getDisplayNickname(selected);
                             rememberDisplayLabel(toastText);
                             AppToast.makeText(game, game.getString(R.string.display_switching_to, toastText), AppToast.LENGTH_SHORT).show();
-                            game.recreateConnectionWithDisplay(targetValue, isVirtual);
+                            host.recreateConnectionWithDisplay(targetValue, isVirtual);
                             dialog.dismiss();
                         });
                         
@@ -1833,11 +1857,11 @@ public class GameMenuFragment extends Fragment {
                 String targetDisplay = (cachedGuid != null && !cachedGuid.trim().isEmpty()) ? cachedGuid : "\\\\.\\DISPLAY1";
                 rememberDisplayLabel(game.getString(R.string.display_physical_primary));
                 AppToast.makeText(game, game.getString(R.string.display_switching_to, targetDisplay), AppToast.LENGTH_SHORT).show();
-                game.recreateConnectionWithDisplay(targetDisplay, false);
+                host.recreateConnectionWithDisplay(targetDisplay, false);
             } else if (which == 1) {
                 rememberDisplayLabel(game.getString(R.string.display_virtual_forced));
                 AppToast.makeText(game, game.getString(R.string.display_activating_virtual), AppToast.LENGTH_SHORT).show();
-                game.recreateConnectionWithDisplay("", true);
+                host.recreateConnectionWithDisplay("", true);
             } else {
                 OverlayAlertDialog.Builder inputBuilder = new OverlayAlertDialog.Builder(game);
                 inputBuilder.setTitle(game.getString(R.string.display_enter_name_title));
@@ -1851,7 +1875,7 @@ public class GameMenuFragment extends Fragment {
                                 || customDisplay.toLowerCase(java.util.Locale.ROOT).contains("virtual");
                         rememberDisplayLabel(customDisplay);
                         AppToast.makeText(game, game.getString(R.string.display_switching_to, customDisplay), AppToast.LENGTH_SHORT).show();
-                        game.recreateConnectionWithDisplay(customDisplay, isVirtual);
+                        host.recreateConnectionWithDisplay(customDisplay, isVirtual);
                     }
                 });
                 inputBuilder.setNegativeButton(android.R.string.cancel, null);

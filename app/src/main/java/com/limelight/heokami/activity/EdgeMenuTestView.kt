@@ -13,7 +13,6 @@ import com.limelight.heokami.EdgeSwipeDetector
 import com.limelight.heokami.EdgeSwipeDetector.Miss
 import com.limelight.heokami.EdgeSwipeDetector.MoveResult
 import com.limelight.heokami.EdgeSwipeDetector.Side
-import com.limelight.heokami.GameMenuGeometry
 
 /** Draws the simulated stream, the edge zones, the live trail and the result log. */
 internal class EdgeMenuTestView(
@@ -43,8 +42,6 @@ internal class EdgeMenuTestView(
     private val guidePaint = paint(Paint.Style.STROKE, Color.argb(150, 108, 180, 255), 2f).apply {
         pathEffect = DashPathEffect(floatArrayOf(dp(4f), dp(4f)), 0f)
     }
-    private val panelFill = paint(Paint.Style.FILL, Color.argb(56, 80, 160, 255))
-    private val panelStroke = paint(Paint.Style.STROKE, Color.argb(220, 108, 180, 255), 2f)
     private val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = Color.argb(235, 255, 255, 255)
         textSize = dp(13f)
@@ -74,7 +71,6 @@ internal class EdgeMenuTestView(
     private val trailPath = Path()
     private val leftZone = RectF()
     private val rightZone = RectF()
-    private val menuRect = RectF()
 
     private fun paint(style: Paint.Style, argb: Int, strokeDp: Float = 0f) =
         Paint(Paint.ANTI_ALIAS_FLAG).apply {
@@ -182,8 +178,6 @@ internal class EdgeMenuTestView(
 
         drawTrail(canvas)
 
-        triggeredSide?.let { drawMenuOutline(canvas, it, w, h) }
-
         drawHud(canvas, w, h)
     }
 
@@ -214,21 +208,6 @@ internal class EdgeMenuTestView(
         canvas.drawPath(trailPath, if (consuming || triggeredSide != null) takeoverPaint else trailPaint)
         val last = trail.last()
         canvas.drawCircle(last.first, last.second, dp(7f), pointPaint)
-    }
-
-    private fun drawMenuOutline(canvas: Canvas, side: Side, w: Float, h: Float) {
-        val panelWidth = GameMenuGeometry.panelWidthPx(width, height, density).toFloat()
-        val margin = dp(12f)
-        val rect = menuRect
-        if (side == Side.LEFT) {
-            rect.set(margin, margin, margin + panelWidth, h - margin)
-        } else {
-            rect.set(w - margin - panelWidth, margin, w - margin, h - margin)
-        }
-        canvas.drawRoundRect(rect, dp(20f), dp(20f), panelFill)
-        canvas.drawRoundRect(rect, dp(20f), dp(20f), panelStroke)
-        val label = context.getString(R.string.edge_test_menu_here)
-        canvas.drawText(label, rect.centerX() - textPaint.measureText(label) / 2f, rect.centerY(), textPaint)
     }
 
     private fun drawHud(canvas: Canvas, w: Float, h: Float) {
