@@ -38,6 +38,9 @@ import androidx.recyclerview.widget.ItemTouchHelper;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import com.limelight.Game;
+import com.limelight.heokami.layout.LayoutProfileDialogs;
+import com.limelight.heokami.layout.LayoutProfileManager;
+import com.limelight.heokami.layout.LayoutProfileRepository;
 import com.limelight.R;
 import com.limelight.preferences.PreferenceConfiguration;
 import com.limelight.nvstream.NvConnection;
@@ -366,6 +369,10 @@ public class GameMenuFragment extends Fragment {
             game.toggleVirtualKeyboard();
             AppToast.makeText(game, game.getString(R.string.game_menu_toggle_virtual_keyboard_toast), AppToast.LENGTH_SHORT).show();
         }));
+        actions.add(new GameMenuAction("keyboard_layout", 0, 0, GameMenuSection.OVERLAY, 25, false, true, true, v -> {
+            hideMenuWithAnimation();
+            LayoutProfileDialogs.show(game, game.createKeyboardLayoutContext());
+        }, game.getString(R.string.game_menu_keyboard_layout, getKeyboardLayoutName())));
         actions.add(new GameMenuAction("edit_virtual_keyboard", R.string.game_menu_edit_virtual_keyboard, 0, GameMenuSection.OVERLAY, 30, false, true, true, v -> openVirtualKeyboardEditor()));
         actions.add(new GameMenuAction("perf", R.string.game_menu_toggle_perf_overlay, 0, GameMenuSection.OVERLAY, 40, false, true, true, v -> {
             hideMenuWithAnimation();
@@ -385,6 +392,15 @@ public class GameMenuFragment extends Fragment {
             actions.add(new GameMenuAction("custom_" + item.name, 0, 0, GameMenuSection.CUSTOM, priority++, false, true, true, v -> runCustomHotkey(item), item.name));
         }
         return actions;
+    }
+
+    private String getKeyboardLayoutName() {
+        try {
+            LayoutProfileRepository.Profile active = LayoutProfileManager.INSTANCE.get(game).getActive();
+            return active != null ? active.name : "";
+        } catch (RuntimeException e) {
+            return "";
+        }
     }
 
     private void addSection(GameMenuSection section, List<GameMenuAction> actions) {

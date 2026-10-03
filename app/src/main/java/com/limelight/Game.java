@@ -122,6 +122,9 @@ import android.graphics.Color;
 
 // 2024-11-27 17:36:10 返回菜单
 import com.limelight.heokami.EdgeSwipeDetector;
+import com.limelight.heokami.layout.LayoutProfileDialogs;
+import com.limelight.heokami.layout.LayoutProfileManager;
+import kotlin.Unit;
 import com.limelight.heokami.GameMenu;
 import com.limelight.heokami.EditMenu;
 
@@ -903,6 +906,12 @@ public class Game extends Activity implements SurfaceHolder.Callback,
             virtualController.refreshLayout();
             virtualController.show();
         }
+
+        // Activate the keyboard layout bound to this computer/app (app > computer > default).
+        // Only here, not on reconnect: a layout the user switched to mid-stream must survive it.
+        LayoutProfileManager.applyForSession(this,
+                getIntent().getStringExtra(EXTRA_PC_UUID),
+                app != null ? app.getAppId() : StreamConfiguration.INVALID_APP_ID, appName);
 
         if (prefConfig.onscreenKeyboard) {
             virtualKeyboard = new VirtualKeyboard(
@@ -4340,6 +4349,26 @@ public class Game extends Activity implements SurfaceHolder.Callback,
 
     public String getTouchpadSensitivityLabel() {
         return getTouchpadSensitivityPercent() + "%";
+    }
+
+    /** Rebuilds the on-screen keyboard from the (just switched) active layout, if it is in use. */
+    public void reloadVirtualKeyboardLayout() {
+        if (virtualKeyboard != null && prefConfig != null && prefConfig.onscreenKeyboard) {
+            virtualKeyboard.refreshLayout();
+        }
+    }
+
+    /** Which computer/app this stream is for, so layouts can be bound to them from the menu. */
+    public LayoutProfileDialogs.StreamContext createKeyboardLayoutContext() {
+        return new LayoutProfileDialogs.StreamContext(
+                getIntent().getStringExtra(EXTRA_PC_UUID),
+                pcName,
+                app != null ? app.getAppId() : StreamConfiguration.INVALID_APP_ID,
+                appName,
+                () -> {
+                    reloadVirtualKeyboardLayout();
+                    return Unit.INSTANCE;
+                });
     }
 
     public VirtualKeyboard getVirtualKeyboard(){
