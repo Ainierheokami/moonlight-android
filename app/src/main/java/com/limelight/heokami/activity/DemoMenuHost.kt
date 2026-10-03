@@ -65,6 +65,7 @@ internal class DemoMenuHost(
     override fun toggleKeyboard() {}
     override fun quitAndDisconnect() {}
     override fun recreateConnectionWithDisplay(displayName: String) {}
+    override fun recreateConnectionWithDisplay(displayName: String, overrideUseVdd: Boolean?) {}
 
     override fun createKeyboardLayoutContext(): LayoutProfileDialogs.StreamContext =
         LayoutProfileDialogs.StreamContext(null, null, -1, null) {}

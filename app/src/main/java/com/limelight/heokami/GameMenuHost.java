@@ -69,6 +69,9 @@ public interface GameMenuHost {
 
     void recreateConnectionWithDisplay(String displayName);
 
+    /** {@code overrideUseVdd}: null keeps the current setting. Matches Game's overload. */
+    void recreateConnectionWithDisplay(String displayName, Boolean overrideUseVdd);
+
     LayoutProfileDialogs.StreamContext createKeyboardLayoutContext();
 
     void reloadVirtualKeyboardLayout();
