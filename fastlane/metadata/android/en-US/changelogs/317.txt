@@ -1,0 +1,5 @@
+- Slide menu gesture: the settings preview is now a real test mode. Try the swipe on a simulated stream screen with live hot zone and trail, and see why a swipe did not open the menu (outside the hot zone, wrong direction, too vertical, N dp short, taken by the system back gesture). Swiping past the threshold opens the real menu
+- Slide menu layout: on landscape screens a floating tool box now sits on the side opposite the panel, with tabs for Stream / Hotkeys / Layout / Tools. Portrait and narrow screens get the same tabs inside the panel. The last tab used is remembered
+- One visual style: the menu uses the same slate palette, corner radii and accent colour as the dialogs, and so do the keyboard editor and the stream-enhance menu
+- Keyboard layouts: keep several virtual keyboard layouts (create, copy, rename, delete), make one the default, or have a computer or an app use its own automatically. Switch with one tap from the menu's Layout tab while streaming, or manage them in Settings. System backup and restore include them
+- Performance: with the gesture enabled, touch moves no longer allocate debug strings

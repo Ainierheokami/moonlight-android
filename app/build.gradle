@@ -58,7 +58,7 @@ android {
         def baseVersion = "12.1"
         def customTag = "-heokami-" + buildDate + "(${buildSeq})"
         versionName baseVersion + customTag
-        versionCode = 316
+        versionCode = 317
         buildConfigField "String", "BUILD_COMMIT", "\"${gitCommit}\""
 
         // Generate native debug symbols to allow Google Play to symbolicate our native crashes
