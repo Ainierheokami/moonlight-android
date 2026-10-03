@@ -389,7 +389,14 @@
     <string name="layout_tag_app">本應用程式</string>
     <string name="layout_pick_computer_title">選擇電腦</string>
     <string name="layout_no_computers">沒有已儲存的電腦</string>
-    <string name="game_menu_keyboard_layout">鍵盤佈局：%1$s</string>
+    <string name="menu_tab_input">輸入</string>
+    <string name="menu_tab_stream">串流</string>
+    <string name="menu_tab_hotkeys">快速鍵</string>
+    <string name="menu_tab_layout">佈局</string>
+    <string name="menu_tab_tools">工具</string>
+    <string name="game_menu_section_keyboard_layout">鍵盤佈局</string>
+    <string name="game_menu_layout_strip_title">佈局方案</string>
+    <string name="game_menu_manage_layouts">管理佈局…</string>
     <string name="category_perf_overlay">效能資訊</string>
     <string name="category_debug">提示與偵錯</string>
     <string name="category_ui_general">一般</string>

@@ -772,7 +772,14 @@
     <string name="layout_tag_app">this app</string>
     <string name="layout_pick_computer_title">Choose a computer</string>
     <string name="layout_no_computers">No saved computers</string>
-    <string name="game_menu_keyboard_layout">Keyboard layout: %1$s</string>
+    <string name="menu_tab_input">Input</string>
+    <string name="menu_tab_stream">Stream</string>
+    <string name="menu_tab_hotkeys">Hotkeys</string>
+    <string name="menu_tab_layout">Layout</string>
+    <string name="menu_tab_tools">Tools</string>
+    <string name="game_menu_section_keyboard_layout">Keyboard layout</string>
+    <string name="game_menu_layout_strip_title">Layouts</string>
+    <string name="game_menu_manage_layouts">Manage layouts…</string>
     <string name="category_perf_overlay">Performance overlay</string>
     <string name="category_debug">Notices &amp; debugging</string>
     <string name="category_ui_general">General</string>

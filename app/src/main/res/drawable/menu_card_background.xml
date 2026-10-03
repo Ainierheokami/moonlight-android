@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- A raised block inside a card: status chips, the touch-mode sheet. -->
+<!-- The surface of the menu panel and the tool box. -->
 <shape xmlns:android="http://schemas.android.com/apk/res/android">
-    <solid android:color="@color/menu_surface_raised" />
+    <solid android:color="@color/menu_surface" />
     <stroke
         android:width="1dp"
         android:color="@color/menu_stroke" />
-    <corners android:radius="@dimen/menu_item_radius" />
+    <corners android:radius="@dimen/menu_card_radius" />
 </shape>
