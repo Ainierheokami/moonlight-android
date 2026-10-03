@@ -27,6 +27,11 @@ import com.limelight.utils.AppToast;
 import android.app.Fragment;
 
 import android.widget.Button;
+import android.widget.HorizontalScrollView;
+import android.content.res.ColorStateList;
+import android.util.DisplayMetrics;
+import androidx.core.content.ContextCompat;
+import com.limelight.utils.MaxHeightScrollView;
 import android.widget.EditText;
 import android.widget.GridLayout;
 import android.widget.ImageView;
@@ -81,6 +86,48 @@ public class GameMenuFragment extends Fragment {
     private long lastDisconnectTapMs = 0;
     private android.animation.ValueAnimator holdAnimator = null;
     private ItemTouchHelper sectionOrderTouchHelper;
+
+    // 悬浮功能盒子：屏幕横向有足够空间时放在面板对侧，用 tab 切换功能区；否则 tab 放进面板里
+    private static final String PREF_LAST_BOX_TAB = "game_menu_last_box_tab";
+    private static final String PREF_LAST_PANEL_TAB = "game_menu_last_panel_tab";
+    private View menuBox;
+    private LinearLayout boxTabBar;
+    private LinearLayout boxContent;
+    private MaxHeightScrollView boxScroll;
+    private LinearLayout panelTabBar;
+    private View panelTabScroll;
+    private boolean boxMode = false;
+    private int boxWidthPx = 0;
+    private MenuTab selectedBoxTab = MenuTab.STREAM;
+    private MenuTab selectedPanelTab = MenuTab.INPUT;
+
+    /** A tab groups menu sections; the same tabs are used in the box and (portrait) in the panel. */
+    private enum MenuTab {
+        INPUT(R.string.menu_tab_input, GameMenuSection.INPUT),
+        STREAM(R.string.menu_tab_stream, GameMenuSection.STREAM),
+        HOTKEYS(R.string.menu_tab_hotkeys, GameMenuSection.HOTKEYS, GameMenuSection.CUSTOM),
+        LAYOUT(R.string.menu_tab_layout, GameMenuSection.LAYOUT),
+        TOOLS(R.string.menu_tab_tools, GameMenuSection.OVERLAY, GameMenuSection.PORTALS);
+
+        final int titleRes;
+        final GameMenuSection[] sections;
+
+        MenuTab(int titleRes, GameMenuSection... sections) {
+            this.titleRes = titleRes;
+            this.sections = sections;
+        }
+
+        boolean contains(GameMenuSection section) {
+            for (GameMenuSection s : sections) {
+                if (s == section) return true;
+            }
+            return false;
+        }
+    }
+
+    private interface TabSelectedListener {
+        void onSelected(MenuTab tab);
+    }
     // 动画持续时间
     private static final int ANIMATION_DURATION = 300;
 
@@ -137,9 +184,46 @@ public class GameMenuFragment extends Fragment {
         statusContainer = view.findViewById(R.id.status_container);
         dashboardContainer = view.findViewById(R.id.dashboard_container);
         touchModeOptions = view.findViewById(R.id.touch_mode_options);
+        menuBox = view.findViewById(R.id.menu_box);
+        boxTabBar = view.findViewById(R.id.box_tab_bar);
+        boxContent = view.findViewById(R.id.box_content);
+        boxScroll = view.findViewById(R.id.box_scroll);
+        panelTabBar = view.findViewById(R.id.panel_tab_bar);
+        panelTabScroll = view.findViewById(R.id.panel_tab_scroll);
+        computeLayoutMode();
+        selectedBoxTab = loadTab(PREF_LAST_BOX_TAB, MenuTab.STREAM, MenuTab.INPUT);
+        selectedPanelTab = loadTab(PREF_LAST_PANEL_TAB, MenuTab.INPUT, null);
         renderStatusBar();
         renderDashboard();
         renderTouchModeOptions();
+    }
+
+    /** Decides whether the screen has room for the tool box next to the panel. */
+    private void computeLayoutMode() {
+        DisplayMetrics dm = game.getResources().getDisplayMetrics();
+        int panelWidth = GameMenuGeometry.panelWidthPx(dm.widthPixels, dm.heightPixels, dm.density);
+        boxWidthPx = GameMenuGeometry.toolBoxWidthPx(dm.widthPixels, dm.heightPixels, dm.density, panelWidth);
+        boxMode = boxWidthPx > 0 && menuBox != null;
+    }
+
+    private MenuTab loadTab(String key, MenuTab fallback, MenuTab excluded) {
+        String saved = PreferenceManager.getDefaultSharedPreferences(game).getString(key, null);
+        if (saved != null) {
+            try {
+                MenuTab tab = MenuTab.valueOf(saved);
+                if (tab != excluded) return tab;
+            } catch (IllegalArgumentException ignored) {
+            }
+        }
+        return fallback;
+    }
+
+    private void saveTab(String key, MenuTab tab) {
+        PreferenceManager.getDefaultSharedPreferences(game).edit().putString(key, tab.name()).apply();
+    }
+
+    private int color(int resId) {
+        return ContextCompat.getColor(game, resId);
     }
 
     /**
@@ -195,6 +279,39 @@ public class GameMenuFragment extends Fragment {
         
         // 确保菜单面板不可见，直到动画开始
         menuPanel.setVisibility(View.INVISIBLE);
+
+        setupToolBox(screenHeight);
+    }
+
+    /** Puts the tool box on the side opposite the panel, sized by {@link GameMenuGeometry}. */
+    private void setupToolBox(int screenHeight) {
+        if (menuBox == null) return;
+        if (!boxMode) {
+            menuBox.setVisibility(View.GONE);
+            return;
+        }
+        RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(
+                boxWidthPx, ViewGroup.LayoutParams.WRAP_CONTENT);
+        params.addRule(RelativeLayout.CENTER_VERTICAL);
+        int margin = dp(12);
+        if (showFromLeft) {
+            // panel on the left, box on the right
+            params.addRule(RelativeLayout.ALIGN_PARENT_END);
+            params.addRule(RelativeLayout.ALIGN_PARENT_RIGHT);
+            params.setMarginEnd(margin);
+            params.rightMargin = margin;
+            menuBox.setTranslationX(boxWidthPx + margin);
+        } else {
+            params.addRule(RelativeLayout.ALIGN_PARENT_START);
+            params.addRule(RelativeLayout.ALIGN_PARENT_LEFT);
+            params.setMarginStart(margin);
+            params.leftMargin = margin;
+            menuBox.setTranslationX(-(boxWidthPx + margin));
+        }
+        menuBox.setLayoutParams(params);
+        // keep the box inside the screen: tab bar and card padding take the rest
+        boxScroll.setMaxHeightPx((int) (screenHeight * 0.86f) - dp(24 + 36 + 8 + 24));
+        menuBox.setVisibility(View.INVISIBLE);
     }
 
     /**
@@ -251,7 +368,7 @@ public class GameMenuFragment extends Fragment {
     private void addStatusChip(String label, String value) {
         TextView chip = new TextView(game);
         chip.setText(label + "\n" + value);
-        chip.setTextColor(0xFFE6E6E6);
+        chip.setTextColor(color(R.color.menu_text_secondary));
         chip.setTextSize(TypedValue.COMPLEX_UNIT_SP, 9);
         chip.setGravity(android.view.Gravity.CENTER);
         chip.setMaxLines(2);
@@ -270,7 +387,46 @@ public class GameMenuFragment extends Fragment {
         dashboardContainer.removeAllViews();
 
         List<GameMenuAction> actions = buildMenuActions();
+        if (boxMode) {
+            // 面板只保留输入控制，其余功能区放进对侧的 tab 盒子
+            panelTabScroll.setVisibility(View.GONE);
+            addSections(dashboardContainer, actions, MenuTab.INPUT);
+            renderBox(actions);
+        } else {
+            // 竖屏等空间不足：tab 放进面板
+            panelTabScroll.setVisibility(View.VISIBLE);
+            renderTabBar(panelTabBar, MenuTab.values(), selectedPanelTab, tab -> {
+                selectedPanelTab = tab;
+                saveTab(PREF_LAST_PANEL_TAB, tab);
+                renderDashboard();
+            });
+            renderTabContent(dashboardContainer, actions, selectedPanelTab);
+        }
+    }
+
+    private void renderBox(List<GameMenuAction> actions) {
+        if (boxContent == null) return;
+        MenuTab[] tabs = {MenuTab.STREAM, MenuTab.HOTKEYS, MenuTab.LAYOUT, MenuTab.TOOLS};
+        if (selectedBoxTab == MenuTab.INPUT) selectedBoxTab = MenuTab.STREAM;
+        renderTabBar(boxTabBar, tabs, selectedBoxTab, tab -> {
+            selectedBoxTab = tab;
+            saveTab(PREF_LAST_BOX_TAB, tab);
+            renderBox(buildMenuActions());
+        });
+        renderTabContent(boxContent, actions, selectedBoxTab);
+    }
+
+    private void renderTabContent(LinearLayout container, List<GameMenuAction> actions, MenuTab tab) {
+        container.removeAllViews();
+        if (tab == MenuTab.LAYOUT) {
+            container.addView(createLayoutStrip());
+        }
+        addSections(container, actions, tab);
+    }
+
+    private void addSections(LinearLayout container, List<GameMenuAction> actions, MenuTab tab) {
         for (GameMenuSection section : getOrderedSections()) {
+            if (!tab.contains(section)) continue;
             List<GameMenuAction> sectionActions = new ArrayList<>();
             for (GameMenuAction action : actions) {
                 if (action.visible && action.section == section) {
@@ -279,7 +435,85 @@ public class GameMenuFragment extends Fragment {
             }
             if (sectionActions.isEmpty()) continue;
             java.util.Collections.sort(sectionActions, (a, b) -> Integer.compare(a.priority, b.priority));
-            addSection(section, sectionActions);
+            addSection(container, section, sectionActions);
+        }
+    }
+
+    private void renderTabBar(LinearLayout bar, MenuTab[] tabs, MenuTab selected, TabSelectedListener listener) {
+        bar.removeAllViews();
+        for (MenuTab tab : tabs) {
+            final boolean isSelected = tab == selected;
+            TextView pill = createPill(getString(tab.titleRes), isSelected);
+            pill.setOnClickListener(v -> {
+                if (!isSelected) listener.onSelected(tab);
+            });
+            bar.addView(pill, pillParams());
+        }
+    }
+
+    /** A rounded tab/chip. Selected ones use the accent colour. */
+    private TextView createPill(CharSequence text, boolean selected) {
+        TextView pill = new TextView(game);
+        pill.setText(text);
+        pill.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
+        pill.setTypeface(null, selected ? android.graphics.Typeface.BOLD : android.graphics.Typeface.NORMAL);
+        pill.setTextColor(color(selected ? R.color.menu_text_primary : R.color.menu_text_secondary));
+        pill.setGravity(android.view.Gravity.CENTER);
+        pill.setSingleLine(true);
+        pill.setPadding(dp(16), 0, dp(16), 0);
+        pill.setBackgroundResource(selected ? R.drawable.menu_tab_selected : R.drawable.menu_tab_normal);
+        pill.setClickable(true);
+        return pill;
+    }
+
+    private LinearLayout.LayoutParams pillParams() {
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT, dp(36));
+        lp.setMargins(0, 0, dp(8), 0);
+        return lp;
+    }
+
+    /** The layout tab's header: the available keyboard layouts as chips, tap one to switch. */
+    private View createLayoutStrip() {
+        LinearLayout wrap = new LinearLayout(game);
+        wrap.setOrientation(LinearLayout.VERTICAL);
+
+        TextView title = new TextView(game);
+        title.setText(R.string.game_menu_layout_strip_title);
+        title.setTextColor(color(R.color.menu_text_muted));
+        title.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
+        title.setTypeface(title.getTypeface(), android.graphics.Typeface.BOLD);
+        title.setPadding(dp(4), dp(8), dp(4), dp(6));
+        wrap.addView(title);
+
+        HorizontalScrollView scroll = new HorizontalScrollView(game);
+        scroll.setHorizontalScrollBarEnabled(false);
+        LinearLayout row = new LinearLayout(game);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        scroll.addView(row);
+        wrap.addView(scroll, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+
+        LayoutProfileRepository repo = LayoutProfileManager.INSTANCE.get(game);
+        String activeId = repo.getActiveId();
+        for (LayoutProfileRepository.Profile profile : repo.list()) {
+            TextView chip = createPill(profile.name, profile.id.equals(activeId));
+            chip.setOnClickListener(v -> switchKeyboardLayout(profile.id));
+            row.addView(chip, pillParams());
+        }
+        TextView add = createPill("\uFF0B", false);
+        add.setOnClickListener(v -> {
+            hideMenuWithAnimation();
+            LayoutProfileDialogs.showNew(game, game.createKeyboardLayoutContext());
+        });
+        row.addView(add, pillParams());
+        return wrap;
+    }
+
+    private void switchKeyboardLayout(String id) {
+        if (LayoutProfileManager.INSTANCE.switchTo(game, id)) {
+            game.reloadVirtualKeyboardLayout();
+            renderDashboard();
         }
     }
 
@@ -364,16 +598,16 @@ public class GameMenuFragment extends Fragment {
             hideMenuWithAnimation();
             game.toggleVirtualController();
         }));
-        actions.add(new GameMenuAction("virtual_keyboard", R.string.game_menu_toggle_virtual_keyboard, 0, GameMenuSection.OVERLAY, 20, false, true, true, v -> {
+        actions.add(new GameMenuAction("virtual_keyboard", R.string.game_menu_toggle_virtual_keyboard, 0, GameMenuSection.LAYOUT, 20, false, true, true, v -> {
             hideMenuWithAnimation();
             game.toggleVirtualKeyboard();
             AppToast.makeText(game, game.getString(R.string.game_menu_toggle_virtual_keyboard_toast), AppToast.LENGTH_SHORT).show();
         }));
-        actions.add(new GameMenuAction("keyboard_layout", 0, 0, GameMenuSection.OVERLAY, 25, false, true, true, v -> {
+        actions.add(new GameMenuAction("keyboard_layout", 0, 0, GameMenuSection.LAYOUT, 30, false, true, true, v -> {
             hideMenuWithAnimation();
             LayoutProfileDialogs.show(game, game.createKeyboardLayoutContext());
-        }, game.getString(R.string.game_menu_keyboard_layout, getKeyboardLayoutName())));
-        actions.add(new GameMenuAction("edit_virtual_keyboard", R.string.game_menu_edit_virtual_keyboard, 0, GameMenuSection.OVERLAY, 30, false, true, true, v -> openVirtualKeyboardEditor()));
+        }, game.getString(R.string.game_menu_manage_layouts)));
+        actions.add(new GameMenuAction("edit_virtual_keyboard", R.string.game_menu_edit_virtual_keyboard, 0, GameMenuSection.LAYOUT, 10, false, true, true, v -> openVirtualKeyboardEditor()));
         actions.add(new GameMenuAction("perf", R.string.game_menu_toggle_perf_overlay, 0, GameMenuSection.OVERLAY, 40, false, true, true, v -> {
             hideMenuWithAnimation();
             game.togglePerfOverlay();
@@ -394,31 +628,22 @@ public class GameMenuFragment extends Fragment {
         return actions;
     }
 
-    private String getKeyboardLayoutName() {
-        try {
-            LayoutProfileRepository.Profile active = LayoutProfileManager.INSTANCE.get(game).getActive();
-            return active != null ? active.name : "";
-        } catch (RuntimeException e) {
-            return "";
-        }
-    }
-
-    private void addSection(GameMenuSection section, List<GameMenuAction> actions) {
+    private void addSection(LinearLayout container, GameMenuSection section, List<GameMenuAction> actions) {
         TextView title = new TextView(game);
         title.setText(section.titleRes);
-        title.setTextColor(0xFFB8B8B8);
+        title.setTextColor(color(R.color.menu_text_muted));
         title.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
         title.setTypeface(title.getTypeface(), android.graphics.Typeface.BOLD);
         title.setPadding(dp(4), dp(8), dp(4), dp(4));
-        dashboardContainer.addView(title);
+        container.addView(title);
 
         for (GameMenuSlider slider : buildMenuSliders(section)) {
-            dashboardContainer.addView(createSliderRow(slider));
+            container.addView(createSliderRow(slider));
         }
 
         GridLayout grid = new GridLayout(game);
         grid.setColumnCount(2);
-        dashboardContainer.addView(grid, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        container.addView(grid, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
 
         for (GameMenuAction action : actions) {
             grid.addView(createActionButton(action));
@@ -437,7 +662,7 @@ public class GameMenuFragment extends Fragment {
         row.setLayoutParams(rowParams);
 
         TextView label = new TextView(game);
-        label.setTextColor(0xFFFFFFFF);
+        label.setTextColor(color(R.color.menu_text_primary));
         label.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
         label.setGravity(android.view.Gravity.CENTER_VERTICAL);
         label.setSingleLine(false);
@@ -447,6 +672,9 @@ public class GameMenuFragment extends Fragment {
         row.addView(label, labelParams);
 
         SeekBar seekBar = new SeekBar(game);
+        ColorStateList accent = ColorStateList.valueOf(color(R.color.menu_accent));
+        seekBar.setProgressTintList(accent);
+        seekBar.setThumbTintList(accent);
         seekBar.setMax((slider.max - slider.min) / slider.step);
         seekBar.setProgress(valueToProgress(slider, slider.currentValue));
         LinearLayout.LayoutParams seekParams = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
@@ -456,7 +684,7 @@ public class GameMenuFragment extends Fragment {
         resetButton.setAllCaps(false);
         resetButton.setText(R.string.game_menu_slider_reset);
         resetButton.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11);
-        resetButton.setTextColor(0xFFEAF2FF);
+        resetButton.setTextColor(color(R.color.menu_text_primary));
         resetButton.setPadding(0, 0, 0, 0);
         resetButton.setBackgroundResource(R.drawable.button_background_dark);
         LinearLayout.LayoutParams resetParams = new LinearLayout.LayoutParams(dp(42), dp(34));
@@ -755,7 +983,7 @@ public class GameMenuFragment extends Fragment {
         Button button = new Button(game);
         button.setAllCaps(false);
         button.setText(action.overrideTitle != null ? action.overrideTitle : getString(action.titleRes));
-        button.setTextColor(action.enabled ? 0xFFFFFFFF : 0xFF7D8797);
+        button.setTextColor(color(action.enabled ? R.color.menu_text_primary : R.color.menu_text_muted));
         button.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
         button.setEnabled(action.enabled);
         button.setMaxLines(2);
@@ -1268,6 +1496,15 @@ public class GameMenuFragment extends Fragment {
         animator.setDuration(ANIMATION_DURATION);
         animator.setInterpolator(new AccelerateDecelerateInterpolator());
         animator.start();
+
+        if (boxMode) {
+            menuBox.setVisibility(View.VISIBLE);
+            float boxStart = showFromLeft ? boxWidthPx + dp(12) : -(boxWidthPx + dp(12));
+            ObjectAnimator boxAnimator = ObjectAnimator.ofFloat(menuBox, "translationX", boxStart, 0);
+            boxAnimator.setDuration(ANIMATION_DURATION);
+            boxAnimator.setInterpolator(new AccelerateDecelerateInterpolator());
+            boxAnimator.start();
+        }
     }
 
     /**
@@ -1305,6 +1542,14 @@ public class GameMenuFragment extends Fragment {
             }
         });
         animator.start();
+
+        if (boxMode) {
+            float boxEnd = showFromLeft ? boxWidthPx + dp(12) : -(boxWidthPx + dp(12));
+            ObjectAnimator boxAnimator = ObjectAnimator.ofFloat(menuBox, "translationX", 0, boxEnd);
+            boxAnimator.setDuration(ANIMATION_DURATION);
+            boxAnimator.setInterpolator(new AccelerateDecelerateInterpolator());
+            boxAnimator.start();
+        }
     }
 
     @Override

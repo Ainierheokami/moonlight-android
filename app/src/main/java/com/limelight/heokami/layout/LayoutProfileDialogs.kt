@@ -41,7 +41,7 @@ object LayoutProfileDialogs {
             .setTitle(R.string.layout_dialog_title)
             .setItems(labels.toTypedArray()) { _, which ->
                 if (which < profiles.size) showProfileActions(activity, profiles[which].id, stream)
-                else showNewMenu(activity, stream)
+                else showNew(activity, stream)
             }
             .setNegativeButton(android.R.string.cancel, null)
             .show()
@@ -59,7 +59,8 @@ object LayoutProfileDialogs {
         return if (tags.isEmpty()) "" else "  · " + tags.joinToString(" / ")
     }
 
-    private fun showNewMenu(activity: Activity, stream: StreamContext?) {
+    @JvmStatic
+    fun showNew(activity: Activity, stream: StreamContext?) {
         val items = arrayOf<CharSequence>(
             activity.getString(R.string.layout_new_blank),
             activity.getString(R.string.layout_new_copy)

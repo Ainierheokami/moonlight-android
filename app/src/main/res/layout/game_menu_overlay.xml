@@ -3,7 +3,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#99000000">
+    android:background="@color/menu_scrim">
 
     <View
         android:id="@+id/menu_background"
@@ -20,14 +20,14 @@
         android:layout_marginEnd="12dp"
         android:layout_marginBottom="12dp"
         android:visibility="invisible"
-        app:cardBackgroundColor="#121212"
-        app:cardCornerRadius="20dp"
+        app:cardBackgroundColor="@color/menu_surface"
+        app:cardCornerRadius="@dimen/menu_card_radius"
         app:cardElevation="10dp">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:background="@drawable/menu_panel_background"
+            android:background="@drawable/menu_card_background"
             android:orientation="vertical"
             android:padding="12dp">
 
@@ -50,7 +50,7 @@
                     android:gravity="center_vertical|start"
                     android:minHeight="46dp"
                     android:text="@string/game_menu_title"
-                    android:textColor="#FFFFFF"
+                    android:textColor="@color/menu_text_primary"
                     android:textSize="18sp"
                     android:textStyle="bold" />
 
@@ -72,6 +72,21 @@
                 android:layout_marginBottom="8dp"
                 android:baselineAligned="false"
                 android:orientation="horizontal" />
+
+            <HorizontalScrollView
+                android:id="@+id/panel_tab_scroll"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="8dp"
+                android:scrollbars="none"
+                android:visibility="gone">
+
+                <LinearLayout
+                    android:id="@+id/panel_tab_bar"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal" />
+            </HorizontalScrollView>
 
             <ScrollView
                 android:id="@+id/main_scroll"
@@ -103,7 +118,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="8dp"
-                    android:textColor="#E6E6E6"
+                    android:textColor="@color/menu_text_secondary"
                     android:textSize="14sp" />
 
                 <LinearLayout
@@ -138,7 +153,7 @@
                     android:paddingEnd="12dp"
                     android:text="@string/game_menu_change_touch"
                     android:textAllCaps="false"
-                    android:textColor="#FFFFFF" />
+                    android:textColor="@color/menu_text_primary" />
 
                 <Button
                     android:id="@+id/btn_disconnect"
@@ -155,8 +170,56 @@
                     android:paddingEnd="12dp"
                     android:text="@string/game_menu_disconnect"
                     android:textAllCaps="false"
-                    android:textColor="#FFFFFF" />
+                    android:textColor="@color/menu_text_primary" />
             </LinearLayout>
+        </LinearLayout>
+    </androidx.cardview.widget.CardView>
+
+    <!-- Floating tool box with tabs. Placed and sized in code (GameMenuFragment) on the side
+         opposite the panel, only when the screen leaves enough room; otherwise the tabs live in
+         the panel. -->
+    <androidx.cardview.widget.CardView
+        android:id="@+id/menu_box"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_centerVertical="true"
+        android:visibility="gone"
+        app:cardBackgroundColor="@color/menu_surface"
+        app:cardCornerRadius="@dimen/menu_card_radius"
+        app:cardElevation="10dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@drawable/menu_card_background"
+            android:orientation="vertical"
+            android:padding="12dp">
+
+            <HorizontalScrollView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="8dp"
+                android:scrollbars="none">
+
+                <LinearLayout
+                    android:id="@+id/box_tab_bar"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal" />
+            </HorizontalScrollView>
+
+            <com.limelight.utils.MaxHeightScrollView
+                android:id="@+id/box_scroll"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:scrollbars="none">
+
+                <LinearLayout
+                    android:id="@+id/box_content"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical" />
+            </com.limelight.utils.MaxHeightScrollView>
         </LinearLayout>
     </androidx.cardview.widget.CardView>
 </RelativeLayout>

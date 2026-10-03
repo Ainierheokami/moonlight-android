@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Design tokens shared by the game menu, its tool box and the menu-style editors. They match the
+     palette the app dialogs already use (modern_dialog_*), so the menu no longer looks like a
+     different app: slate surfaces, one blue accent, a single red for destructive actions. -->
+<resources>
+    <color name="menu_surface">#151C25</color>
+    <color name="menu_surface_raised">#202A36</color>
+    <color name="menu_surface_pressed">#2C3949</color>
+    <color name="menu_stroke">#334253</color>
+    <color name="menu_stroke_strong">#46586C</color>
+    <color name="menu_accent">#1AA7EC</color>
+    <color name="menu_accent_pressed">#1588C7</color>
+    <color name="menu_accent_tint">#143349</color>
+    <color name="menu_text_primary">#F5F8FC</color>
+    <color name="menu_text_secondary">#B8C4D2</color>
+    <color name="menu_text_muted">#8FA3B8</color>
+    <color name="menu_danger">#E5484D</color>
+    <color name="menu_danger_pressed">#C03338</color>
+    <color name="menu_scrim">#99000000</color>
+
+    <dimen name="menu_card_radius">16dp</dimen>
+    <dimen name="menu_item_radius">10dp</dimen>
+</resources>

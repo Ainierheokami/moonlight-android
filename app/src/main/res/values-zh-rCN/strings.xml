@@ -696,7 +696,14 @@
     <string name="layout_tag_app">本应用</string>
     <string name="layout_pick_computer_title">选择电脑</string>
     <string name="layout_no_computers">没有已保存的电脑</string>
-    <string name="game_menu_keyboard_layout">键盘布局：%1$s</string>
+    <string name="menu_tab_input">输入</string>
+    <string name="menu_tab_stream">串流</string>
+    <string name="menu_tab_hotkeys">热键</string>
+    <string name="menu_tab_layout">布局</string>
+    <string name="menu_tab_tools">工具</string>
+    <string name="game_menu_section_keyboard_layout">键盘布局</string>
+    <string name="game_menu_layout_strip_title">布局方案</string>
+    <string name="game_menu_manage_layouts">管理布局…</string>
     <string name="category_perf_overlay">性能信息</string>
     <string name="category_debug">提示与调试</string>
     <string name="category_ui_general">常规</string>
