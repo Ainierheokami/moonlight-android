@@ -397,6 +397,7 @@
     <string name="game_menu_section_keyboard_layout">鍵盤佈局</string>
     <string name="game_menu_layout_strip_title">佈局方案</string>
     <string name="game_menu_manage_layouts">管理佈局…</string>
+    <string name="game_menu_demo_notice">測試模式：此操作需要在串流中使用</string>
     <string name="category_perf_overlay">效能資訊</string>
     <string name="category_debug">提示與偵錯</string>
     <string name="category_ui_general">一般</string>
@@ -649,7 +650,6 @@
     <string name="edge_test_miss_short">未觸發：再多滑 %1$d dp</string>
     <string name="edge_test_miss_multitouch">已取消：有第二根手指觸碰了螢幕</string>
     <string name="edge_test_system_back">系統返回手勢被觸發：這次滑動被系統搶走了</string>
-    <string name="edge_test_menu_here">選單會從這裡滑出</string>
     <string name="edge_test_stream_label">模擬串流畫面</string>
     <string name="edge_test_exit">結束測試</string>
 </resources>

@@ -780,6 +780,7 @@
     <string name="game_menu_section_keyboard_layout">Keyboard layout</string>
     <string name="game_menu_layout_strip_title">Layouts</string>
     <string name="game_menu_manage_layouts">Manage layouts…</string>
+    <string name="game_menu_demo_notice">Test mode: this action works while streaming</string>
     <string name="category_perf_overlay">Performance overlay</string>
     <string name="category_debug">Notices &amp; debugging</string>
     <string name="category_ui_general">General</string>
@@ -969,7 +970,6 @@
     <string name="edge_test_miss_short">Missed: swipe %1$d dp further</string>
     <string name="edge_test_miss_multitouch">Cancelled: a second finger touched the screen</string>
     <string name="edge_test_system_back">The system back gesture fired: it took this swipe from the app</string>
-    <string name="edge_test_menu_here">The menu slides in here</string>
     <string name="edge_test_stream_label">Simulated stream screen</string>
     <string name="edge_test_exit">Exit test</string>
 </resources>

@@ -14,6 +14,7 @@ import android.widget.FrameLayout
 import com.limelight.R
 import com.limelight.heokami.EdgeSwipeDetector
 import com.limelight.heokami.EdgeSwipeDetector.MoveResult
+import com.limelight.heokami.GameMenuFragment
 import com.limelight.preferences.PreferenceConfiguration
 
 /**
@@ -30,6 +31,11 @@ class EdgeMenuTestActivity : Activity() {
     private var hotZoneDp = PreferenceConfiguration.DEFAULT_EDGE_MENU_HOT_ZONE_DP
     private var thresholdDp = PreferenceConfiguration.DEFAULT_EDGE_MENU_SWIPE_THRESHOLD_DP
     private var backCallback: Any? = null
+    private val menuHost by lazy {
+        DemoMenuHost(this, onShown = { menuShowing = true }, onHidden = { menuShowing = false })
+    }
+    private var menuShowing = false
+    private val menuContainerId = View.generateViewId()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -45,6 +51,9 @@ class EdgeMenuTestActivity : Activity() {
         }
         val root = FrameLayout(this)
         root.addView(testView, FrameLayout.LayoutParams(
+            FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT))
+        // Same kind of full-screen container Game puts the menu in.
+        root.addView(FrameLayout(this).apply { id = menuContainerId }, FrameLayout.LayoutParams(
             FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT))
         root.addView(exit, FrameLayout.LayoutParams(
             FrameLayout.LayoutParams.WRAP_CONTENT, FrameLayout.LayoutParams.WRAP_CONTENT,
@@ -124,6 +133,11 @@ class EdgeMenuTestActivity : Activity() {
     private fun handleGesture(event: MotionEvent): Boolean {
         val width = window.decorView.width
         if (width <= 0) return false
+        if (menuShowing) {
+            // Like Game: no edge gesture while the menu is up.
+            detector.reset()
+            return false
+        }
 
         val hotZonePx = dp(hotZoneDp)
         val thresholdPx = dp(thresholdDp)
@@ -146,6 +160,9 @@ class EdgeMenuTestActivity : Activity() {
             MotionEvent.ACTION_MOVE -> {
                 val result = detector.move(event.x, event.y)
                 testView.onGestureMove(event.x, event.y, detector, result)
+                if (result == MoveResult.TRIGGERED_LEFT || result == MoveResult.TRIGGERED_RIGHT) {
+                    openMenu(fromLeft = result == MoveResult.TRIGGERED_LEFT)
+                }
                 return when (result) {
                     MoveResult.NOT_TRACKING, MoveResult.PENDING -> false
                     else -> true
@@ -160,6 +177,14 @@ class EdgeMenuTestActivity : Activity() {
             }
         }
         return detector.isConsuming
+    }
+
+    private fun openMenu(fromLeft: Boolean) {
+        if (menuShowing) return
+        menuShowing = true
+        fragmentManager.beginTransaction()
+            .add(menuContainerId, GameMenuFragment.newInstance(menuHost, fromLeft), "GameMenu")
+            .commitAllowingStateLoss()
     }
 
     private fun dp(value: Int): Int = (value * resources.displayMetrics.density + 0.5f).toInt()
