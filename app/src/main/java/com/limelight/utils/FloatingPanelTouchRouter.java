@@ -174,7 +174,7 @@ public final class FloatingPanelTouchRouter {
         }
         for (int i = owners.size() - 1; i >= 0; i--) {
             if (!owners.valueAt(i)) {
-                owners.removeAt(i);
+                owners.delete(owners.keyAt(i));
             }
         }
     }
