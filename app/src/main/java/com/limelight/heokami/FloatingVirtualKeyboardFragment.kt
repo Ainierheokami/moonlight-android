@@ -335,36 +335,55 @@ class FloatingVirtualKeyboardFragment private constructor(private val game: Game
      */
     private fun setupButton(button: Button) {
         decorateShiftLabel(button)
+        // Only the finger that pressed the key may release it: other fingers (e.g. tapping the
+        // stream while holding Alt) must never lift it, and a parent such as the row ScrollView
+        // must not steal the touch and cancel it.
+        var keyPointerId = MotionEvent.INVALID_POINTER_ID
+        val slop = android.view.ViewConfiguration.get(button.context).scaledTouchSlop.toFloat()
+        fun release() {
+            keyPointerId = MotionEvent.INVALID_POINTER_ID
+            button.parent?.requestDisallowInterceptTouchEvent(false)
+            if (button.isSelected) {
+                handleKeyPress(button, false)
+                button.isSelected = false
+            }
+        }
         button.setOnTouchListener { _, event ->
             when (event.actionMasked) {
                 MotionEvent.ACTION_DOWN -> {
                     hideOpacityBubble()
+                    keyPointerId = event.getPointerId(0)
+                    button.parent?.requestDisallowInterceptTouchEvent(true)
                     handleKeyPress(button, true)
                     button.isSelected = true
                     true
                 }
                 MotionEvent.ACTION_MOVE -> {
-                    if (!isPointInsideView(event.x, event.y, button) && button.isSelected) {
-                        handleKeyPress(button, false)
-                        button.isSelected = false
+                    val index = event.findPointerIndex(keyPointerId)
+                    if (index >= 0 && button.isSelected) {
+                        val x = event.getX(index)
+                        val y = event.getY(index)
+                        if (x < -slop || y < -slop || x > button.width + slop || y > button.height + slop) {
+                            release()
+                        } else if (!button.isPressed) {
+                            // Focus or window changes can clear the pressed drawable state.
+                            button.isPressed = true
+                        }
                     }
                     true
                 }
-                MotionEvent.ACTION_UP -> {
-                    if (button.isSelected) {
-                        handleKeyPress(button, false)
-                        button.isSelected = false
+                MotionEvent.ACTION_POINTER_UP -> {
+                    if (event.getPointerId(event.actionIndex) == keyPointerId) {
+                        release()
                     }
                     true
                 }
-                MotionEvent.ACTION_CANCEL, MotionEvent.ACTION_OUTSIDE -> {
-                    if (button.isSelected) {
-                        handleKeyPress(button, false)
-                        button.isSelected = false
-                    }
+                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                    release()
                     true
                 }
-                else -> false
+                // Other fingers landing elsewhere are not this key's business.
+                else -> true
             }
         }
     }
@@ -429,13 +448,6 @@ class FloatingVirtualKeyboardFragment private constructor(private val game: Game
             in 0x41..0x5A -> label.uppercase()
             else -> null
         }
-    }
-
-    /**
-     * 判断坐标是否仍在控件内部
-     */
-    private fun isPointInsideView(x: Float, y: Float, view: View): Boolean {
-        return x >= 0 && x <= view.width && y >= 0 && y <= view.height
     }
 
     /**
