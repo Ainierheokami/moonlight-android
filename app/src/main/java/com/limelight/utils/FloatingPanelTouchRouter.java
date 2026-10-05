@@ -19,6 +19,11 @@ public final class FloatingPanelTouchRouter {
         boolean isPanelAt(float x, float y);
     }
 
+    /** Optional diagnostics (touch test). */
+    public interface Trace {
+        void trace(String text);
+    }
+
     public interface Sink {
         void toPanel(MotionEvent event);
         void toStream(MotionEvent event);
@@ -29,6 +34,17 @@ public final class FloatingPanelTouchRouter {
     private boolean gestureOnPanel;
     private boolean routing;
     private long streamDownTime;
+    private Trace trace;
+
+    public void setTrace(Trace trace) {
+        this.trace = trace;
+    }
+
+    private void trace(String text) {
+        if (trace != null) {
+            trace.trace(text);
+        }
+    }
 
     public boolean isRouting() {
         return routing;
@@ -42,6 +58,7 @@ public final class FloatingPanelTouchRouter {
             gestureOnPanel = hit.isPanelAt(ev.getX(), ev.getY());
             if (gestureOnPanel) {
                 owners.put(ev.getPointerId(0), true);
+                trace("gesture starts on a floating panel (#" + ev.getPointerId(0) + ")");
             }
             return false;
         }
@@ -63,6 +80,10 @@ public final class FloatingPanelTouchRouter {
             if (!onPanel && !routing) {
                 routing = true;
                 streamDownTime = ev.getEventTime();
+                trace("split on: #" + ev.getPointerId(index) + " -> stream, panel keeps its fingers");
+            }
+            else if (routing) {
+                trace("#" + ev.getPointerId(index) + " -> " + (onPanel ? "panel" : "stream"));
             }
             if (!routing) {
                 return false;
@@ -75,6 +96,7 @@ public final class FloatingPanelTouchRouter {
         dispatch(ev, action, sink);
 
         if (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_CANCEL) {
+            trace(action == MotionEvent.ACTION_CANCEL ? "split off (cancelled)" : "split off (all fingers up)");
             reset();
         }
         else if (action == MotionEvent.ACTION_POINTER_UP) {

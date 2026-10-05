@@ -462,6 +462,9 @@ class FloatingVirtualKeyboardFragment private constructor(private val game: Game
             return
         }
         
+        com.limelight.heokami.touchtest.TouchTestLog.active()?.log(
+            com.limelight.heokami.touchtest.TouchTestLog.Category.KEY,
+            "floating key ${button.text} ${if (isPressed) "DOWN" else "UP"}")
         if (isPressed) {
             pressedButtons.add(button)
             // 手动设置按下状态，让背景选择器的 state_pressed 生效
