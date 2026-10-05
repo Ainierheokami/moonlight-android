@@ -2,6 +2,9 @@ package com.limelight;
 
 import com.limelight.utils.AppExecutors;
 import com.limelight.utils.FloatingPanelTouchRouter;
+import com.limelight.heokami.touchtest.TouchTestConnection;
+import com.limelight.heokami.touchtest.TouchTestLog;
+import com.limelight.heokami.touchtest.TouchTestPanel;
 
 import com.limelight.binding.PlatformBinding;
 import com.limelight.binding.audio.AndroidAudioRenderer;
@@ -308,6 +311,26 @@ public class Game extends Activity implements SurfaceHolder.Callback,
     private boolean lastAppWasHdr;
     private byte[] lastServCert;
 
+    /** Touch test: the real stream screen with no host, every input is written to a log. */
+    public static final String EXTRA_TOUCH_TEST = "TouchTest";
+    private boolean touchTestMode;
+    private TouchTestPanel touchTestPanel;
+    // Edge-gesture trail and diagnostics: debug builds and the touch test.
+    private boolean edgeDebug;
+
+    public static Intent createTouchTestIntent(Context context) {
+        return new Intent(context, Game.class)
+                .putExtra(EXTRA_TOUCH_TEST, true)
+                .putExtra(EXTRA_HOST, "127.0.0.1")
+                .putExtra(EXTRA_APP_ID, 1)
+                .putExtra(EXTRA_APP_NAME, context.getString(R.string.touch_test_title))
+                .putExtra(EXTRA_PC_NAME, context.getString(R.string.touch_test_title));
+    }
+
+    public boolean isTouchTestMode() {
+        return touchTestMode;
+    }
+
     private int dp(int value) {
         return (int) (value * getResources().getDisplayMetrics().density + 0.5f);
     }
@@ -464,6 +487,13 @@ public class Game extends Activity implements SurfaceHolder.Callback,
 
         UiHelper.setLocale(this);
 
+        touchTestMode = getIntent().getBooleanExtra(EXTRA_TOUCH_TEST, false);
+        edgeDebug = BuildConfig.DEBUG || touchTestMode;
+        if (touchTestMode) {
+            TouchTestLog.start();
+            floatingPanelTouchRouter.setTrace(text -> logTouchTest(TouchTestLog.Category.ROUTE, null, text));
+        }
+
         // We don't want a title bar
         requestWindowFeature(Window.FEATURE_NO_TITLE);
 
@@ -577,7 +607,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         notificationOverlayView = findViewById(R.id.notificationOverlay);
 
         performanceOverlayView = findViewById(R.id.performanceOverlay);
-        if (BuildConfig.DEBUG) {
+        if (edgeDebug) {
             edgeMenuTrailOverlay = new EdgeMenuTrailOverlay(this);
             edgeMenuTrailOverlay.setVisibility(View.GONE);
             edgeMenuTrailOverlay.setClickable(false);
@@ -588,19 +618,21 @@ public class Game extends Activity implements SurfaceHolder.Callback,
                     ViewGroup.LayoutParams.MATCH_PARENT);
             ((ViewGroup) findViewById(android.R.id.content)).addView(edgeMenuTrailOverlay, edgeTrailParams);
 
-            edgeMenuDebugOverlay = new TextView(this);
-            edgeMenuDebugOverlay.setTextColor(0xFFFFFFFF);
-            edgeMenuDebugOverlay.setTextSize(TypedValue.COMPLEX_UNIT_SP, 10);
-            edgeMenuDebugOverlay.setBackgroundColor(0xAA000000);
-            edgeMenuDebugOverlay.setPadding(dp(6), dp(4), dp(6), dp(4));
-            edgeMenuDebugOverlay.setVisibility(View.GONE);
-            FrameLayout.LayoutParams edgeDebugParams = new FrameLayout.LayoutParams(
-                    ViewGroup.LayoutParams.WRAP_CONTENT,
-                    ViewGroup.LayoutParams.WRAP_CONTENT);
-            edgeDebugParams.gravity = Gravity.TOP | Gravity.END;
-            edgeDebugParams.topMargin = dp(12);
-            edgeDebugParams.rightMargin = dp(12);
-            ((ViewGroup) findViewById(android.R.id.content)).addView(edgeMenuDebugOverlay, edgeDebugParams);
+            if (!touchTestMode) {
+                edgeMenuDebugOverlay = new TextView(this);
+                edgeMenuDebugOverlay.setTextColor(0xFFFFFFFF);
+                edgeMenuDebugOverlay.setTextSize(TypedValue.COMPLEX_UNIT_SP, 10);
+                edgeMenuDebugOverlay.setBackgroundColor(0xAA000000);
+                edgeMenuDebugOverlay.setPadding(dp(6), dp(4), dp(6), dp(4));
+                edgeMenuDebugOverlay.setVisibility(View.GONE);
+                FrameLayout.LayoutParams edgeDebugParams = new FrameLayout.LayoutParams(
+                        ViewGroup.LayoutParams.WRAP_CONTENT,
+                        ViewGroup.LayoutParams.WRAP_CONTENT);
+                edgeDebugParams.gravity = Gravity.TOP | Gravity.END;
+                edgeDebugParams.topMargin = dp(12);
+                edgeDebugParams.rightMargin = dp(12);
+                ((ViewGroup) findViewById(android.R.id.content)).addView(edgeMenuDebugOverlay, edgeDebugParams);
+            }
         }
 
         // 新增：获取专用容器引用
@@ -819,7 +851,9 @@ public class Game extends Activity implements SurfaceHolder.Callback,
                 .build();
 
         // Initialize the connection
-        conn = new NvConnection(getApplicationContext(),
+        conn = touchTestMode
+                ? new TouchTestConnection(getApplicationContext(), config)
+                : new NvConnection(getApplicationContext(),
                 new ComputerDetails.AddressTuple(host, port),
                 httpsPort, uniqueId, config,
                 PlatformBinding.getCryptoProvider(this), serverCert,
@@ -1224,7 +1258,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         // With Android native pointer capture, capture is lost when focus is lost,
         // so it must be requested again when focus is regained.
         inputCaptureProvider.onWindowFocusChanged(hasFocus);
-        if (BuildConfig.DEBUG && edgeMenuDebugOverlay != null && !hasFocus) {
+        if (edgeDebug && edgeMenuDebugOverlay != null && !hasFocus) {
             edgeMenuDebugOverlay.setVisibility(View.GONE);
             if (edgeMenuTrailOverlay != null) {
                 edgeMenuTrailOverlay.hideNow();
@@ -1516,6 +1550,13 @@ public class Game extends Activity implements SurfaceHolder.Callback,
 
     @Override
     protected void onDestroy() {
+        if (touchTestPanel != null) {
+            touchTestPanel.dismiss();
+            touchTestPanel = null;
+        }
+        if (touchTestMode) {
+            TouchTestLog.finish(this);
+        }
         unregisterGameMenuBackCallback();
         cancelAutomaticReconnect(true);
         stopClipboardSync();
@@ -1639,6 +1680,9 @@ public class Game extends Activity implements SurfaceHolder.Callback,
             // 注意：isFinishing的时候通常不需要suspend，而是直接销毁，但这里我们保留部分原有逻辑结构
             // 原逻辑在 isFinishing 为 false 时才进入 suspend。
             // 此时我们不调用 suspendConnection，因为 Activity 要销毁了，onStop 会调用 stopConnection。
+        } else if (touchTestMode) {
+            // Nothing to suspend: the test has no host connection.
+            logTouchTest(TouchTestLog.Category.INFO, null, "activity paused");
         } else {
             // Robust Reconnection: 延迟挂起
             Log.i("MoonReconnect", "[Game] onPause: scheduling delayed suspension");
@@ -1971,6 +2015,10 @@ public class Game extends Activity implements SurfaceHolder.Callback,
 
     @Override
     public boolean onKeyDown(int keyCode, KeyEvent event) {
+        if (touchTestMode) {
+            logTouchTest(TouchTestLog.Category.KEY, null,
+                    "android " + KeyEvent.keyCodeToString(keyCode) + " DOWN");
+        }
         return handleKeyDown(event) || super.onKeyDown(keyCode, event);
     }
 
@@ -2078,6 +2126,10 @@ public class Game extends Activity implements SurfaceHolder.Callback,
 
     @Override
     public boolean onKeyUp(int keyCode, KeyEvent event) {
+        if (touchTestMode) {
+            logTouchTest(TouchTestLog.Category.KEY, null,
+                    "android " + KeyEvent.keyCodeToString(keyCode) + " UP");
+        }
         return handleKeyUp(event) || super.onKeyUp(keyCode, event);
     }
 
@@ -2913,11 +2965,18 @@ public class Game extends Activity implements SurfaceHolder.Callback,
 
     @Override
     public boolean dispatchTouchEvent(MotionEvent event) {
+        if (touchTestMode) {
+            logTouchEvent(event);
+        }
+
         // A finger held on the floating keyboard must not swallow other fingers on the stream.
         if (floatingPanelTouchRouter.route(event, floatingPanelHit, floatingPanelSink)) {
             if (edgeSwipeDetector.isCandidate() || edgeSwipeDetector.isConsuming()) {
                 edgeSwipeDetector.cancelForMultiTouch();
                 resetEdgeMenuGesture();
+                if (touchTestMode) {
+                    logEdgeMiss(EdgeSwipeDetector.Miss.MULTI_TOUCH, 0);
+                }
             }
             return true;
         }
@@ -2951,23 +3010,26 @@ public class Game extends Activity implements SurfaceHolder.Callback,
             return false;
         }
         if (gestureView == null || GameMenu.isMenuShowing() || com.limelight.heokami.EditMenu.isMenuShowing()) {
-            if (BuildConfig.DEBUG) {
+            if (edgeDebug) {
                 setEdgeMenuDebugText("blocked view/menu action=" + event.getActionMasked());
             }
             return resetEdgeMenuGesture();
         }
 
         if ((edgeSwipeDetector.isCandidate() || edgeSwipeDetector.isConsuming()) && event.getPointerCount() != 1) {
-            if (BuildConfig.DEBUG) {
+            if (edgeDebug) {
                 setEdgeMenuDebugText("blocked pointers=" + event.getPointerCount() + " action=" + event.getActionMasked());
             }
             boolean wasConsuming = edgeSwipeDetector.cancelForMultiTouch();
             resetEdgeMenuGesture();
+            if (touchTestMode) {
+                logEdgeMiss(EdgeSwipeDetector.Miss.MULTI_TOUCH, 0);
+            }
             return wasConsuming;
         }
 
         if (event.getPointerCount() != 1) {
-            if (BuildConfig.DEBUG) {
+            if (edgeDebug) {
                 setEdgeMenuDebugText("ignore pointers=" + event.getPointerCount() + " action=" + event.getActionMasked());
             }
             return false;
@@ -2976,7 +3038,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         int action = event.getActionMasked();
         int width = gestureView.getWidth();
         if (width <= 0) {
-            if (BuildConfig.DEBUG) {
+            if (edgeDebug) {
                 setEdgeMenuDebugText("invalid width=0 action=" + action);
             }
             resetEdgeMenuGesture();
@@ -2994,7 +3056,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         switch (action) {
             case MotionEvent.ACTION_DOWN: {
                 boolean candidate = edgeSwipeDetector.down(event.getX(), event.getY(), width);
-                if (BuildConfig.DEBUG) {
+                if (edgeDebug) {
                     if (edgeMenuTrailOverlay != null) {
                         edgeMenuTrailOverlay.beginGesture(event.getX(), event.getY(), width, gestureView.getHeight(),
                                 edgeZone, threshold, candidate);
@@ -3009,7 +3071,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
             case MotionEvent.ACTION_MOVE: {
                 boolean consumingBefore = edgeSwipeDetector.isConsuming();
                 EdgeSwipeDetector.MoveResult result = edgeSwipeDetector.move(event.getX(), event.getY());
-                if (BuildConfig.DEBUG) {
+                if (edgeDebug) {
                     debugEdgeMenuMove(event, result);
                 }
 
@@ -3027,6 +3089,12 @@ public class Game extends Activity implements SurfaceHolder.Callback,
                             // still has to be told to drop the touch that started at the edge.
                             cancelStreamTouchesForEdgeMenu();
                         }
+                        if (touchTestMode) {
+                            logTouchTest(TouchTestLog.Category.GESTURE, null, getString(
+                                    result == EdgeSwipeDetector.MoveResult.TRIGGERED_LEFT
+                                            ? R.string.edge_test_result_open_left
+                                            : R.string.edge_test_result_open_right));
+                        }
                         showMenu(result == EdgeSwipeDetector.MoveResult.TRIGGERED_LEFT
                                 ? GameMenu.Side.LEFT : GameMenu.Side.RIGHT);
                         return true;
@@ -3037,26 +3105,31 @@ public class Game extends Activity implements SurfaceHolder.Callback,
             }
             case MotionEvent.ACTION_UP:
             case MotionEvent.ACTION_CANCEL: {
+                float remainingDpBeforeUp = edgeSwipeDetector.remainingPx()
+                        / getResources().getDisplayMetrics().density;
                 boolean wasConsuming = edgeSwipeDetector.up();
-                if (BuildConfig.DEBUG) {
+                if (edgeDebug) {
                     if (edgeMenuTrailOverlay != null) {
                         edgeMenuTrailOverlay.finishGesture(event.getX(), event.getY(), wasConsuming);
                     }
                     setEdgeMenuDebugText("END action=" + action + " consuming=" + wasConsuming
                             + " miss=" + edgeSwipeDetector.getLastMiss());
                 }
+                if (touchTestMode) {
+                    logEdgeMiss(edgeSwipeDetector.getLastMiss(), remainingDpBeforeUp);
+                }
                 resetEdgeMenuGesture(true);
                 return wasConsuming;
             }
             default:
-                if (BuildConfig.DEBUG) {
+                if (edgeDebug) {
                     setEdgeMenuDebugText("DEFAULT action=" + action + " consuming=" + edgeSwipeDetector.isConsuming());
                 }
                 return edgeSwipeDetector.isConsuming();
         }
     }
 
-    /** Debug-only: trail overlay and text for a MOVE. Never called in release builds. */
+    /** Trail overlay and text for a MOVE: debug builds and the touch test only. */
     private void debugEdgeMenuMove(MotionEvent event, EdgeSwipeDetector.MoveResult result) {
         if (edgeMenuTrailOverlay != null) {
             edgeMenuTrailOverlay.addPoint(event.getX(), event.getY(),
@@ -3081,7 +3154,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
 
     private boolean resetEdgeMenuGesture(boolean preserveTrail) {
         boolean wasConsuming = edgeSwipeDetector.reset();
-        if (!preserveTrail && BuildConfig.DEBUG && edgeMenuTrailOverlay != null) {
+        if (!preserveTrail && edgeDebug && edgeMenuTrailOverlay != null) {
             edgeMenuTrailOverlay.hideSoon();
         }
         setEdgeMenuDebugText("reset");
@@ -3089,11 +3162,17 @@ public class Game extends Activity implements SurfaceHolder.Callback,
     }
 
     private void setEdgeMenuDebugText(String text) {
-        if (!BuildConfig.DEBUG) {
+        if (!edgeDebug) {
             return;
         }
 
         Log.d("EdgeMenuDebug", text);
+        if (touchTestMode && !text.equals("reset")) {
+            // Per-event lines (MOVE, blocked, ignore...) collapse into one counted line each.
+            boolean perEvent = !text.startsWith("DOWN") && !text.startsWith("END");
+            logTouchTest(TouchTestLog.Category.GESTURE,
+                    perEvent ? "edge-" + text.split(" ", 2)[0] : null, text);
+        }
         if (edgeMenuDebugOverlay != null) {
             edgeMenuDebugOverlay.setText(text);
             edgeMenuDebugOverlay.setVisibility(View.VISIBLE);
@@ -3342,6 +3421,88 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         }
     }
 
+    private void logTouchTest(TouchTestLog.Category category, String key, String text) {
+        TouchTestLog log = TouchTestLog.active();
+        if (log != null) {
+            log.upsert(category, key, text);
+        }
+    }
+
+    private void logTouchEvent(MotionEvent event) {
+        int action = event.getActionMasked();
+        if (action == MotionEvent.ACTION_MOVE) {
+            StringBuilder sb = new StringBuilder("MOVE");
+            for (int i = 0; i < event.getPointerCount(); i++) {
+                sb.append(String.format(java.util.Locale.US, " #%d(%.0f,%.0f)",
+                        event.getPointerId(i), event.getX(i), event.getY(i)));
+            }
+            logTouchTest(TouchTestLog.Category.TOUCH, "touch-move", sb.toString());
+            return;
+        }
+
+        String name;
+        switch (action) {
+            case MotionEvent.ACTION_DOWN: name = "DOWN"; break;
+            case MotionEvent.ACTION_POINTER_DOWN: name = "POINTER_DOWN"; break;
+            case MotionEvent.ACTION_UP: name = "UP"; break;
+            case MotionEvent.ACTION_POINTER_UP: name = "POINTER_UP"; break;
+            case MotionEvent.ACTION_CANCEL: name = "CANCEL"; break;
+            default: name = "action " + action; break;
+        }
+        int index = action == MotionEvent.ACTION_DOWN || action == MotionEvent.ACTION_UP
+                || action == MotionEvent.ACTION_CANCEL ? 0 : event.getActionIndex();
+        float x = event.getX(index);
+        float y = event.getY(index);
+        boolean onPanel = OverlayManager.getInstance().isFloatingPanelAt(this, x, y);
+        logTouchTest(TouchTestLog.Category.TOUCH, null, String.format(java.util.Locale.US,
+                "%s #%d (%.0f,%.0f) fingers=%d%s%s", name, event.getPointerId(index), x, y,
+                event.getPointerCount(), onPanel ? " on-panel" : "",
+                (event.getFlags() & MotionEvent.FLAG_CANCELED) != 0 ? " FLAG_CANCELED" : ""));
+    }
+
+    private void logEdgeMiss(EdgeSwipeDetector.Miss miss, float remainingDp) {
+        int res;
+        switch (miss) {
+            case NOT_IN_EDGE_ZONE: return; // ordinary touches, not an edge swipe attempt
+            case WRONG_DIRECTION: res = R.string.edge_test_miss_direction; break;
+            case NOT_HORIZONTAL: res = R.string.edge_test_miss_vertical; break;
+            case MULTI_TOUCH: res = R.string.edge_test_miss_multitouch; break;
+            case TOO_SHORT:
+                logTouchTest(TouchTestLog.Category.GESTURE, null, getString(
+                        R.string.edge_test_miss_short, (int) Math.ceil(remainingDp)));
+                return;
+            default: return;
+        }
+        logTouchTest(TouchTestLog.Category.GESTURE, null, getString(res));
+    }
+
+    private void startTouchTestSession() {
+        if (spinner != null) {
+            spinner.dismiss();
+            spinner = null;
+        }
+        connected = true;
+        connecting = false;
+        new Handler().postDelayed(() -> setInputGrabState(true), 500);
+        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        hideSystemUi(1000);
+
+        TouchTestLog log = TouchTestLog.active();
+        if (log == null) {
+            return;
+        }
+        String[] modes = {"multi-touch", "trackpad", "mouse"};
+        int mode = getCurrentTouchMode();
+        log.log(TouchTestLog.Category.INFO, String.format(java.util.Locale.US,
+                "touch test started: screen %dx%d, touch mode %s, edge menu %s (hot zone %d dp, distance %d dp)",
+                streamView.getWidth(), streamView.getHeight(),
+                mode >= 0 && mode < modes.length ? modes[mode] : String.valueOf(mode),
+                isEdgeGameMenuGestureEnabled() ? "on" : "off",
+                prefConfig.edgeMenuHotZoneDp, prefConfig.edgeMenuSwipeThresholdDp));
+        touchTestPanel = new TouchTestPanel(this, log, this::finish);
+        touchTestPanel.show();
+    }
+
     private void stopConnection() {
         disconnectHandler.removeCallbacks(delayedSuspendRunnable);
         stopClipboardSync();
@@ -3455,6 +3616,10 @@ public class Game extends Activity implements SurfaceHolder.Callback,
     }
 
     public void recreateConnectionWithDisplay(final String displayName, final Boolean overrideUseVdd) {
+        if (touchTestMode) {
+            postNotification(getString(R.string.touch_test_unavailable), 2000);
+            return;
+        }
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
@@ -4072,6 +4237,14 @@ public class Game extends Activity implements SurfaceHolder.Callback,
             return;
         }
         
+        if (touchTestMode) {
+            if (!attemptedConnection) {
+                attemptedConnection = true;
+                startTouchTestSession();
+            }
+            return;
+        }
+
         if (!attemptedConnection && !isBackgroundSuspended) {
             attemptedConnection = true;
 
@@ -4419,7 +4592,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         return new LayoutProfileDialogs.StreamContext(
                 getIntent().getStringExtra(EXTRA_PC_UUID),
                 pcName,
-                app != null ? app.getAppId() : StreamConfiguration.INVALID_APP_ID,
+                app != null && !touchTestMode ? app.getAppId() : StreamConfiguration.INVALID_APP_ID,
                 appName,
                 () -> {
                     reloadVirtualKeyboardLayout();
@@ -4852,6 +5025,9 @@ public class Game extends Activity implements SurfaceHolder.Callback,
 
     // 新方法：启动连接
     private void startConnection(SurfaceHolder holder) {
+        if (touchTestMode) {
+            return;
+        }
         Log.i("MoonReconnect", "[Game] startConnection: holder=" + holder + ", surface valid=" + (holder != null && holder.getSurface() != null && holder.getSurface().isValid()));
         Log.i("MoonReconnect", "[Game] startConnection: Host=" + getIntent().getStringExtra(EXTRA_HOST) + ", AppId=" + getIntent().getIntExtra(EXTRA_APP_ID, 0));
         
@@ -5158,6 +5334,10 @@ public class Game extends Activity implements SurfaceHolder.Callback,
      * 强力强杀 PC 端当前会话并退出串流
      */
     public void quitAndDisconnect() {
+        if (touchTestMode) {
+            finish();
+            return;
+        }
         AppExecutors.execute(new Runnable() {
             @Override
             public void run() {
