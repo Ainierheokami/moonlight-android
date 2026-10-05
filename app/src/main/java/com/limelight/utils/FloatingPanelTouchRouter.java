@@ -34,6 +34,10 @@ public final class FloatingPanelTouchRouter {
     private boolean gestureOnPanel;
     private boolean routing;
     private long streamDownTime;
+    // The system cancelled a split gesture (e.g. OEM edge-touch rejection of the stream finger)
+    // but keeps delivering the panel fingers afterwards: hold the panel until they really lift.
+    private boolean panelHeldAfterCancel;
+    private long panelDownTime;
     private Trace trace;
 
     public void setTrace(Trace trace) {
@@ -54,7 +58,12 @@ public final class FloatingPanelTouchRouter {
     public boolean route(MotionEvent ev, Hit hit, Sink sink) {
         int action = ev.getActionMasked();
         if (action == MotionEvent.ACTION_DOWN) {
+            if (panelHeldAfterCancel) {
+                // A brand new gesture: the held panel fingers are gone after all.
+                cancelHeld(sink);
+            }
             reset();
+            panelDownTime = ev.getDownTime();
             gestureOnPanel = hit.isPanelAt(ev.getX(), ev.getY());
             if (gestureOnPanel) {
                 owners.put(ev.getPointerId(0), true);
@@ -93,6 +102,15 @@ public final class FloatingPanelTouchRouter {
             return false;
         }
 
+        if (action == MotionEvent.ACTION_CANCEL && hasPanelFingers()) {
+            // Cancel only the stream side; the panel keeps its press until its fingers lift,
+            // which the system still reports after such a cancel.
+            cancelStreamFingers(ev, sink);
+            panelHeldAfterCancel = true;
+            trace("system cancelled the gesture; stream fingers cancelled, panel fingers kept");
+            return true;
+        }
+
         dispatch(ev, action, sink);
 
         if (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_CANCEL) {
@@ -109,6 +127,56 @@ public final class FloatingPanelTouchRouter {
         owners.clear();
         gestureOnPanel = false;
         routing = false;
+        panelHeldAfterCancel = false;
+    }
+
+    /** Releases panel fingers kept after a system cancel (window focus loss, pause, new gesture). */
+    public void cancelHeld(Sink sink) {
+        if (!panelHeldAfterCancel) {
+            return;
+        }
+        long now = android.os.SystemClock.uptimeMillis();
+        MotionEvent cancel = MotionEvent.obtain(panelDownTime, now, MotionEvent.ACTION_CANCEL, 0, 0, 0);
+        try {
+            sink.toPanel(cancel);
+        }
+        finally {
+            cancel.recycle();
+        }
+        trace("held panel fingers released");
+        reset();
+    }
+
+    private boolean hasPanelFingers() {
+        for (int i = 0; i < owners.size(); i++) {
+            if (owners.valueAt(i)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private void cancelStreamFingers(MotionEvent ev, Sink sink) {
+        List<Integer> indices = new ArrayList<>();
+        for (int i = 0; i < ev.getPointerCount(); i++) {
+            if (!owners.get(ev.getPointerId(i), true)) {
+                indices.add(i);
+            }
+        }
+        if (!indices.isEmpty()) {
+            MotionEvent out = build(ev, indices, MotionEvent.ACTION_CANCEL, streamDownTime, false);
+            try {
+                sink.toStream(out);
+            }
+            finally {
+                out.recycle();
+            }
+        }
+        for (int i = owners.size() - 1; i >= 0; i--) {
+            if (!owners.valueAt(i)) {
+                owners.removeAt(i);
+            }
+        }
     }
 
     private void dispatch(MotionEvent ev, int action, Sink sink) {

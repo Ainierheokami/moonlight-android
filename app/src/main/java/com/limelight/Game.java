@@ -1258,6 +1258,9 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         // With Android native pointer capture, capture is lost when focus is lost,
         // so it must be requested again when focus is regained.
         inputCaptureProvider.onWindowFocusChanged(hasFocus);
+        if (!hasFocus) {
+            floatingPanelTouchRouter.cancelHeld(floatingPanelSink);
+        }
         if (edgeDebug && edgeMenuDebugOverlay != null && !hasFocus) {
             edgeMenuDebugOverlay.setVisibility(View.GONE);
             if (edgeMenuTrailOverlay != null) {
