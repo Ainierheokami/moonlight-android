@@ -224,6 +224,15 @@ public final class OverlayManager {
                 cancelOnTouchOutside, onDismiss);
     }
 
+    /**
+     * Returns true if the point (in the Activity's decor coordinates) lies on a non-modal
+     * floating panel such as the floating keyboard. Does not create or reorder anything.
+     */
+    public boolean isFloatingPanelAt(Activity activity, float x, float y) {
+        OverlayContainer container = containers.get(activity);
+        return container != null && container.isFloatingPanelAt(x, y);
+    }
+
     private OverlayContainer getContainerInternal(Activity activity) {
         OverlayContainer container = containers.get(activity);
         if (container == null) {

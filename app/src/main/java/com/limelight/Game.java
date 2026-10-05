@@ -1,6 +1,7 @@
 package com.limelight;
 
 import com.limelight.utils.AppExecutors;
+import com.limelight.utils.FloatingPanelTouchRouter;
 
 import com.limelight.binding.PlatformBinding;
 import com.limelight.binding.audio.AndroidAudioRenderer;
@@ -43,6 +44,7 @@ import com.limelight.preferences.PreferenceConfiguration;
 import com.limelight.ui.GameGestures;
 import com.limelight.ui.StreamView;
 import com.limelight.utils.Dialog;
+import com.limelight.utils.OverlayManager;
 import com.limelight.utils.ServerHelper;
 import com.limelight.utils.ShortcutHelper;
 import com.limelight.utils.SpinnerDialog;
@@ -2887,8 +2889,39 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         return handleMotionEvent(view, event);
     }
 
+    private final FloatingPanelTouchRouter floatingPanelTouchRouter = new FloatingPanelTouchRouter();
+    private final FloatingPanelTouchRouter.Hit floatingPanelHit = new FloatingPanelTouchRouter.Hit() {
+        @Override
+        public boolean isPanelAt(float x, float y) {
+            return OverlayManager.getInstance().isFloatingPanelAt(Game.this, x, y);
+        }
+    };
+    private final FloatingPanelTouchRouter.Sink floatingPanelSink = new FloatingPanelTouchRouter.Sink() {
+        @Override
+        public void toPanel(MotionEvent event) {
+            Game.super.dispatchTouchEvent(event);
+        }
+
+        @Override
+        public void toStream(MotionEvent event) {
+            int[] location = new int[2];
+            backgroundTouchView.getLocationInWindow(location);
+            event.offsetLocation(-location[0], -location[1]);
+            onTouch(backgroundTouchView, event);
+        }
+    };
+
     @Override
     public boolean dispatchTouchEvent(MotionEvent event) {
+        // A finger held on the floating keyboard must not swallow other fingers on the stream.
+        if (floatingPanelTouchRouter.route(event, floatingPanelHit, floatingPanelSink)) {
+            if (edgeSwipeDetector.isCandidate() || edgeSwipeDetector.isConsuming()) {
+                edgeSwipeDetector.cancelForMultiTouch();
+                resetEdgeMenuGesture();
+            }
+            return true;
+        }
+
         if (handleEdgeMenuGesture(event)) {
             return true;
         }

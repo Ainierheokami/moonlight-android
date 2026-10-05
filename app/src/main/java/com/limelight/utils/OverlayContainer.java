@@ -180,6 +180,22 @@ public final class OverlayContainer extends FrameLayout {
         return handle;
     }
 
+    /** True if (x, y) in decor coordinates is on a visible non-modal floating panel. */
+    public boolean isFloatingPanelAt(float x, float y) {
+        android.graphics.Rect rect = new android.graphics.Rect();
+        for (DialogEntry entry : dialogEntries) {
+            if (entry.dimBehind || entry.view.getVisibility() != View.VISIBLE
+                    || entry.view.getParent() != entry.host) {
+                continue;
+            }
+            entry.view.getHitRect(rect);
+            if (rect.contains((int) x, (int) y)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     /** Adds or replaces the single currently visible toast view. */
     public void setToastView(View toastView) {
         if (toastView == null) {
