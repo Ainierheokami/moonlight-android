@@ -51,3 +51,4 @@ jobs:
           name: lint-report
           path: app/build/reports/lint-results-nonRootDebug.html
           if-no-files-found: ignore
+          retention-days: 5
