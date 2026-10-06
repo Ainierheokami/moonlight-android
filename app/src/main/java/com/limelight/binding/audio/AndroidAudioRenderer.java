@@ -48,6 +48,22 @@ public class AndroidAudioRenderer implements AudioRenderer {
     // Only touched by the native audio thread calling playDecodedAudio()
     private boolean playbackThreadPriorityRaised = false;
 
+    // Adaptive buffering (Android 7+): the track is created with room for up to
+    // MAX_ADAPTIVE_BUFFER_MS of audio, but starts with a small buffer for low latency.
+    // Every underrun (heard as a crackle or pop) grows the buffer by one packet until it
+    // stops underrunning, so a jittery Wi-Fi link settles on a buffer that plays cleanly.
+    private static final int MAX_ADAPTIVE_BUFFER_MS = 80;
+    private static final int ADAPTIVE_CHECK_INTERVAL_MS = 100;
+    private boolean adaptiveBuffer;
+    private int samplesPerPacket;
+    private int bufferSizeFrames;
+    private int maxBufferSizeFrames;
+    private int lastUnderrunCount;
+    private long lastUnderrunCheckMs;
+    // Underruns while the stream is still starting up are expected and do not count.
+    private long adaptiveGraceUntilMs;
+    private int sampleRateHz;
+
     public AndroidAudioRenderer(Context context, boolean enableAudioFx) {
         this.context = context;
         this.enableAudioFx = enableAudioFx;
@@ -160,6 +176,15 @@ public class AndroidAudioRenderer implements AudioRenderer {
 
         bytesPerFrame = audioConfiguration.channelCount * samplesPerFrame * 2;
         audioLimiter = new Pcm16AudioLimiter(sampleRate, audioConfiguration.channelCount);
+        samplesPerPacket = samplesPerFrame;
+        sampleRateHz = sampleRate;
+        adaptiveBuffer = false;
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N
+                && setupAdaptiveTrack(channelConfig, sampleRate, bytesPerFrame,
+                        audioConfiguration.channelCount)) {
+            return 0;
+        }
 
         // We're not supposed to request less than the minimum
         // buffer size for our buffer, but it appears that we can
@@ -251,6 +276,80 @@ public class AndroidAudioRenderer implements AudioRenderer {
         return 0;
     }
 
+    /**
+     * Creates a track whose capacity allows the buffer to grow later, starting at the same
+     * small size as the classic low-latency path. Returns false to fall back to that path.
+     */
+    @android.annotation.TargetApi(Build.VERSION_CODES.N)
+    private boolean setupAdaptiveTrack(int channelConfig, int sampleRate, int bytesPerPacket,
+                                       int channelCount) {
+        int bytesPerSampleFrame = channelCount * 2;
+        int packetsForMax = Math.max(2, (int) Math.ceil(
+                MAX_ADAPTIVE_BUFFER_MS * sampleRate / 1000.0 / samplesPerPacket));
+        int capacityBytes = Math.max(AudioTrack.getMinBufferSize(sampleRate, channelConfig,
+                AudioFormat.ENCODING_PCM_16BIT), bytesPerPacket * packetsForMax);
+        capacityBytes = ((capacityBytes + bytesPerPacket - 1) / bytesPerPacket) * bytesPerPacket;
+
+        boolean nativeRate = AudioTrack.getNativeOutputSampleRate(AudioManager.STREAM_MUSIC) == sampleRate;
+        boolean[] modes = (nativeRate && !enableAudioFx) ? new boolean[] {true, false} : new boolean[] {false};
+        for (boolean lowLatency : modes) {
+            try {
+                track = createAudioTrack(channelConfig, sampleRate, capacityBytes, lowLatency);
+                maxBufferSizeFrames = capacityBytes / bytesPerSampleFrame;
+                // Start where the classic path starts: two packets. The track may round it up
+                // to what its mixer path requires.
+                int applied = track.setBufferSizeInFrames(samplesPerPacket * 2);
+                bufferSizeFrames = applied > 0 ? applied : track.getBufferSizeInFrames();
+                track.play();
+                lastUnderrunCount = track.getUnderrunCount();
+                lastUnderrunCheckMs = System.currentTimeMillis();
+                adaptiveGraceUntilMs = lastUnderrunCheckMs + 1000;
+                adaptiveBuffer = true;
+                LimeLog.info("Audio track: adaptive buffer " + framesToMs(bufferSizeFrames)
+                        + " ms (max " + framesToMs(maxBufferSizeFrames) + " ms), lowLatency=" + lowLatency);
+                return true;
+            } catch (Exception e) {
+                LimeLog.warning(e);
+                if (track != null) {
+                    try {
+                        track.release();
+                    } catch (Exception ignored) {}
+                    track = null;
+                }
+            }
+        }
+        return false;
+    }
+
+    @android.annotation.TargetApi(Build.VERSION_CODES.N)
+    private void growBufferOnUnderrun() {
+        long now = System.currentTimeMillis();
+        if (now - lastUnderrunCheckMs < ADAPTIVE_CHECK_INTERVAL_MS) {
+            return;
+        }
+        lastUnderrunCheckMs = now;
+
+        int underruns = track.getUnderrunCount();
+        if (now < adaptiveGraceUntilMs) {
+            lastUnderrunCount = underruns;
+            return;
+        }
+        if (underruns > lastUnderrunCount && bufferSizeFrames < maxBufferSizeFrames) {
+            int requested = Math.min(maxBufferSizeFrames, bufferSizeFrames + samplesPerPacket);
+            int applied = track.setBufferSizeInFrames(requested);
+            if (applied > 0) {
+                bufferSizeFrames = applied;
+            }
+            LimeLog.info("Audio underrun (" + underruns + " total): buffer now "
+                    + framesToMs(bufferSizeFrames) + " ms");
+        }
+        lastUnderrunCount = underruns;
+    }
+
+    private int framesToMs(int frames) {
+        return sampleRateHz > 0 ? (int) (frames * 1000L / sampleRateHz) : 0;
+    }
+
     @Override
     public void playDecodedAudio(short[] audioData) {
         if (!playbackThreadPriorityRaised) {
@@ -274,6 +373,9 @@ public class AndroidAudioRenderer implements AudioRenderer {
         }
         else {
             LimeLog.info("Too much pending audio data: " + MoonBridge.getPendingAudioDuration() +" ms");
+        }
+        if (adaptiveBuffer && Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            growBufferOnUnderrun();
         }
         updateAudioBitrateStats(context);
     }
