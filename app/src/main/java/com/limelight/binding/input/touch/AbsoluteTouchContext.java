@@ -47,6 +47,9 @@ public class AbsoluteTouchContext implements TouchContext {
 
     private final NvConnection conn;
     private final int actionIndex;
+    // Long press turns into a right click (upstream behaviour). When off, a long press simply
+    // keeps the left button held and right click is a two-finger tap instead.
+    private final boolean longPressRightClick;
     private final View targetView;
     private final Handler handler;
 
@@ -96,6 +99,12 @@ public class AbsoluteTouchContext implements TouchContext {
 
     public AbsoluteTouchContext(NvConnection conn, int actionIndex, View view)
     {
+        this(conn, actionIndex, view, true);
+    }
+
+    public AbsoluteTouchContext(NvConnection conn, int actionIndex, View view, boolean longPressRightClick)
+    {
+        this.longPressRightClick = longPressRightClick;
         this.conn = conn;
         this.actionIndex = actionIndex;
         this.targetView = view;
@@ -124,7 +133,9 @@ public class AbsoluteTouchContext implements TouchContext {
         if (actionIndex == 0) {
             // Start the timers
             startTapDownTimer();
-            startLongPressTimer();
+            if (longPressRightClick) {
+                startLongPressTimer();
+            }
         }
 
         return true;
@@ -250,6 +261,15 @@ public class AbsoluteTouchContext implements TouchContext {
         lastTouchLocationY = eventY;
 
         return true;
+    }
+
+    /** Right click at a stream-view position (mouse mode two-finger tap). */
+    public void sendRightClickAt(int x, int y) {
+        updatePosition(x, y);
+        conn.sendMouseButtonDown(MouseButtonPacket.BUTTON_RIGHT);
+        Runnable buttonUpRunnable = buttonUpRunnables[MouseButtonPacket.BUTTON_RIGHT - 1];
+        handler.removeCallbacks(buttonUpRunnable);
+        handler.postDelayed(buttonUpRunnable, 100);
     }
 
     @Override

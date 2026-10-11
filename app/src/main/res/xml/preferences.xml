@@ -328,6 +328,11 @@
             android:text="%"
             />
         <CheckBoxPreference
+            android:key="checkbox_absolute_long_press_right_click"
+            android:title="@string/title_checkbox_absolute_long_press_right_click"
+            android:summary="@string/summary_checkbox_absolute_long_press_right_click"
+            android:defaultValue="false" />
+        <CheckBoxPreference
             android:key="checkbox_touch_jitter_filter"
             android:title="@string/title_checkbox_touch_jitter_filter"
             android:summary="@string/summary_checkbox_touch_jitter_filter"
