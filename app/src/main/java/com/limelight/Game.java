@@ -2,6 +2,7 @@ package com.limelight;
 
 import com.limelight.utils.AppExecutors;
 import com.limelight.utils.FloatingPanelTouchRouter;
+import com.limelight.binding.input.touch.TwoFingerTapDetector;
 import com.limelight.heokami.touchtest.TouchTestConnection;
 import com.limelight.heokami.touchtest.TouchTestLog;
 import com.limelight.heokami.touchtest.TouchTestPanel;
@@ -92,6 +93,7 @@ import android.view.OrientationEventListener;
 import android.view.Surface;
 import android.view.SurfaceHolder;
 import android.view.View;
+import android.view.ViewConfiguration;
 import android.view.View.OnGenericMotionListener;
 import android.view.View.OnSystemUiVisibilityChangeListener;
 import android.view.View.OnTouchListener;
@@ -314,6 +316,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
     /** Touch test: the real stream screen with no host, every input is written to a log. */
     public static final String EXTRA_TOUCH_TEST = "TouchTest";
     private boolean touchTestMode;
+    private TwoFingerTapDetector twoFingerTapDetector;
     private TouchTestPanel touchTestPanel;
     // Edge-gesture trail and diagnostics: debug builds and the touch test.
     private boolean edgeDebug;
@@ -926,7 +929,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         // Initialize touch contexts
         for (int i = 0; i < touchContextMap.length; i++) {
             if (!prefConfig.touchscreenTrackpad) {
-                touchContextMap[i] = new AbsoluteTouchContext(conn, i, streamView);
+                touchContextMap[i] = new AbsoluteTouchContext(conn, i, streamView, prefConfig.absoluteLongPressRightClick);
             }
             else {
                 touchContextMap[i] = new RelativeTouchContext(conn, i,
@@ -2763,6 +2766,11 @@ public class Game extends Activity implements SurfaceHolder.Callback,
                 int eventX = (int)(event.getX(actionIndex) + xOffset);
                 int eventY = (int)(event.getY(actionIndex) + yOffset);
 
+                // Mouse mode: a quick two-finger tap is a right click.
+                if (!prefConfig.multiTouchScreen && touchContextMap[0] instanceof AbsoluteTouchContext) {
+                    trackTwoFingerTap(event, xOffset, yOffset);
+                }
+
                 // Special handling for 3 finger gesture
                 if (event.getActionMasked() == MotionEvent.ACTION_POINTER_DOWN &&
                         event.getPointerCount() == 3) {
@@ -3421,6 +3429,41 @@ public class Game extends Activity implements SurfaceHolder.Callback,
             };
             disconnectHandler.postDelayed(automaticReconnectResetRunnable,
                     AUTOMATIC_RECONNECT_STABLE_RESET_MS);
+        }
+    }
+
+    private void trackTwoFingerTap(MotionEvent event, float xOffset, float yOffset) {
+        if (twoFingerTapDetector == null) {
+            twoFingerTapDetector = new TwoFingerTapDetector(
+                    ViewConfiguration.get(this).getScaledTouchSlop() * 2f);
+        }
+        int index = event.getActionIndex();
+        switch (event.getActionMasked()) {
+            case MotionEvent.ACTION_DOWN:
+                twoFingerTapDetector.onDown(event.getEventTime(), event.getPointerId(0),
+                        event.getX(0) + xOffset, event.getY(0) + yOffset);
+                break;
+            case MotionEvent.ACTION_POINTER_DOWN:
+                twoFingerTapDetector.onPointerDown(event.getEventTime(), event.getPointerId(index),
+                        event.getX(index) + xOffset, event.getY(index) + yOffset, event.getPointerCount());
+                break;
+            case MotionEvent.ACTION_MOVE:
+                for (int i = 0; i < event.getPointerCount(); i++) {
+                    twoFingerTapDetector.onMove(event.getPointerId(i),
+                            event.getX(i) + xOffset, event.getY(i) + yOffset);
+                }
+                break;
+            case MotionEvent.ACTION_UP:
+                if (twoFingerTapDetector.onUp(event.getEventTime())) {
+                    ((AbsoluteTouchContext) touchContextMap[0]).sendRightClickAt(
+                            (int) twoFingerTapDetector.getPrimaryX(), (int) twoFingerTapDetector.getPrimaryY());
+                }
+                break;
+            case MotionEvent.ACTION_CANCEL:
+                twoFingerTapDetector.cancel();
+                break;
+            default:
+                break;
         }
     }
 
@@ -4883,7 +4926,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
 
         for (int i = 0; i < touchContextMap.length; i++) {
             if (!prefConfig.touchscreenTrackpad) {
-                touchContextMap[i] = new AbsoluteTouchContext(conn, i, streamView);
+                touchContextMap[i] = new AbsoluteTouchContext(conn, i, streamView, prefConfig.absoluteLongPressRightClick);
             }
             else {
                 touchContextMap[i] = new RelativeTouchContext(conn, i,
@@ -5223,7 +5266,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         // 重新初始化 touchContextMap
         for (int i = 0; i < touchContextMap.length; i++) {
             if (!prefConfig.touchscreenTrackpad) {
-                touchContextMap[i] = new AbsoluteTouchContext(conn, i, streamView);
+                touchContextMap[i] = new AbsoluteTouchContext(conn, i, streamView, prefConfig.absoluteLongPressRightClick);
             } else {
                 touchContextMap[i] = new RelativeTouchContext(conn, i,
                         REFERENCE_HORIZ_RES, REFERENCE_VERT_RES,

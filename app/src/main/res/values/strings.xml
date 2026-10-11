@@ -976,4 +976,6 @@
     <string name="touch_test_cat_host">Sent to host</string>
     <string name="touch_test_cat_key">Keys</string>
     <string name="touch_test_cat_info">Info</string>
+    <string name="title_checkbox_absolute_long_press_right_click">长按右键（鼠标模式）</string>
+    <string name="summary_checkbox_absolute_long_press_right_click">鼠标模式下长按变为右键。关闭时长按保持左键按下（可拖动），右键改为双指轻点</string>
 </resources>

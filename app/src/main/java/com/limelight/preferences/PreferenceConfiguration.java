@@ -148,6 +148,9 @@ public class PreferenceConfiguration {
     private static final String TOUCH_HOLD_JITTER_MS_PREF_STRING = "seekbar_touch_hold_jitter_ms";
     private static final String TOUCH_TAP_MOVE_DP_PREF_STRING = "seekbar_touch_tap_move_dp";
     private static final boolean DEFAULT_TOUCH_JITTER_FILTER = true;
+    // 鼠标模式（绝对坐标）长按变右键；关闭时长按保持左键，右键改为双指轻点
+    private static final String ABSOLUTE_LONG_PRESS_RIGHT_CLICK_PREF_STRING = "checkbox_absolute_long_press_right_click";
+    private static final boolean DEFAULT_ABSOLUTE_LONG_PRESS_RIGHT_CLICK = false;
     public static final int DEFAULT_TOUCH_HOLD_JITTER_MS = 150;
     public static final int DEFAULT_TOUCH_TAP_MOVE_DP = 8;
     private static final boolean DEFAULT_GAMEPAD_MOTION_FALLBACK = false;
@@ -235,6 +238,7 @@ public class PreferenceConfiguration {
     // 默认触摸板灵敏度（应用于全局相对触摸）
     public int defaultTouchpadSensitivity;
     public boolean touchJitterFilter;
+    public boolean absoluteLongPressRightClick;
     public int touchHoldJitterMs;
     public int touchTapMoveDp;
     
@@ -769,6 +773,7 @@ public class PreferenceConfiguration {
         config.defaultTouchpadSensitivity = Math.max(10, Math.min(300, prefs.getInt(DEFAULT_TOUCHPAD_SENSITIVITY_PREF_STRING, DEFAULT_TOUCHPAD_SENSITIVITY)));
         config.multiTouchScreen = prefs.getBoolean(MULTITOUCH_SCREEN_PREF_STRING, DEFAULT_MULTITOUCH_SCREEN);
         config.touchJitterFilter = prefs.getBoolean(TOUCH_JITTER_FILTER_PREF_STRING, DEFAULT_TOUCH_JITTER_FILTER);
+        config.absoluteLongPressRightClick = prefs.getBoolean(ABSOLUTE_LONG_PRESS_RIGHT_CLICK_PREF_STRING, DEFAULT_ABSOLUTE_LONG_PRESS_RIGHT_CLICK);
         config.touchHoldJitterMs = Math.max(50, Math.min(500, prefs.getInt(TOUCH_HOLD_JITTER_MS_PREF_STRING, DEFAULT_TOUCH_HOLD_JITTER_MS)));
         config.touchTapMoveDp = Math.max(4, Math.min(24, prefs.getInt(TOUCH_TAP_MOVE_DP_PREF_STRING, DEFAULT_TOUCH_TAP_MOVE_DP)));
         config.enableGridLayout = prefs.getBoolean(ENABLE_GRID_LAYOUT_PREF_STRING, DEFAULT_ENABLE_GRID_LAYOUT);

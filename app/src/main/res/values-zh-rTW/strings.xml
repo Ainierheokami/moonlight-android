@@ -656,4 +656,6 @@
     <string name="touch_test_cat_host">傳送</string>
     <string name="touch_test_cat_key">按鍵</string>
     <string name="touch_test_cat_info">資訊</string>
+    <string name="title_checkbox_absolute_long_press_right_click">長按右鍵（滑鼠模式）</string>
+    <string name="summary_checkbox_absolute_long_press_right_click">滑鼠模式下長按變為右鍵。關閉時長按保持左鍵按下（可拖曳），右鍵改為雙指輕點</string>
 </resources>
