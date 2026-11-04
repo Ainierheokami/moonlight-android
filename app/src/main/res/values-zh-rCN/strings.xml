@@ -769,6 +769,7 @@
     <string name="menu_status_bitrate">视频码率</string>
     <string name="menu_status_time">当前时间</string>
     <string name="menu_switch_display_title">实时切换屏幕</string>
+    <string name="menu_display_scale_title">调整显示器 DPI</string>
     <string name="menu_vk_not_ready_enter_edit">无法进入编辑模式：虚拟键盘未就绪</string>
     <string name="menu_vk_not_ready_edit">无法编辑：虚拟键盘未就绪</string>
     <string name="menu_vk_not_ready_run">无法执行：虚拟键盘未就绪</string>
@@ -810,6 +811,8 @@
     <string name="display_already_selected">当前已经是这个显示器</string>
     <string name="display_scale_button">DPI %1$d%%</string>
     <string name="display_scale_title">设置显示器缩放 - %1$s</string>
+    <string name="display_scale_choose_display">选择要调整的显示器</string>
+    <string name="display_scale_display_option">%1$s（当前 %2$d%%）</string>
     <string name="display_scale_option">%1$d%%</string>
     <string name="display_scale_apply">应用</string>
     <string name="display_scale_applying">正在设置为 %1$d%%...</string>

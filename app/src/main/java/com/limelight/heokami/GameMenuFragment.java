@@ -586,6 +586,10 @@ public class GameMenuFragment extends Fragment {
             hideMenuWithAnimation();
             showSwitchDisplayDialog();
         }, game.getString(R.string.menu_switch_display_title)));
+        actions.add(new GameMenuAction("display_scale", 0, 0, GameMenuSection.STREAM, 55, false, true, true, v -> {
+            hideMenuWithAnimation();
+            showDisplayScaleSettingsDialog();
+        }, game.getString(R.string.menu_display_scale_title)));
 
         actions.add(new GameMenuAction("ime", R.string.game_menu_enable_keyboard, R.drawable.ic_keyboard, GameMenuSection.INPUT, 10, false, true, true, v -> {
             hideMenuWithAnimation();
@@ -1854,6 +1858,60 @@ public class GameMenuFragment extends Fragment {
                 new Handler(Looper.getMainLooper()).post(() -> {
                     if (canShowSwitchDisplayUi()) {
                         showFallbackSwitchDisplayDialog();
+                    }
+                });
+            }
+        });
+    }
+
+    private void showDisplayScaleSettingsDialog() {
+        AppToast.makeText(game, game.getString(R.string.display_loading_list), AppToast.LENGTH_SHORT).show();
+        AppExecutors.execute(() -> {
+            try {
+                final List<NvHTTP.DisplayInfo> rawDisplays = conn.getDisplays();
+                new Handler(Looper.getMainLooper()).post(() -> {
+                    if (!canShowSwitchDisplayUi()) {
+                        return;
+                    }
+
+                    final List<NvHTTP.DisplayInfo> scalableDisplays = new ArrayList<>();
+                    if (rawDisplays != null) {
+                        for (NvHTTP.DisplayInfo display : rawDisplays) {
+                            if (display != null && display.supportsScale()) {
+                                scalableDisplays.add(display);
+                            }
+                        }
+                    }
+
+                    if (scalableDisplays.isEmpty()) {
+                        AppToast.makeText(game, R.string.display_scale_unavailable, AppToast.LENGTH_LONG).show();
+                        return;
+                    }
+
+                    if (scalableDisplays.size() == 1) {
+                        showDisplayScaleDialog(scalableDisplays.get(0));
+                        return;
+                    }
+
+                    CharSequence[] labels = new CharSequence[scalableDisplays.size()];
+                    for (int i = 0; i < scalableDisplays.size(); i++) {
+                        NvHTTP.DisplayInfo display = scalableDisplays.get(i);
+                        int current = display.currentScalePercent != null ? display.currentScalePercent : 0;
+                        labels[i] = game.getString(R.string.display_scale_display_option,
+                                getDisplayNickname(display), current);
+                    }
+
+                    new OverlayAlertDialog.Builder(game)
+                            .setTitle(R.string.display_scale_choose_display)
+                            .setItems(labels, (dialog, which) -> showDisplayScaleDialog(scalableDisplays.get(which)))
+                            .setNegativeButton(android.R.string.cancel, null)
+                            .show();
+                });
+            } catch (Exception e) {
+                new Handler(Looper.getMainLooper()).post(() -> {
+                    if (canShowSwitchDisplayUi()) {
+                        AppToast.makeText(game, e.getMessage() != null ? e.getMessage()
+                                : game.getString(R.string.display_scale_failed), AppToast.LENGTH_LONG).show();
                     }
                 });
             }
