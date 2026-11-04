@@ -759,9 +759,18 @@ public class NvHTTP {
                         }
                     }
                 }
+                boolean scaleFieldsPresent = display.has("scale_set_supported")
+                        || display.has("supported_scale_percents");
                 boolean scaleSetSupported = display.optBoolean("scale_set_supported", false);
-                list.add(new DisplayInfo(displayName, friendlyName, deviceId, currentScalePercent,
-                        recommendedScalePercent, supportedScalePercents, scaleSetSupported));
+                DisplayInfo displayInfo = new DisplayInfo(displayName, friendlyName, deviceId, currentScalePercent,
+                        recommendedScalePercent, supportedScalePercents, scaleSetSupported);
+                if (!scaleFieldsPresent) {
+                    // Older Foundation Sunshine builds expose display metadata but omit the
+                    // scale fields from /displays. Query the dedicated endpoint before
+                    // concluding that the display cannot be scaled.
+                    displayInfo = loadDisplayScaleOptions(displayInfo);
+                }
+                list.add(displayInfo);
             }
             return list;
         } catch (JSONException e) {
@@ -773,6 +782,51 @@ public class NvHTTP {
                 list.add(new DisplayInfo(name, "", ""));
             }
             return list;
+        }
+    }
+
+    private DisplayInfo loadDisplayScaleOptions(DisplayInfo displayInfo) {
+        try {
+            StringBuilder query = new StringBuilder();
+            if (displayInfo.displayName != null && !displayInfo.displayName.isEmpty()) {
+                query.append("display_name=")
+                        .append(java.net.URLEncoder.encode(displayInfo.displayName, "UTF-8"));
+            }
+            if (displayInfo.deviceId != null && !displayInfo.deviceId.isEmpty()) {
+                if (query.length() > 0) query.append('&');
+                query.append("device_id=")
+                        .append(java.net.URLEncoder.encode(displayInfo.deviceId, "UTF-8"));
+            }
+
+            String responseString = openHttpConnectionToString(httpClientLongConnectTimeout,
+                    getHttpsUrl(true), "display-scale-options", query.toString());
+            JSONObject response = new JSONObject(responseString);
+            if (!response.optBoolean("success", false)) {
+                return displayInfo;
+            }
+
+            Integer currentScalePercent = response.has("current_scale_percent")
+                    && !response.isNull("current_scale_percent")
+                    ? response.optInt("current_scale_percent") : null;
+            Integer recommendedScalePercent = response.has("recommended_scale_percent")
+                    && !response.isNull("recommended_scale_percent")
+                    ? response.optInt("recommended_scale_percent") : null;
+            ArrayList<Integer> supportedScalePercents = new ArrayList<Integer>();
+            JSONArray scaleValues = response.optJSONArray("supported_scale_percents");
+            if (scaleValues != null) {
+                for (int i = 0; i < scaleValues.length(); i++) {
+                    if (!scaleValues.isNull(i)) {
+                        supportedScalePercents.add(scaleValues.optInt(i));
+                    }
+                }
+            }
+            boolean scaleSetSupported = response.optBoolean("scale_set_supported",
+                    !supportedScalePercents.isEmpty());
+            return new DisplayInfo(displayInfo.displayName, displayInfo.friendlyName, displayInfo.deviceId,
+                    currentScalePercent, recommendedScalePercent, supportedScalePercents, scaleSetSupported);
+        } catch (Exception ignored) {
+            // The endpoint is optional for older Sunshine/GFE implementations.
+            return displayInfo;
         }
     }
 
