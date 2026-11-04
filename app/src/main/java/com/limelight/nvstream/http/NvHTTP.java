@@ -732,14 +732,21 @@ public class NvHTTP {
             }
 
             JSONArray displaysArray = json.optJSONArray("displays");
-            if (displaysArray == null) {
-                return new ArrayList<DisplayInfo>();
+            if (displaysArray == null || displaysArray.length() == 0) {
+                // Nothing enumerated; still ask the host for the primary display's scale options.
+                ArrayList<DisplayInfo> list = new ArrayList<DisplayInfo>();
+                DisplayInfo primary = loadPrimaryDisplayScaleOptions();
+                if (primary != null) {
+                    list.add(primary);
+                }
+                return list;
             }
 
             ArrayList<DisplayInfo> list = new ArrayList<DisplayInfo>();
             for (int i = 0; i < displaysArray.length(); i++) {
                 JSONObject display = displaysArray.getJSONObject(i);
                 String displayName = display.optString("display_name", "");
+                String rawDisplayName = displayName;
                 String friendlyName = display.optString("friendly_name", "");
                 String deviceId = display.optString("device_id", "");
                 if (displayName.isEmpty()) {
@@ -764,11 +771,13 @@ public class NvHTTP {
                 boolean scaleSetSupported = display.optBoolean("scale_set_supported", false);
                 DisplayInfo displayInfo = new DisplayInfo(displayName, friendlyName, deviceId, currentScalePercent,
                         recommendedScalePercent, supportedScalePercents, scaleSetSupported);
-                if (!scaleFieldsPresent) {
-                    // Older Foundation Sunshine builds expose display metadata but omit the
-                    // scale fields from /displays. Query the dedicated endpoint before
-                    // concluding that the display cannot be scaled.
-                    displayInfo = loadDisplayScaleOptions(displayInfo);
+                if (!scaleFieldsPresent || !displayInfo.supportsScale()) {
+                    // /displays may include the scale fields with an empty/unsupported
+                    // result when display enumeration cannot match the Windows display
+                    // metadata (this is common with virtual displays). Query the dedicated
+                    // endpoint before concluding that the display cannot be scaled.
+                    // Don't send the synthetic "Display N" placeholder as a display name.
+                    displayInfo = loadDisplayScaleOptions(displayInfo, rawDisplayName);
                 }
                 list.add(displayInfo);
             }
@@ -779,27 +788,61 @@ public class NvHTTP {
             List<String> names = getDisplayNames(getServerInfo(true));
             ArrayList<DisplayInfo> list = new ArrayList<DisplayInfo>();
             for (String name : names) {
-                list.add(new DisplayInfo(name, "", ""));
+                list.add(loadDisplayScaleOptions(new DisplayInfo(name, "", ""), name));
+            }
+            if (list.isEmpty()) {
+                DisplayInfo primary = loadPrimaryDisplayScaleOptions();
+                if (primary != null) {
+                    list.add(primary);
+                }
             }
             return list;
         }
     }
 
-    private DisplayInfo loadDisplayScaleOptions(DisplayInfo displayInfo) {
+    /**
+     * Queries /display-scale-options without a display selector, which the host resolves to
+     * the primary active display. Returns null if the host doesn't support scaling.
+     */
+    private DisplayInfo loadPrimaryDisplayScaleOptions() {
+        DisplayInfo info = loadDisplayScaleOptions(new DisplayInfo("", "", ""), null);
+        return info.supportsScale() ? info : null;
+    }
+
+    private String openHttpGetToString(OkHttpClient client, HttpUrl completeUrl) throws IOException {
+        Request request = new Request.Builder().url(completeUrl).get().build();
+        try (Response response = performAndroidTlsHack(client).newCall(request).execute()) {
+            ResponseBody body = response.body();
+            String responseString = body != null ? body.string() : "";
+            if (verbose) {
+                LimeLog.info(completeUrl + " -> " + responseString);
+            }
+            if (response.isSuccessful()) {
+                return responseString;
+            }
+            if (response.code() == 404) {
+                throw new FileNotFoundException(completeUrl.toString());
+            }
+            throw new HostHttpResponseException(response.code(), response.message());
+        }
+    }
+
+    private DisplayInfo loadDisplayScaleOptions(DisplayInfo displayInfo, String queryDisplayName) {
         try {
-            StringBuilder query = new StringBuilder();
-            if (displayInfo.displayName != null && !displayInfo.displayName.isEmpty()) {
-                query.append("display_name=")
-                        .append(java.net.URLEncoder.encode(displayInfo.displayName, "UTF-8"));
+            // Let OkHttp encode the parameters. Pre-encoding them with URLEncoder and then
+            // passing the result through HttpUrl.Builder.query() double-encodes '%', so the
+            // host receives e.g. "%5C%5C.%5CDISPLAY1" instead of "\\.\DISPLAY1", fails to
+            // find the display and the client reports DPI scaling as unsupported.
+            HttpUrl.Builder urlBuilder = getCompleteUrl(getHttpsUrl(true), "display-scale-options", null)
+                    .newBuilder();
+            if (queryDisplayName != null && !queryDisplayName.isEmpty()) {
+                urlBuilder.addQueryParameter("display_name", queryDisplayName);
             }
             if (displayInfo.deviceId != null && !displayInfo.deviceId.isEmpty()) {
-                if (query.length() > 0) query.append('&');
-                query.append("device_id=")
-                        .append(java.net.URLEncoder.encode(displayInfo.deviceId, "UTF-8"));
+                urlBuilder.addQueryParameter("device_id", displayInfo.deviceId);
             }
 
-            String responseString = openHttpConnectionToString(httpClientLongConnectTimeout,
-                    getHttpsUrl(true), "display-scale-options", query.toString());
+            String responseString = openHttpGetToString(httpClientLongConnectTimeout, urlBuilder.build());
             JSONObject response = new JSONObject(responseString);
             if (!response.optBoolean("success", false)) {
                 return displayInfo;
@@ -822,7 +865,19 @@ public class NvHTTP {
             }
             boolean scaleSetSupported = response.optBoolean("scale_set_supported",
                     !supportedScalePercents.isEmpty());
-            return new DisplayInfo(displayInfo.displayName, displayInfo.friendlyName, displayInfo.deviceId,
+            String displayName = displayInfo.displayName;
+            if (displayName == null || displayName.isEmpty()) {
+                displayName = response.optString("display_name", "");
+            }
+            String friendlyName = displayInfo.friendlyName;
+            if (friendlyName == null || friendlyName.isEmpty()) {
+                friendlyName = response.optString("friendly_name", "");
+            }
+            String deviceId = displayInfo.deviceId;
+            if (deviceId == null || deviceId.isEmpty()) {
+                deviceId = response.optString("device_id", "");
+            }
+            return new DisplayInfo(displayName, friendlyName, deviceId,
                     currentScalePercent, recommendedScalePercent, supportedScalePercents, scaleSetSupported);
         } catch (Exception ignored) {
             // The endpoint is optional for older Sunshine/GFE implementations.
