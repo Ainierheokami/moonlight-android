@@ -1783,39 +1783,58 @@ public class GameMenuFragment extends Fragment {
                             isCurrent = matchesDisplaySelection(selected, currentDeviceIdText);
                         }
                         
-                        if (isCurrent) {
+                        if (isCurrent && !selected.supportsScale()) {
                             continue;
                         }
                         
+                        LinearLayout row = new LinearLayout(game);
+                        row.setOrientation(LinearLayout.HORIZONTAL);
+                        row.setGravity(android.view.Gravity.CENTER_VERTICAL);
+                        row.setPadding(dp(8), dp(4), dp(8), dp(4));
+
                         TextView item = new TextView(game);
                         item.setText(getDisplayOptionLabel(selected));
                         item.setTextColor(0xFFFFFFFF);
                         item.setTextSize(15);
-                        item.setPadding(dp(16), dp(14), dp(16), dp(14));
+                        item.setPadding(dp(8), dp(10), dp(8), dp(10));
                         item.setClickable(true);
-                        
-                        TypedValue outValue = new TypedValue();
-                        game.getTheme().resolveAttribute(android.R.attr.selectableItemBackground, outValue, true);
-                        item.setBackgroundResource(outValue.resourceId);
-                        
+                        item.setBackgroundResource(android.R.drawable.list_selector_background);
+
+                        final boolean selectedIsCurrent = isCurrent;
                         item.setOnClickListener(v -> {
-                            String targetValue = (selected.deviceId != null && !selected.deviceId.trim().isEmpty()) 
+                            if (selectedIsCurrent) {
+                                AppToast.makeText(game, game.getString(R.string.display_already_selected), AppToast.LENGTH_SHORT).show();
+                                return;
+                            }
+
+                            String targetValue = (selected.deviceId != null && !selected.deviceId.trim().isEmpty())
                                     ? selected.deviceId : selected.displayName;
-                            
                             boolean isVirtual = isVirtualDisplayInfo(selected);
-                            
                             if ("virtual_fallback".equals(selected.displayName)) {
                                 targetValue = "";
                             }
-                            
+
                             String toastText = getDisplayNickname(selected);
                             rememberDisplayLabel(toastText);
                             AppToast.makeText(game, game.getString(R.string.display_switching_to, toastText), AppToast.LENGTH_SHORT).show();
                             host.recreateConnectionWithDisplay(targetValue, isVirtual);
                             dialog.dismiss();
                         });
-                        
-                        layout.addView(item);
+
+                        LinearLayout.LayoutParams itemParams = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
+                        row.addView(item, itemParams);
+
+                        if (selected.supportsScale()) {
+                            Button scaleButton = new Button(game);
+                            scaleButton.setText(game.getString(R.string.display_scale_button,
+                                    selected.currentScalePercent != null ? selected.currentScalePercent : 0));
+                            scaleButton.setTextSize(11);
+                            scaleButton.setAllCaps(false);
+                            scaleButton.setOnClickListener(v -> showDisplayScaleDialog(selected));
+                            row.addView(scaleButton, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, dp(44)));
+                        }
+
+                        layout.addView(row);
                         addedItems++;
                     }
                     
@@ -1839,6 +1858,53 @@ public class GameMenuFragment extends Fragment {
                 });
             }
         });
+    }
+
+    private void showDisplayScaleDialog(final NvHTTP.DisplayInfo display) {
+        if (!canShowSwitchDisplayUi() || display == null || !display.supportsScale()) {
+            AppToast.makeText(game, R.string.display_scale_unavailable, AppToast.LENGTH_SHORT).show();
+            return;
+        }
+
+        final List<Integer> values = display.supportedScalePercents;
+        CharSequence[] labels = new CharSequence[values.size()];
+        int checked = -1;
+        for (int i = 0; i < values.size(); i++) {
+            int value = values.get(i);
+            labels[i] = game.getString(R.string.display_scale_option, value);
+            if (display.currentScalePercent != null && display.currentScalePercent == value) {
+                checked = i;
+            }
+        }
+        final int initialChecked = checked >= 0 ? checked : 0;
+        final int[] selectedIndex = {initialChecked};
+
+        OverlayAlertDialog.Builder builder = new OverlayAlertDialog.Builder(game);
+        builder.setTitle(game.getString(R.string.display_scale_title, getDisplayNickname(display)));
+        builder.setSingleChoiceItems(labels, initialChecked, (dialog, which) -> selectedIndex[0] = which);
+        builder.setNegativeButton(android.R.string.cancel, null);
+        builder.setPositiveButton(R.string.display_scale_apply, (dialog, which) -> {
+            int scalePercent = values.get(selectedIndex[0]);
+            AppToast.makeText(game, game.getString(R.string.display_scale_applying, scalePercent), AppToast.LENGTH_SHORT).show();
+            conn.setDisplayScale(display, scalePercent, (success, result, error) -> {
+                new Handler(Looper.getMainLooper()).post(() -> {
+                    if (!canShowSwitchDisplayUi()) {
+                        return;
+                    }
+                    if (success && result != null) {
+                        int applied = result.currentScalePercent != null ? result.currentScalePercent : scalePercent;
+                        int messageRes = result.restartRequired
+                                ? R.string.display_scale_applied_restart
+                                : R.string.display_scale_applied;
+                        AppToast.makeText(game, game.getString(messageRes, applied), AppToast.LENGTH_LONG).show();
+                    } else {
+                        AppToast.makeText(game, error != null && !error.isEmpty()
+                                ? error : game.getString(R.string.display_scale_failed), AppToast.LENGTH_LONG).show();
+                    }
+                });
+            });
+        });
+        builder.show();
     }
 
     private void showFallbackSwitchDisplayDialog() {

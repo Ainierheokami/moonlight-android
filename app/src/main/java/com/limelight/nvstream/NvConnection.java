@@ -663,6 +663,10 @@ public class NvConnection {
         void onComplete(boolean success, String error);
     }
 
+    public interface DisplayScaleCallback {
+        void onComplete(boolean success, NvHTTP.DisplayScaleResult result, String error);
+    }
+
     public int getCurrentBitrate() {
         return context.streamConfig.getBitrate();
     }
@@ -674,6 +678,28 @@ public class NvConnection {
     public List<NvHTTP.DisplayInfo> getDisplays() throws IOException, XmlPullParserException {
         NvHTTP h = new NvHTTP(context.serverAddress, context.httpsPort, uniqueId, context.serverCert, cryptoProvider);
         return h.getDisplays();
+    }
+
+    public void setDisplayScale(final NvHTTP.DisplayInfo display, final int scalePercent,
+                                final DisplayScaleCallback callback) {
+        AppExecutors.execute(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    if (context.isNvidiaServerSoftware) {
+                        callback.onComplete(false, null, "Display DPI configuration requires Sunshine");
+                        return;
+                    }
+                    NvHTTP h = new NvHTTP(context.serverAddress, context.httpsPort, uniqueId,
+                            context.serverCert, cryptoProvider);
+                    NvHTTP.DisplayScaleResult result = h.setDisplayScale(display, scalePercent);
+                    callback.onComplete(result.success, result, result.message);
+                } catch (Exception e) {
+                    LimeLog.warning("Display DPI adjustment failed: " + e.getMessage());
+                    callback.onComplete(false, null, e.getMessage());
+                }
+            }
+        });
     }
 
     public List<String> getDisplayNames() throws IOException, XmlPullParserException {

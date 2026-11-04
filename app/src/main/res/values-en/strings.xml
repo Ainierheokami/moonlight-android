@@ -102,6 +102,16 @@
     <string name="display_current_status">Now streaming: %1$s\nDevice ID: %2$s</string>
     <string name="display_switch_title">Switch display</string>
     <string name="display_switching_to">Switching to: %1$s, please wait...</string>
+    <string name="display_already_selected">This display is already selected</string>
+    <string name="display_scale_button">DPI %1$d%%</string>
+    <string name="display_scale_title">Set display scaling - %1$s</string>
+    <string name="display_scale_option">%1$d%%</string>
+    <string name="display_scale_apply">Apply</string>
+    <string name="display_scale_applying">Setting scale to %1$d%%...</string>
+    <string name="display_scale_applied">Display scaling set to %1$d%%</string>
+    <string name="display_scale_applied_restart">Display scaling set to %1$d%%; Windows may require sign-out or restart to fully apply it</string>
+    <string name="display_scale_unavailable">This display does not support DPI adjustment</string>
+    <string name="display_scale_failed">Failed to set display DPI</string>
     <string name="display_none_other">No other displays available</string>
     <string name="display_switch_fallback_title">Switch display (couldn\'t fetch the list automatically; pick a common option)</string>
     <string name="display_physical_primary_with_id">Primary physical screen (\\\\.\\DISPLAY1)</string>

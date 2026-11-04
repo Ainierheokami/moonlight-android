@@ -807,6 +807,16 @@
     <string name="display_current_status">当前串流：%1$s\n设备 ID：%2$s</string>
     <string name="display_switch_title">切换显示器</string>
     <string name="display_switching_to">正在切换到: %1$s，请稍候...</string>
+    <string name="display_already_selected">当前已经是这个显示器</string>
+    <string name="display_scale_button">DPI %1$d%%</string>
+    <string name="display_scale_title">设置显示器缩放 - %1$s</string>
+    <string name="display_scale_option">%1$d%%</string>
+    <string name="display_scale_apply">应用</string>
+    <string name="display_scale_applying">正在设置为 %1$d%%...</string>
+    <string name="display_scale_applied">显示器缩放已设置为 %1$d%%</string>
+    <string name="display_scale_applied_restart">显示器缩放已设置为 %1$d%%，Windows 可能需要注销或重启后完全生效</string>
+    <string name="display_scale_unavailable">此显示器不支持调整 DPI</string>
+    <string name="display_scale_failed">设置显示器 DPI 失败</string>
     <string name="display_none_other">无其他可用显示器</string>
     <string name="display_switch_fallback_title">切换显示器 (未能自动获取列表，请选择常用项)</string>
     <string name="display_physical_primary_with_id">物理主屏幕 (\\\\.\\DISPLAY1)</string>

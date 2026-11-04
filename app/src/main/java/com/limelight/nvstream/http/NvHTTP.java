@@ -546,6 +546,26 @@ public class NvHTTP {
                 .build();
     }
 
+    private String openHttpPostJson(OkHttpClient client, HttpUrl baseUrl, String path, String jsonBody) throws IOException {
+        HttpUrl completeUrl = getCompleteUrl(baseUrl, path, null);
+        RequestBody requestBody = RequestBody.create(jsonBody, MediaType.parse("application/json; charset=utf-8"));
+        Request request = new Request.Builder().url(completeUrl).post(requestBody).build();
+        Response response = performAndroidTlsHack(client).newCall(request).execute();
+        ResponseBody body = response.body();
+        if (response.isSuccessful() && body != null) {
+            String responseString = body.string();
+            body.close();
+            if (verbose) {
+                LimeLog.info(completeUrl + " <- " + responseString);
+            }
+            return responseString;
+        }
+        if (body != null) {
+            body.close();
+        }
+        throw new HostHttpResponseException(response.code(), response.message());
+    }
+
     private String openHttpConnectionToString(OkHttpClient client, HttpUrl baseUrl, String path) throws IOException {
         return openHttpConnectionToString(client, baseUrl, path, null);
     }
@@ -667,11 +687,31 @@ public class NvHTTP {
         public final String displayName;
         public final String friendlyName;
         public final String deviceId;
+        public final Integer currentScalePercent;
+        public final Integer recommendedScalePercent;
+        public final List<Integer> supportedScalePercents;
+        public final boolean scaleSetSupported;
 
         public DisplayInfo(String displayName, String friendlyName, String deviceId) {
+            this(displayName, friendlyName, deviceId, null, null, new ArrayList<Integer>(), false);
+        }
+
+        public DisplayInfo(String displayName, String friendlyName, String deviceId,
+                           Integer currentScalePercent, Integer recommendedScalePercent,
+                           List<Integer> supportedScalePercents, boolean scaleSetSupported) {
             this.displayName = displayName;
             this.friendlyName = friendlyName;
             this.deviceId = deviceId;
+            this.currentScalePercent = currentScalePercent;
+            this.recommendedScalePercent = recommendedScalePercent;
+            this.supportedScalePercents = supportedScalePercents != null
+                    ? Collections.unmodifiableList(new ArrayList<Integer>(supportedScalePercents))
+                    : Collections.<Integer>emptyList();
+            this.scaleSetSupported = scaleSetSupported;
+        }
+
+        public boolean supportsScale() {
+            return scaleSetSupported && !supportedScalePercents.isEmpty();
         }
 
         @Override
@@ -705,7 +745,23 @@ public class NvHTTP {
                 if (displayName.isEmpty()) {
                     displayName = "Display " + (i + 1);
                 }
-                list.add(new DisplayInfo(displayName, friendlyName, deviceId));
+
+                Integer currentScalePercent = display.has("current_scale_percent") && !display.isNull("current_scale_percent")
+                        ? display.optInt("current_scale_percent") : null;
+                Integer recommendedScalePercent = display.has("recommended_scale_percent") && !display.isNull("recommended_scale_percent")
+                        ? display.optInt("recommended_scale_percent") : null;
+                ArrayList<Integer> supportedScalePercents = new ArrayList<Integer>();
+                JSONArray scaleValues = display.optJSONArray("supported_scale_percents");
+                if (scaleValues != null) {
+                    for (int scaleIndex = 0; scaleIndex < scaleValues.length(); scaleIndex++) {
+                        if (!scaleValues.isNull(scaleIndex)) {
+                            supportedScalePercents.add(scaleValues.optInt(scaleIndex));
+                        }
+                    }
+                }
+                boolean scaleSetSupported = display.optBoolean("scale_set_supported", false);
+                list.add(new DisplayInfo(displayName, friendlyName, deviceId, currentScalePercent,
+                        recommendedScalePercent, supportedScalePercents, scaleSetSupported));
             }
             return list;
         } catch (JSONException e) {
@@ -764,6 +820,57 @@ public class NvHTTP {
         }
 
         return true;
+    }
+
+    public static class DisplayScaleResult {
+        public final boolean success;
+        public final Integer currentScalePercent;
+        public final boolean restartRequired;
+        public final boolean effectiveImmediately;
+        public final String message;
+
+        public DisplayScaleResult(boolean success, Integer currentScalePercent, boolean restartRequired,
+                                  boolean effectiveImmediately, String message) {
+            this.success = success;
+            this.currentScalePercent = currentScalePercent;
+            this.restartRequired = restartRequired;
+            this.effectiveImmediately = effectiveImmediately;
+            this.message = message;
+        }
+    }
+
+    public DisplayScaleResult setDisplayScale(DisplayInfo displayInfo, int scalePercent) throws IOException {
+        if (displayInfo == null || !displayInfo.supportsScale()) {
+            throw new IOException("Display scale is not supported");
+        }
+
+        JSONObject requestJson = new JSONObject();
+        try {
+            if (displayInfo.displayName != null && !displayInfo.displayName.isEmpty()) {
+                requestJson.put("display_name", displayInfo.displayName);
+            }
+            if (displayInfo.deviceId != null && !displayInfo.deviceId.isEmpty()) {
+                requestJson.put("device_id", displayInfo.deviceId);
+            }
+            requestJson.put("scale_percent", scalePercent);
+        } catch (JSONException e) {
+            throw new IOException("Failed to build display scale request", e);
+        }
+
+        try {
+            String responseString = openHttpPostJson(httpClientLongConnectTimeout, getHttpsUrl(true),
+                    "display-scale", requestJson.toString());
+            JSONObject response = new JSONObject(responseString);
+            Integer currentScale = response.has("current_scale_percent") && !response.isNull("current_scale_percent")
+                    ? response.optInt("current_scale_percent") : null;
+            boolean success = response.optBoolean("success", false) && response.optInt("status_code", 200) == 200;
+            return new DisplayScaleResult(success, currentScale,
+                    response.optBoolean("restart_required", false),
+                    response.optBoolean("effective_immediately", false),
+                    response.optString("status_message", success ? "OK" : "Failed to set display scale"));
+        } catch (JSONException e) {
+            throw new IOException("Failed to parse display scale response", e);
+        }
     }
 
     public int getCurrentGame(String serverInfo) throws IOException, XmlPullParserException {
