@@ -566,6 +566,24 @@ public class NvHTTP {
         throw new HostHttpResponseException(response.code(), response.message());
     }
 
+    /** POSTs JSON and returns the body even for error statuses when the host replied with JSON. */
+    private String openHttpPostJsonAllowError(OkHttpClient client, HttpUrl baseUrl, String path, String jsonBody) throws IOException {
+        HttpUrl completeUrl = getCompleteUrl(baseUrl, path, null);
+        RequestBody requestBody = RequestBody.create(jsonBody, MediaType.parse("application/json; charset=utf-8"));
+        Request request = new Request.Builder().url(completeUrl).post(requestBody).build();
+        try (Response response = performAndroidTlsHack(client).newCall(request).execute()) {
+            ResponseBody body = response.body();
+            String responseString = body != null ? body.string() : "";
+            if (verbose) {
+                LimeLog.info(completeUrl + " <- " + responseString);
+            }
+            if (response.isSuccessful() || looksLikeJsonObject(responseString)) {
+                return responseString;
+            }
+            throw new HostHttpResponseException(response.code(), response.message());
+        }
+    }
+
     private String openHttpConnectionToString(OkHttpClient client, HttpUrl baseUrl, String path) throws IOException {
         return openHttpConnectionToString(client, baseUrl, path, null);
     }
@@ -691,6 +709,8 @@ public class NvHTTP {
         public final Integer recommendedScalePercent;
         public final List<Integer> supportedScalePercents;
         public final boolean scaleSetSupported;
+        /** Host-provided reason when scale options could not be loaded, or null. */
+        public final String scaleStatusMessage;
 
         public DisplayInfo(String displayName, String friendlyName, String deviceId) {
             this(displayName, friendlyName, deviceId, null, null, new ArrayList<Integer>(), false);
@@ -699,6 +719,14 @@ public class NvHTTP {
         public DisplayInfo(String displayName, String friendlyName, String deviceId,
                            Integer currentScalePercent, Integer recommendedScalePercent,
                            List<Integer> supportedScalePercents, boolean scaleSetSupported) {
+            this(displayName, friendlyName, deviceId, currentScalePercent, recommendedScalePercent,
+                    supportedScalePercents, scaleSetSupported, null);
+        }
+
+        public DisplayInfo(String displayName, String friendlyName, String deviceId,
+                           Integer currentScalePercent, Integer recommendedScalePercent,
+                           List<Integer> supportedScalePercents, boolean scaleSetSupported,
+                           String scaleStatusMessage) {
             this.displayName = displayName;
             this.friendlyName = friendlyName;
             this.deviceId = deviceId;
@@ -708,6 +736,12 @@ public class NvHTTP {
                     ? Collections.unmodifiableList(new ArrayList<Integer>(supportedScalePercents))
                     : Collections.<Integer>emptyList();
             this.scaleSetSupported = scaleSetSupported;
+            this.scaleStatusMessage = scaleStatusMessage;
+        }
+
+        DisplayInfo withScaleStatusMessage(String message) {
+            return new DisplayInfo(displayName, friendlyName, deviceId, currentScalePercent,
+                    recommendedScalePercent, supportedScalePercents, scaleSetSupported, message);
         }
 
         public boolean supportsScale() {
@@ -809,7 +843,131 @@ public class NvHTTP {
         return info.supportsScale() ? info : null;
     }
 
-    private String openHttpGetToString(OkHttpClient client, HttpUrl completeUrl) throws IOException {
+    private DisplayInfo loadDisplayScaleOptions(DisplayInfo displayInfo, String queryDisplayName) {
+        try {
+            return queryDisplayScaleOptions(displayInfo, queryDisplayName);
+        } catch (Exception e) {
+            // The endpoint is optional for older Sunshine/GFE implementations.
+            return displayInfo.withScaleStatusMessage(e.getMessage());
+        }
+    }
+
+    /**
+     * Fetches fresh scale options for one display, retrying a few times.
+     *
+     * <p>The DPI query on the host can fail transiently, especially for virtual displays that were
+     * just created or are being reconfigured at stream start (QueryDisplayConfig /
+     * DisplayConfigGetDeviceInfo race with the topology change). A single failed probe used to be
+     * cached as "unsupported", which made DPI adjustment work only some of the time.</p>
+     *
+     * <p>Never throws; on failure the returned info has {@link DisplayInfo#supportsScale()} false
+     * and carries the host's reason in {@link DisplayInfo#scaleStatusMessage}.</p>
+     */
+    public DisplayInfo refreshDisplayScaleOptions(DisplayInfo displayInfo, int attempts) {
+        if (displayInfo == null) {
+            displayInfo = new DisplayInfo("", "", "");
+        }
+        String queryName = isSyntheticDisplayName(displayInfo.displayName) ? null : displayInfo.displayName;
+        String lastError = null;
+        for (int attempt = 0; attempt < Math.max(1, attempts); attempt++) {
+            if (attempt > 0) {
+                try {
+                    Thread.sleep(350L * attempt);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    break;
+                }
+            }
+            try {
+                DisplayInfo info = queryDisplayScaleOptions(displayInfo, queryName);
+                if (info.supportsScale()) {
+                    return info;
+                }
+                // The host falls back from a stale device_id to display_name on its own.
+                lastError = info.scaleStatusMessage;
+            } catch (HostHttpResponseException e) {
+                lastError = e.getMessage();
+                if (e.getErrorCode() == 501) {
+                    break; // Host platform has no DPI support; retrying won't help.
+                }
+            } catch (Exception e) {
+                lastError = e.getMessage();
+            }
+        }
+        return displayInfo.withScaleStatusMessage(lastError);
+    }
+
+    private static boolean isSyntheticDisplayName(String name) {
+        return name == null || name.isEmpty() || "virtual_fallback".equals(name)
+                || name.matches("Display \\d+");
+    }
+
+    private DisplayInfo queryDisplayScaleOptions(DisplayInfo displayInfo, String queryDisplayName)
+            throws IOException, JSONException {
+        // Let OkHttp encode the parameters. Pre-encoding them with URLEncoder and then
+        // passing the result through HttpUrl.Builder.query() double-encodes '%', so the
+        // host receives e.g. "%5C%5C.%5CDISPLAY1" instead of "\\.\DISPLAY1", fails to
+        // find the display and the client reports DPI scaling as unsupported.
+        HttpUrl.Builder urlBuilder = getCompleteUrl(getHttpsUrl(true), "display-scale-options", null)
+                .newBuilder();
+        if (queryDisplayName != null && !queryDisplayName.isEmpty()) {
+            urlBuilder.addQueryParameter("display_name", queryDisplayName);
+        }
+        if (displayInfo.deviceId != null && !displayInfo.deviceId.isEmpty()) {
+            urlBuilder.addQueryParameter("device_id", displayInfo.deviceId);
+        }
+
+        JSONObject response = new JSONObject(openHttpGetJsonToString(httpClientLongConnectTimeout, urlBuilder.build()));
+        if (!response.optBoolean("success", false)) {
+            if (response.optInt("status_code", 200) == 501) {
+                throw new HostHttpResponseException(501, response.optString("status_message", "Not implemented"));
+            }
+            return displayInfo.withScaleStatusMessage(response.optString("status_message", null));
+        }
+
+        Integer currentScalePercent = response.has("current_scale_percent")
+                && !response.isNull("current_scale_percent")
+                ? response.optInt("current_scale_percent") : null;
+        Integer recommendedScalePercent = response.has("recommended_scale_percent")
+                && !response.isNull("recommended_scale_percent")
+                ? response.optInt("recommended_scale_percent") : null;
+        ArrayList<Integer> supportedScalePercents = new ArrayList<Integer>();
+        JSONArray scaleValues = response.optJSONArray("supported_scale_percents");
+        if (scaleValues != null) {
+            for (int i = 0; i < scaleValues.length(); i++) {
+                if (!scaleValues.isNull(i)) {
+                    supportedScalePercents.add(scaleValues.optInt(i));
+                }
+            }
+        }
+        boolean scaleSetSupported = response.optBoolean("scale_set_supported",
+                !supportedScalePercents.isEmpty());
+        String displayName = displayInfo.displayName;
+        if (isSyntheticDisplayName(displayName)) {
+            String hostName = response.optString("display_name", "");
+            if (!hostName.isEmpty()) {
+                displayName = hostName;
+            }
+        }
+        String friendlyName = displayInfo.friendlyName;
+        if (friendlyName == null || friendlyName.isEmpty()) {
+            friendlyName = response.optString("friendly_name", "");
+        }
+        String deviceId = response.optString("device_id", "");
+        if (deviceId.isEmpty()) {
+            deviceId = displayInfo.deviceId;
+        }
+        return new DisplayInfo(displayName, friendlyName, deviceId,
+                currentScalePercent, recommendedScalePercent, supportedScalePercents, scaleSetSupported,
+                scaleSetSupported ? null : "Display scale is not available for this display");
+    }
+
+    /**
+     * Like a plain GET but returns the body of a JSON error response
+     * (Sunshine reports e.g. "Display not found" with a 404 status) instead of throwing,
+     * so the caller can surface the host's status_message.
+     */
+    private String openHttpGetJsonToString(OkHttpClient client, HttpUrl completeUrl) throws IOException {
         Request request = new Request.Builder().url(completeUrl).get().build();
         try (Response response = performAndroidTlsHack(client).newCall(request).execute()) {
             ResponseBody body = response.body();
@@ -817,72 +975,15 @@ public class NvHTTP {
             if (verbose) {
                 LimeLog.info(completeUrl + " -> " + responseString);
             }
-            if (response.isSuccessful()) {
+            if (response.isSuccessful() || looksLikeJsonObject(responseString)) {
                 return responseString;
-            }
-            if (response.code() == 404) {
-                throw new FileNotFoundException(completeUrl.toString());
             }
             throw new HostHttpResponseException(response.code(), response.message());
         }
     }
 
-    private DisplayInfo loadDisplayScaleOptions(DisplayInfo displayInfo, String queryDisplayName) {
-        try {
-            // Let OkHttp encode the parameters. Pre-encoding them with URLEncoder and then
-            // passing the result through HttpUrl.Builder.query() double-encodes '%', so the
-            // host receives e.g. "%5C%5C.%5CDISPLAY1" instead of "\\.\DISPLAY1", fails to
-            // find the display and the client reports DPI scaling as unsupported.
-            HttpUrl.Builder urlBuilder = getCompleteUrl(getHttpsUrl(true), "display-scale-options", null)
-                    .newBuilder();
-            if (queryDisplayName != null && !queryDisplayName.isEmpty()) {
-                urlBuilder.addQueryParameter("display_name", queryDisplayName);
-            }
-            if (displayInfo.deviceId != null && !displayInfo.deviceId.isEmpty()) {
-                urlBuilder.addQueryParameter("device_id", displayInfo.deviceId);
-            }
-
-            String responseString = openHttpGetToString(httpClientLongConnectTimeout, urlBuilder.build());
-            JSONObject response = new JSONObject(responseString);
-            if (!response.optBoolean("success", false)) {
-                return displayInfo;
-            }
-
-            Integer currentScalePercent = response.has("current_scale_percent")
-                    && !response.isNull("current_scale_percent")
-                    ? response.optInt("current_scale_percent") : null;
-            Integer recommendedScalePercent = response.has("recommended_scale_percent")
-                    && !response.isNull("recommended_scale_percent")
-                    ? response.optInt("recommended_scale_percent") : null;
-            ArrayList<Integer> supportedScalePercents = new ArrayList<Integer>();
-            JSONArray scaleValues = response.optJSONArray("supported_scale_percents");
-            if (scaleValues != null) {
-                for (int i = 0; i < scaleValues.length(); i++) {
-                    if (!scaleValues.isNull(i)) {
-                        supportedScalePercents.add(scaleValues.optInt(i));
-                    }
-                }
-            }
-            boolean scaleSetSupported = response.optBoolean("scale_set_supported",
-                    !supportedScalePercents.isEmpty());
-            String displayName = displayInfo.displayName;
-            if (displayName == null || displayName.isEmpty()) {
-                displayName = response.optString("display_name", "");
-            }
-            String friendlyName = displayInfo.friendlyName;
-            if (friendlyName == null || friendlyName.isEmpty()) {
-                friendlyName = response.optString("friendly_name", "");
-            }
-            String deviceId = displayInfo.deviceId;
-            if (deviceId == null || deviceId.isEmpty()) {
-                deviceId = response.optString("device_id", "");
-            }
-            return new DisplayInfo(displayName, friendlyName, deviceId,
-                    currentScalePercent, recommendedScalePercent, supportedScalePercents, scaleSetSupported);
-        } catch (Exception ignored) {
-            // The endpoint is optional for older Sunshine/GFE implementations.
-            return displayInfo;
-        }
+    private static boolean looksLikeJsonObject(String value) {
+        return value != null && value.trim().startsWith("{");
     }
 
     public List<String> getDisplayNames() throws IOException, XmlPullParserException {
@@ -967,7 +1068,7 @@ public class NvHTTP {
         }
 
         try {
-            String responseString = openHttpPostJson(httpClientLongConnectTimeout, getHttpsUrl(true),
+            String responseString = openHttpPostJsonAllowError(httpClientLongConnectTimeout, getHttpsUrl(true),
                     "display-scale", requestJson.toString());
             JSONObject response = new JSONObject(responseString);
             Integer currentScale = response.has("current_scale_percent") && !response.isNull("current_scale_percent")

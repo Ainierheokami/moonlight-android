@@ -37,7 +37,9 @@ import com.limelight.ui.AdapterFragmentCallbacks;
 import com.limelight.utils.Dialog;
 import com.limelight.utils.HelpLauncher;
 import com.limelight.utils.OverlayContainer;
+import com.limelight.utils.OverlayAlertDialog;
 import com.limelight.utils.OverlayDialog;
+import com.limelight.heokami.DisplayScaleSettings;
 import com.limelight.utils.ServerHelper;
 import com.limelight.utils.ShortcutHelper;
 import com.limelight.utils.UiHelper;
@@ -177,6 +179,7 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
     public final static int TEST_NETWORK_ID = 10;
     public final static int GAMESTREAM_EOL_ID = 11;
     public final static int DELETE_IP_ID = 12;
+    public final static int DISPLAY_SCALE_ID = 13;
 
     private void initializeViews() {
         Log.i("PcView", "initializeViews() called, pcGridAdapter: " + (pcGridAdapter != null));
@@ -527,6 +530,62 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
         Dialog.closeDialogs();
     }
 
+    /** Long-press → "Display DPI": edit this host's saved DPI for the virtual / physical display. */
+    private void showHostDisplayScaleSettings(final ComputerDetails details) {
+        if (details == null || details.uuid == null) {
+            return;
+        }
+        final String uuid = details.uuid;
+        CharSequence[] items = new CharSequence[]{
+                getString(R.string.display_scale_host_virtual_item,
+                        DisplayScaleSettings.describeHost(this,
+                                DisplayScaleSettings.getHostValue(this, uuid, true), true)),
+                getString(R.string.display_scale_host_physical_item,
+                        DisplayScaleSettings.describeHost(this,
+                                DisplayScaleSettings.getHostValue(this, uuid, false), false)),
+        };
+        new OverlayAlertDialog.Builder(this)
+                .setTitle(getString(R.string.display_scale_host_title, details.name))
+                .setMessage(R.string.display_scale_host_message)
+                .setItems(items, (dialog, which) -> showHostDisplayScaleValuePicker(details, which == 0))
+                .setNegativeButton(android.R.string.cancel, null)
+                .show();
+    }
+
+    private void showHostDisplayScaleValuePicker(final ComputerDetails details, final boolean virtual) {
+        final String uuid = details.uuid;
+        final int[] percents = DisplayScaleSettings.COMMON_PERCENTS;
+        final int[] values = new int[percents.length + 2];
+        CharSequence[] labels = new CharSequence[values.length];
+        values[0] = DisplayScaleSettings.FOLLOW_GLOBAL;
+        labels[0] = DisplayScaleSettings.describeHost(this, DisplayScaleSettings.FOLLOW_GLOBAL, virtual);
+        values[1] = DisplayScaleSettings.OFF;
+        labels[1] = getString(R.string.display_scale_auto_off);
+        for (int i = 0; i < percents.length; i++) {
+            values[i + 2] = percents[i];
+            labels[i + 2] = getString(R.string.display_scale_option, percents[i]);
+        }
+
+        int current = DisplayScaleSettings.getHostValue(this, uuid, virtual);
+        int checked = 0;
+        for (int i = 0; i < values.length; i++) {
+            if (values[i] == current) {
+                checked = i;
+            }
+        }
+
+        new OverlayAlertDialog.Builder(this)
+                .setTitle(virtual ? R.string.display_scale_host_virtual_title : R.string.display_scale_host_physical_title)
+                .setSingleChoiceItems(labels, checked, (dialog, which) -> {
+                    DisplayScaleSettings.setHostValue(PcView.this, uuid, virtual, values[which]);
+                    dialog.dismiss();
+                    // Back to the overview so both values are visible after the change.
+                    showHostDisplayScaleSettings(details);
+                })
+                .setNegativeButton(android.R.string.cancel, null)
+                .show();
+    }
+
     @Override
     public void onCreateContextMenu(ContextMenu menu, View v, ContextMenuInfo menuInfo) {
         Log.d("PcView", "onCreateContextMenu called, view: " + v.getClass().getSimpleName() +
@@ -614,6 +673,10 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
             menu.add(Menu.NONE, FULL_APP_LIST_ID, 4, getResources().getString(R.string.pcview_menu_app_list));
         }
 
+        if (!computer.details.nvidiaServer) {
+            // Saved DPI is local configuration, so it's available even while the host is offline.
+            menu.add(Menu.NONE, DISPLAY_SCALE_ID, 5, getResources().getString(R.string.pcview_menu_display_scale));
+        }
         menu.add(Menu.NONE, TEST_NETWORK_ID, 5, getResources().getString(R.string.pcview_menu_test_network));
         if (computer.address != null) {
             menu.add(Menu.NONE, DELETE_IP_ID, 6, R.string.pc_view_delete_ip);
@@ -1252,6 +1315,10 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
                doRemoveIp(computer);
                return true;
 
+            case DISPLAY_SCALE_ID:
+               showHostDisplayScaleSettings(computer.details);
+               return true;
+
             default:
                 return super.onContextItemSelected(item);
         }
@@ -1368,6 +1435,10 @@ public class PcView extends Activity implements AdapterFragmentCallbacks {
 
            case DELETE_IP_ID:
               doRemoveIp(computer);
+              return true;
+
+           case DISPLAY_SCALE_ID:
+              showHostDisplayScaleSettings(computer.details);
               return true;
 
            default:

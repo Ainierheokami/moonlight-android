@@ -1778,6 +1778,7 @@ public class GameMenuFragment extends Fragment {
                     final OverlayAlertDialog dialog = builder.create();
                     
                     int addedItems = 0;
+                    int otherItems = 0;
                     for (NvHTTP.DisplayInfo selected : displays) {
                         // 过滤掉当前正在串流的显示器
                         boolean isCurrent = false;
@@ -1787,7 +1788,10 @@ public class GameMenuFragment extends Fragment {
                             isCurrent = matchesDisplaySelection(selected, currentDeviceIdText);
                         }
                         
-                        if (isCurrent && !selected.supportsScale()) {
+                        // The current display stays in the list so its DPI can still be adjusted.
+                        // Skip it only when there's nothing to do with it (synthetic placeholder).
+                        boolean canAdjustScale = canOfferDisplayScale(selected);
+                        if (isCurrent && !canAdjustScale) {
                             continue;
                         }
                         
@@ -1797,7 +1801,9 @@ public class GameMenuFragment extends Fragment {
                         row.setPadding(dp(8), dp(4), dp(8), dp(4));
 
                         TextView item = new TextView(game);
-                        item.setText(getDisplayOptionLabel(selected));
+                        item.setText(isCurrent
+                                ? game.getString(R.string.display_current_option, getDisplayOptionLabel(selected))
+                                : getDisplayOptionLabel(selected));
                         item.setTextColor(0xFFFFFFFF);
                         item.setTextSize(15);
                         item.setPadding(dp(8), dp(10), dp(8), dp(10));
@@ -1828,21 +1834,30 @@ public class GameMenuFragment extends Fragment {
                         LinearLayout.LayoutParams itemParams = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
                         row.addView(item, itemParams);
 
-                        if (selected.supportsScale()) {
+                        if (canAdjustScale) {
                             Button scaleButton = new Button(game);
-                            scaleButton.setText(game.getString(R.string.display_scale_button,
-                                    selected.currentScalePercent != null ? selected.currentScalePercent : 0));
+                            scaleButton.setText(selected.supportsScale() && selected.currentScalePercent != null
+                                    ? game.getString(R.string.display_scale_button, selected.currentScalePercent)
+                                    : game.getString(R.string.display_scale_button_unknown));
                             scaleButton.setTextSize(11);
                             scaleButton.setAllCaps(false);
-                            scaleButton.setOnClickListener(v -> showDisplayScaleDialog(selected));
+                            scaleButton.setOnClickListener(v -> {
+                                // Close the switch list first: stacking the DPI picker on top of it
+                                // left two overlays open and the list showed a stale DPI value.
+                                dialog.dismiss();
+                                openDisplayScaleDialog(selected);
+                            });
                             row.addView(scaleButton, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, dp(44)));
                         }
 
                         layout.addView(row);
                         addedItems++;
+                        if (!isCurrent) {
+                            otherItems++;
+                        }
                     }
                     
-                    if (addedItems == 0) {
+                    if (otherItems == 0) {
                         TextView itemEmpty = new TextView(game);
                         itemEmpty.setText(game.getString(R.string.display_none_other));
                         itemEmpty.setTextColor(0xFF7D8797);
@@ -1864,86 +1879,189 @@ public class GameMenuFragment extends Fragment {
         });
     }
 
+    /** Number of attempts used when re-querying DPI options right before showing the picker. */
+    private static final int DISPLAY_SCALE_QUERY_ATTEMPTS = 3;
+
+    /** Prevents double taps from stacking several DPI dialogs / parallel host requests. */
+    private boolean displayScaleRequestInFlight;
+
     private void showDisplayScaleSettingsDialog() {
+        if (displayScaleRequestInFlight) {
+            return;
+        }
+        displayScaleRequestInFlight = true;
         AppToast.makeText(game, game.getString(R.string.display_loading_list), AppToast.LENGTH_SHORT).show();
         AppExecutors.execute(() -> {
+            List<NvHTTP.DisplayInfo> scalable = new ArrayList<>();
+            List<NvHTTP.DisplayInfo> unavailable = new ArrayList<>();
+            String error = null;
             try {
-                final List<NvHTTP.DisplayInfo> rawDisplays = conn.getDisplays();
-                new Handler(Looper.getMainLooper()).post(() -> {
-                    if (!canShowSwitchDisplayUi()) {
-                        return;
+                List<NvHTTP.DisplayInfo> rawDisplays = conn.getDisplays();
+                if (rawDisplays == null || rawDisplays.isEmpty()) {
+                    // Nothing enumerated: let the host resolve its primary display.
+                    rawDisplays = new ArrayList<>();
+                    rawDisplays.add(new NvHTTP.DisplayInfo("", "", ""));
+                }
+                for (NvHTTP.DisplayInfo display : rawDisplays) {
+                    if (display == null) {
+                        continue;
                     }
+                    // /displays is a snapshot and its DPI probe can fail transiently (virtual
+                    // displays in particular). Re-check before declaring a display unsupported.
+                    NvHTTP.DisplayInfo info = display.supportsScale()
+                            ? display
+                            : conn.refreshDisplayScaleOptions(display, DISPLAY_SCALE_QUERY_ATTEMPTS);
+                    if (info.supportsScale()) {
+                        if (!containsDisplay(scalable, info)) {
+                            scalable.add(info);
+                        }
+                    } else {
+                        unavailable.add(info);
+                    }
+                }
+                sortCurrentDisplayFirst(scalable);
+            } catch (Exception e) {
+                error = e.getMessage();
+            }
 
-                    final List<NvHTTP.DisplayInfo> scalableDisplays = new ArrayList<>();
-                    if (rawDisplays != null) {
-                        for (NvHTTP.DisplayInfo display : rawDisplays) {
-                            if (display != null && display.supportsScale()) {
-                                scalableDisplays.add(display);
-                            }
+            final String finalError = error;
+            new Handler(Looper.getMainLooper()).post(() -> {
+                displayScaleRequestInFlight = false;
+                if (!canShowSwitchDisplayUi()) {
+                    return;
+                }
+                if (scalable.isEmpty()) {
+                    String reason = finalError;
+                    for (NvHTTP.DisplayInfo info : unavailable) {
+                        if (isBlank(reason) && !isBlank(info.scaleStatusMessage)) {
+                            reason = info.scaleStatusMessage;
                         }
                     }
+                    showDisplayScaleUnavailable(reason);
+                    return;
+                }
+                if (scalable.size() == 1) {
+                    showDisplayScaleDialog(scalable.get(0));
+                    return;
+                }
 
-                    if (scalableDisplays.isEmpty()) {
-                        AppToast.makeText(game, R.string.display_scale_unavailable, AppToast.LENGTH_LONG).show();
-                        return;
+                CharSequence[] labels = new CharSequence[scalable.size()];
+                for (int i = 0; i < scalable.size(); i++) {
+                    NvHTTP.DisplayInfo display = scalable.get(i);
+                    String name = getDisplayNickname(display);
+                    if (isCurrentStreamDisplay(display)) {
+                        name = game.getString(R.string.display_current_option, name);
                     }
+                    labels[i] = display.currentScalePercent != null
+                            ? game.getString(R.string.display_scale_display_option, name, display.currentScalePercent)
+                            : name;
+                }
 
-                    if (scalableDisplays.size() == 1) {
-                        showDisplayScaleDialog(scalableDisplays.get(0));
-                        return;
-                    }
-
-                    CharSequence[] labels = new CharSequence[scalableDisplays.size()];
-                    for (int i = 0; i < scalableDisplays.size(); i++) {
-                        NvHTTP.DisplayInfo display = scalableDisplays.get(i);
-                        int current = display.currentScalePercent != null ? display.currentScalePercent : 0;
-                        labels[i] = game.getString(R.string.display_scale_display_option,
-                                getDisplayNickname(display), current);
-                    }
-
-                    new OverlayAlertDialog.Builder(game)
-                            .setTitle(R.string.display_scale_choose_display)
-                            .setItems(labels, (dialog, which) -> showDisplayScaleDialog(scalableDisplays.get(which)))
-                            .setNegativeButton(android.R.string.cancel, null)
-                            .show();
-                });
-            } catch (Exception e) {
-                new Handler(Looper.getMainLooper()).post(() -> {
-                    if (canShowSwitchDisplayUi()) {
-                        AppToast.makeText(game, e.getMessage() != null ? e.getMessage()
-                                : game.getString(R.string.display_scale_failed), AppToast.LENGTH_LONG).show();
-                    }
-                });
-            }
+                new OverlayAlertDialog.Builder(game)
+                        .setTitle(R.string.display_scale_choose_display)
+                        // Re-query the chosen display so the picker shows its live value.
+                        .setItems(labels, (dialog, which) -> openDisplayScaleDialog(scalable.get(which)))
+                        .setNegativeButton(android.R.string.cancel, null)
+                        .show();
+            });
         });
+    }
+
+    /** Fetches fresh DPI options for {@code display} off the main thread, then shows the picker. */
+    private void openDisplayScaleDialog(final NvHTTP.DisplayInfo display) {
+        if (display == null || displayScaleRequestInFlight) {
+            return;
+        }
+        displayScaleRequestInFlight = true;
+        AppExecutors.execute(() -> {
+            NvHTTP.DisplayInfo fresh;
+            try {
+                fresh = conn.refreshDisplayScaleOptions(display, DISPLAY_SCALE_QUERY_ATTEMPTS);
+            } catch (Exception e) {
+                fresh = display;
+            }
+            // Fall back to the snapshot only if it was usable and the refresh wasn't.
+            final NvHTTP.DisplayInfo result = fresh.supportsScale() || !display.supportsScale() ? fresh : display;
+            new Handler(Looper.getMainLooper()).post(() -> {
+                displayScaleRequestInFlight = false;
+                if (!canShowSwitchDisplayUi()) {
+                    return;
+                }
+                if (result.supportsScale()) {
+                    showDisplayScaleDialog(result);
+                } else {
+                    showDisplayScaleUnavailable(result.scaleStatusMessage);
+                }
+            });
+        });
+    }
+
+    private void showDisplayScaleUnavailable(String reason) {
+        String text = isBlank(reason)
+                ? game.getString(R.string.display_scale_unavailable)
+                : game.getString(R.string.display_scale_unavailable_reason, reason.trim());
+        AppToast.makeText(game, text, AppToast.LENGTH_LONG).show();
     }
 
     private void showDisplayScaleDialog(final NvHTTP.DisplayInfo display) {
         if (!canShowSwitchDisplayUi() || display == null || !display.supportsScale()) {
-            AppToast.makeText(game, R.string.display_scale_unavailable, AppToast.LENGTH_SHORT).show();
+            showDisplayScaleUnavailable(display != null ? display.scaleStatusMessage : null);
             return;
         }
 
         final List<Integer> values = display.supportedScalePercents;
+        final Integer current = display.currentScalePercent;
         CharSequence[] labels = new CharSequence[values.size()];
         int checked = -1;
+        int recommendedIndex = -1;
         for (int i = 0; i < values.size(); i++) {
             int value = values.get(i);
-            labels[i] = game.getString(R.string.display_scale_option, value);
-            if (display.currentScalePercent != null && display.currentScalePercent == value) {
+            boolean isCurrent = current != null && current == value;
+            boolean isRecommended = display.recommendedScalePercent != null
+                    && display.recommendedScalePercent == value;
+            String label = game.getString(R.string.display_scale_option, value);
+            if (isCurrent && isRecommended) {
+                label = game.getString(R.string.display_scale_option_current_recommended, value);
+            } else if (isCurrent) {
+                label = game.getString(R.string.display_scale_option_current, value);
+            } else if (isRecommended) {
+                label = game.getString(R.string.display_scale_option_recommended, value);
+            }
+            labels[i] = label;
+            if (isCurrent) {
                 checked = i;
             }
+            if (isRecommended) {
+                recommendedIndex = i;
+            }
         }
-        final int initialChecked = checked >= 0 ? checked : 0;
-        final int[] selectedIndex = {initialChecked};
+        if (checked < 0) {
+            checked = recommendedIndex;
+        }
+        final int[] selectedIndex = {checked};
 
         OverlayAlertDialog.Builder builder = new OverlayAlertDialog.Builder(game);
         builder.setTitle(game.getString(R.string.display_scale_title, getDisplayNickname(display)));
-        builder.setSingleChoiceItems(labels, initialChecked, (dialog, which) -> selectedIndex[0] = which);
+        builder.setSingleChoiceItems(labels, checked, (dialog, which) -> selectedIndex[0] = which);
         builder.setNegativeButton(android.R.string.cancel, null);
         builder.setPositiveButton(R.string.display_scale_apply, (dialog, which) -> {
+            if (selectedIndex[0] < 0 || selectedIndex[0] >= values.size()) {
+                AppToast.makeText(game, R.string.display_scale_select_first, AppToast.LENGTH_SHORT).show();
+                return;
+            }
             int scalePercent = values.get(selectedIndex[0]);
+            if (current != null && current == scalePercent) {
+                AppToast.makeText(game, game.getString(R.string.display_scale_unchanged, scalePercent),
+                        AppToast.LENGTH_SHORT).show();
+                return;
+            }
             AppToast.makeText(game, game.getString(R.string.display_scale_applying, scalePercent), AppToast.LENGTH_SHORT).show();
+            final DisplayScaleSession session = host.getStreamGame() != null
+                    ? host.getStreamGame().getDisplayScaleSession() : null;
+            if (session != null) {
+                // Lets the physical display go back to this value when the stream ends.
+                session.rememberOriginal(display);
+            }
             conn.setDisplayScale(display, scalePercent, (success, result, error) -> {
                 new Handler(Looper.getMainLooper()).post(() -> {
                     if (!canShowSwitchDisplayUi()) {
@@ -1951,18 +2069,65 @@ public class GameMenuFragment extends Fragment {
                     }
                     if (success && result != null) {
                         int applied = result.currentScalePercent != null ? result.currentScalePercent : scalePercent;
-                        int messageRes = result.restartRequired
+                        if (session != null) {
+                            // Remembered for this host + display type; re-applied on next connect.
+                            session.onUserChangedScale(display, scalePercent);
+                        }
+                        int messageRes = result.restartRequired || !result.effectiveImmediately
                                 ? R.string.display_scale_applied_restart
                                 : R.string.display_scale_applied;
                         AppToast.makeText(game, game.getString(messageRes, applied), AppToast.LENGTH_LONG).show();
                     } else {
                         AppToast.makeText(game, error != null && !error.isEmpty()
-                                ? error : game.getString(R.string.display_scale_failed), AppToast.LENGTH_LONG).show();
+                                ? game.getString(R.string.display_scale_failed_reason, error)
+                                : game.getString(R.string.display_scale_failed), AppToast.LENGTH_LONG).show();
                     }
                 });
             });
         });
         builder.show();
+    }
+
+    /** True for displays that exist on the host (not the synthetic "force virtual" entry). */
+    private boolean canOfferDisplayScale(NvHTTP.DisplayInfo info) {
+        return info != null && !"virtual_fallback".equals(info.displayName);
+    }
+
+    private boolean containsDisplay(List<NvHTTP.DisplayInfo> list, NvHTTP.DisplayInfo info) {
+        for (NvHTTP.DisplayInfo existing : list) {
+            if (!isBlank(info.deviceId) && info.deviceId.equalsIgnoreCase(existing.deviceId)) {
+                return true;
+            }
+            if (isBlank(info.deviceId) && !isBlank(info.displayName)
+                    && info.displayName.equalsIgnoreCase(existing.displayName)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean isCurrentStreamDisplay(NvHTTP.DisplayInfo info) {
+        if (game == null || info == null) {
+            return false;
+        }
+        android.content.SharedPreferences prefs = android.preference.PreferenceManager.getDefaultSharedPreferences(game);
+        String currentDisplay = prefs.getString("last_stream_display_name", "");
+        boolean useVdd = prefs.getBoolean("last_stream_display_use_vdd", false);
+        if (!isBlank(currentDisplay)) {
+            return matchesDisplaySelection(info, currentDisplay);
+        }
+        return useVdd && isVirtualDisplayInfo(info);
+    }
+
+    private void sortCurrentDisplayFirst(List<NvHTTP.DisplayInfo> displays) {
+        for (int i = 0; i < displays.size(); i++) {
+            if (isCurrentStreamDisplay(displays.get(i))) {
+                if (i > 0) {
+                    displays.add(0, displays.remove(i));
+                }
+                return;
+            }
+        }
     }
 
     private void showFallbackSwitchDisplayDialog() {

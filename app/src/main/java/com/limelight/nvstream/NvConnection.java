@@ -680,6 +680,25 @@ public class NvConnection {
         return h.getDisplays();
     }
 
+    /**
+     * Blocking: re-queries DPI options for one display, retrying transient host failures.
+     * Must be called off the main thread.
+     */
+    public NvHTTP.DisplayInfo refreshDisplayScaleOptions(NvHTTP.DisplayInfo display, int attempts) throws IOException {
+        NvHTTP h = new NvHTTP(context.serverAddress, context.httpsPort, uniqueId, context.serverCert, cryptoProvider);
+        return h.refreshDisplayScaleOptions(display, attempts);
+    }
+
+    /** Blocking variant of {@link #setDisplayScale}; must be called off the main thread. */
+    public NvHTTP.DisplayScaleResult setDisplayScaleBlocking(NvHTTP.DisplayInfo display, int scalePercent)
+            throws IOException {
+        if (context.isNvidiaServerSoftware) {
+            throw new IOException("Display DPI configuration requires Sunshine");
+        }
+        NvHTTP h = new NvHTTP(context.serverAddress, context.httpsPort, uniqueId, context.serverCert, cryptoProvider);
+        return h.setDisplayScale(display, scalePercent);
+    }
+
     public void setDisplayScale(final NvHTTP.DisplayInfo display, final int scalePercent,
                                 final DisplayScaleCallback callback) {
         AppExecutors.execute(new Runnable() {

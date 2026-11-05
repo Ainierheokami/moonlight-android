@@ -160,6 +160,20 @@
             android:title="@string/title_stream_enhance_display_name"
             android:summary="@string/summary_stream_enhance_display_name"
             android:defaultValue="" />
+        <com.limelight.preferences.SettingsListPreference
+            android:key="list_display_scale_default_virtual"
+            android:title="@string/title_display_scale_default_virtual"
+            android:summary="@string/summary_display_scale_default"
+            android:entries="@array/display_scale_default_names"
+            android:entryValues="@array/display_scale_default_values"
+            android:defaultValue="0" />
+        <com.limelight.preferences.SettingsListPreference
+            android:key="list_display_scale_default_physical"
+            android:title="@string/title_display_scale_default_physical"
+            android:summary="@string/summary_display_scale_default"
+            android:entries="@array/display_scale_default_names"
+            android:entryValues="@array/display_scale_default_values"
+            android:defaultValue="0" />
         <CheckBoxPreference
             android:key="checkbox_stream_enhance_rotation_sync"
             android:title="@string/title_stream_enhance_rotation_sync"

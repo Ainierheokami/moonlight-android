@@ -203,6 +203,8 @@ public class Game extends Activity implements SurfaceHolder.Callback,
     // 新增：内存覆盖变量，隔离竞态条件，保证实时切换显示器时不污染 SharedPreferences 且 100% 成功切换
     private String tempOverrideDisplayName = null;
     private Boolean tempOverrideUseVdd = null;
+    /** Saved-DPI auto-apply and physical-display restore for this host (lazy). */
+    private com.limelight.heokami.DisplayScaleSession displayScaleSession;
     private Boolean tempOverrideForceResume = null;
     private boolean isSwitchingDisplay = false;
     private boolean isSwitchingDisplayForcedRelaunch = false;
@@ -3576,7 +3578,66 @@ public class Game extends Activity implements SurfaceHolder.Callback,
                     conn.stop();
                 }
             });
+            restorePhysicalDisplayScale();
         }
+    }
+
+    /** Null in touch test mode or for GeForce Experience hosts. */
+    public com.limelight.heokami.DisplayScaleSession getDisplayScaleSession() {
+        if (touchTestMode || conn == null || conn.isNvidiaServerSoftware()) {
+            return null;
+        }
+        if (displayScaleSession == null) {
+            displayScaleSession = new com.limelight.heokami.DisplayScaleSession(this,
+                    getIntent().getStringExtra(EXTRA_PC_UUID));
+        }
+        return displayScaleSession;
+    }
+
+    private void startDisplayScaleAutoApply() {
+        final com.limelight.heokami.DisplayScaleSession session = getDisplayScaleSession();
+        final NvConnection activeConn = conn;
+        if (session == null || prefConfig == null) {
+            return;
+        }
+        final boolean virtual = prefConfig.streamEnhanceUseVdd;
+        final String targetDisplay = prefConfig.streamEnhanceDisplayName;
+        AppExecutors.execute(() -> {
+            try {
+                // Give the host a moment to finish (re)creating / configuring the display.
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                return;
+            }
+            if (activeConn != conn || !connected) {
+                return;
+            }
+            session.autoApply(activeConn, virtual, targetDisplay,
+                    new com.limelight.heokami.DisplayScaleSession.Listener() {
+                        @Override
+                        public void onAutoApplied(int percent) {
+                            runOnUiThread(() -> postNotification(
+                                    getString(R.string.display_scale_auto_applied, percent), 2500));
+                        }
+
+                        @Override
+                        public void onAutoApplyFailed(String reason) {
+                            runOnUiThread(() -> postNotification(reason == null || reason.isEmpty()
+                                    ? getString(R.string.display_scale_auto_failed)
+                                    : getString(R.string.display_scale_auto_failed_reason, reason), 3000));
+                        }
+                    });
+        });
+    }
+
+    private void restorePhysicalDisplayScale() {
+        final com.limelight.heokami.DisplayScaleSession session = displayScaleSession;
+        final NvConnection stoppingConn = conn;
+        if (session == null || stoppingConn == null) {
+            return;
+        }
+        // Separate task: this is plain HTTPS to the host and must not delay conn.stop().
+        AppExecutors.execute(() -> session.restorePhysicalDisplays(stoppingConn));
     }
 
     private void startClipboardSyncIfEnabled() {
@@ -4200,6 +4261,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
 
         // Report this shortcut being used (off the main thread to prevent ANRs)
         startClipboardSyncIfEnabled();
+        startDisplayScaleAutoApply();
 
         ComputerDetails computer = new ComputerDetails();
         computer.name = pcName;

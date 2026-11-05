@@ -196,7 +196,17 @@ public final class OverlayAlertDialog implements DialogInterface {
                 view.setGravity(Gravity.CENTER_VERTICAL | Gravity.START);
                 view.setMinHeight(dp(48));
                 view.setPadding(dp(16), 0, dp(16), 0);
-                view.setBackgroundResource(R.drawable.pc_action_button_background);
+                if (builder.singleChoice) {
+                    // simple_list_item_1 has no check mark, so without this the tapped option
+                    // looked identical to the others and the dialog seemed unresponsive.
+                    boolean checked = listView != null && listView.isItemChecked(position);
+                    view.setBackgroundResource(R.drawable.dialog_choice_item_background);
+                    view.setActivated(checked);
+                    view.setTypeface(null, checked ? Typeface.BOLD : Typeface.NORMAL);
+                    view.setTextColor(checked ? Color.WHITE : Color.rgb(220, 230, 241));
+                } else {
+                    view.setBackgroundResource(R.drawable.pc_action_button_background);
+                }
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
                     view.setStateListAnimator(null);
                 }
@@ -207,6 +217,7 @@ public final class OverlayAlertDialog implements DialogInterface {
             listView.setChoiceMode(ListView.CHOICE_MODE_SINGLE);
             if (builder.checkedItem >= 0 && builder.checkedItem < builder.items.length) {
                 listView.setItemChecked(builder.checkedItem, true);
+                listView.setSelection(builder.checkedItem);
             }
         }
         listView.setOnItemClickListener((parent, view, position, id) -> {
@@ -216,6 +227,9 @@ public final class OverlayAlertDialog implements DialogInterface {
             }
             if (!builder.singleChoice) {
                 dismiss();
+            } else {
+                // Rebind visible rows so the bold/white "checked" styling follows the selection.
+                ((ArrayAdapter<?>) parent.getAdapter()).notifyDataSetChanged();
             }
             builder.itemListener.onClick(this, position);
         });
