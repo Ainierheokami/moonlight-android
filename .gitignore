@@ -53,3 +53,6 @@ app/.externalNativeBuild/
 
 # NDK stuff
 .cxx/
+
+# Obsolete build counter (version now uses a timestamp)
+build-seq.properties

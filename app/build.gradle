@@ -1,24 +1,11 @@
 apply plugin: 'com.android.application'
 apply plugin: 'org.jetbrains.kotlin.android'
 
-def shouldIncrementBuildSeq = gradle.startParameter.taskNames.any { taskName ->
-    def name = taskName.toLowerCase()
-    name.contains("assemble") || name.contains("bundle")
-}
-def buildSeqFile = rootProject.file("build-seq.properties")
-def buildSeqProps = new Properties()
-if (buildSeqFile.exists()) {
-    buildSeqFile.withInputStream { buildSeqProps.load(it) }
-}
-def buildDate = new Date().format("yyyyMMdd")
-def previousBuildDate = buildSeqProps.getProperty("buildDate")
-def currentBuildSeq = previousBuildDate == buildDate ? (buildSeqProps.getProperty("buildSeq") ?: "0") as int : 0
-def buildSeq = shouldIncrementBuildSeq ? currentBuildSeq + 1 : currentBuildSeq
-if (shouldIncrementBuildSeq) {
-    buildSeqProps.setProperty("buildDate", buildDate)
-    buildSeqProps.setProperty("buildSeq", buildSeq.toString())
-    buildSeqFile.withOutputStream { buildSeqProps.store(it, "Auto-incremented APK build sequence") }
-}
+// Build stamp: wall-clock time in China Standard Time, e.g. 20261104.1725.
+// The old per-day counter (build-seq.properties) was tracked in git, so CI checkouts and
+// different machines restarted from the committed value and IDE syncs/non-assemble tasks
+// didn't bump it, which made the shown version unreliable. A timestamp needs no state.
+def buildStamp = new Date().format("yyyyMMdd.HHmm", TimeZone.getTimeZone("Asia/Shanghai"))
 
 def gitCommit = "unknown"
 try {
@@ -56,7 +43,7 @@ android {
         targetSdk 34
 
         def baseVersion = "12.1"
-        def customTag = "-heokami-" + buildDate + "(${buildSeq})"
+        def customTag = "-heokami-" + buildStamp
         versionName baseVersion + customTag
         versionCode = 317
         buildConfigField "String", "BUILD_COMMIT", "\"${gitCommit}\""
