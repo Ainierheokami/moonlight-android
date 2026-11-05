@@ -38,6 +38,8 @@ public class PreferenceConfiguration {
     private static final String DISABLE_TOASTS_PREF_STRING = "checkbox_disable_warnings";
     private static final String HOST_AUDIO_PREF_STRING = "checkbox_host_audio";
     private static final String CLIPBOARD_SYNC_TEXT_PREF_STRING = "checkbox_clipboard_sync_text";
+    private static final String IDLE_DISCONNECT_MINUTES_PREF_STRING = "list_idle_disconnect_minutes";
+    private static final String IDLE_DISCONNECT_QUIT_APP_PREF_STRING = "checkbox_idle_disconnect_quit_app";
     private static final String CLIPBOARD_SYNC_IMAGE_PREF_STRING = "checkbox_clipboard_sync_image";
     private static final String DEADZONE_PREF_STRING = "seekbar_deadzone";
     private static final String OSC_OPACITY_PREF_STRING = "seekbar_osc_opacity";
@@ -195,6 +197,9 @@ public class PreferenceConfiguration {
     public int oscOpacity;
     public boolean stretchVideo, enableSops, playHostAudio, disableWarnings, centerVideo;
     public boolean enableClipboardSyncText, enableClipboardSyncImage;
+    /** 0 = disabled. */
+    public int idleDisconnectMinutes;
+    public boolean idleDisconnectQuitApp;
     public String language;
     public boolean smallIconMode, multiController, usbDriver, flipFaceButtons;
     public boolean onscreenController;
@@ -721,6 +726,8 @@ public class PreferenceConfiguration {
         config.centerVideo = prefs.getBoolean(CENTER_PREF_STRING, DEFAULT_CENTER);
         config.playHostAudio = prefs.getBoolean(HOST_AUDIO_PREF_STRING, DEFAULT_HOST_AUDIO);
         config.enableClipboardSyncText = prefs.getBoolean(CLIPBOARD_SYNC_TEXT_PREF_STRING, DEFAULT_CLIPBOARD_SYNC_TEXT);
+        config.idleDisconnectMinutes = Math.max(0, parseIntPref(prefs, IDLE_DISCONNECT_MINUTES_PREF_STRING, "0"));
+        config.idleDisconnectQuitApp = prefs.getBoolean(IDLE_DISCONNECT_QUIT_APP_PREF_STRING, false);
         config.enableClipboardSyncImage = prefs.getBoolean(CLIPBOARD_SYNC_IMAGE_PREF_STRING, DEFAULT_CLIPBOARD_SYNC_IMAGE);
         config.smallIconMode = prefs.getBoolean(SMALL_ICONS_PREF_STRING, getDefaultSmallMode(context));
         config.multiController = prefs.getBoolean(MULTI_CONTROLLER_PREF_STRING, DEFAULT_MULTI_CONTROLLER);

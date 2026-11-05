@@ -130,6 +130,18 @@
             android:title="@string/title_force_resume_current_session"
             android:summary="@string/summary_force_resume_current_session"
             android:defaultValue="false" />
+        <com.limelight.preferences.SettingsListPreference
+            android:key="list_idle_disconnect_minutes"
+            android:title="@string/title_idle_disconnect"
+            android:summary="@string/summary_idle_disconnect"
+            android:entries="@array/idle_disconnect_names"
+            android:entryValues="@array/idle_disconnect_values"
+            android:defaultValue="0" />
+        <CheckBoxPreference
+            android:key="checkbox_idle_disconnect_quit_app"
+            android:title="@string/title_idle_disconnect_quit_app"
+            android:summary="@string/summary_idle_disconnect_quit_app"
+            android:defaultValue="false" />
     </PreferenceCategory>
 
     <PreferenceCategory

@@ -203,6 +203,11 @@ public class Game extends Activity implements SurfaceHolder.Callback,
     // 新增：内存覆盖变量，隔离竞态条件，保证实时切换显示器时不污染 SharedPreferences 且 100% 成功切换
     private String tempOverrideDisplayName = null;
     private Boolean tempOverrideUseVdd = null;
+    /** Ends the stream after a period without input (null when disabled). */
+    private com.limelight.heokami.IdleDisconnectMonitor idleDisconnectMonitor;
+    private com.limelight.utils.OverlayAlertDialog idleWarningDialog;
+    private TextView idleWarningText;
+
     /** Saved-DPI auto-apply and physical-display restore for this host (lazy). */
     private com.limelight.heokami.DisplayScaleSession displayScaleSession;
     private Boolean tempOverrideForceResume = null;
@@ -1558,6 +1563,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
 
     @Override
     protected void onDestroy() {
+        stopIdleDisconnectMonitor();
         if (touchTestPanel != null) {
             touchTestPanel.dismiss();
             touchTestPanel = null;
@@ -2019,6 +2025,115 @@ public class Game extends Activity implements SurfaceHolder.Callback,
 
     private byte getModifierState() {
         return (byte) modifierFlags;
+    }
+
+    @Override
+    public boolean dispatchKeyEvent(KeyEvent event) {
+        // Covers keys handled locally (menu, back...) that never reach the host.
+        markIdleActivity();
+        return super.dispatchKeyEvent(event);
+    }
+
+    private void markIdleActivity() {
+        com.limelight.heokami.IdleDisconnectMonitor monitor = idleDisconnectMonitor;
+        if (monitor != null) {
+            monitor.markActivity();
+        }
+    }
+
+    private void startIdleDisconnectMonitor() {
+        stopIdleDisconnectMonitor();
+        if (touchTestMode || prefConfig == null || prefConfig.idleDisconnectMinutes <= 0) {
+            return;
+        }
+        idleDisconnectMonitor = new com.limelight.heokami.IdleDisconnectMonitor(
+                prefConfig.idleDisconnectMinutes * 60_000L,
+                new com.limelight.heokami.IdleDisconnectMonitor.Callback() {
+                    @Override
+                    public long lastExternalInputUptimeMs() {
+                        NvConnection c = conn;
+                        return c != null ? c.getLastUserInputUptimeMs() : 0;
+                    }
+
+                    @Override
+                    public boolean shouldCountIdle() {
+                        return connected && !isBackgroundSuspended && !isFinishing();
+                    }
+
+                    @Override
+                    public void onIdleWarning(int secondsLeft) {
+                        showIdleWarning(secondsLeft);
+                    }
+
+                    @Override
+                    public void onIdleWarningCancelled() {
+                        dismissIdleWarning();
+                    }
+
+                    @Override
+                    public void onIdleTimeout() {
+                        disconnectForIdle();
+                    }
+                });
+        idleDisconnectMonitor.start();
+    }
+
+    private void stopIdleDisconnectMonitor() {
+        if (idleDisconnectMonitor != null) {
+            idleDisconnectMonitor.stop();
+            idleDisconnectMonitor = null;
+        }
+        dismissIdleWarning();
+    }
+
+    private void showIdleWarning(int secondsLeft) {
+        String message = getString(R.string.idle_disconnect_warning_message, secondsLeft);
+        if (idleWarningDialog != null && idleWarningDialog.isShowing()) {
+            if (idleWarningText != null) {
+                idleWarningText.setText(message);
+            }
+            return;
+        }
+        // A custom view so the countdown text can be updated every second.
+        idleWarningText = new TextView(this);
+        idleWarningText.setText(message);
+        idleWarningText.setTextColor(0xFFB8C4D2);
+        idleWarningText.setTextSize(15);
+        idleWarningDialog = new com.limelight.utils.OverlayAlertDialog.Builder(this)
+                .setTitle(R.string.idle_disconnect_warning_title)
+                .setView(idleWarningText)
+                .setNegativeButton(R.string.idle_disconnect_now, (dialog, which) -> disconnectForIdle())
+                .setPositiveButton(R.string.idle_disconnect_keep_streaming, (dialog, which) -> markIdleActivity())
+                .setOnCancelListener(dialog -> markIdleActivity())
+                .create();
+        idleWarningDialog.show();
+    }
+
+    private void dismissIdleWarning() {
+        com.limelight.utils.OverlayAlertDialog dialog = idleWarningDialog;
+        idleWarningDialog = null;
+        idleWarningText = null;
+        if (dialog != null && dialog.isShowing()) {
+            dialog.dismiss();
+        }
+    }
+
+    private void disconnectForIdle() {
+        if (isFinishing()) {
+            return;
+        }
+        boolean quitApp = prefConfig != null && prefConfig.idleDisconnectQuitApp;
+        LimeLog.info("Idle disconnect after " + (prefConfig != null ? prefConfig.idleDisconnectMinutes : 0)
+                + " min without input (quitApp=" + quitApp + ")");
+        stopIdleDisconnectMonitor();
+        // Application toast: it must still be visible after this activity finishes.
+        android.widget.Toast.makeText(getApplicationContext(), R.string.idle_disconnect_done,
+                android.widget.Toast.LENGTH_LONG).show();
+        if (quitApp) {
+            quitAndDisconnect();
+        } else {
+            finish();
+        }
     }
 
     @Override
@@ -2978,6 +3093,11 @@ public class Game extends Activity implements SurfaceHolder.Callback,
 
     @Override
     public boolean dispatchTouchEvent(MotionEvent event) {
+        // While the idle countdown is up, let its buttons decide; otherwise the finger-down
+        // would dismiss it before "Disconnect now" can be tapped.
+        if (idleWarningDialog == null) {
+            markIdleActivity();
+        }
         if (touchTestMode) {
             logTouchEvent(event);
         }
@@ -3553,6 +3673,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
 
     private void stopConnection() {
         disconnectHandler.removeCallbacks(delayedSuspendRunnable);
+        stopIdleDisconnectMonitor();
         stopClipboardSync();
         if (connecting || connected) {
             captureLastFrameForComputer();
@@ -4235,6 +4356,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
                 updatePipAutoEnter();
                 startScreenshotPrecache();
                 setupStreamRotationSync();
+                startIdleDisconnectMonitor();
 
                 // Hide the mouse cursor now after a short delay.
                 // Doing it before dismissing the spinner seems to be undone

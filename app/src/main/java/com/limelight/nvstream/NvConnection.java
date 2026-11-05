@@ -776,8 +776,20 @@ public class NvConnection {
         });
     }
     
+    /** Uptime of the last user input forwarded to the host (for idle disconnect). */
+    private volatile long lastUserInputUptimeMs = android.os.SystemClock.uptimeMillis();
+
+    private void markUserInput() {
+        lastUserInputUptimeMs = android.os.SystemClock.uptimeMillis();
+    }
+
+    public long getLastUserInputUptimeMs() {
+        return lastUserInputUptimeMs;
+    }
+
     public void sendMouseMove(final short deltaX, final short deltaY)
     {
+        markUserInput();
         if (!isMonkey) {
             MoonBridge.sendMouseMove(deltaX, deltaY);
         }
@@ -785,6 +797,7 @@ public class NvConnection {
 
     public void sendMousePosition(short x, short y, short referenceWidth, short referenceHeight)
     {
+        markUserInput();
         if (!isMonkey) {
             MoonBridge.sendMousePosition(x, y, referenceWidth, referenceHeight);
         }
@@ -792,6 +805,7 @@ public class NvConnection {
 
     public void sendMouseMoveAsMousePosition(short deltaX, short deltaY, short referenceWidth, short referenceHeight)
     {
+        markUserInput();
         if (!isMonkey) {
             MoonBridge.sendMouseMoveAsMousePosition(deltaX, deltaY, referenceWidth, referenceHeight);
         }
@@ -799,6 +813,7 @@ public class NvConnection {
 
     public void sendMouseButtonDown(final byte mouseButton)
     {
+        markUserInput();
         if (!isMonkey) {
             MoonBridge.sendMouseButton(MouseButtonPacket.PRESS_EVENT, mouseButton);
         }
@@ -806,6 +821,7 @@ public class NvConnection {
     
     public void sendMouseButtonUp(final byte mouseButton)
     {
+        markUserInput();
         if (!isMonkey) {
             MoonBridge.sendMouseButton(MouseButtonPacket.RELEASE_EVENT, mouseButton);
         }
@@ -817,6 +833,7 @@ public class NvConnection {
             final short leftStickX, final short leftStickY,
             final short rightStickX, final short rightStickY)
     {
+        markUserInput();
         if (!isMonkey) {
             MoonBridge.sendMultiControllerInput(controllerNumber, activeGamepadMask, buttonFlags,
                     leftTrigger, rightTrigger, leftStickX, leftStickY, rightStickX, rightStickY);
@@ -824,30 +841,35 @@ public class NvConnection {
     }
 
     public void sendKeyboardInput(final short keyMap, final byte keyDirection, final byte modifier, final byte flags) {
+        markUserInput();
         if (!isMonkey) {
             MoonBridge.sendKeyboardInput(keyMap, keyDirection, modifier, flags);
         }
     }
     
     public void sendMouseScroll(final byte scrollClicks) {
+        markUserInput();
         if (!isMonkey) {
             MoonBridge.sendMouseHighResScroll((short)(scrollClicks * 120)); // WHEEL_DELTA
         }
     }
 
     public void sendMouseHScroll(final byte scrollClicks) {
+        markUserInput();
         if (!isMonkey) {
             MoonBridge.sendMouseHighResHScroll((short)(scrollClicks * 120)); // WHEEL_DELTA
         }
     }
 
     public void sendMouseHighResScroll(final short scrollAmount) {
+        markUserInput();
         if (!isMonkey) {
             MoonBridge.sendMouseHighResScroll(scrollAmount);
         }
     }
 
     public void sendMouseHighResHScroll(final short scrollAmount) {
+        markUserInput();
         if (!isMonkey) {
             MoonBridge.sendMouseHighResHScroll(scrollAmount);
         }
@@ -855,6 +877,7 @@ public class NvConnection {
 
     public int sendTouchEvent(byte eventType, int pointerId, float x, float y, float pressureOrDistance,
                               float contactAreaMajor, float contactAreaMinor, short rotation) {
+        markUserInput();
         if (!isMonkey) {
             return MoonBridge.sendTouchEvent(eventType, pointerId, x, y, pressureOrDistance,
                     contactAreaMajor, contactAreaMinor, rotation);
@@ -867,6 +890,7 @@ public class NvConnection {
     public int sendPenEvent(byte eventType, byte toolType, byte penButtons, float x, float y,
                             float pressureOrDistance, float contactAreaMajor, float contactAreaMinor,
                             short rotation, byte tilt) {
+        markUserInput();
         if (!isMonkey) {
             return MoonBridge.sendPenEvent(eventType, toolType, penButtons, x, y, pressureOrDistance,
                     contactAreaMajor, contactAreaMinor, rotation, tilt);
@@ -883,6 +907,7 @@ public class NvConnection {
 
     public int sendControllerTouchEvent(byte controllerNumber, byte eventType, int pointerId,
                                         float x, float y, float pressure) {
+        markUserInput();
         if (!isMonkey) {
             return MoonBridge.sendControllerTouchEvent(controllerNumber, eventType, pointerId, x, y, pressure);
         }

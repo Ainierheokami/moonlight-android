@@ -1015,4 +1015,20 @@
     <string name="touch_test_cat_info">Info</string>
     <string name="title_checkbox_absolute_long_press_right_click">长按右键（鼠标模式）</string>
     <string name="summary_checkbox_absolute_long_press_right_click">鼠标模式下长按变为右键。关闭时长按保持左键按下（可拖动），右键改为双指轻点</string>
+    <string name="title_idle_disconnect">Disconnect when idle</string>
+    <string name="summary_idle_disconnect">End the stream after no input for this long (e.g. if you fall asleep). A countdown appears first; any input cancels it.</string>
+    <string name="idle_disconnect_off">Off</string>
+    <string name="idle_disconnect_15">15 minutes</string>
+    <string name="idle_disconnect_30">30 minutes</string>
+    <string name="idle_disconnect_60">1 hour</string>
+    <string name="idle_disconnect_90">1.5 hours</string>
+    <string name="idle_disconnect_120">2 hours</string>
+    <string name="idle_disconnect_180">3 hours</string>
+    <string name="title_idle_disconnect_quit_app">Also quit the app on the host</string>
+    <string name="summary_idle_disconnect_quit_app">When disconnecting for inactivity, also close the running game/app on the PC</string>
+    <string name="idle_disconnect_warning_title">Still there?</string>
+    <string name="idle_disconnect_warning_message">No input for a while. The stream will disconnect in %1$d seconds.</string>
+    <string name="idle_disconnect_keep_streaming">Keep streaming</string>
+    <string name="idle_disconnect_now">Disconnect now</string>
+    <string name="idle_disconnect_done">Disconnected because the stream was idle</string>
 </resources>

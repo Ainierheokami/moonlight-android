@@ -987,4 +987,20 @@
     <string name="touch_test_cat_info">信息</string>
     <string name="title_checkbox_absolute_long_press_right_click">长按右键（鼠标模式）</string>
     <string name="summary_checkbox_absolute_long_press_right_click">鼠标模式下长按变为右键。关闭时长按保持左键按下（可拖动），右键改为双指轻点</string>
+    <string name="title_idle_disconnect">闲置自动断开</string>
+    <string name="summary_idle_disconnect">一段时间没有任何输入（比如串流时睡着了）就断开串流。断开前会先倒计时提醒，期间有任何操作都会取消。</string>
+    <string name="idle_disconnect_off">关闭</string>
+    <string name="idle_disconnect_15">15 分钟</string>
+    <string name="idle_disconnect_30">30 分钟</string>
+    <string name="idle_disconnect_60">1 小时</string>
+    <string name="idle_disconnect_90">1.5 小时</string>
+    <string name="idle_disconnect_120">2 小时</string>
+    <string name="idle_disconnect_180">3 小时</string>
+    <string name="title_idle_disconnect_quit_app">同时退出主机上的应用</string>
+    <string name="summary_idle_disconnect_quit_app">因闲置断开时，顺便关掉电脑上正在运行的游戏/应用</string>
+    <string name="idle_disconnect_warning_title">还在吗？</string>
+    <string name="idle_disconnect_warning_message">已经有一段时间没有操作了，%1$d 秒后将断开串流。</string>
+    <string name="idle_disconnect_keep_streaming">继续串流</string>
+    <string name="idle_disconnect_now">立即断开</string>
+    <string name="idle_disconnect_done">串流闲置时间过长，已自动断开</string>
 </resources>

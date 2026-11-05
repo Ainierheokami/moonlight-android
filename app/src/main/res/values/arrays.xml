@@ -132,6 +132,24 @@
         <item>left</item>
     </string-array>
 
+    <string-array name="idle_disconnect_names">
+        <item>@string/idle_disconnect_off</item>
+        <item>@string/idle_disconnect_15</item>
+        <item>@string/idle_disconnect_30</item>
+        <item>@string/idle_disconnect_60</item>
+        <item>@string/idle_disconnect_90</item>
+        <item>@string/idle_disconnect_120</item>
+        <item>@string/idle_disconnect_180</item>
+    </string-array>
+    <string-array name="idle_disconnect_values" translatable="false">
+        <item>0</item>
+        <item>15</item>
+        <item>30</item>
+        <item>60</item>
+        <item>90</item>
+        <item>120</item>
+        <item>180</item>
+    </string-array>
     <string-array name="display_scale_default_names">
         <item>@string/display_scale_auto_off</item>
         <item>100%</item>
